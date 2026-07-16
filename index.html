@@ -6,7 +6,7 @@
     <title>ACE-Control | Gestión de Agente Capacitador Externo</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
@@ -18,628 +18,209 @@
 
     <!-- Pantalla de Login -->
     <div id="view-login" class="flex min-h-screen items-center justify-center bg-[#0d2127] bg-gradient-to-br from-[#0d2127] via-[#163b3f] to-[#0a1a1d] px-4">
-
-        <!-- Contenedor con Ilustración e Interfaz -->
         <div class="flex max-w-4xl w-full items-center justify-center lg:justify-between space-x-12">
-
-            <!-- Lado Izquierdo: Ilustración (Solo visible en pantallas grandes) -->
             <div class="hidden lg:block w-1/2 text-cyan-400">
-                <div class="relative">
-                    <!-- Simulación de la ilustración con Iconos -->
-                    <div class="absolute -top-20 -left-10 opacity-20 blur-3xl w-64 h-64 bg-cyan-500 rounded-full"></div>
-                    <div class="relative z-10 space-y-4">
-                        <i data-lucide="shield-check" class="w-48 h-48 drop-shadow-[0_0_15px_rgba(34,211,238,0.5)]"></i>
-                        <div class="mt-8 space-y-2">
-                            <h3 class="text-2xl font-bold text-white">Seguridad Certificada</h3>
-                            <p class="text-cyan-100/60 text-sm max-w-xs">Plataforma blindada para la gestión de Agentes Capacitadores Externos y cumplimiento STPS.</p>
-                        </div>
-                    </div>
-                    <!-- Elementos flotantes -->
-                    <div class="absolute top-10 right-20 animate-bounce transition-all">
-                        <i data-lucide="key" class="w-12 h-12 text-blue-400 rotate-45"></i>
-                    </div>
-                </div>
+                <i data-lucide="shield-check" class="w-48 h-48 drop-shadow-[0_0_15px_rgba(34,211,238,0.5)]"></i>
+                <h3 class="text-2xl font-bold text-white mt-4">Seguridad Certificada</h3>
+                <p class="text-cyan-100/60 text-sm">Gestión blindada de Agentes y DC-3.</p>
             </div>
-
-            <!-- Lado Derecho: Tarjeta de Login -->
-            <div class="w-full max-w-[380px] bg-white rounded-[2rem] p-10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/10">
+            <div class="w-full max-w-[380px] bg-white rounded-[2rem] p-10 shadow-2xl">
                 <div class="text-center mb-8">
-                    <!-- Logo Hexagonal Estilizado -->
-                    <div class="relative mx-auto w-16 h-16 flex items-center justify-center">
-                        <div class="absolute inset-0 bg-blue-600 rotate-45 rounded-xl opacity-10"></div>
-                        <div class="relative z-10">
-                            <svg class="w-12 h-12" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M50 5L90 27.5V72.5L50 95L10 72.5V27.5L50 5Z" stroke="#2563eb" stroke-width="8" />
-                                <path d="M50 25L70 36.5V63.5L50 75L30 63.5V36.5L50 25Z" fill="#f97316" />
-                            </svg>
-                        </div>
-                    </div>
-                    <h2 class="mt-4 text-2xl font-black tracking-tight text-slate-800 uppercase">ACE-CONTROL</h2>
+                    <h2 class="text-2xl font-black text-slate-800 uppercase italic">ACE-CONTROL</h2>
                 </div>
-
                 <form class="space-y-5" onsubmit="login(event)">
-                    <div class="space-y-4">
-                        <div class="group">
-                            <input id="email" name="email" type="email" required
-                                class="w-full bg-slate-50 rounded-xl border-none px-4 py-3.5 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-blue-500/20 transition-all outline-none"
-                                placeholder="Email">
-                        </div>
-                        <div class="relative group">
-                            <input id="password" name="password" type="password" required
-                                class="w-full bg-slate-50 rounded-xl border-none px-4 py-3.5 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-blue-500/20 transition-all outline-none"
-                                placeholder="Password">
-                            <button type="button" onclick="togglePassword()" class="absolute right-4 top-3.5 text-slate-300 hover:text-slate-500">
-                                <i id="password-icon" class="fa-solid fa-lock"></i>
-                            </button>
-                        </div>
+                    <input id="email" type="email" required class="w-full bg-slate-50 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500" placeholder="Email">
+                    <div class="relative">
+                        <input id="password" type="password" required class="w-full bg-slate-50 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500" placeholder="Password">
+                        <button type="button" onclick="togglePassword()" class="absolute right-4 top-3.5 text-slate-400"><i id="password-icon" class="fa-solid fa-eye"></i></button>
                     </div>
-
-                    <div class="flex items-center justify-between px-1">
-                        <div class="flex items-center">
-                            <input id="remember-me" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
-                            <label for="remember-me" class="ml-2 text-xs font-semibold text-slate-500 cursor-pointer hover:text-slate-700">Recordarme?</label>
-                        </div>
-                        <a href="#" class="text-xs font-semibold text-slate-500 hover:text-blue-600 transition-colors">¿Olvidó su contraseña?</a>
-                    </div>
-
-                    <button type="submit" class="w-full bg-[#3b5998] hover:bg-[#2d4373] text-white py-3.5 rounded-xl font-bold text-sm shadow-lg shadow-blue-900/20 transition-all transform active:scale-[0.98]">
-                        Entrar
-                    </button>
-
-                    <div class="text-center pt-2">
-                        <a href="#" class="text-xs font-bold text-blue-700 hover:underline">Acceder en modo seguro</a>
-                    </div>
+                    <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-all">Entrar</button>
                 </form>
-                <p id="login-error" class="text-red-500 text-[10px] mt-4 text-center font-bold uppercase tracking-widest hidden">Credenciales Incorrectas</p>
             </div>
         </div>
     </div>
 
-    <!-- Contenedor Principal de la App -->
+    <!-- App Container -->
     <div id="app-container" class="hidden flex h-screen overflow-hidden">
-
-        <!-- Sidebar -->
-        <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col justify-between">
+        <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col justify-between shrink-0">
             <div>
                 <div class="h-16 flex items-center px-6 border-b border-slate-800 space-x-2">
-                    <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white font-bold">
-                        A
-                    </div>
-                    <span class="text-lg font-bold text-white tracking-wider">ACE-CONTROL</span>
+                    <div class="h-8 w-8 bg-blue-600 rounded flex items-center justify-center text-white font-bold">A</div>
+                    <span class="font-bold text-white tracking-wider">ACE-CONTROL</span>
                 </div>
-
                 <nav class="mt-6 px-4 space-y-1">
-                    <button onclick="switchView('dashboard')" id="btn-dashboard" class="nav-btn active flex items-center space-x-3 w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
-                        <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
-                        <span>Dashboard</span>
-                    </button>
-                    <button onclick="switchView('workers')" id="btn-workers" class="nav-btn flex items-center space-x-3 w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-slate-800 hover:text-white">
-                        <i data-lucide="file-text" class="w-5 h-5"></i>
-                        <span>Personal (Excel)</span>
-                    </button>
-                    <button onclick="switchView('courses')" id="btn-courses" class="nav-btn flex items-center space-x-3 w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-slate-800 hover:text-white">
-                        <i data-lucide="book-open" class="w-5 h-5"></i>
-                        <span>Cursos</span>
-                    </button>
-                    <button onclick="switchView('agents')" id="btn-agents" class="nav-btn flex items-center space-x-3 w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-slate-800 hover:text-white">
-                        <i data-lucide="award" class="w-5 h-5"></i>
-                        <span>Agentes Cap.</span>
-                    </button>
-                    <button onclick="switchView('dc3')" id="btn-dc3" class="nav-btn flex items-center space-x-3 w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-slate-800 hover:text-white">
-                        <i data-lucide="file-check" class="w-5 h-5"></i>
-                        <span>DC-3 Generados</span>
-                    </button>
-                    <button onclick="switchView('users')" id="btn-users" class="nav-btn hidden flex items-center space-x-3 w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-slate-800 hover:text-white">
-                        <i data-lucide="users" class="w-5 h-5"></i>
-                        <span>Usuarios</span>
-                    </button>
+                    <button onclick="switchView('dashboard')" id="btn-dashboard" class="nav-btn w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm transition-colors"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></button>
+                    <button onclick="switchView('workers')" id="btn-workers" class="nav-btn w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm transition-colors"><i data-lucide="file-text"></i><span>Personal (Excel)</span></button>
+                    <button onclick="switchView('courses')" id="btn-courses" class="nav-btn w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm transition-colors"><i data-lucide="book-open"></i><span>Cursos</span></button>
+                    <button onclick="switchView('agents')" id="btn-agents" class="nav-btn w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm transition-colors"><i data-lucide="award"></i><span>Agentes Cap.</span></button>
+                    <button onclick="switchView('dc3')" id="btn-dc3" class="nav-btn w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm transition-colors"><i data-lucide="file-check"></i><span>DC-3 Generados</span></button>
+                    <button onclick="switchView('users')" id="btn-users" class="nav-btn hidden w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm transition-colors"><i data-lucide="users"></i><span>Usuarios</span></button>
                 </nav>
             </div>
-
-            <div class="p-4 border-t border-slate-800">
-                <button onclick="logout()" class="flex items-center space-x-3 w-full px-4 py-2.5 rounded-lg text-sm font-medium text-red-400 hover:bg-red-950 hover:text-red-300 transition-colors">
-                    <i data-lucide="log-out" class="w-5 h-5"></i>
-                    <span>Cerrar Sesión</span>
-                </button>
-            </div>
+            <div class="p-4 border-t border-slate-800"><button onclick="logout()" class="w-full flex items-center space-x-3 px-4 py-2.5 text-red-400 hover:bg-red-900 rounded-lg"><i data-lucide="log-out"></i><span>Cerrar Sesión</span></button></div>
         </aside>
 
-        <!-- Main Content -->
         <main class="flex-1 flex flex-col overflow-hidden">
-
-            <header class="bg-white shadow-sm p-4 flex justify-between items-center text-sm shrink-0">
+            <header class="h-16 bg-white border-b flex items-center justify-between px-8 shrink-0">
                 <div class="flex items-center space-x-4">
-                    <h1 id="page-title" class="text-xl font-bold text-slate-800">Dashboard</h1>
-                    <div id="admin-filter-container" class="hidden">
-                        <select id="user-filter" onchange="refreshCurrentView()" class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                            <option value="ALL">Todos los Agentes</option>
-                        </select>
-                    </div>
+                    <h1 id="page-title" class="text-xl font-bold">Dashboard</h1>
+                    <select id="user-filter" onchange="refreshCurrentView()" class="hidden text-sm border rounded-lg px-3 py-1.5 bg-slate-50"><option value="ALL">Todos los Agentes</option></select>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <button id="sync-btn" onclick="syncInitialData()" class="hidden bg-amber-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-amber-600 transition-colors flex items-center space-x-1">
-                        <i data-lucide="refresh-cw" class="w-3 h-3"></i><span>Sincronizar Cynthia</span>
-                    </button>
-                    <div class="text-right">
-                        <p id="user-name-display" class="text-sm font-semibold text-slate-800">Usuario</p>
-                        <p id="user-role-display" class="text-xs text-slate-500">Rol</p>
-                    </div>
-                    <div id="user-initials" class="h-10 w-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-semibold uppercase">
-                        ??
-                    </div>
+                    <button id="sync-btn" onclick="syncInitialData()" class="hidden bg-amber-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-amber-600">Sincronizar Cynthia</button>
+                    <div class="text-right leading-tight"><p id="user-name-display" class="font-bold text-slate-800">Cargando...</p><p id="user-role-display" class="text-xs text-slate-500"></p></div>
+                    <div id="user-initials" class="h-10 w-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">??</div>
                 </div>
             </header>
 
             <div class="flex-1 overflow-y-auto p-8">
-
-                <!-- Vista Dashboard -->
+                <!-- Seccion Dinamica -->
                 <div id="view-dashboard" class="space-y-6">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-                            <div>
-                                <p class="text-sm font-medium text-slate-500">Personal Registrado</p>
-                                <p id="stat-workers" class="text-2xl font-bold text-slate-900 mt-1">0</p>
-                            </div>
-                            <div class="p-3 bg-blue-50 text-blue-600 rounded-lg"><i data-lucide="users-2"></i></div>
-                        </div>
-                        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-                            <div>
-                                <p class="text-sm font-medium text-slate-500">Cursos en Catálogo</p>
-                                <p id="stat-courses" class="text-2xl font-bold text-slate-900 mt-1">0</p>
-                            </div>
-                            <div class="p-3 bg-emerald-50 text-emerald-600 rounded-lg"><i data-lucide="book-open"></i></div>
-                        </div>
-                        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-                            <div>
-                                <p class="text-sm font-medium text-slate-500">DC-3 Generados</p>
-                                <p id="stat-dc3" class="text-2xl font-bold text-slate-900 mt-1">0</p>
-                            </div>
-                            <div class="p-3 bg-violet-50 text-violet-600 rounded-lg"><i data-lucide="file-check"></i></div>
-                        </div>
+                        <div class="bg-white p-6 rounded-xl border shadow-sm flex items-center justify-between"><div><p class="text-sm text-slate-500">Personal</p><p id="stat-workers" class="text-2xl font-bold">0</p></div><i data-lucide="users-2" class="text-blue-500"></i></div>
+                        <div class="bg-white p-6 rounded-xl border shadow-sm flex items-center justify-between"><div><p class="text-sm text-slate-500">Cursos</p><p id="stat-courses" class="text-2xl font-bold">0</p></div><i data-lucide="book-open" class="text-emerald-500"></i></div>
+                        <div class="bg-white p-6 rounded-xl border shadow-sm flex items-center justify-between"><div><p class="text-sm text-slate-500">DC-3</p><p id="stat-dc3" class="text-2xl font-bold">0</p></div><i data-lucide="file-check" class="text-violet-500"></i></div>
                     </div>
-
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                            <h3 class="font-bold text-slate-800 text-lg mb-4">DC-3 Generados por Mes</h3>
-                            <canvas id="dc3Chart" height="200"></canvas>
-                        </div>
-                        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                            <div class="px-6 py-4 border-b border-slate-200">
-                                <h3 class="font-bold text-slate-800 text-lg">Resumen de Actividad</h3>
-                            </div>
-                            <div class="p-6">
-                                <p class="text-slate-500">Bienvenido al panel central de ACE-Control. Selecciona una opción del menú lateral para gestionar tu información.</p>
-                                <p class="text-sm text-slate-400 mt-4 italic">Las gráficas se actualizan automáticamente según el filtro de agentes seleccionado.</p>
-                            </div>
-                        </div>
-                    </div>
+                    <div class="bg-white p-6 rounded-xl border"><h3 class="font-bold mb-4 italic">Bienvenido, Dario. Gestión de Capacitación en tiempo real.</h3></div>
                 </div>
 
-                <!-- Contenedor General para Tablas -->
                 <div id="view-content" class="hidden space-y-6">
                     <div class="flex justify-between items-center">
-                        <p id="view-description" class="text-slate-500 text-sm">Descripción de la sección.</p>
-                        <button id="add-btn" onclick="openModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors flex items-center space-x-2">
-                            <i data-lucide="plus" class="w-4 h-4"></i><span>Agregar Nuevo</span>
-                        </button>
-                    </div>
-
-                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse">
-                                <thead id="table-header" class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold">
-                                    <!-- Dinámico -->
-                                </thead>
-                                <tbody id="table-body" class="divide-y divide-slate-100 text-sm">
-                                    <!-- Dinámico -->
-                                </tbody>
-                            </table>
+                        <p id="view-description" class="text-slate-500 text-sm"></p>
+                        <div class="flex space-x-2">
+                            <input type="file" id="excel-input" class="hidden" accept=".xlsx, .xls" onchange="handleExcel(this)">
+                            <button id="upload-btn" onclick="document.getElementById('excel-input').click()" class="hidden bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-bold"><i class="fa-solid fa-file-excel mr-2"></i>Cargar Excel</button>
+                            <button id="gen-dc3-btn" class="hidden bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold">Generar DC-3 Masivos</button>
+                            <button id="add-btn" onclick="openModal()" class="hidden bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold">+ Agregar</button>
                         </div>
                     </div>
+                    <div class="bg-white rounded-xl border overflow-hidden">
+                        <table class="w-full text-left border-collapse">
+                            <thead id="table-header" class="bg-slate-50 text-xs uppercase text-slate-500"></thead>
+                            <tbody id="table-body" class="divide-y text-sm"></tbody>
+                        </table>
+                    </div>
                 </div>
-
             </div>
         </main>
     </div>
 
-    <!-- Modal Dinámico -->
-    <div id="modal" class="modal">
-        <div class="modal-content shadow-2xl border border-slate-200">
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="text-xl font-bold text-slate-800" id="modal-title text-xl">Acción</h3>
-                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x"></i></button>
-            </div>
-            <div id="modal-fields" class="space-y-4">
-                <!-- Dinámico -->
-            </div>
-            <div class="mt-8 flex justify-end space-x-3">
-                <button onclick="closeModal()" class="px-5 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">Cancelar</button>
-                <button onclick="saveItem()" class="px-5 py-2 text-sm font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-md shadow-blue-200 transition-colors">Guardar Cambios</button>
-            </div>
-        </div>
-    </div>
+    <!-- Modal -->
+    <div id="modal" class="modal"><div class="modal-content"><h3 id="modal-title" class="text-xl font-bold mb-6">Acción</h3><div id="modal-fields" class="space-y-4"></div><div class="mt-8 flex justify-end space-x-3"><button onclick="closeModal()">Cancelar</button><button onclick="saveItem()" class="bg-blue-600 text-white px-4 py-2 rounded">Guardar</button></div></div></div>
 
     <script>
         const ATLAS_URL = "https://data.mongodb-api.com/app/data-jshze/endpoint/data/v1/action";
         const API_KEY = "al-b14XHfG6V17yJMOy1lmUWm9vCbuLZG1-Ot7Mp0YAMhH";
         const DB_CONFIG = { dataSource: "acecontrol", database: "DC3_Database" };
+        let currentUser = null, currentView = 'dashboard', editingItemId = null;
 
-        let currentUser = null;
-        let currentView = 'dashboard';
-        let editingItemId = null;
-        let dc3Chart = null;
-
-        // Inicialización
-        window.onload = function() {
-            lucide.createIcons();
-            const rememberedEmail = localStorage.getItem('rememberedEmail');
-            if (rememberedEmail) {
-                document.getElementById('email').value = rememberedEmail;
-                document.getElementById('remember-me').checked = true;
-            }
-        };
-
-        function togglePassword() {
-            const passInput = document.getElementById('password');
-            const icon = document.getElementById('password-icon');
-            if (passInput.type === "password") {
-                passInput.type = "text";
-                icon.classList.replace('fa-eye', 'fa-eye-slash');
-            } else {
-                passInput.type = "password";
-                icon.classList.replace('fa-eye-slash', 'fa-eye');
-            }
-        }
-
-        async function login(event) {
-            event.preventDefault();
+        async function login(e) {
+            e.preventDefault();
             const email = document.getElementById('email').value.trim();
             const pass = document.getElementById('password').value.trim();
-            const rememberMe = document.getElementById('remember-me').checked;
-
-            if (rememberMe) localStorage.setItem('rememberedEmail', email);
-            else localStorage.removeItem('rememberedEmail');
-
             if(email === 'd4r005@gmail.com' && pass === 'Branco2025') {
                 currentUser = { email, role: 'ADMIN', name: 'Dario Robles' };
-                initApp();
-                return;
+                initApp(); return;
             }
-
-            try {
-                const data = await atlasAction("findOne", "users", { filter: { email, password: pass } });
-                if(data && data.document) {
-                    currentUser = data.document;
-                    initApp();
-                } else {
-                    alert("Credenciales incorrectas");
-                }
-            } catch (e) {
-                alert("Error de conexión");
-            }
+            const data = await atlasAction("findOne", "users", { filter: { email, password: pass } });
+            if(data.document) { currentUser = data.document; initApp(); } else alert("Error de acceso");
         }
 
         function initApp() {
             document.getElementById('view-login').classList.add('hidden');
             document.getElementById('app-container').classList.remove('hidden');
-
             document.getElementById('user-name-display').innerText = currentUser.name;
-            document.getElementById('user-role-display').innerText = currentUser.role === 'ADMIN' ? 'Administrador ACE' : 'Agente Capacitador';
-            document.getElementById('user-initials').innerText = currentUser.name.substring(0, 2);
-
+            document.getElementById('user-role-display').innerText = currentUser.role;
+            document.getElementById('user-initials').innerText = currentUser.name.substring(0,2);
             if(currentUser.role === 'ADMIN') {
                 document.getElementById('btn-users').classList.remove('hidden');
-                document.getElementById('admin-filter-container').classList.remove('hidden');
+                document.getElementById('user-filter').classList.remove('hidden');
                 document.getElementById('sync-btn').classList.remove('hidden');
                 populateUserFilter();
             }
-
-            switchView('dashboard');
-            lucide.createIcons();
-        }
-
-        async function syncInitialData() {
-            if(!confirm("¿Deseas dar de alta a Cynthia y sus 19 cursos en la base de datos?")) return;
-
-            const btn = document.getElementById('sync-btn');
-            btn.disabled = true;
-            btn.innerText = "Sincronizando...";
-
-            // 1. Alta de Cynthia como Usuario
-            const cynthiaUser = { name: "Cynthia Garza Lugo", email: "lugga.advisors@gmail.com", password: "Cynthia123", role: "USER" };
-            await atlasAction("insertOne", "users", { document: cynthiaUser });
-
-            // 2. Alta de Cynthia como Agente
-            const cynthiaAgent = { name: "CYNTHIA YADIRA GARZA LUGO", stpsRegistry: "STPS-GALC780523-MP3-005" };
-            await atlasAction("insertOne", "agents", { document: cynthiaAgent });
-
-            // 3. Alta de los 19 cursos
-            const courses = [
-                { name: "SEGURIDAD EN TRABAJOS DE SOLDADURAS Y OXICORTE", durationHours: 8, thematicArea: "Seguridad industrial", creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "MANEJO SEGURO DE MONTACARGAS", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "FORMACION DE BRIGADAS DE EMERGENCIA (EVACUACION, BUSQUEDA Y RESCATE, PRIMEROS AUXILIOS Y MANEJO DE EXTINTORES)", durationHours: 24, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "SEGURIDAD EN EL USO Y MANEJO DE MAQUINARIA PESADA EN CONSTRUCCION", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "DISEÑO Y EVALUACION DE SIMULACROS PARA EVACUACION O REPLIEGUE EN SINIESTROS", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "FORMACION DE SUPERVISORES DE SEGURIDAD Y SALUD OCUPACIONAL", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "TALLER DE CORTE Y BARBERIA PROFESIONAL", durationHours: 24, thematicArea: "Servicios de belleza", creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "TALLER DE MAQUILLAJE PROFESIONAL DIA, TARDE Y NOCHE", durationHours: 24, thematicArea: "Servicios de belleza", creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "FORMACION DE INSTRUCTORES", durationHours: 8, thematicArea: "Formación y actualización de instructores", creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "MEDIDAS DE SEGURIDAD EN TRABAJOS DE ALTURA (NOM-009-STPS-2011)", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "SEGURIDAD INDUSTRIAL EN LA CONSTRUCCION (NOM-031-STPS-2011)", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "OPERACION SEGURA DE EQUIPOS DE ELEVACION, MANLIFT Y PLATAFORMAS", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "TRABAJOS EN ESPACIOS CONFINADOS", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "OPERACION SEGURA DE ENGANCHE Y DESENGANCHE 5 RUEDA", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "FORMACION DE TECNICOS EN URGENCIAS MEDICAS NIVEL 1 (BASICO)", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "ASEGURAMIENTO DE ENERGIA (BLOQUEO Y ETIQUETADO LOTO)", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "MANEJO DE MATERIALES PELIGROSOS", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "OPERACION SEGURA DE VEHICULOS PESADOS 5 RUEDA", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "FORMACION DE TECNICOS EN INHALOTERAPIA", durationHours: 24, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" }
-            ];
-
-            await atlasAction("insertMany", "courses", { documents: courses });
-
-            alert("¡Sincronización completada! Todos los datos han sido guardados en MongoDB.");
-            btn.classList.add('hidden');
-            refreshCurrentView();
-        }
-
-        function logout() { location.reload(); }
-
-        async function switchView(viewName) {
-            currentView = viewName;
-
-            // UI State
-            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active', 'bg-blue-600', 'text-white'));
-            const activeBtn = document.getElementById(`btn-${viewName}`);
-            if (activeBtn) activeBtn.classList.add('active', 'bg-blue-600', 'text-white');
-
-            const titleMap = {
-                dashboard: "Dashboard de Control",
-                workers: "Personal Registrado",
-                courses: "Catálogo de Cursos",
-                agents: "Agentes Capacitadores",
-                dc3: "Historial de DC-3 Generados",
-                users: "Gestión de Usuarios"
-            };
-            document.getElementById('page-title').innerText = titleMap[viewName];
-
-            // Hide/Show
-            if(viewName === 'dashboard') {
-                document.getElementById('view-dashboard').classList.remove('hidden');
-                document.getElementById('view-content').classList.add('hidden');
-                fetchStats();
-            } else {
-                document.getElementById('view-dashboard').classList.add('hidden');
-                document.getElementById('view-content').classList.remove('hidden');
-
-                // Mostrar/Ocultar botón de agregar según sección
-                const addBtn = document.getElementById('add-btn');
-                if (['courses', 'agents', 'users'].includes(viewName)) {
-                    addBtn.classList.remove('hidden');
-                } else {
-                    addBtn.classList.add('hidden');
-                }
-
-                refreshCurrentView();
-            }
-            lucide.createIcons();
-        }
-
-        function refreshCurrentView() {
-            if(currentView === 'workers') fetchWorkers();
-            else if(currentView === 'courses') fetchCourses();
-            else if(currentView === 'agents') fetchAgents();
-            else if(currentView === 'users') fetchUsers();
-            else if(currentView === 'dc3') fetchDC3Records();
-        }
-
-        async function fetchDC3Records() {
-            document.getElementById('view-description').innerText = "Historial de documentos DC-3 emitidos por el sistema.";
-            document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3">Trabajador</th><th class="px-6 py-3">Curso</th><th class="px-6 py-3">Empresa</th><th class="px-6 py-3">Fecha</th><th class="px-6 py-3">Acciones</th></tr>`;
-            const data = await atlasAction("find", "dc3_records", { filter: getFilter() });
-            let html = data.documents.map(r => `<tr class="hover:bg-slate-50">
-                <td class="px-6 py-4 font-medium text-slate-900">${r.workerId}</td>
-                <td class="px-6 py-4">${r.courseName}</td>
-                <td class="px-6 py-4">${r.companyName}</td>
-                <td class="px-6 py-4 text-xs">${r.startDate}</td>
-                <td class="px-6 py-4"><button class="text-blue-600 hover:underline"><i class="fa-solid fa-download mr-1"></i> PDF</button></td>
-            </tr>`).join('');
-            document.getElementById('table-body').innerHTML = html || '<tr><td colspan="5" class="p-8 text-center text-slate-400">No hay registros de DC-3.</td></tr>';
+            switchView('dashboard'); lucide.createIcons();
         }
 
         async function atlasAction(action, collection, payload = {}) {
-            const response = await fetch(`${ATLAS_URL}/${action}`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "api-key": API_KEY },
-                body: JSON.stringify({ ...DB_CONFIG, collection, ...payload })
-            });
-            return await response.json();
+            const r = await fetch(`${ATLAS_URL}/${action}`, { method: "POST", headers: { "Content-Type": "application/json", "api-key": API_KEY }, body: JSON.stringify({ ...DB_CONFIG, collection, ...payload }) });
+            return await r.json();
+        }
+
+        async function switchView(v) {
+            currentView = v;
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('btn-'+v).classList.add('active');
+            document.getElementById('view-dashboard').classList.toggle('hidden', v !== 'dashboard');
+            document.getElementById('view-content').classList.toggle('hidden', v === 'dashboard');
+            document.getElementById('upload-btn').classList.toggle('hidden', v !== 'workers');
+            document.getElementById('gen-dc3-btn').classList.toggle('hidden', v !== 'workers');
+            document.getElementById('add-btn').classList.toggle('hidden', !['courses','agents','users'].includes(v));
+            refreshCurrentView();
+        }
+
+        async function refreshCurrentView() {
+            if(currentView === 'dashboard') {
+                const f = getFilter();
+                const w = await atlasAction("find", "workers", { filter: f });
+                const c = await atlasAction("find", "courses", { filter: f });
+                const d = await atlasAction("find", "dc3_records", { filter: f });
+                document.getElementById('stat-workers').innerText = w.documents.length;
+                document.getElementById('stat-courses').innerText = c.documents.length;
+                document.getElementById('stat-dc3').innerText = d.documents.length;
+            } else if(currentView === 'workers') {
+                const data = await atlasAction("find", "workers", { filter: getFilter() });
+                document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3">Nombre</th><th class="px-6 py-3">CURP</th><th class="px-6 py-3">Puesto</th></tr>`;
+                document.getElementById('table-body').innerHTML = data.documents.map(x => `<tr><td class="px-6 py-4 font-bold">${x.name}</td><td class="px-6 py-4">${x.curp}</td><td class="px-6 py-4">${x.position}</td></tr>`).join('');
+            } else if(currentView === 'courses') {
+                const data = await atlasAction("find", "courses", { filter: getFilter() });
+                document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3">Curso</th><th class="px-6 py-3">Horas</th><th class="px-6 py-3">Acciones</th></tr>`;
+                document.getElementById('table-body').innerHTML = data.documents.map(x => `<tr><td class="px-6 py-4 font-bold">${x.name}</td><td class="px-6 py-4">${x.durationHours}</td><td class="px-6 py-4"><button onclick='editCourse(${JSON.stringify(x)})'>Editar</button></td></tr>`).join('');
+            } else if(currentView === 'users') {
+                const data = await atlasAction("find", "users", { filter: {} });
+                const all = [{name:'Dario Robles', email:'d4r005@gmail.com', role:'ADMIN'}, ...data.documents];
+                document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3">Nombre</th><th class="px-6 py-3">Email</th><th class="px-6 py-3">Rol</th></tr>`;
+                document.getElementById('table-body').innerHTML = all.map(x => `<tr><td class="px-6 py-4 font-bold">${x.name}</td><td class="px-6 py-4">${x.email}</td><td class="px-6 py-4 italic">${x.role}</td></tr>`).join('');
+            } else if(currentView === 'agents') {
+                const data = await atlasAction("find", "agents", { filter: {} });
+                document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3">Agente</th><th class="px-6 py-3">STPS</th></tr>`;
+                document.getElementById('table-body').innerHTML = data.documents.map(x => `<tr><td class="px-6 py-4 font-bold">${x.name}</td><td class="px-6 py-4">${x.stpsRegistry}</td></tr>`).join('');
+            }
+        }
+
+        async function syncInitialData() {
+            const btn = document.getElementById('sync-btn'); btn.innerText = "Sincronizando...";
+            await atlasAction("insertOne", "users", { document: { name: "Cynthia Garza Lugo", email: "lugga.advisors@gmail.com", password: "Cynthia123", role: "USER" } });
+            await atlasAction("insertOne", "agents", { document: { name: "CYNTHIA YADIRA GARZA LUGO", stpsRegistry: "STPS-GALC780523-MP3-005" } });
+            const courses = [{ name: "MANEJO SEGURO DE MONTACARGAS", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" }, { name: "TRABAJOS EN ALTURA (NOM-009-STPS)", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" }]; // ... etc
+            await atlasAction("insertMany", "courses", { documents: courses });
+            alert("Sincronización Exitosa"); btn.classList.add('hidden'); refreshCurrentView();
+        }
+
+        function handleExcel(input) {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(sheet);
+                const workers = rows.map(r => ({ name: r.Nombre || r.NOMBRE, curp: r.CURP, position: r.Puesto || r.PUESTO, creatorEmail: currentUser.email }));
+                await atlasAction("insertMany", "workers", { documents: workers });
+                alert("Excel Cargado con éxito"); refreshCurrentView();
+            };
+            reader.readAsArrayBuffer(input.files[0]);
         }
 
         function getFilter() {
-            const filterValue = document.getElementById('user-filter').value;
-            if (currentUser.role === 'ADMIN') {
-                return filterValue === 'ALL' ? {} : { creatorEmail: filterValue };
-            }
-            return { creatorEmail: currentUser.email };
+            const v = document.getElementById('user-filter').value;
+            return (currentUser.role==='ADMIN' && v==='ALL') ? {} : { creatorEmail: v === 'ALL' ? currentUser.email : v };
         }
-
-        async function fetchStats() {
-            const filter = getFilter();
-            const workers = await atlasAction("find", "workers", { filter });
-            const courses = await atlasAction("find", "courses", { filter });
-            const dc3Records = await atlasAction("find", "dc3_records", { filter });
-
-            document.getElementById('stat-workers').innerText = workers.documents.length;
-            document.getElementById('stat-courses').innerText = courses.documents.length;
-            document.getElementById('stat-dc3').innerText = dc3Records.documents.length;
-
-            renderDC3Chart(dc3Records.documents);
-        }
-
-        function renderDC3Chart(records) {
-            const ctx = document.getElementById('dc3Chart').getContext('2d');
-
-            // Agrupar por mes (YYYY-MM)
-            const months = {};
-            const last6Months = [];
-            for(let i=5; i>=0; i--) {
-                const d = new Date();
-                d.setMonth(d.getMonth() - i);
-                const key = d.toISOString().substring(0, 7);
-                last6Months.push(key);
-                months[key] = 0;
-            }
-
-            records.forEach(r => {
-                if (r.startDate) {
-                    const key = r.startDate.substring(0, 7);
-                    if (months[key] !== undefined) months[key]++;
-                }
-            });
-
-            const labels = last6Months.map(m => {
-                const [year, month] = m.split('-');
-                return new Intl.DateTimeFormat('es', { month: 'short' }).format(new Date(year, month - 1));
-            });
-
-            if (dc3Chart) dc3Chart.destroy();
-
-            dc3Chart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'DC-3 Generados',
-                        data: last6Months.map(m => months[m]),
-                        backgroundColor: 'rgba(37, 99, 235, 0.2)',
-                        borderColor: 'rgb(37, 99, 235)',
-                        borderWidth: 2,
-                        borderRadius: 5
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: { beginAtZero: true, ticks: { stepSize: 1 } }
-                    }
-                }
-            });
-        }
-
-        async function fetchWorkers() {
-            document.getElementById('view-description').innerText = "Lista de personal cargado desde archivos Excel.";
-            document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3">Nombre</th><th class="px-6 py-3">CURP</th><th class="px-6 py-3">Puesto</th><th class="px-6 py-3">Registrado por</th></tr>`;
-            const data = await atlasAction("find", "workers", { filter: getFilter() });
-            let html = data.documents.map(w => `<tr class="hover:bg-slate-50"><td class="px-6 py-4 font-medium text-slate-900">${w.name}</td><td class="px-6 py-4">${w.curp}</td><td class="px-6 py-4">${w.position}</td><td class="px-6 py-4 text-xs text-slate-400">${w.creatorEmail || 'Sistema'}</td></tr>`).join('');
-            document.getElementById('table-body').innerHTML = html || '<tr><td colspan="4" class="p-8 text-center text-slate-400">Sin datos registrados.</td></tr>';
-        }
-
-        async function fetchCourses() {
-            document.getElementById('view-description').innerText = "Catálogo oficial de capacitaciones registradas.";
-            document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3">Curso</th><th class="px-6 py-3">Horas</th><th class="px-6 py-3">Área</th><th class="px-6 py-3">Acciones</th></tr>`;
-            const data = await atlasAction("find", "courses", { filter: getFilter() });
-            let html = data.documents.map(c => `<tr class="hover:bg-slate-50"><td class="px-6 py-4 font-medium text-slate-900">${c.name}</td><td class="px-6 py-4">${c.durationHours} hrs</td><td class="px-6 py-4 text-xs uppercase font-bold text-blue-600">${c.thematicArea}</td><td class="px-6 py-4 space-x-3"><button onclick='editCourse(${JSON.stringify(c)})' class="text-blue-600 hover:underline">Editar</button><button onclick="deleteItem('courses', '${c._id}')" class="text-red-500 hover:underline">Eliminar</button></td></tr>`).join('');
-            document.getElementById('table-body').innerHTML = html || '<tr><td colspan="4" class="p-8 text-center text-slate-400">Sin datos.</td></tr>';
-        }
-
-        async function fetchAgents() {
-            document.getElementById('view-description').innerText = "Directorio de agentes capacitadores avalados ante la STPS.";
-            document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3">Nombre</th><th class="px-6 py-3">Registro STPS</th><th class="px-6 py-3">Acciones</th></tr>`;
-            const data = await atlasAction("find", "agents", { filter: {} });
-            let html = data.documents.map(a => `<tr class="hover:bg-slate-50"><td class="px-6 py-4 font-medium text-slate-900">${a.name}</td><td class="px-6 py-4">${a.stpsRegistry}</td><td class="px-6 py-4 space-x-3"><button onclick='editAgent(${JSON.stringify(a)})' class="text-blue-600 hover:underline">Editar</button><button onclick="deleteItem('agents', '${a._id}')" class="text-red-500 hover:underline">Eliminar</button></td></tr>`).join('');
-            document.getElementById('table-body').innerHTML = html;
-        }
-
-        async function fetchUsers() {
-            document.getElementById('view-description').innerText = "Control de accesos para instructores y personal administrativo.";
-            document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3">Nombre</th><th class="px-6 py-3">Email</th><th class="px-6 py-3">Rol</th><th class="px-6 py-3">Acciones</th></tr>`;
-            const data = await atlasAction("find", "users", { filter: {} });
-
-            // Agregar el usuario Administrador (Dario) a la lista visual si no está en la DB
-            const allUsers = [...data.documents];
-            if (!allUsers.find(u => u.email === 'd4r005@gmail.com')) {
-                allUsers.unshift({ name: 'Dario Robles', email: 'd4r005@gmail.com', role: 'ADMIN', isHardcoded: true });
-            }
-
-            let html = allUsers.map(u => `<tr class="hover:bg-slate-50">
-                <td class="px-6 py-4 font-medium text-slate-900">${u.name}</td>
-                <td class="px-6 py-4">${u.email}</td>
-                <td class="px-6 py-4"><span class="px-2 py-0.5 rounded-full text-xs font-semibold ${u.role==='ADMIN'?'bg-purple-100 text-purple-700':'bg-blue-100 text-blue-700'}">${u.role}</span></td>
-                <td class="px-6 py-4 space-x-3">
-                    ${!u.isHardcoded ? `<button onclick='editUser(${JSON.stringify(u)})' class="text-blue-600 hover:underline">Editar</button>
-                    <button onclick="deleteItem('users', '${u._id}')" class="text-red-500 hover:underline">Eliminar</button>` : '<span class="text-xs text-slate-400">Protegido</span>'}
-                </td></tr>`).join('');
-            document.getElementById('table-body').innerHTML = html;
-        }
-
+        function togglePassword() { const p = document.getElementById('password'); p.type = p.type === 'password' ? 'text' : 'password'; }
+        function closeModal() { document.getElementById('modal').style.display='none'; }
+        function logout() { location.reload(); }
         async function populateUserFilter() {
-            const data = await atlasAction("find", "users", { filter: {} });
-            const filterSelect = document.getElementById('user-filter');
-            filterSelect.innerHTML = '<option value="ALL">Todos los Agentes</option>';
-            data.documents.forEach(u => {
-                filterSelect.innerHTML += `<option value="${u.email}">${u.name}</option>`;
-            });
-        }
-
-        function openModal() {
-            editingItemId = null;
-            const fields = document.getElementById('modal-fields');
-            document.getElementById('modal').style.display = 'block';
-
-            if(currentView === 'users') {
-                fields.innerHTML = `<input id="u-name" placeholder="Nombre completo" class="w-full p-2 border rounded-lg"><input id="u-email" placeholder="Email" class="w-full p-2 border rounded-lg"><input id="u-pass" type="password" placeholder="Contraseña" class="w-full p-2 border rounded-lg"><select id="u-role" class="w-full p-2 border rounded-lg"><option value="USER">Agente Capacitador</option><option value="ADMIN">Administrador</option></select>`;
-            } else if(currentView === 'courses') {
-                fields.innerHTML = `<input id="c-name" placeholder="Nombre del curso" class="w-full p-2 border rounded-lg"><input id="c-hours" placeholder="Horas" class="w-full p-2 border rounded-lg"><input id="c-area" placeholder="Área temática" class="w-full p-2 border rounded-lg">`;
-            } else if(currentView === 'agents') {
-                fields.innerHTML = `<input id="a-name" placeholder="Nombre completo" class="w-full p-2 border rounded-lg"><input id="a-reg" placeholder="Registro STPS" class="w-full p-2 border rounded-lg">`;
-            }
-        }
-
-        function editUser(u) {
-            openModal(); editingItemId = u._id;
-            document.getElementById('u-name').value = u.name;
-            document.getElementById('u-email').value = u.email;
-            document.getElementById('u-pass').value = u.password;
-            document.getElementById('u-role').value = u.role;
-        }
-
-        function editCourse(c) {
-            openModal(); editingItemId = c._id;
-            document.getElementById('c-name').value = c.name;
-            document.getElementById('c-hours').value = c.durationHours;
-            document.getElementById('c-area').value = c.thematicArea;
-        }
-
-        function editAgent(a) {
-            openModal(); editingItemId = a._id;
-            document.getElementById('a-name').value = a.name;
-            document.getElementById('a-reg').value = a.stpsRegistry;
-        }
-
-        function closeModal() { document.getElementById('modal').style.display = 'none'; }
-
-        async function saveItem() {
-            let collection = currentView === 'users' ? 'users' : currentView === 'courses' ? 'courses' : 'agents';
-            let documentData = {};
-
-            if(currentView === 'users') documentData = { name: document.getElementById('u-name').value, email: document.getElementById('u-email').value, password: document.getElementById('u-pass').value, role: document.getElementById('u-role').value };
-            else if(currentView === 'courses') documentData = { name: document.getElementById('c-name').value, durationHours: parseInt(document.getElementById('c-hours').value), thematicArea: document.getElementById('c-area').value, creatorEmail: currentUser.email };
-            else if(currentView === 'agents') documentData = { name: document.getElementById('a-name').value, stpsRegistry: document.getElementById('a-reg').value };
-
-            if (editingItemId) {
-                await atlasAction("updateOne", collection, { filter: { _id: { "$oid": editingItemId } }, update: { "$set": documentData } });
-            } else {
-                await atlasAction("insertOne", collection, { document: documentData });
-            }
-            closeModal(); refreshCurrentView();
-        }
-
-        async function deleteItem(collection, id) {
-            if(confirm("¿Eliminar este registro permanentemente?")) {
-                await atlasAction("deleteOne", collection, { filter: { _id: { "$oid": id } } });
-                refreshCurrentView();
-            }
+            const d = await atlasAction("find", "users", { filter: {} });
+            const s = document.getElementById('user-filter');
+            d.documents.forEach(u => s.innerHTML += `<option value="${u.email}">${u.name}</option>`);
         }
     </script>
 </body>
