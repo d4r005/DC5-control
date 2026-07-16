@@ -89,18 +89,20 @@
                     <button onclick="switchView('users')" id="btn-users" class="nav-btn hidden w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="users"></i><span>Usuarios</span></button>
                 </nav>
             </div>
-            <div class="p-6 border-t border-slate-800"><button onclick="logout()" class="w-full flex items-center justify-center space-x-3 px-5 py-3 text-red-400 hover:bg-red-500/10 rounded-xl transition-all font-bold text-sm"><i data-lucide="log-out"></i><span>Salir del Sistema</span></button></div>
+            <div class="p-6 border-t border-slate-800"><button onclick="logout()" class="w-full flex items-center justify-center space-x-3 px-5 py-3 text-red-400 hover:bg-red-500/10 rounded-xl transition-all font-bold text-sm"><i data-lucide="log-out" class="w-5 h-5"></i><span>Salir del Sistema</span></button></div>
         </aside>
 
         <main class="flex-1 flex flex-col overflow-hidden">
             <header class="h-20 bg-white border-b flex items-center justify-between px-10 shrink-0">
                 <div class="flex items-center space-x-6">
                     <h1 id="page-title" class="text-2xl font-extrabold text-slate-800">Dashboard</h1>
-                    <select id="user-filter" onchange="refreshCurrentView()" class="text-sm font-bold border rounded-xl px-4 py-2 bg-slate-50 focus:outline-none">
-                        <option value="ALL">Ver Todo el Sistema</option>
-                        <option value="d4r005@gmail.com">Dario Robles</option>
-                        <option value="lugga.advisors@gmail.com">Cynthia Garza</option>
-                    </select>
+                    <div id="admin-filter-container" class="hidden">
+                        <select id="user-filter" onchange="refreshCurrentView()" class="text-sm font-bold border rounded-xl px-4 py-2 bg-slate-50 focus:outline-none">
+                            <option value="ALL">Ver Todo el Sistema</option>
+                            <option value="d4r005@gmail.com">Dario Robles</option>
+                            <option value="lugga.advisors@gmail.com">Cynthia Garza</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="flex items-center space-x-5">
                     <div class="text-right leading-none">
@@ -290,31 +292,61 @@
             const filterEmail = f.creatorEmail;
 
             if(currentView === 'dashboard') {
-                const filteredCourses = filterEmail ? DATA.courses.filter(c => c.creatorEmail === filterEmail) : DATA.courses;
-                document.getElementById('stat-courses').innerText = filteredCourses.length;
+                const count = filterEmail ? DATA.courses.filter(c => c.creatorEmail === filterEmail).length : DATA.courses.length;
+                document.getElementById('stat-courses').innerText = count;
                 const w = await atlasAction("find", "workers", { filter: f });
                 const d = await atlasAction("find", "dc3_records", { filter: f });
                 document.getElementById('stat-workers').innerText = (w.documents || []).length;
                 document.getElementById('stat-dc3').innerText = (d.documents || []).length;
 
             } else if(currentView === 'workers') {
+                document.getElementById('view-description').innerText = "Personal registrado mediante carga de Excel o registro manual.";
                 const data = await atlasAction("find", "workers", { filter: f });
-                document.getElementById('table-header').innerHTML = `<tr><th class="px-10 py-6">Nombre</th><th class="px-10 py-6">CURP</th><th class="px-10 py-6 text-right">Acciones</th></tr>`;
-                document.getElementById('table-body').innerHTML = (data.documents || []).map(x => `<tr class="hover:bg-slate-50 transition-colors"><td class="px-10 py-5 font-bold">${x.name}</td><td class="px-10 py-5">${x.curp}</td><td class="px-10 py-5 text-right"><button onclick='openDC3Modal(${JSON.stringify(x)})' class="text-blue-600 font-bold hover:underline">Generar DC-3</button></td></tr>`).join('') || '<tr><td colspan="3" class="p-20 text-center text-slate-300 uppercase">Sin personal</td></tr>';
+                document.getElementById('table-header').innerHTML = `<tr><th class="px-10 py-6 text-left">Nombre</th><th class="px-10 py-6 text-left">CURP</th><th class="px-10 py-6 text-left">Puesto</th><th class="px-10 py-6 text-right">Acciones</th></tr>`;
+                document.getElementById('table-body').innerHTML = (data.documents || []).map(x => `
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-10 py-5 font-bold">${x.name}</td>
+                        <td class="px-10 py-5">${x.curp}</td>
+                        <td class="px-10 py-5">${x.position}</td>
+                        <td class="px-10 py-5 text-right"><button onclick='openDC3Modal(${JSON.stringify(x)})' class="text-blue-600 font-bold hover:underline">Generar DC-3</button></td>
+                    </tr>`).join('') || '<tr><td colspan="4" class="p-20 text-center text-slate-300 uppercase">Sin personal</td></tr>';
 
             } else if(currentView === 'companies') {
-                document.getElementById('table-header').innerHTML = `<tr><th class="px-10 py-6">Empresa</th><th class="px-10 py-6">RFC</th><th class="px-10 py-6 text-right">Acciones</th></tr>`;
-                document.getElementById('table-body').innerHTML = DATA.companies.map(c => `<tr><td class="px-10 py-5 font-bold">${c.name}</td><td class="px-10 py-5">${c.rfc}</td><td class="px-10 py-5 text-right"><button onclick="deleteItem('companies', '${c._id}')" class="text-red-500 font-bold">Borrar</button></td></tr>`).join('') || '<tr><td colspan="3" class="p-20 text-center text-slate-300 uppercase">Sin empresas</td></tr>';
+                document.getElementById('view-description').innerText = "Gestión de empresas registradas.";
+                const data = await atlasAction("find", "companies", { filter: {} });
+                const list = data.documents || [];
+                DATA.companies = list; // Actualizar copia local para el modal DC3
+                document.getElementById('table-header').innerHTML = `<tr><th class="px-10 py-6 text-left">Empresa</th><th class="px-10 py-6 text-left">RFC</th><th class="px-10 py-6 text-right">Acciones</th></tr>`;
+                document.getElementById('table-body').innerHTML = list.map(c => `
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-10 py-5 font-bold">${c.name}</td>
+                        <td class="px-10 py-5">${c.rfc}</td>
+                        <td class="px-10 py-5 text-right">
+                            <button onclick="deleteItem('companies', '${c._id}')" class="text-red-500 font-bold hover:underline">Eliminar</button>
+                        </td>
+                    </tr>`).join('') || '<tr><td colspan="3" class="p-20 text-center text-slate-300 uppercase">Sin empresas registradas</td></tr>';
 
             } else if(currentView === 'courses') {
+                document.getElementById('view-description').innerText = "Catálogo oficial de cursos disponibles por agente.";
                 const list = filterEmail ? DATA.courses.filter(c => c.creatorEmail === filterEmail) : DATA.courses;
-                document.getElementById('table-header').innerHTML = `<tr><th class="px-10 py-6 text-left">Curso</th><th class="px-10 py-6 text-left">Horas</th></tr>`;
-                document.getElementById('table-body').innerHTML = list.map(c => `<tr class="hover:bg-slate-50 transition-colors"><td class="px-10 py-5 font-bold uppercase">${c.name}</td><td class="px-10 py-5 font-bold text-blue-600">${c.durationHours} H</td></tr>`).join('') || '<tr><td colspan="2" class="p-20 text-center text-slate-300 uppercase">Sin cursos</td></tr>';
+                document.getElementById('table-header').innerHTML = `<tr><th class="px-10 py-6 text-left">Curso</th><th class="px-10 py-6 text-left">Horas</th><th class="px-10 py-6 text-left">Área</th></tr>`;
+                document.getElementById('table-body').innerHTML = list.map(c => `<tr class="hover:bg-slate-50 transition-colors"><td class="px-10 py-5 font-bold uppercase">${c.name}</td><td class="px-10 py-5 font-bold text-blue-600">${c.durationHours} H</td><td class="px-10 py-5 italic text-slate-400">Seguridad</td></tr>`).join('') || '<tr><td colspan="3" class="p-20 text-center text-slate-300 uppercase">Este agente no tiene cursos</td></tr>';
+
+            } else if(currentView === 'users') {
+                document.getElementById('view-description').innerText = "Gestión de accesos y roles del sistema.";
+                document.getElementById('table-header').innerHTML = `<tr><th class="px-10 py-6 text-left">Nombre</th><th class="px-10 py-6 text-left">Email</th><th class="px-10 py-6 text-left">Rol</th></tr>`;
+                document.getElementById('table-body').innerHTML = DATA.users.map(u => `<tr><td class="px-10 py-5 font-bold">${u.name}</td><td class="px-10 py-5 text-slate-500">${u.email}</td><td class="px-10 py-5"><span class="px-3 py-1 rounded-full text-[10px] font-black uppercase ${u.role==='ADMIN'?'bg-purple-100 text-purple-700':'bg-blue-100 text-blue-700'}">${u.role}</span></td></tr>`).join('');
 
             } else if(currentView === 'agents') {
-                const list = filterEmail ? DATA.agents.filter(a => a.creatorEmail === filterEmail) : DATA.agents;
+                document.getElementById('view-description').innerText = "Registro de Agentes Capacitadores Externos STPS.";
+                const list = fValue === 'ALL' ? DATA.agents : DATA.agents.filter(a => a.creatorEmail === fValue);
                 document.getElementById('table-header').innerHTML = `<tr><th class="px-10 py-6 text-left">Agente</th><th class="px-10 py-6 text-left">Registro STPS</th></tr>`;
                 document.getElementById('table-body').innerHTML = list.map(a => `<tr class="hover:bg-slate-50 transition-colors"><td class="px-10 py-5 font-bold uppercase">${a.name}</td><td class="px-10 py-5 font-mono text-blue-600 font-bold">${a.stps}</td></tr>`).join('') || '<tr><td colspan="2" class="p-20 text-center text-slate-300 uppercase">Sin agentes</td></tr>';
+
+            } else if(currentView === 'dc3') {
+                const d = await atlasAction("find", "dc3_records", { filter: f });
+                document.getElementById('table-header').innerHTML = `<tr><th class="px-10 py-6 text-left">Trabajador</th><th class="px-10 py-6 text-left">Curso</th><th class="px-10 py-6 text-right">Acciones</th></tr>`;
+                document.getElementById('table-body').innerHTML = (d.documents || []).map(r => `<tr><td class="px-10 py-5 font-bold">${r.workerId}</td><td class="px-10 py-5">${r.courseName}</td><td class="px-10 py-5 text-right"><button class="text-blue-600 font-bold hover:underline">Descargar PDF</button></td></tr>`).join('') || '<tr><td colspan="3" class="p-20 text-center text-slate-300 uppercase">Sin historial</td></tr>';
             }
         }
 
@@ -338,9 +370,11 @@
         }
 
         async function saveItem() {
+            let success = false;
             if(currentView === 'companies') {
                 const doc = { name: document.getElementById('f1').value, rfc: document.getElementById('f2').value, creatorEmail: currentUser.email };
-                await atlasAction("insertOne", "companies", { document: doc });
+                const res = await atlasAction("insertOne", "companies", { document: doc });
+                if(res.insertedId) success = true;
             } else if(currentView === 'workers') {
                 const doc = {
                     name: document.getElementById('f1').value,
@@ -348,14 +382,17 @@
                     position: document.getElementById('f3').value,
                     creatorEmail: currentUser.email
                 };
-                await atlasAction("insertOne", "workers", { document: doc });
+                const res = await atlasAction("insertOne", "workers", { document: doc });
+                if(res.insertedId) success = true;
             }
 
-            // Recargar datos de empresas en memoria
-            const comp = await atlasAction("find", "companies", { filter: {} });
-            DATA.companies = comp.documents || [];
-
-            closeModal(); refreshCurrentView();
+            if(success) {
+                alert("Registro guardado con éxito.");
+                closeModal();
+                refreshCurrentView();
+            } else {
+                alert("Error al guardar. Por favor, intente de nuevo.");
+            }
         }
 
         function openDC3Modal(worker) {
@@ -396,7 +433,8 @@
         async function deleteItem(coll, id) { if(confirm("Borrar?")) { await atlasAction("deleteOne", coll, { filter: { _id: { "$oid": id } } }); refreshCurrentView(); } }
         async function handleExcel(input) {
             const r = new FileReader(); r.onload = async (e) => {
-                const rows = XLSX.utils.sheet_to_json(XLSX.read(new Uint8Array(e.target.result), {type:'array'}).Sheets[XLSX.read(new Uint8Array(e.target.result), {type:'array'}).SheetNames[0]]);
+                const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+                const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
                 const workers = rows.map(r => ({ name: r.Nombre || r.NOMBRE, curp: r.CURP, position: r.Puesto || r.PUESTO, creatorEmail: currentUser.email }));
                 await atlasAction("insertMany", "workers", { documents: workers });
                 alert("Excel cargado!"); refreshCurrentView();
