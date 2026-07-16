@@ -278,7 +278,7 @@
             document.getElementById('view-dashboard').classList.toggle('hidden', v !== 'dashboard');
             document.getElementById('view-content').classList.toggle('hidden', v === 'dashboard');
             document.getElementById('upload-btn').classList.toggle('hidden', v !== 'workers');
-            document.getElementById('add-btn').classList.toggle('hidden', !['courses','agents','users','companies'].includes(v));
+            document.getElementById('add-btn').classList.toggle('hidden', !['courses','agents','users','companies','workers'].includes(v));
 
             const titleMap = { dashboard: "Dashboard", workers: "Personal", companies: "Empresas", courses: "Cursos", agents: "Agentes Cap.", dc3: "DC-3 Historial", users: "Usuarios" };
             document.getElementById('page-title').innerText = titleMap[v];
@@ -324,6 +324,13 @@
             if(currentView === 'companies') {
                 document.getElementById('modal-title').innerText = "Nueva Empresa";
                 fields.innerHTML = `<input id="f1" placeholder="Nombre o Razón Social" class="w-full p-4 bg-slate-50 rounded-2xl outline-none"><input id="f2" placeholder="RFC" class="w-full p-4 bg-slate-50 rounded-2xl outline-none">`;
+            } else if(currentView === 'workers') {
+                document.getElementById('modal-title').innerText = "Nuevo Trabajador";
+                fields.innerHTML = `
+                    <input id="f1" placeholder="Nombre Completo" class="w-full p-4 bg-slate-50 rounded-2xl outline-none">
+                    <input id="f2" placeholder="CURP" class="w-full p-4 bg-slate-50 rounded-2xl outline-none">
+                    <input id="f3" placeholder="Puesto / Ocupación" class="w-full p-4 bg-slate-50 rounded-2xl outline-none">
+                `;
             }
         }
 
@@ -331,8 +338,20 @@
             if(currentView === 'companies') {
                 const doc = { name: document.getElementById('f1').value, rfc: document.getElementById('f2').value, creatorEmail: currentUser.email };
                 await atlasAction("insertOne", "companies", { document: doc });
-                const comp = await atlasAction("find", "companies", { filter: {} }); DATA.companies = comp.documents || [];
+            } else if(currentView === 'workers') {
+                const doc = {
+                    name: document.getElementById('f1').value,
+                    curp: document.getElementById('f2').value,
+                    position: document.getElementById('f3').value,
+                    creatorEmail: currentUser.email
+                };
+                await atlasAction("insertOne", "workers", { document: doc });
             }
+
+            // Recargar datos de empresas en memoria
+            const comp = await atlasAction("find", "companies", { filter: {} });
+            DATA.companies = comp.documents || [];
+
             closeModal(); refreshCurrentView();
         }
 
