@@ -3,213 +3,143 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACE-Control | Login</title>
+    <title>ACE-Control | Gestión de Agente Capacitador Externo</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Open+Sans:wght@400;600&display=swap');
-
-        body { font-family: 'Open Sans', sans-serif; background-color: #0b1329; }
-        .font-brand { font-family: 'Montserrat', sans-serif; }
-
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0b1329; }
         .login-bg {
             background-color: #0c242c;
             background-image: radial-gradient(circle at center, #1c454e 0%, #0c242c 100%);
         }
-
-        .login-card {
-            background: white;
-            border-radius: 2.5rem;
-            padding: 3.5rem 3rem;
-            width: 100%;
-            max-width: 420px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-        }
-
-        .login-input {
-            background-color: #f1f3f4;
-            border: none;
-            border-radius: 0.75rem;
-            padding: 1rem 1.2rem;
-            width: 100%;
-            font-size: 0.95rem;
-            color: #3c4043;
-            outline: none;
-        }
-
-        .login-input::placeholder { color: #9aa0a6; }
-
-        .btn-entrar {
-            background-color: #5c7cb6;
-            color: white;
-            font-weight: 700;
-            padding: 1rem;
-            border-radius: 0.8rem;
-            width: 100%;
-            font-size: 0.95rem;
-            transition: background 0.2s;
-        }
-
-        .btn-entrar:hover { background-color: #4a66a3; }
-
-        /* Illustration Styles */
-        .hexagon-lock {
-            position: relative;
-            width: 180px;
-            height: 200px;
-            background-color: transparent;
-            margin: 0 auto;
-        }
-
-        .circuit-line {
-            position: absolute;
-            background: linear-gradient(90deg, rgba(34,211,238,0.5), transparent);
-            height: 1px;
-        }
-
-        .nav-btn.active { background-color: #2563eb; color: white; }
-        .hidden { display: none; }
+        .nav-btn.active { background-color: #2563eb; color: white; box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2); }
+        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
+        .modal-content { background: white; margin: 5% auto; padding: 30px; width: 500px; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
-<body class="antialiased h-screen overflow-hidden">
+<body class="antialiased text-slate-200 h-screen overflow-hidden">
 
-    <!-- Pantalla de Login (IDENTICA A LA IMAGEN DE REFERENCIA) -->
-    <div id="view-login" class="login-bg min-h-screen flex items-center justify-center px-4 overflow-hidden">
-
-        <div class="flex max-w-6xl w-full items-center justify-center lg:justify-between space-x-12 z-10">
-
+    <!-- Pantalla de Login -->
+    <div id="view-login" class="login-bg min-h-screen flex items-center justify-center px-4">
+        <div class="flex max-w-5xl w-full items-center justify-center lg:justify-between space-x-12">
             <!-- Lado Izquierdo: Ilustración -->
             <div class="hidden lg:flex w-1/2 flex-col items-center justify-center relative">
                 <div class="relative w-[350px] h-[350px] flex items-center justify-center">
-                    <!-- Glow effect -->
                     <div class="absolute inset-0 bg-cyan-500/10 blur-[100px] rounded-full"></div>
-
-                    <!-- Hexagon with Red Lock (Replica exacta de la imagen) -->
                     <svg viewBox="0 0 100 100" class="w-72 h-72 drop-shadow-[0_0_15px_rgba(34,211,238,0.4)]">
-                        <!-- Radiating Lines -->
                         <g stroke="#22d3ee" stroke-width="0.3" opacity="0.4">
-                            <line x1="50" y1="5" x2="50" y2="20" />
-                            <line x1="50" y1="95" x2="50" y2="80" />
-                            <line x1="5" y1="50" x2="20" y2="50" />
-                            <line x1="95" y1="50" x2="80" y2="50" />
-                            <line x1="18" y1="18" x2="32" y2="32" />
-                            <line x1="82" y1="82" x2="68" y2="68" />
-                            <line x1="18" y1="82" x2="32" y2="68" />
-                            <line x1="82" y1="18" x2="68" y2="32" />
+                            <line x1="50" y1="5" x2="50" y2="20" /><line x1="50" y1="95" x2="50" y2="80" />
+                            <line x1="5" y1="50" x2="20" y2="50" /><line x1="95" y1="50" x2="80" y2="50" />
+                            <line x1="18" y1="18" x2="32" y2="32" /><line x1="82" y1="82" x2="68" y2="68" />
+                            <line x1="18" y1="82" x2="32" y2="68" /><line x1="82" y1="18" x2="68" y2="32" />
                         </g>
-                        <!-- Hexagon Outline -->
                         <path d="M50 10 L85 30 L85 70 L50 90 L15 70 L15 30 Z" fill="none" stroke="#22d3ee" stroke-width="1.5"/>
-                        <!-- Red Lock Icon -->
                         <rect x="40" y="52" width="20" height="16" rx="2" fill="none" stroke="#ff4d4d" stroke-width="2"/>
                         <path d="M44 52 V46C44 42 47 39 50 38C53 39 56 42 56 46V52" fill="none" stroke="#ff4d4d" stroke-width="2"/>
                         <circle cx="50" cy="60" r="1.5" fill="#ff4d4d"/>
                     </svg>
                 </div>
-                <div class="mt-2 text-center">
-                    <h1 class="text-3xl font-black text-white tracking-[0.2em] uppercase leading-none">SEGURIDAD ACE</h1>
-                    <p class="text-cyan-100/30 text-xs mt-3 font-medium tracking-widest uppercase">Control total de Agentes Capacitadores.</p>
+                <div class="mt-2 text-center text-white">
+                    <h1 class="text-3xl font-black tracking-[0.2em] uppercase leading-none">SEGURIDAD ACE</h1>
+                    <p class="text-cyan-100/30 text-xs mt-3 font-medium tracking-widest uppercase italic">Control total de Agentes Capacitadores.</p>
                 </div>
             </div>
 
-            <!-- Lado Derecho: Tarjeta de Login -->
-            <div class="login-card">
+            <!-- Tarjeta Login -->
+            <div class="w-full max-w-[420px] bg-white rounded-[3rem] p-12 shadow-2xl">
                 <div class="text-center mb-10">
-                    <!-- Logo Hexagonal Identico -->
-                    <div class="mx-auto w-24 h-24 mb-6">
-                        <svg viewBox="0 0 100 100" class="w-full h-full">
-                            <path d="M50 5 L90 28 L90 72 L50 95 L10 72 L10 28 Z" stroke="#2563eb" stroke-width="7" fill="none"/>
-                            <path d="M40 45 Q50 35 60 45 L60 55 Q50 65 40 55 Z" fill="#2563eb" opacity="0.8"/>
-                            <path d="M45 50 Q55 40 65 50 L65 60 Q55 70 45 60 Z" fill="#f97316"/>
-                        </svg>
-                    </div>
-                    <h2 class="text-3xl font-black text-slate-800 tracking-tight uppercase font-brand italic">ACE-CONTROL</h2>
+                    <h2 class="text-3xl font-black text-slate-800 tracking-tighter uppercase italic">ACE-CONTROL</h2>
                 </div>
-
                 <form class="space-y-6" onsubmit="login(event)">
-                    <div class="space-y-4">
-                        <input id="email" type="email" required class="login-input" placeholder="Email">
-                        <div class="relative">
-                            <input id="password" type="password" required class="login-input" placeholder="Password">
-                            <i class="fa-solid fa-lock absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 text-sm"></i>
-                        </div>
+                    <input id="email" type="email" required class="w-full bg-slate-50 rounded-2xl px-5 py-4 text-slate-900 outline-none focus:ring-2 focus:ring-blue-500/10" placeholder="Email">
+                    <div class="relative">
+                        <input id="password" type="password" required class="w-full bg-slate-50 rounded-2xl px-5 py-4 text-slate-900 outline-none focus:ring-2 focus:ring-blue-500/10" placeholder="Password">
+                        <i class="fa-solid fa-lock absolute right-5 top-1/2 -translate-y-1/2 text-slate-300"></i>
                     </div>
-
                     <div class="flex items-center justify-between text-[11px] font-bold text-slate-400 px-1 uppercase tracking-tighter">
-                        <label class="flex items-center cursor-pointer">
-                            <input type="checkbox" id="remember-me" class="mr-2 w-4 h-4 border-slate-200"> Registrarse?
-                        </label>
-                        <a href="#" class="hover:text-blue-500 transition-colors">¿Olvidó su contraseña?</a>
+                        <label class="flex items-center cursor-pointer"><input type="checkbox" id="remember-me" class="mr-2 w-4 h-4"> Registrarse?</label>
+                        <a href="#">¿Olvidó su contraseña?</a>
                     </div>
-
-                    <button type="submit" class="btn-entrar shadow-lg shadow-blue-900/10">Entrar</button>
-
-                    <div class="text-center mt-6">
-                        <a href="#" class="text-[11px] font-bold text-blue-700/80 hover:underline uppercase tracking-wide underline-offset-4">Acceder en modo seguro</a>
-                    </div>
+                    <button type="submit" class="w-full bg-[#4262a0] hover:bg-[#36518a] text-white py-4 rounded-2xl font-bold text-sm transition-all shadow-lg shadow-blue-900/10 active:scale-[0.98]">Entrar</button>
+                    <div class="text-center mt-6"><a href="#" class="text-[11px] font-bold text-blue-700 hover:underline uppercase tracking-wide">Acceder en modo seguro</a></div>
                 </form>
-                <p id="login-error" class="text-red-500 text-[10px] mt-6 text-center font-bold uppercase tracking-widest hidden tracking-widest">Credenciales Incorrectas</p>
+                <p id="login-error" class="text-red-500 text-[10px] text-center font-bold uppercase hidden mt-4">Acceso Denegado</p>
             </div>
         </div>
     </div>
 
-    <!-- Dashboard Container (Preservado) -->
-    <div id="app-container" class="hidden fixed inset-0 flex h-screen bg-slate-50 text-slate-800">
-        <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col justify-between shrink-0">
+    <!-- App Container -->
+    <div id="app-container" class="hidden fixed inset-0 flex h-screen bg-slate-50 text-slate-800 overflow-hidden">
+        <aside class="w-72 bg-slate-900 text-slate-300 flex flex-col justify-between shrink-0">
             <div>
-                <div class="h-16 flex items-center px-6 border-b border-slate-800 font-bold text-white uppercase italic">ACE-CONTROL</div>
-                <nav class="mt-6 px-4 space-y-1">
-                    <button onclick="switchView('dashboard')" id="btn-dashboard" class="nav-btn w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></button>
-                    <button onclick="switchView('workers')" id="btn-workers" class="nav-btn w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm"><i data-lucide="file-text"></i><span>Personal (Excel)</span></button>
-                    <button onclick="switchView('courses')" id="btn-courses" class="nav-btn w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm"><i data-lucide="book-open"></i><span>Cursos</span></button>
-                    <button onclick="switchView('agents')" id="btn-agents" class="nav-btn w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm"><i data-lucide="award"></i><span>Agentes Cap.</span></button>
-                    <button onclick="switchView('dc3')" id="btn-dc3" class="nav-btn w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm"><i data-lucide="file-check"></i><span>DC-3 Generados</span></button>
-                    <button onclick="switchView('users')" id="btn-users" class="nav-btn hidden w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm"><i data-lucide="users"></i><span>Usuarios</span></button>
+                <div class="h-20 flex items-center px-8 border-b border-slate-800 font-bold text-white uppercase italic tracking-widest text-lg">ACE-CONTROL</div>
+                <nav class="mt-8 px-6 space-y-2">
+                    <button onclick="switchView('dashboard')" id="btn-dashboard" class="nav-btn w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></button>
+                    <button onclick="switchView('workers')" id="btn-workers" class="nav-btn w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="file-text"></i><span>Personal (Excel)</span></button>
+                    <button onclick="switchView('companies')" id="btn-companies" class="nav-btn w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="building-2"></i><span>Empresas</span></button>
+                    <button onclick="switchView('courses')" id="btn-courses" class="nav-btn w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="book-open"></i><span>Cursos</span></button>
+                    <button onclick="switchView('agents')" id="btn-agents" class="nav-btn w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="award"></i><span>Agentes Cap.</span></button>
+                    <button onclick="switchView('dc3')" id="btn-dc3" class="nav-btn w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="file-check"></i><span>DC-3 Generados</span></button>
+                    <button onclick="switchView('users')" id="btn-users" class="nav-btn hidden w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="users"></i><span>Usuarios</span></button>
                 </nav>
             </div>
-            <div class="p-4 border-t border-slate-800"><button onclick="logout()" class="w-full text-red-400 p-2 hover:bg-red-900 rounded">Cerrar Sesión</button></div>
+            <div class="p-6 border-t border-slate-800"><button onclick="logout()" class="w-full flex items-center justify-center space-x-3 px-5 py-3 text-red-400 hover:bg-red-500/10 rounded-xl transition-all font-bold text-sm"><i data-lucide="log-out"></i><span>Salir del Sistema</span></button></div>
         </aside>
 
         <main class="flex-1 flex flex-col overflow-hidden">
-            <header class="h-16 bg-white border-b flex items-center justify-between px-8 shrink-0 text-sm">
-                <div class="flex items-center space-x-4">
-                    <h1 id="page-title" class="text-xl font-bold">Dashboard</h1>
-                    <select id="user-filter" onchange="refreshCurrentView()" class="border rounded-lg px-3 py-1.5 bg-slate-50 focus:outline-none">
-                        <option value="ALL">Ver Todo</option>
+            <header class="h-20 bg-white border-b flex items-center justify-between px-10 shrink-0">
+                <div class="flex items-center space-x-6">
+                    <h1 id="page-title" class="text-2xl font-extrabold text-slate-800">Dashboard</h1>
+                    <select id="user-filter" onchange="refreshCurrentView()" class="text-sm font-bold border rounded-xl px-4 py-2 bg-slate-50 focus:outline-none">
+                        <option value="ALL">Ver Todo el Sistema</option>
                         <option value="d4r005@gmail.com">Dario Robles</option>
                         <option value="lugga.advisors@gmail.com">Cynthia Garza</option>
                     </select>
                 </div>
-                <div class="flex items-center space-x-4">
-                    <div class="text-right leading-tight">
-                        <p id="user-name-display" class="font-bold text-slate-800">Dario Robles</p>
-                        <p class="text-[10px] text-slate-500 uppercase font-black tracking-widest">Administrador ACE</p>
+                <div class="flex items-center space-x-5">
+                    <div class="text-right leading-none">
+                        <p id="user-name-display" class="font-extrabold text-slate-900">Dario Robles</p>
+                        <p id="user-role-display" class="text-[10px] text-slate-500 uppercase font-black tracking-widest mt-1">Administrador ACE</p>
                     </div>
-                    <div id="user-initials" class="h-10 w-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">DR</div>
+                    <div id="user-initials" class="h-12 w-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-bold text-lg uppercase shadow-lg shadow-blue-100">DR</div>
                 </div>
             </header>
 
-            <div class="flex-1 overflow-y-auto p-10 space-y-8">
+            <div class="flex-1 overflow-y-auto p-10 space-y-10">
                 <div id="view-dashboard" class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <div class="bg-white p-8 rounded-2xl border shadow-sm flex items-center justify-between"><div><p class="text-xs font-black text-slate-400 uppercase mb-1">Personal</p><p id="stat-workers" class="text-3xl font-extrabold text-slate-900">0</p></div><i data-lucide="users-2" class="text-blue-500"></i></div>
-                    <div class="bg-white p-8 rounded-2xl border shadow-sm flex items-center justify-between"><div><p class="text-xs font-black text-slate-400 uppercase mb-1">Cursos</p><p id="stat-courses" class="text-3xl font-extrabold text-slate-900">0</p></div><i data-lucide="book-open" class="text-emerald-500"></i></div>
-                    <div class="bg-white p-8 rounded-2xl border shadow-sm flex items-center justify-between"><div><p class="text-xs font-black text-slate-400 uppercase mb-1">DC-3</p><p id="stat-dc3" class="text-3xl font-extrabold text-slate-900">0</p></div><i data-lucide="file-check" class="text-violet-500"></i></div>
+                    <div class="bg-white p-8 rounded-3xl border shadow-sm flex items-center justify-between group hover:shadow-xl transition-all">
+                        <div><p class="text-xs font-black text-slate-400 uppercase mb-1">Personal</p><p id="stat-workers" class="text-4xl font-extrabold">0</p></div>
+                        <div class="p-4 bg-blue-50 text-blue-600 rounded-2xl"><i data-lucide="users-2" class="w-8 h-8"></i></div>
+                    </div>
+                    <div class="bg-white p-8 rounded-3xl border shadow-sm flex items-center justify-between group hover:shadow-xl transition-all">
+                        <div><p class="text-xs font-black text-slate-400 uppercase mb-1">Cursos</p><p id="stat-courses" class="text-4xl font-extrabold">0</p></div>
+                        <div class="p-4 bg-emerald-50 text-emerald-600 rounded-2xl"><i data-lucide="book-open" class="w-8 h-8"></i></div>
+                    </div>
+                    <div class="bg-white p-8 rounded-3xl border shadow-sm flex items-center justify-between group hover:shadow-xl transition-all">
+                        <div><p class="text-xs font-black text-slate-400 uppercase mb-1">DC-3 Emitidos</p><p id="stat-dc3" class="text-4xl font-extrabold">0</p></div>
+                        <div class="p-4 bg-violet-50 text-violet-600 rounded-2xl"><i data-lucide="file-check" class="w-8 h-8"></i></div>
+                    </div>
                 </div>
+
                 <div id="view-content" class="hidden space-y-6">
-                    <div class="flex justify-between items-center bg-white p-6 rounded-2xl border shadow-sm">
+                    <div class="flex justify-between items-center bg-white p-6 rounded-3xl border shadow-sm">
                         <p id="view-description" class="text-slate-500 font-medium"></p>
-                        <div class="flex space-x-2">
+                        <div class="flex space-x-3">
                             <input type="file" id="excel-input" class="hidden" accept=".xlsx, .xls" onchange="handleExcel(this)">
-                            <button id="upload-btn" onclick="document.getElementById('excel-input').click()" class="hidden bg-emerald-600 text-white px-5 py-2 rounded-xl text-sm font-bold shadow-lg shadow-emerald-100 flex items-center"><i data-lucide="file-spreadsheet" class="w-4 h-4 mr-2"></i>Cargar Excel</button>
-                            <button id="gen-dc3-btn" class="hidden bg-slate-900 text-white px-5 py-2 rounded-xl text-sm font-bold shadow-lg flex items-center"><i data-lucide="printer" class="w-4 h-4 mr-2"></i>Generar DC-3</button>
-                            <button id="add-btn" onclick="openModal()" class="hidden bg-blue-600 text-white px-5 py-2 rounded-xl text-sm font-bold shadow-lg shadow-blue-100 flex items-center"><i data-lucide="plus" class="w-4 h-4 mr-2"></i>Agregar</button>
+                            <button id="upload-btn" onclick="document.getElementById('excel-input').click()" class="hidden bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-2xl text-sm font-bold shadow-lg shadow-emerald-100 flex items-center"><i data-lucide="file-spreadsheet" class="w-4 h-4 mr-2"></i>Cargar Personal (Excel)</button>
+                            <button id="add-btn" onclick="openModal()" class="hidden bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-2xl text-sm font-bold shadow-lg shadow-blue-200 flex items-center"><i data-lucide="plus" class="w-4 h-4 mr-2"></i>Agregar Registro</button>
                         </div>
                     </div>
-                    <div class="bg-white rounded-2xl border overflow-hidden shadow-sm">
+                    <div class="bg-white rounded-[2.5rem] border overflow-hidden shadow-sm">
                         <table class="w-full text-left border-collapse">
-                            <thead id="table-header" class="bg-slate-50 text-[10px] uppercase text-slate-400 font-black border-b"></thead>
-                            <tbody id="table-body" class="divide-y text-sm font-medium text-slate-600"></tbody>
+                            <thead id="table-header" class="bg-slate-50/50 text-[10px] uppercase text-slate-400 font-black tracking-widest border-b border-slate-100"></thead>
+                            <tbody id="table-body" class="divide-y divide-slate-100 text-sm font-medium text-slate-600"></tbody>
                         </table>
                     </div>
                 </div>
@@ -217,8 +147,49 @@
         </main>
     </div>
 
-    <!-- Modal -->
-    <div id="modal" class="modal"><div class="modal-content"><h3 id="modal-title" class="text-xl font-bold mb-6">Acción</h3><div id="modal-fields" class="space-y-4"></div><div class="mt-8 flex justify-end space-x-3"><button onclick="closeModal()">Cancelar</button><button onclick="saveItem()" class="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold">Guardar</button></div></div></div>
+    <!-- Modal Dinámico -->
+    <div id="modal" class="modal"><div class="modal-content"><h3 id="modal-title" class="text-2xl font-black text-slate-800 mb-8 uppercase italic tracking-tighter">Acción</h3><div id="modal-fields" class="space-y-6"></div><div class="mt-10 flex justify-end space-x-4"><button onclick="closeModal()" class="px-6 py-3 text-sm font-bold text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-all">Cancelar</button><button onclick="saveItem()" class="bg-blue-600 text-white px-8 py-3 rounded-2xl text-sm font-black uppercase tracking-widest shadow-xl shadow-blue-200 hover:bg-blue-500 transition-all">Guardar</button></div></div></div>
+
+    <!-- Modal DC-3 Generación Individual -->
+    <div id="dc3-modal" class="modal">
+        <div class="modal-content" style="width: 600px;">
+            <h3 class="text-2xl font-black text-slate-800 mb-6 uppercase italic tracking-tighter text-center border-b pb-4">Configurar Formato DC-3</h3>
+            <div class="space-y-6">
+                <div>
+                    <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Trabajador Seleccionado</label>
+                    <p id="dc3-worker-name" class="text-lg font-extrabold text-blue-600"></p>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Empresa</label>
+                        <select id="dc3-company" class="w-full bg-slate-50 border-none rounded-xl p-3 text-sm font-bold outline-none ring-1 ring-slate-200"></select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Curso</label>
+                        <select id="dc3-course" class="w-full bg-slate-50 border-none rounded-xl p-3 text-sm font-bold outline-none ring-1 ring-slate-200"></select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Fecha Inicio</label>
+                        <input type="date" id="dc3-start" class="w-full bg-slate-50 border-none rounded-xl p-3 text-sm font-bold outline-none ring-1 ring-slate-200">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Fecha Fin</label>
+                        <input type="date" id="dc3-end" class="w-full bg-slate-50 border-none rounded-xl p-3 text-sm font-bold outline-none ring-1 ring-slate-200">
+                    </div>
+                </div>
+                <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100">
+                    <p class="text-[10px] font-black text-blue-400 uppercase mb-1">Nota de Generación</p>
+                    <p class="text-xs text-blue-700 font-semibold">Se generará el archivo PDF oficial con la firma digital registrada para el agente capacitador actual.</p>
+                </div>
+            </div>
+            <div class="mt-8 flex justify-end space-x-3">
+                <button onclick="document.getElementById('dc3-modal').style.display='none'" class="px-6 py-3 text-sm font-bold text-slate-400 uppercase tracking-widest">Cerrar</button>
+                <button onclick="generateSingleDC3()" class="bg-slate-900 text-white px-8 py-3 rounded-2xl text-sm font-black uppercase tracking-widest shadow-xl shadow-slate-200 hover:bg-black transition-all">Generar y Descargar PDF</button>
+            </div>
+        </div>
+    </div>
 
     <script>
         const ATLAS_URL = "https://data.mongodb-api.com/app/data-jshze/endpoint/data/v1/action";
@@ -251,99 +222,41 @@
                 { name: "VEHICULOS PESADOS", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
                 { name: "INHALOTERAPIA", durationHours: 24, creatorEmail: "lugga.advisors@gmail.com" }
             ],
-            agents: [{ name: "CYNTHIA YADIRA GARZA LUGO", stps: "STPS-GALC780523-MP3-005" }]
+            agents: [{ name: "CYNTHIA YADIRA GARZA LUGO", stps: "STPS-GALC780523-MP3-005", creatorEmail: "lugga.advisors@gmail.com" }],
+            companies: [] // Se cargará de MongoDB Atlas
         };
 
-        let currentUser = null, currentView = 'dashboard';
+        let currentUser = null, currentView = 'dashboard', selectedWorker = null;
 
         window.onload = function() {
             lucide.createIcons();
-            const saved = localStorage.getItem('rememberedEmail');
-            if (saved) document.getElementById('email').value = saved;
+            const rememberedEmail = localStorage.getItem('rememberedEmail');
+            if (rememberedEmail) document.getElementById('email').value = rememberedEmail;
         };
-
-        function togglePassword() {
-            const p = document.getElementById('password');
-            const i = document.getElementById('password-icon');
-            p.type = p.type === 'password' ? 'text' : 'password';
-            i.classList.toggle('fa-eye'); i.classList.toggle('fa-eye-slash');
-        }
 
         async function login(e) {
             e.preventDefault();
             const email = document.getElementById('email').value.trim();
             const pass = document.getElementById('password').value.trim();
-            const rem = document.getElementById('remember-me').checked;
-
             const user = DATA.users.find(u => u.email === email && u.password === pass);
             if(user) {
-                if(rem) localStorage.setItem('rememberedEmail', email);
-                else localStorage.removeItem('rememberedEmail');
+                if(document.getElementById('remember-me').checked) localStorage.setItem('rememberedEmail', email);
                 currentUser = user; initApp();
-            } else {
-                document.getElementById('login-error').classList.remove('hidden');
-            }
+            } else { document.getElementById('login-error').classList.remove('hidden'); }
         }
 
-        function initApp() {
+        async function initApp() {
             document.getElementById('view-login').classList.add('hidden');
             document.getElementById('app-container').classList.remove('hidden');
             document.getElementById('user-name-display').innerText = currentUser.name;
+            document.getElementById('user-initials').innerText = currentUser.name.substring(0,2);
             if(currentUser.role === 'ADMIN') document.getElementById('btn-users').classList.remove('hidden');
+
+            // Cargar Empresas de MongoDB
+            const comp = await atlasAction("find", "companies", { filter: {} });
+            DATA.companies = comp.documents || [];
+
             switchView('dashboard'); lucide.createIcons();
-        }
-
-        async function switchView(v) {
-            currentView = v;
-            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active', 'bg-blue-600', 'text-white'));
-            const btn = document.getElementById('btn-'+v); if(btn) btn.classList.add('active');
-            document.getElementById('view-dashboard').classList.toggle('hidden', v !== 'dashboard');
-            document.getElementById('view-content').classList.toggle('hidden', v === 'dashboard');
-            document.getElementById('upload-btn').classList.toggle('hidden', v !== 'workers');
-            document.getElementById('gen-dc3-btn').classList.toggle('hidden', v !== 'workers');
-            document.getElementById('add-btn').classList.toggle('hidden', !['courses','agents','users'].includes(v));
-            refreshCurrentView(); lucide.createIcons();
-        }
-
-        async function refreshCurrentView() {
-            const fValue = document.getElementById('user-filter').value;
-            const filter = (fValue === 'ALL') ? {} : { creatorEmail: fValue };
-
-            if(currentView === 'dashboard') {
-                const count = fValue === 'ALL' ? DATA.courses.length : DATA.courses.filter(c => c.creatorEmail === fValue).length;
-                document.getElementById('stat-courses').innerText = count;
-                const w = await atlasAction("find", "workers", { filter });
-                const d = await atlasAction("find", "dc3_records", { filter });
-                document.getElementById('stat-workers').innerText = (w.documents || []).length;
-                document.getElementById('stat-dc3').innerText = (d.documents || []).length;
-
-            } else if(currentView === 'workers') {
-                document.getElementById('view-description').innerText = "Personal registrado mediante carga de Excel.";
-                const w = await atlasAction("find", "workers", { filter });
-                document.getElementById('table-header').innerHTML = `<tr><th class="px-10 py-6">Nombre</th><th class="px-10 py-6">CURP</th><th class="px-10 py-6">Puesto</th></tr>`;
-                document.getElementById('table-body').innerHTML = (w.documents || []).map(x => `<tr class="hover:bg-slate-50 transition-colors"><td class="px-10 py-5 font-bold">${x.name}</td><td class="px-10 py-5">${x.curp}</td><td class="px-10 py-5">${x.position}</td></tr>`).join('') || '<tr><td colspan="3" class="p-20 text-center text-slate-300 uppercase">Sin personal</td></tr>';
-
-            } else if(currentView === 'courses') {
-                document.getElementById('view-description').innerText = "Catálogo oficial de cursos disponibles por agente.";
-                const list = fValue === 'ALL' ? DATA.courses : DATA.courses.filter(c => c.creatorEmail === fValue);
-                document.getElementById('table-header').innerHTML = `<tr><th class="px-10 py-6">Curso</th><th class="px-10 py-6">Horas</th><th class="px-10 py-6">Área</th></tr>`;
-                document.getElementById('table-body').innerHTML = list.map(c => `<tr class="hover:bg-slate-50 transition-colors"><td class="px-10 py-5 font-bold uppercase">${c.name}</td><td class="px-10 py-5 font-bold text-blue-600">${c.durationHours} H</td><td class="px-10 py-5 italic text-slate-400">Seguridad</td></tr>`).join('') || '<tr><td colspan="3" class="p-20 text-center text-slate-300 uppercase">Sin cursos</td></tr>';
-
-            } else if(currentView === 'users') {
-                document.getElementById('view-description').innerText = "Gestión de accesos y roles del sistema.";
-                document.getElementById('table-header').innerHTML = `<tr><th class="px-10 py-6">Nombre</th><th class="px-10 py-6">Email</th><th class="px-10 py-6">Rol</th></tr>`;
-                document.getElementById('table-body').innerHTML = DATA.users.map(u => `<tr><td class="px-10 py-5 font-bold">${u.name}</td><td class="px-10 py-5 text-slate-500">${u.email}</td><td class="px-10 py-5"><span class="px-3 py-1 rounded-full text-[10px] font-black uppercase ${u.role==='ADMIN'?'bg-purple-100 text-purple-700':'bg-blue-100 text-blue-700'}">${u.role}</span></td></tr>`).join('');
-
-            } else if(currentView === 'agents') {
-                document.getElementById('view-description').innerText = "Registro de Agentes Capacitadores Externos STPS.";
-                document.getElementById('table-header').innerHTML = `<tr><th class="px-10 py-6">Agente</th><th class="px-10 py-6">Registro STPS</th></tr>`;
-                document.getElementById('table-body').innerHTML = DATA.agents.map(a => `<tr class="hover:bg-slate-50 transition-colors"><td class="px-10 py-5 font-bold uppercase">${a.name}</td><td class="px-10 py-5 font-mono text-blue-600 font-bold">${a.stps}</td></tr>`).join('');
-
-            } else if(currentView === 'dc3') {
-                const d = await atlasAction("find", "dc3_records", { filter: f });
-                document.getElementById('table-header').innerHTML = `<tr><th class="px-10 py-6">Trabajador</th><th class="px-10 py-6">Curso</th><th class="px-10 py-6">Acciones</th></tr>`;
-                document.getElementById('table-body').innerHTML = (d.documents || []).map(r => `<tr><td class="px-10 py-5 font-bold">${r.workerId}</td><td class="px-10 py-5">${r.courseName}</td><td class="px-10 py-5"><button class="text-blue-600 font-bold">Descargar PDF</button></td></tr>`).join('') || '<tr><td colspan="3" class="p-20 text-center text-slate-300 uppercase">Sin historial</td></tr>';
-            }
         }
 
         async function atlasAction(action, collection, payload = {}) {
@@ -353,13 +266,115 @@
             } catch (e) { return { documents: [] }; }
         }
 
+        function getFilter() {
+            const v = document.getElementById('user-filter').value;
+            return (currentUser.role==='ADMIN' && v==='ALL') ? {} : { creatorEmail: v === 'ALL' ? currentUser.email : v };
+        }
+
+        async function switchView(v) {
+            currentView = v;
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            const btn = document.getElementById('btn-'+v); if(btn) btn.classList.add('active');
+            document.getElementById('view-dashboard').classList.toggle('hidden', v !== 'dashboard');
+            document.getElementById('view-content').classList.toggle('hidden', v === 'dashboard');
+            document.getElementById('upload-btn').classList.toggle('hidden', v !== 'workers');
+            document.getElementById('add-btn').classList.toggle('hidden', !['courses','agents','users','companies'].includes(v));
+
+            const titleMap = { dashboard: "Dashboard", workers: "Personal", companies: "Empresas", courses: "Cursos", agents: "Agentes Cap.", dc3: "DC-3 Historial", users: "Usuarios" };
+            document.getElementById('page-title').innerText = titleMap[v];
+            refreshCurrentView(); lucide.createIcons();
+        }
+
+        async function refreshCurrentView() {
+            const f = getFilter();
+            const filterEmail = f.creatorEmail;
+
+            if(currentView === 'dashboard') {
+                const filteredCourses = filterEmail ? DATA.courses.filter(c => c.creatorEmail === filterEmail) : DATA.courses;
+                document.getElementById('stat-courses').innerText = filteredCourses.length;
+                const w = await atlasAction("find", "workers", { filter: f });
+                const d = await atlasAction("find", "dc3_records", { filter: f });
+                document.getElementById('stat-workers').innerText = (w.documents || []).length;
+                document.getElementById('stat-dc3').innerText = (d.documents || []).length;
+
+            } else if(currentView === 'workers') {
+                const data = await atlasAction("find", "workers", { filter: f });
+                document.getElementById('table-header').innerHTML = `<tr><th class="px-10 py-6">Nombre</th><th class="px-10 py-6">CURP</th><th class="px-10 py-6 text-right">Acciones</th></tr>`;
+                document.getElementById('table-body').innerHTML = (data.documents || []).map(x => `<tr class="hover:bg-slate-50 transition-colors"><td class="px-10 py-5 font-bold">${x.name}</td><td class="px-10 py-5">${x.curp}</td><td class="px-10 py-5 text-right"><button onclick='openDC3Modal(${JSON.stringify(x)})' class="text-blue-600 font-bold hover:underline">Generar DC-3</button></td></tr>`).join('') || '<tr><td colspan="3" class="p-20 text-center text-slate-300 uppercase">Sin personal</td></tr>';
+
+            } else if(currentView === 'companies') {
+                document.getElementById('table-header').innerHTML = `<tr><th class="px-10 py-6">Empresa</th><th class="px-10 py-6">RFC</th><th class="px-10 py-6 text-right">Acciones</th></tr>`;
+                document.getElementById('table-body').innerHTML = DATA.companies.map(c => `<tr><td class="px-10 py-5 font-bold">${c.name}</td><td class="px-10 py-5">${c.rfc}</td><td class="px-10 py-5 text-right"><button onclick="deleteItem('companies', '${c._id}')" class="text-red-500 font-bold">Borrar</button></td></tr>`).join('') || '<tr><td colspan="3" class="p-20 text-center text-slate-300 uppercase">Sin empresas</td></tr>';
+
+            } else if(currentView === 'courses') {
+                const list = filterEmail ? DATA.courses.filter(c => c.creatorEmail === filterEmail) : DATA.courses;
+                document.getElementById('table-header').innerHTML = `<tr><th class="px-10 py-6 text-left">Curso</th><th class="px-10 py-6 text-left">Horas</th></tr>`;
+                document.getElementById('table-body').innerHTML = list.map(c => `<tr class="hover:bg-slate-50 transition-colors"><td class="px-10 py-5 font-bold uppercase">${c.name}</td><td class="px-10 py-5 font-bold text-blue-600">${c.durationHours} H</td></tr>`).join('') || '<tr><td colspan="2" class="p-20 text-center text-slate-300 uppercase">Sin cursos</td></tr>';
+
+            } else if(currentView === 'agents') {
+                const list = filterEmail ? DATA.agents.filter(a => a.creatorEmail === filterEmail) : DATA.agents;
+                document.getElementById('table-header').innerHTML = `<tr><th class="px-10 py-6 text-left">Agente</th><th class="px-10 py-6 text-left">Registro STPS</th></tr>`;
+                document.getElementById('table-body').innerHTML = list.map(a => `<tr class="hover:bg-slate-50 transition-colors"><td class="px-10 py-5 font-bold uppercase">${a.name}</td><td class="px-10 py-5 font-mono text-blue-600 font-bold">${a.stps}</td></tr>`).join('') || '<tr><td colspan="2" class="p-20 text-center text-slate-300 uppercase">Sin agentes</td></tr>';
+            }
+        }
+
+        function openModal() {
+            const fields = document.getElementById('modal-fields');
+            document.getElementById('modal').style.display = 'block';
+            if(currentView === 'companies') {
+                document.getElementById('modal-title').innerText = "Nueva Empresa";
+                fields.innerHTML = `<input id="f1" placeholder="Nombre o Razón Social" class="w-full p-4 bg-slate-50 rounded-2xl outline-none"><input id="f2" placeholder="RFC" class="w-full p-4 bg-slate-50 rounded-2xl outline-none">`;
+            }
+        }
+
+        async function saveItem() {
+            if(currentView === 'companies') {
+                const doc = { name: document.getElementById('f1').value, rfc: document.getElementById('f2').value, creatorEmail: currentUser.email };
+                await atlasAction("insertOne", "companies", { document: doc });
+                const comp = await atlasAction("find", "companies", { filter: {} }); DATA.companies = comp.documents || [];
+            }
+            closeModal(); refreshCurrentView();
+        }
+
+        function openDC3Modal(worker) {
+            selectedWorker = worker;
+            document.getElementById('dc3-worker-name').innerText = worker.name;
+            const compSelect = document.getElementById('dc3-company');
+            const courSelect = document.getElementById('dc3-course');
+            compSelect.innerHTML = DATA.companies.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+            const list = currentUser.role === 'ADMIN' ? DATA.courses : DATA.courses.filter(c => c.creatorEmail === currentUser.email);
+            courSelect.innerHTML = list.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+            document.getElementById('dc3-modal').style.display = 'block';
+        }
+
+        function generateSingleDC3() {
+            const company = document.getElementById('dc3-company').value;
+            const course = document.getElementById('dc3-course').value;
+            const start = document.getElementById('dc3-start').value;
+            const end = document.getElementById('dc3-end').value;
+
+            const doc = new jspdf.jsPDF();
+            doc.setFontSize(20); doc.text("FORMATO DC-3", 105, 20, null, null, "center");
+            doc.setFontSize(12); doc.text(`Trabajador: ${selectedWorker.name}`, 20, 40);
+            doc.text(`CURP: ${selectedWorker.curp}`, 20, 50);
+            doc.text(`Empresa: ${company}`, 20, 70);
+            doc.text(`Curso: ${course}`, 20, 90);
+            doc.text(`Periodo: de ${start} a ${end}`, 20, 100);
+            doc.save(`DC3_${selectedWorker.curp}.pdf`);
+
+            atlasAction("insertOne", "dc3_records", { document: { workerId: selectedWorker.curp, courseName: course, companyName: company, startDate: start, creatorEmail: currentUser.email } });
+            alert("¡DC-3 Generado y Guardado!");
+            document.getElementById('dc3-modal').style.display = 'none';
+            refreshCurrentView();
+        }
+
+        function togglePassword() { const p = document.getElementById('password'); p.type = p.type === 'password' ? 'text' : 'password'; }
         function logout() { location.reload(); }
         function closeModal() { document.getElementById('modal').style.display='none'; }
-
+        async function deleteItem(coll, id) { if(confirm("Borrar?")) { await atlasAction("deleteOne", coll, { filter: { _id: { "$oid": id } } }); refreshCurrentView(); } }
         async function handleExcel(input) {
             const r = new FileReader(); r.onload = async (e) => {
-                const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
-                const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+                const rows = XLSX.utils.sheet_to_json(XLSX.read(new Uint8Array(e.target.result), {type:'array'}).Sheets[XLSX.read(new Uint8Array(e.target.result), {type:'array'}).SheetNames[0]]);
                 const workers = rows.map(r => ({ name: r.Nombre || r.NOMBRE, curp: r.CURP, position: r.Puesto || r.PUESTO, creatorEmail: currentUser.email }));
                 await atlasAction("insertMany", "workers", { documents: workers });
                 alert("Excel cargado!"); refreshCurrentView();
