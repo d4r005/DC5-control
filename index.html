@@ -199,9 +199,7 @@
     </div>
 
     <script>
-        const ATLAS_URL = "https://data.mongodb-api.com/app/data-jshze/endpoint/data/v1/action";
-        const API_KEY = "al-b14XHfG6V17yJMOy1lmUWm9vCbuLZG1-Ot7Mp0YAMhH";
-        const DB_CONFIG = { dataSource: "acecontrol", database: "DC3_Database" };
+        const API_URL = "https://kaelo-7967dfa3.base44.app/functions/mongoApi";
 
         const CATALOGS = {
             occupations: [
@@ -290,7 +288,7 @@
 
         async function atlasAction(action, collection, payload = {}) {
             try {
-                const r = await fetch(`${ATLAS_URL}/${action}`, { method: "POST", headers: { "Content-Type": "application/json", "api-key": API_KEY }, body: JSON.stringify({ ...DB_CONFIG, collection, ...payload }) });
+                const r = await fetch(API_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, collection, ...payload }) });
                 return await r.json();
             } catch (e) { return { documents: [] }; }
         }
@@ -349,7 +347,7 @@
                         <td class="px-10 py-5 font-bold">${c.name}</td>
                         <td class="px-10 py-5">${c.rfc}</td>
                         <td class="px-10 py-5 text-right">
-                            <button onclick="deleteItem('companies', '${c._id}')" class="text-red-500 font-bold hover:underline">Eliminar</button>
+                            <button onclick="deleteItem('companies', '${c.id}')" class="text-red-500 font-bold hover:underline">Eliminar</button>
                         </td>
                     </tr>`).join('') || '<tr><td colspan="3" class="p-20 text-center text-slate-300 uppercase">Sin empresas registradas</td></tr>';
 
@@ -483,7 +481,7 @@
         function togglePassword() { const p = document.getElementById('password'); p.type = p.type === 'password' ? 'text' : 'password'; }
         function logout() { location.reload(); }
         function closeModal() { document.getElementById('modal').style.display='none'; }
-        async function deleteItem(coll, id) { if(confirm("Borrar?")) { await atlasAction("deleteOne", coll, { filter: { _id: { "$oid": id } } }); refreshCurrentView(); } }
+        async function deleteItem(coll, id) { if(confirm("Borrar?")) { await atlasAction("deleteOne", coll, { filter: { id: id } }); refreshCurrentView(); } }
         async function handleExcel(input) {
             const r = new FileReader(); r.onload = async (e) => {
                 const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
