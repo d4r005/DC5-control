@@ -21,8 +21,8 @@
         <div class="flex max-w-4xl w-full items-center justify-center lg:justify-between space-x-12">
             <div class="hidden lg:block w-1/2 text-cyan-400">
                 <i data-lucide="shield-check" class="w-48 h-48 drop-shadow-[0_0_15px_rgba(34,211,238,0.5)]"></i>
-                <h3 class="text-2xl font-bold text-white mt-4">Seguridad Certificada</h3>
-                <p class="text-cyan-100/60 text-sm">Gestión blindada de Agentes y DC-3.</p>
+                <h3 class="text-2xl font-bold text-white mt-4 uppercase">Seguridad ACE</h3>
+                <p class="text-cyan-100/60 text-sm">Control total de Agentes Capacitadores.</p>
             </div>
             <div class="w-full max-w-[380px] bg-white rounded-[2rem] p-10 shadow-2xl">
                 <div class="text-center mb-8">
@@ -34,7 +34,7 @@
                         <input id="password" type="password" required class="w-full bg-slate-50 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500" placeholder="Password">
                         <button type="button" onclick="togglePassword()" class="absolute right-4 top-3.5 text-slate-400"><i id="password-icon" class="fa-solid fa-eye"></i></button>
                     </div>
-                    <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-all">Entrar</button>
+                    <button type="submit" class="w-full bg-[#3b5998] text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-all">Entrar</button>
                 </form>
             </div>
         </div>
@@ -46,14 +46,13 @@
             <div>
                 <div class="h-16 flex items-center px-6 border-b border-slate-800 space-x-2">
                     <div class="h-8 w-8 bg-blue-600 rounded flex items-center justify-center text-white font-bold">A</div>
-                    <span class="font-bold text-white tracking-wider">ACE-CONTROL</span>
+                    <span class="font-bold text-white tracking-wider uppercase">ACE-CONTROL</span>
                 </div>
                 <nav class="mt-6 px-4 space-y-1">
                     <button onclick="switchView('dashboard')" id="btn-dashboard" class="nav-btn w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm transition-colors"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></button>
                     <button onclick="switchView('workers')" id="btn-workers" class="nav-btn w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm transition-colors"><i data-lucide="file-text"></i><span>Personal (Excel)</span></button>
                     <button onclick="switchView('courses')" id="btn-courses" class="nav-btn w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm transition-colors"><i data-lucide="book-open"></i><span>Cursos</span></button>
                     <button onclick="switchView('agents')" id="btn-agents" class="nav-btn w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm transition-colors"><i data-lucide="award"></i><span>Agentes Cap.</span></button>
-                    <button onclick="switchView('dc3')" id="btn-dc3" class="nav-btn w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm transition-colors"><i data-lucide="file-check"></i><span>DC-3 Generados</span></button>
                     <button onclick="switchView('users')" id="btn-users" class="nav-btn hidden w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm transition-colors"><i data-lucide="users"></i><span>Usuarios</span></button>
                 </nav>
             </div>
@@ -64,24 +63,25 @@
             <header class="h-16 bg-white border-b flex items-center justify-between px-8 shrink-0">
                 <div class="flex items-center space-x-4">
                     <h1 id="page-title" class="text-xl font-bold">Dashboard</h1>
-                    <select id="user-filter" onchange="refreshCurrentView()" class="hidden text-sm border rounded-lg px-3 py-1.5 bg-slate-50"><option value="ALL">Todos los Agentes</option></select>
+                    <select id="user-filter" onchange="refreshCurrentView()" class="hidden text-sm border rounded-lg px-3 py-1.5 bg-slate-50"><option value="ALL">Filtrar por Agente</option></select>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <button id="sync-btn" onclick="syncInitialData()" class="hidden bg-amber-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-amber-600">Sincronizar Cynthia</button>
-                    <div class="text-right leading-tight"><p id="user-name-display" class="font-bold text-slate-800">Cargando...</p><p id="user-role-display" class="text-xs text-slate-500"></p></div>
-                    <div id="user-initials" class="h-10 w-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">??</div>
+                    <div class="text-right leading-tight">
+                        <p id="user-name-display" class="font-bold text-slate-800">Dario Robles</p>
+                        <p id="user-role-display" class="text-xs text-slate-500 uppercase font-bold tracking-tighter">Administrador ACE</p>
+                    </div>
+                    <div id="user-initials" class="h-10 w-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">DR</div>
                 </div>
             </header>
 
             <div class="flex-1 overflow-y-auto p-8">
-                <!-- Seccion Dinamica -->
                 <div id="view-dashboard" class="space-y-6">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div class="bg-white p-6 rounded-xl border shadow-sm flex items-center justify-between"><div><p class="text-sm text-slate-500">Personal</p><p id="stat-workers" class="text-2xl font-bold">0</p></div><i data-lucide="users-2" class="text-blue-500"></i></div>
-                        <div class="bg-white p-6 rounded-xl border shadow-sm flex items-center justify-between"><div><p class="text-sm text-slate-500">Cursos</p><p id="stat-courses" class="text-2xl font-bold">0</p></div><i data-lucide="book-open" class="text-emerald-500"></i></div>
-                        <div class="bg-white p-6 rounded-xl border shadow-sm flex items-center justify-between"><div><p class="text-sm text-slate-500">DC-3</p><p id="stat-dc3" class="text-2xl font-bold">0</p></div><i data-lucide="file-check" class="text-violet-500"></i></div>
+                        <div class="bg-white p-6 rounded-xl border shadow-sm flex items-center justify-between"><div><p class="text-sm text-slate-500">Cursos</p><p id="stat-courses" class="text-2xl font-bold">19</p></div><i data-lucide="book-open" class="text-emerald-500"></i></div>
+                        <div class="bg-white p-6 rounded-xl border shadow-sm flex items-center justify-between"><div><p class="text-sm text-slate-500">DC-3 Generados</p><p id="stat-dc3" class="text-2xl font-bold">0</p></div><i data-lucide="file-check" class="text-violet-500"></i></div>
                     </div>
-                    <div class="bg-white p-6 rounded-xl border"><h3 class="font-bold mb-4 italic">Bienvenido, Dario. Gestión de Capacitación en tiempo real.</h3></div>
+                    <div class="bg-white p-6 rounded-xl border"><h3 class="font-bold mb-4 italic">Panel Centralizado - Gestión ACE</h3></div>
                 </div>
 
                 <div id="view-content" class="hidden space-y-6">
@@ -89,14 +89,14 @@
                         <p id="view-description" class="text-slate-500 text-sm"></p>
                         <div class="flex space-x-2">
                             <input type="file" id="excel-input" class="hidden" accept=".xlsx, .xls" onchange="handleExcel(this)">
-                            <button id="upload-btn" onclick="document.getElementById('excel-input').click()" class="hidden bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-bold"><i class="fa-solid fa-file-excel mr-2"></i>Cargar Excel</button>
+                            <button id="upload-btn" onclick="document.getElementById('excel-input').click()" class="hidden bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-bold">Cargar Excel</button>
                             <button id="gen-dc3-btn" class="hidden bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold">Generar DC-3 Masivos</button>
-                            <button id="add-btn" onclick="openModal()" class="hidden bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold">+ Agregar</button>
+                            <button id="add-btn" onclick="openModal()" class="hidden bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold">+ Agregar Nuevo</button>
                         </div>
                     </div>
-                    <div class="bg-white rounded-xl border overflow-hidden">
+                    <div class="bg-white rounded-xl border overflow-hidden shadow-lg">
                         <table class="w-full text-left border-collapse">
-                            <thead id="table-header" class="bg-slate-50 text-xs uppercase text-slate-500"></thead>
+                            <thead id="table-header" class="bg-slate-50 text-xs uppercase text-slate-500 font-bold border-b"></thead>
                             <tbody id="table-body" class="divide-y text-sm"></tbody>
                         </table>
                     </div>
@@ -105,45 +105,66 @@
         </main>
     </div>
 
-    <!-- Modal -->
-    <div id="modal" class="modal"><div class="modal-content"><h3 id="modal-title" class="text-xl font-bold mb-6">Acción</h3><div id="modal-fields" class="space-y-4"></div><div class="mt-8 flex justify-end space-x-3"><button onclick="closeModal()">Cancelar</button><button onclick="saveItem()" class="bg-blue-600 text-white px-4 py-2 rounded">Guardar</button></div></div></div>
-
     <script>
         const ATLAS_URL = "https://data.mongodb-api.com/app/data-jshze/endpoint/data/v1/action";
         const API_KEY = "al-b14XHfG6V17yJMOy1lmUWm9vCbuLZG1-Ot7Mp0YAMhH";
         const DB_CONFIG = { dataSource: "acecontrol", database: "DC3_Database" };
-        let currentUser = null, currentView = 'dashboard', editingItemId = null;
+
+        const DEFAULT_USERS = [
+            { name: "Dario Robles", email: "d4r005@gmail.com", role: "ADMIN", password: "Branco2025" },
+            { name: "Cynthia Garza Lugo", email: "lugga.advisors@gmail.com", role: "USER", password: "Cynthia123" }
+        ];
+
+        const DEFAULT_AGENTS = [
+            { name: "CYNTHIA YADIRA GARZA LUGO", stpsRegistry: "STPS-GALC780523-MP3-005" }
+        ];
+
+        const DEFAULT_COURSES = [
+            { name: "SEGURIDAD EN TRABAJOS DE SOLDADURAS Y OXICORTE", durationHours: 8, thematicArea: "Seguridad industrial", creatorEmail: "lugga.advisors@gmail.com" },
+            { name: "MANEJO SEGURO DE MONTACARGAS", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
+            { name: "FORMACION DE BRIGADAS DE EMERGENCIA (EXTINTORES, BÚSQUEDA, RESCATE)", durationHours: 24, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
+            { name: "SEGURIDAD EN MAQUINARIA PESADA", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
+            { name: "DISEÑO DE SIMULACROS", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
+            { name: "SUPERVISORES DE SEGURIDAD Y SALUD", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
+            { name: "TALLER DE CORTE Y BARBERIA", durationHours: 24, thematicArea: "Belleza", creatorEmail: "lugga.advisors@gmail.com" },
+            { name: "TALLER DE MAQUILLAJE PROFESIONAL", durationHours: 24, thematicArea: "Belleza", creatorEmail: "lugga.advisors@gmail.com" },
+            { name: "FORMACION DE INSTRUCTORES", durationHours: 8, thematicArea: "Capacitación", creatorEmail: "lugga.advisors@gmail.com" },
+            { name: "TRABAJOS EN ALTURA (NOM-009)", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
+            { name: "SEGURIDAD EN CONSTRUCCIÓN (NOM-031)", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
+            { name: "MANLIFT Y PLATAFORMAS", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
+            { name: "ESPACIOS CONFINADOS", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
+            { name: "ENGANCHE Y DESENGANCHE 5 RUEDA", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
+            { name: "URGENCIAS MEDICAS NIVEL 1", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
+            { name: "BLOQUEO Y ETIQUETADO LOTO", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
+            { name: "MATERIALES PELIGROSOS", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
+            { name: "VEHICULOS PESADOS 5 RUEDA", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
+            { name: "INHALOTERAPIA", durationHours: 24, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" }
+        ];
+
+        let currentUser = null, currentView = 'dashboard';
 
         async function login(e) {
             e.preventDefault();
             const email = document.getElementById('email').value.trim();
             const pass = document.getElementById('password').value.trim();
-            if(email === 'd4r005@gmail.com' && pass === 'Branco2025') {
-                currentUser = { email, role: 'ADMIN', name: 'Dario Robles' };
-                initApp(); return;
-            }
-            const data = await atlasAction("findOne", "users", { filter: { email, password: pass } });
-            if(data.document) { currentUser = data.document; initApp(); } else alert("Error de acceso");
+
+            const user = DEFAULT_USERS.find(u => u.email === email && u.password === pass);
+            if(user) { currentUser = user; initApp(); } else alert("Acceso denegado");
         }
 
         function initApp() {
             document.getElementById('view-login').classList.add('hidden');
             document.getElementById('app-container').classList.remove('hidden');
             document.getElementById('user-name-display').innerText = currentUser.name;
-            document.getElementById('user-role-display').innerText = currentUser.role;
+            document.getElementById('user-role-display').innerText = currentUser.role === 'ADMIN' ? 'Administrador ACE' : 'Agente Capacitador';
             document.getElementById('user-initials').innerText = currentUser.name.substring(0,2);
+
             if(currentUser.role === 'ADMIN') {
                 document.getElementById('btn-users').classList.remove('hidden');
                 document.getElementById('user-filter').classList.remove('hidden');
-                document.getElementById('sync-btn').classList.remove('hidden');
                 populateUserFilter();
             }
             switchView('dashboard'); lucide.createIcons();
-        }
-
-        async function atlasAction(action, collection, payload = {}) {
-            const r = await fetch(`${ATLAS_URL}/${action}`, { method: "POST", headers: { "Content-Type": "application/json", "api-key": API_KEY }, body: JSON.stringify({ ...DB_CONFIG, collection, ...payload }) });
-            return await r.json();
         }
 
         async function switchView(v) {
@@ -160,67 +181,24 @@
 
         async function refreshCurrentView() {
             if(currentView === 'dashboard') {
-                const f = getFilter();
-                const w = await atlasAction("find", "workers", { filter: f });
-                const c = await atlasAction("find", "courses", { filter: f });
-                const d = await atlasAction("find", "dc3_records", { filter: f });
-                document.getElementById('stat-workers').innerText = w.documents.length;
-                document.getElementById('stat-courses').innerText = c.documents.length;
-                document.getElementById('stat-dc3').innerText = d.documents.length;
-            } else if(currentView === 'workers') {
-                const data = await atlasAction("find", "workers", { filter: getFilter() });
-                document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3">Nombre</th><th class="px-6 py-3">CURP</th><th class="px-6 py-3">Puesto</th></tr>`;
-                document.getElementById('table-body').innerHTML = data.documents.map(x => `<tr><td class="px-6 py-4 font-bold">${x.name}</td><td class="px-6 py-4">${x.curp}</td><td class="px-6 py-4">${x.position}</td></tr>`).join('');
-            } else if(currentView === 'courses') {
-                const data = await atlasAction("find", "courses", { filter: getFilter() });
-                document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3">Curso</th><th class="px-6 py-3">Horas</th><th class="px-6 py-3">Acciones</th></tr>`;
-                document.getElementById('table-body').innerHTML = data.documents.map(x => `<tr><td class="px-6 py-4 font-bold">${x.name}</td><td class="px-6 py-4">${x.durationHours}</td><td class="px-6 py-4"><button onclick='editCourse(${JSON.stringify(x)})'>Editar</button></td></tr>`).join('');
+                document.getElementById('stat-courses').innerText = DEFAULT_COURSES.length;
             } else if(currentView === 'users') {
-                const data = await atlasAction("find", "users", { filter: {} });
-                const all = [{name:'Dario Robles', email:'d4r005@gmail.com', role:'ADMIN'}, ...data.documents];
                 document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3">Nombre</th><th class="px-6 py-3">Email</th><th class="px-6 py-3">Rol</th></tr>`;
-                document.getElementById('table-body').innerHTML = all.map(x => `<tr><td class="px-6 py-4 font-bold">${x.name}</td><td class="px-6 py-4">${x.email}</td><td class="px-6 py-4 italic">${x.role}</td></tr>`).join('');
+                document.getElementById('table-body').innerHTML = DEFAULT_USERS.map(u => `<tr><td class="px-6 py-4 font-bold text-slate-800">${u.name}</td><td class="px-6 py-4">${u.email}</td><td class="px-6 py-4"><span class="bg-blue-100 px-2 py-1 rounded text-xs">${u.role}</span></td></tr>`).join('');
+            } else if(currentView === 'courses') {
+                document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3">Curso</th><th class="px-6 py-3">Horas</th><th class="px-6 py-3">Área</th></tr>`;
+                document.getElementById('table-body').innerHTML = DEFAULT_COURSES.map(c => `<tr><td class="px-6 py-4 font-bold">${c.name}</td><td class="px-6 py-4">${c.durationHours}</td><td class="px-6 py-4 italic text-blue-600">${c.thematicArea}</td></tr>`).join('');
             } else if(currentView === 'agents') {
-                const data = await atlasAction("find", "agents", { filter: {} });
-                document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3">Agente</th><th class="px-6 py-3">STPS</th></tr>`;
-                document.getElementById('table-body').innerHTML = data.documents.map(x => `<tr><td class="px-6 py-4 font-bold">${x.name}</td><td class="px-6 py-4">${x.stpsRegistry}</td></tr>`).join('');
+                document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3">Nombre</th><th class="px-6 py-3">Registro STPS</th></tr>`;
+                document.getElementById('table-body').innerHTML = DEFAULT_AGENTS.map(a => `<tr><td class="px-6 py-4 font-bold">${a.name}</td><td class="px-6 py-4">${a.stpsRegistry}</td></tr>`).join('');
             }
         }
 
-        async function syncInitialData() {
-            const btn = document.getElementById('sync-btn'); btn.innerText = "Sincronizando...";
-            await atlasAction("insertOne", "users", { document: { name: "Cynthia Garza Lugo", email: "lugga.advisors@gmail.com", password: "Cynthia123", role: "USER" } });
-            await atlasAction("insertOne", "agents", { document: { name: "CYNTHIA YADIRA GARZA LUGO", stpsRegistry: "STPS-GALC780523-MP3-005" } });
-            const courses = [{ name: "MANEJO SEGURO DE MONTACARGAS", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" }, { name: "TRABAJOS EN ALTURA (NOM-009-STPS)", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" }]; // ... etc
-            await atlasAction("insertMany", "courses", { documents: courses });
-            alert("Sincronización Exitosa"); btn.classList.add('hidden'); refreshCurrentView();
-        }
-
-        function handleExcel(input) {
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, {type: 'array'});
-                const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                const rows = XLSX.utils.sheet_to_json(sheet);
-                const workers = rows.map(r => ({ name: r.Nombre || r.NOMBRE, curp: r.CURP, position: r.Puesto || r.PUESTO, creatorEmail: currentUser.email }));
-                await atlasAction("insertMany", "workers", { documents: workers });
-                alert("Excel Cargado con éxito"); refreshCurrentView();
-            };
-            reader.readAsArrayBuffer(input.files[0]);
-        }
-
-        function getFilter() {
-            const v = document.getElementById('user-filter').value;
-            return (currentUser.role==='ADMIN' && v==='ALL') ? {} : { creatorEmail: v === 'ALL' ? currentUser.email : v };
-        }
-        function togglePassword() { const p = document.getElementById('password'); p.type = p.type === 'password' ? 'text' : 'password'; }
-        function closeModal() { document.getElementById('modal').style.display='none'; }
         function logout() { location.reload(); }
-        async function populateUserFilter() {
-            const d = await atlasAction("find", "users", { filter: {} });
+        function togglePassword() { const p = document.getElementById('password'); p.type = p.type === 'password' ? 'text' : 'password'; }
+        function populateUserFilter() {
             const s = document.getElementById('user-filter');
-            d.documents.forEach(u => s.innerHTML += `<option value="${u.email}">${u.name}</option>`);
+            DEFAULT_USERS.forEach(u => s.innerHTML += `<option value="${u.email}">${u.name}</option>`);
         }
     </script>
 </body>
