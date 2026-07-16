@@ -12,52 +12,98 @@
         .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
         .modal-content { background: white; margin: 5% auto; padding: 25px; width: 40%; border-radius: 12px; shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); }
         .nav-btn.active { background-color: rgb(37 99 235); color: white; }
+
+        /* Estilos específicos para el login tipo imagen */
+        .login-input {
+            background-color: #f1f3f4;
+            border-radius: 0.75rem;
+            border: none;
+            padding: 0.75rem 1rem;
+            width: 100%;
+            outline: none;
+            color: #3c4043;
+        }
+        .login-input::placeholder { color: #9aa0a6; }
+        .login-card {
+            background: white;
+            border-radius: 2rem;
+            padding: 3rem;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
     </style>
 </head>
 <body class="bg-slate-100 font-sans text-slate-800 h-screen overflow-hidden">
 
-    <!-- Pantalla de Login -->
-    <div id="view-login" class="flex min-h-screen items-center justify-center bg-[#0d2127] bg-gradient-to-br from-[#0d2127] via-[#163b3f] to-[#0a1a1d] px-4 font-sans">
-        <div class="flex max-w-5xl w-full items-center justify-center lg:justify-between">
+    <!-- Pantalla de Login (Estilo Idéntico a la Imagen) -->
+    <div id="view-login" class="flex min-h-screen items-center justify-center bg-[#0d2127] bg-gradient-to-br from-[#1b3a41] via-[#0d2127] to-[#051114] px-4">
 
-            <!-- Texto Izquierdo -->
-            <div class="hidden lg:block w-1/2 text-white pl-12">
-                <h1 class="text-3xl font-black tracking-tight mb-1 uppercase">SEGURIDAD ACE</h1>
-                <p class="text-sm opacity-80">Control total de Agentes Capacitadores.</p>
+        <div class="flex max-w-5xl w-full items-center justify-center lg:justify-between space-x-12">
+
+            <!-- Ilustración Izquierda -->
+            <div class="hidden lg:block w-1/2 relative">
+                <div class="relative z-10 flex flex-col items-center">
+                    <!-- Representación del Candado y Llave con SVG/Iconos -->
+                    <div class="relative w-64 h-64">
+                        <div class="absolute inset-0 bg-cyan-500/20 blur-3xl rounded-full"></div>
+                        <i data-lucide="lock" class="absolute top-0 left-0 w-48 h-48 text-cyan-400/80 drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]"></i>
+                        <i data-lucide="key" class="absolute bottom-4 right-0 w-32 h-32 text-blue-400 rotate-45 drop-shadow-[0_0_10px_rgba(96,165,250,0.5)]"></i>
+                    </div>
+                    <div class="mt-12 text-center">
+                        <h1 class="text-3xl font-black text-white tracking-widest uppercase">SEGURIDAD ACE</h1>
+                        <p class="text-cyan-100/60 text-sm mt-2">Control total de Agentes Capacitadores.</p>
+                    </div>
+                </div>
+                <!-- Circuitos decorativos fondo -->
+                <div class="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
+                    <svg width="100%" height="100%"><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="cyan" stroke-width="0.5"/></pattern><rect width="100%" height="100%" fill="url(#grid)" /></svg>
+                </div>
             </div>
 
-            <!-- Tarjeta de Login (Derecha) -->
-            <div class="w-full max-w-[420px] bg-white rounded-[3rem] p-12 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-                <div class="text-center mb-10">
-                    <h2 class="text-2xl font-black text-slate-800 italic uppercase tracking-wider">ACE-CONTROL</h2>
+            <!-- Tarjeta de Login -->
+            <div class="login-card">
+                <div class="text-center mb-8">
+                    <!-- Logo Hexagonal ACE -->
+                    <div class="mx-auto w-20 h-20 mb-4 flex items-center justify-center">
+                        <svg viewBox="0 0 100 100" class="w-full h-full">
+                            <path d="M50 5 L90 28 L90 72 L50 95 L10 72 L10 28 Z" fill="none" stroke="#2563eb" stroke-width="6"/>
+                            <path d="M35 35 L65 35 L65 65 L35 65 Z" fill="none" stroke="#f97316" stroke-width="6" transform="rotate(45 50 50)"/>
+                            <text x="50" y="60" text-anchor="middle" font-family="Arial" font-weight="black" font-size="28" fill="#1e293b">CC</text>
+                        </svg>
+                    </div>
+                    <h2 class="text-2xl font-black text-slate-800 tracking-tighter uppercase italic">ACE-CONTROL</h2>
                 </div>
 
-                <form class="space-y-6" onsubmit="login(event)">
+                <form class="space-y-5" onsubmit="login(event)">
                     <div class="space-y-4">
-                        <input id="email" name="email" type="email" required
-                            class="w-full bg-[#f8f9fa] rounded-2xl border-none px-5 py-4 text-slate-900 placeholder-[#adb5bd] outline-none focus:ring-2 focus:ring-blue-500/10 transition-all"
-                            placeholder="Email">
-
+                        <input id="email" type="email" required class="login-input" placeholder="Email">
                         <div class="relative">
-                            <input id="password" name="password" type="password" required
-                                class="w-full bg-[#f8f9fa] rounded-2xl border-none px-5 py-4 text-slate-900 placeholder-[#adb5bd] outline-none focus:ring-2 focus:ring-blue-500/10 transition-all"
-                                placeholder="Password">
-                            <button type="button" onclick="togglePassword()" class="absolute right-5 top-4.5 text-slate-400 hover:text-slate-600">
-                                <i id="password-icon" class="fa-solid fa-eye-slash text-sm opacity-50"></i>
-                            </button>
+                            <input id="password" type="password" required class="login-input" placeholder="Password">
+                            <i class="fa-solid fa-lock absolute right-4 top-4 text-slate-300 text-sm"></i>
                         </div>
                     </div>
 
-                    <button type="submit" class="w-full bg-[#4262a0] hover:bg-[#36518a] text-white py-4 rounded-2xl font-bold text-sm transition-all transform active:scale-[0.98] shadow-lg shadow-blue-900/10">
+                    <div class="flex items-center justify-between text-[11px] font-bold text-slate-500 px-1">
+                        <label class="flex items-center cursor-pointer">
+                            <input type="checkbox" class="mr-1 rounded-sm border-slate-300"> Registrarse?
+                        </label>
+                        <a href="#" class="hover:text-blue-600 transition-colors">¿Olvidó su contraseña?</a>
+                    </div>
+
+                    <button type="submit" class="w-full bg-[#4a69bd] hover:bg-[#3c54a4] text-white py-3.5 rounded-xl font-bold text-sm shadow-lg shadow-blue-900/20 transition-all active:scale-[0.98]">
                         Entrar
                     </button>
+
+                    <div class="text-center mt-4">
+                        <a href="#" class="text-[11px] font-bold text-blue-800 hover:underline">Acceder en modo seguro</a>
+                    </div>
                 </form>
-                <p id="login-error" class="text-red-500 text-[10px] mt-4 text-center font-bold uppercase tracking-widest hidden">Credenciales Incorrectas</p>
             </div>
         </div>
     </div>
 
-    <!-- App Container -->
+    <!-- App Container (Dashboard) -->
     <div id="app-container" class="hidden flex h-screen overflow-hidden">
         <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col justify-between shrink-0">
             <div>
@@ -70,6 +116,7 @@
                     <button onclick="switchView('workers')" id="btn-workers" class="nav-btn w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm transition-colors"><i data-lucide="file-text"></i><span>Personal (Excel)</span></button>
                     <button onclick="switchView('courses')" id="btn-courses" class="nav-btn w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm transition-colors"><i data-lucide="book-open"></i><span>Cursos</span></button>
                     <button onclick="switchView('agents')" id="btn-agents" class="nav-btn w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm transition-colors"><i data-lucide="award"></i><span>Agentes Cap.</span></button>
+                    <button onclick="switchView('dc3')" id="btn-dc3" class="nav-btn w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm transition-colors"><i data-lucide="file-check"></i><span>DC-3 Generados</span></button>
                     <button onclick="switchView('users')" id="btn-users" class="nav-btn hidden w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm transition-colors"><i data-lucide="users"></i><span>Usuarios</span></button>
                 </nav>
             </div>
@@ -80,12 +127,14 @@
             <header class="h-16 bg-white border-b flex items-center justify-between px-8 shrink-0">
                 <div class="flex items-center space-x-4">
                     <h1 id="page-title" class="text-xl font-bold">Dashboard</h1>
-                    <select id="user-filter" onchange="refreshCurrentView()" class="hidden text-sm border rounded-lg px-3 py-1.5 bg-slate-50"><option value="ALL">Filtrar por Agente</option></select>
+                    <select id="user-filter" onchange="refreshCurrentView()" class="hidden text-sm border rounded-lg px-3 py-1.5 bg-slate-50">
+                        <option value="ALL">Ver Todo</option>
+                    </select>
                 </div>
-                <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-4 text-sm">
                     <div class="text-right leading-tight">
                         <p id="user-name-display" class="font-bold text-slate-800">Dario Robles</p>
-                        <p id="user-role-display" class="text-xs text-slate-500 uppercase font-bold tracking-tighter">Administrador ACE</p>
+                        <p id="user-role-display" class="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Administrador ACE</p>
                     </div>
                     <div id="user-initials" class="h-10 w-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">DR</div>
                 </div>
@@ -95,10 +144,9 @@
                 <div id="view-dashboard" class="space-y-6">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div class="bg-white p-6 rounded-xl border shadow-sm flex items-center justify-between"><div><p class="text-sm text-slate-500">Personal</p><p id="stat-workers" class="text-2xl font-bold">0</p></div><i data-lucide="users-2" class="text-blue-500"></i></div>
-                        <div class="bg-white p-6 rounded-xl border shadow-sm flex items-center justify-between"><div><p class="text-sm text-slate-500">Cursos</p><p id="stat-courses" class="text-2xl font-bold">19</p></div><i data-lucide="book-open" class="text-emerald-500"></i></div>
-                        <div class="bg-white p-6 rounded-xl border shadow-sm flex items-center justify-between"><div><p class="text-sm text-slate-500">DC-3 Generados</p><p id="stat-dc3" class="text-2xl font-bold">0</p></div><i data-lucide="file-check" class="text-violet-500"></i></div>
+                        <div class="bg-white p-6 rounded-xl border shadow-sm flex items-center justify-between"><div><p class="text-sm text-slate-500">Cursos</p><p id="stat-courses" class="text-2xl font-bold">0</p></div><i data-lucide="book-open" class="text-emerald-500"></i></div>
+                        <div class="bg-white p-6 rounded-xl border shadow-sm flex items-center justify-between"><div><p class="text-sm text-slate-500">DC-3</p><p id="stat-dc3" class="text-2xl font-bold">0</p></div><i data-lucide="file-check" class="text-violet-500"></i></div>
                     </div>
-                    <div class="bg-white p-6 rounded-xl border"><h3 class="font-bold mb-4 italic">Panel Centralizado - Gestión ACE</h3></div>
                 </div>
 
                 <div id="view-content" class="hidden space-y-6">
@@ -108,10 +156,10 @@
                             <input type="file" id="excel-input" class="hidden" accept=".xlsx, .xls" onchange="handleExcel(this)">
                             <button id="upload-btn" onclick="document.getElementById('excel-input').click()" class="hidden bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-bold">Cargar Excel</button>
                             <button id="gen-dc3-btn" class="hidden bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold">Generar DC-3 Masivos</button>
-                            <button id="add-btn" onclick="openModal()" class="hidden bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold">+ Agregar Nuevo</button>
+                            <button id="add-btn" onclick="openModal()" class="hidden bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold">+ Agregar</button>
                         </div>
                     </div>
-                    <div class="bg-white rounded-xl border overflow-hidden shadow-lg">
+                    <div class="bg-white rounded-xl border overflow-hidden shadow-sm">
                         <table class="w-full text-left border-collapse">
                             <thead id="table-header" class="bg-slate-50 text-xs uppercase text-slate-500 font-bold border-b"></thead>
                             <tbody id="table-body" class="divide-y text-sm"></tbody>
@@ -139,7 +187,7 @@
         const DEFAULT_COURSES = [
             { name: "SEGURIDAD EN TRABAJOS DE SOLDADURAS Y OXICORTE", durationHours: 8, thematicArea: "Seguridad industrial", creatorEmail: "lugga.advisors@gmail.com" },
             { name: "MANEJO SEGURO DE MONTACARGAS", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-            { name: "FORMACION DE BRIGADAS DE EMERGENCIA (EXTINTORES, BÚSQUEDA, RESCATE)", durationHours: 24, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
+            { name: "FORMACION DE BRIGADAS DE EMERGENCIA", durationHours: 24, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
             { name: "SEGURIDAD EN MAQUINARIA PESADA", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
             { name: "DISEÑO DE SIMULACROS", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
             { name: "SUPERVISORES DE SEGURIDAD Y SALUD", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
@@ -164,7 +212,6 @@
             e.preventDefault();
             const email = document.getElementById('email').value.trim();
             const pass = document.getElementById('password').value.trim();
-
             const user = DEFAULT_USERS.find(u => u.email === email && u.password === pass);
             if(user) { currentUser = user; initApp(); } else alert("Acceso denegado");
         }
@@ -175,13 +222,17 @@
             document.getElementById('user-name-display').innerText = currentUser.name;
             document.getElementById('user-role-display').innerText = currentUser.role === 'ADMIN' ? 'Administrador ACE' : 'Agente Capacitador';
             document.getElementById('user-initials').innerText = currentUser.name.substring(0,2);
-
             if(currentUser.role === 'ADMIN') {
                 document.getElementById('btn-users').classList.remove('hidden');
                 document.getElementById('user-filter').classList.remove('hidden');
                 populateUserFilter();
             }
             switchView('dashboard'); lucide.createIcons();
+        }
+
+        async function atlasAction(action, collection, payload = {}) {
+            const r = await fetch(`${ATLAS_URL}/${action}`, { method: "POST", headers: { "Content-Type": "application/json", "api-key": API_KEY }, body: JSON.stringify({ ...DB_CONFIG, collection, ...payload }) });
+            return await r.json();
         }
 
         async function switchView(v) {
@@ -193,26 +244,47 @@
             document.getElementById('upload-btn').classList.toggle('hidden', v !== 'workers');
             document.getElementById('gen-dc3-btn').classList.toggle('hidden', v !== 'workers');
             document.getElementById('add-btn').classList.toggle('hidden', !['courses','agents','users'].includes(v));
-            refreshCurrentView();
+            refreshCurrentView(); lucide.createIcons();
         }
 
         async function refreshCurrentView() {
+            const filter = getFilter();
+            const filterEmail = filter.creatorEmail;
+
             if(currentView === 'dashboard') {
-                document.getElementById('stat-courses').innerText = DEFAULT_COURSES.length;
+                const filteredCourses = filterEmail ? DEFAULT_COURSES.filter(c => c.creatorEmail === filterEmail) : DEFAULT_COURSES;
+                document.getElementById('stat-courses').innerText = filteredCourses.length;
+                const w = await atlasAction("find", "workers", { filter });
+                const d = await atlasAction("find", "dc3_records", { filter });
+                document.getElementById('stat-workers').innerText = (w.documents || []).length;
+                document.getElementById('stat-dc3').innerText = (d.documents || []).length;
+
+            } else if(currentView === 'workers') {
+                const data = await atlasAction("find", "workers", { filter });
+                document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3">Nombre</th><th class="px-6 py-3">CURP</th><th class="px-6 py-3">Puesto</th></tr>`;
+                document.getElementById('table-body').innerHTML = (data.documents || []).map(x => `<tr><td class="px-6 py-4 font-bold text-slate-800">${x.name}</td><td class="px-6 py-4">${x.curp}</td><td class="px-6 py-4">${x.position}</td></tr>`).join('') || '<tr><td colspan="3" class="p-8 text-center text-slate-400">Sin datos.</td></tr>';
+
+            } else if(currentView === 'courses') {
+                const filteredCourses = filterEmail ? DEFAULT_COURSES.filter(c => c.creatorEmail === filterEmail) : DEFAULT_COURSES;
+                document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3">Curso</th><th class="px-6 py-3">Horas</th><th class="px-6 py-3">Área</th></tr>`;
+                document.getElementById('table-body').innerHTML = filteredCourses.map(c => `<tr class="hover:bg-slate-50"><td class="px-6 py-4 font-bold text-slate-800">${c.name}</td><td class="px-6 py-4">${c.durationHours}</td><td class="px-6 py-4 italic text-blue-600">${c.thematicArea}</td></tr>`).join('') || '<tr><td colspan="3" class="p-8 text-center text-slate-400">Sin cursos.</td></tr>';
+
             } else if(currentView === 'users') {
                 document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3">Nombre</th><th class="px-6 py-3">Email</th><th class="px-6 py-3">Rol</th></tr>`;
-                document.getElementById('table-body').innerHTML = DEFAULT_USERS.map(u => `<tr><td class="px-6 py-4 font-bold text-slate-800">${u.name}</td><td class="px-6 py-4">${u.email}</td><td class="px-6 py-4"><span class="bg-blue-100 px-2 py-1 rounded text-xs">${u.role}</span></td></tr>`).join('');
-            } else if(currentView === 'courses') {
-                document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3">Curso</th><th class="px-6 py-3">Horas</th><th class="px-6 py-3">Área</th></tr>`;
-                document.getElementById('table-body').innerHTML = DEFAULT_COURSES.map(c => `<tr><td class="px-6 py-4 font-bold">${c.name}</td><td class="px-6 py-4">${c.durationHours}</td><td class="px-6 py-4 italic text-blue-600">${c.thematicArea}</td></tr>`).join('');
+                document.getElementById('table-body').innerHTML = DEFAULT_USERS.map(u => `<tr class="hover:bg-slate-50"><td class="px-6 py-4 font-bold text-slate-800">${u.name}</td><td class="px-6 py-4">${u.email}</td><td class="px-6 py-4"><span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold">${u.role}</span></td></tr>`).join('');
+
             } else if(currentView === 'agents') {
-                document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3">Nombre</th><th class="px-6 py-3">Registro STPS</th></tr>`;
-                document.getElementById('table-body').innerHTML = DEFAULT_AGENTS.map(a => `<tr><td class="px-6 py-4 font-bold">${a.name}</td><td class="px-6 py-4">${a.stpsRegistry}</td></tr>`).join('');
+                document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3">Agente</th><th class="px-6 py-3">Registro STPS</th></tr>`;
+                document.getElementById('table-body').innerHTML = DEFAULT_AGENTS.map(a => `<tr class="hover:bg-slate-50"><td class="px-6 py-4 font-bold text-slate-800">${a.name}</td><td class="px-6 py-4 text-blue-600 font-mono">${a.stpsRegistry}</td></tr>`).join('');
             }
         }
 
-        function logout() { location.reload(); }
+        function getFilter() {
+            const v = document.getElementById('user-filter').value;
+            return (currentUser.role==='ADMIN' && v==='ALL') ? {} : { creatorEmail: v === 'ALL' ? currentUser.email : v };
+        }
         function togglePassword() { const p = document.getElementById('password'); p.type = p.type === 'password' ? 'text' : 'password'; }
+        function logout() { location.reload(); }
         function populateUserFilter() {
             const s = document.getElementById('user-filter');
             DEFAULT_USERS.forEach(u => s.innerHTML += `<option value="${u.email}">${u.name}</option>`);
