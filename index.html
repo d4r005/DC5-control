@@ -97,20 +97,31 @@
         let editingItemId = null;
 
         async function login() {
-            const email = document.getElementById('email').value;
-            const pass = document.getElementById('password').value;
+            const email = document.getElementById('email').value.trim();
+            const pass = document.getElementById('password').value.trim();
 
+            console.log("Iniciando sesión con:", email);
+
+            // Login Hardcoded para el Admin principal solicitado
             if(email === 'd4r005@gmail.com' && pass === 'Branco 2025') {
                 currentUser = { email, role: 'ADMIN', name: 'Administrador' };
                 initApp();
                 return;
             }
 
-            const data = await atlasAction("findOne", "users", { filter: { email, password: pass } });
-            if(data.document) {
-                currentUser = data.document;
-                initApp();
-            } else {
+            try {
+                // Buscar en MongoDB para otros usuarios
+                const data = await atlasAction("findOne", "users", { filter: { email, password: pass } });
+                if(data && data.document) {
+                    currentUser = data.document;
+                    initApp();
+                } else {
+                    document.getElementById('login-error').innerText = "Credenciales incorrectas o usuario no registrado";
+                    document.getElementById('login-error').classList.remove('hidden');
+                }
+            } catch (e) {
+                console.error("Error en login:", e);
+                document.getElementById('login-error').innerText = "Error de conexión con el servidor";
                 document.getElementById('login-error').classList.remove('hidden');
             }
         }
@@ -120,8 +131,10 @@
             document.getElementById('main-panel').classList.remove('hidden');
 
             if(currentUser.role !== 'ADMIN') {
-                document.getElementById('nav-users').classList.add('hidden');
-                document.getElementById('nav-agents').classList.add('hidden');
+                const navUsers = document.getElementById('nav-users');
+                const navAgents = document.getElementById('nav-agents');
+                if(navUsers) navUsers.classList.add('hidden');
+                if(navAgents) navAgents.classList.add('hidden');
             }
             showSection('dashboard');
         }
@@ -129,12 +142,24 @@
         function logout() { location.reload(); }
 
         async function atlasAction(action, collection, payload = {}) {
-            const response = await fetch(`${ATLAS_URL}/${action}`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "api-key": API_KEY },
-                body: JSON.stringify({ ...DB_CONFIG, collection, ...payload })
-            });
-            return await response.json();
+            try {
+                const response = await fetch(`${ATLAS_URL}/${action}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "api-key": API_KEY },
+                    body: JSON.stringify({ ...DB_CONFIG, collection, ...payload })
+                });
+
+                if (!response.ok) {
+                    const err = await response.text();
+                    console.error("Error Atlas API:", err);
+                    return { documents: [], document: null };
+                }
+
+                return await response.json();
+            } catch (e) {
+                console.error("Error fetch:", e);
+                return { documents: [], document: null };
+            }
         }
 
         async function showSection(section) {
