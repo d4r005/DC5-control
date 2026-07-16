@@ -3,26 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACE-Control | Gestión de Agente Capacitador Externo</title>
+    <title>ACE-Control | Login</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Open+Sans:wght@400;600&display=swap');
+
+        body { font-family: 'Open Sans', sans-serif; }
+        .font-brand { font-family: 'Montserrat', sans-serif; }
 
         .login-bg {
-            background-color: #0c242c;
-            background-image: radial-gradient(circle at 0% 0%, #1c454e 0%, #0c242c 100%);
+            background-color: #0b2128;
+            background-image: radial-gradient(circle at center, #153a42 0%, #0b2128 100%);
         }
 
         .login-card {
             background: white;
-            border-radius: 1.5rem;
-            padding: 3rem 2.5rem;
+            border-radius: 2.5rem;
+            padding: 3.5rem 3rem;
             width: 100%;
-            max-width: 400px;
+            max-width: 420px;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
         }
 
@@ -30,25 +32,42 @@
             background-color: #f1f3f4;
             border: none;
             border-radius: 0.75rem;
-            padding: 0.8rem 1rem;
+            padding: 1rem 1.2rem;
             width: 100%;
-            font-size: 1rem;
+            font-size: 0.95rem;
             color: #3c4043;
             outline: none;
         }
 
+        .login-input::placeholder { color: #9aa0a6; }
+
         .btn-entrar {
-            background-color: #537bb1;
+            background-color: #5c7cb6;
             color: white;
-            font-weight: 600;
-            padding: 0.8rem;
-            border-radius: 0.75rem;
+            font-weight: 700;
+            padding: 1rem;
+            border-radius: 0.8rem;
             width: 100%;
-            font-size: 1rem;
-            transition: opacity 0.2s;
+            font-size: 0.95rem;
+            transition: background 0.2s;
         }
 
-        .btn-entrar:hover { opacity: 0.9; }
+        .btn-entrar:hover { background-color: #4a66a3; }
+
+        /* Illustration Styles */
+        .hexagon-lock {
+            position: relative;
+            width: 180px;
+            height: 200px;
+            background-color: transparent;
+            margin: 0 auto;
+        }
+
+        .circuit-line {
+            position: absolute;
+            background: linear-gradient(90deg, rgba(34,211,238,0.5), transparent);
+            height: 1px;
+        }
 
         .nav-btn.active { background-color: #2563eb; color: white; }
         .hidden { display: none; }
@@ -56,63 +75,80 @@
 </head>
 <body class="antialiased h-screen overflow-hidden">
 
-    <!-- Pantalla de Login (IDENTICA A LA SEGUNDA IMAGEN) -->
-    <div id="view-login" class="login-bg min-h-screen flex items-center justify-center px-4">
+    <!-- Pantalla de Login (IDENTICA A LA IMAGEN DE REFERENCIA) -->
+    <div id="view-login" class="login-bg min-h-screen flex items-center justify-center px-4 overflow-hidden">
 
-        <div class="flex max-w-5xl w-full items-center justify-center lg:justify-between space-x-12">
+        <div class="flex max-w-6xl w-full items-center justify-center lg:justify-between space-x-12 z-10">
 
-            <!-- Lado Izquierdo: Ilustración -->
-            <div class="hidden lg:block w-1/2 relative">
-                <div class="relative flex items-center justify-center">
-                    <img src="https://img.freepik.com/free-vector/cyber-security-concept_23-2148532223.jpg" class="w-[450px] opacity-80 mix-blend-screen" alt="Security Illustration">
+            <!-- Lado Izquierdo: Ilustración de Seguridad con Circuitos -->
+            <div class="hidden lg:flex w-1/2 flex-col items-center">
+                <div class="relative w-[400px] h-[300px] flex items-center justify-center">
+                    <!-- Circuit Lines (Simplified representation) -->
+                    <div class="absolute inset-0 opacity-40">
+                        <svg width="100%" height="100%" viewBox="0 0 400 300">
+                            <path d="M100 150 H50 M300 150 H350 M200 50 V20 M200 250 V280" stroke="#22d3ee" stroke-width="1"/>
+                            <path d="M130 90 L90 50 M270 90 L310 50 M130 210 L90 250 M270 210 L310 250" stroke="#22d3ee" stroke-width="1"/>
+                        </svg>
+                    </div>
+
+                    <!-- Hexagon with Lock -->
+                    <div class="relative z-10 drop-shadow-[0_0_20px_rgba(34,211,238,0.4)]">
+                        <svg width="180" height="200" viewBox="0 0 100 115" fill="none">
+                            <path d="M50 2.88675L93.3013 27.8868V77.8868L50 102.887L6.69873 77.8868V27.8868L50 2.88675Z" stroke="#22d3ee" stroke-width="2"/>
+                            <path d="M35 55V45C35 36.7157 41.7157 30 50 30C58.2843 30 65 36.7157 65 45V55" stroke="#ef4444" stroke-width="3" stroke-linecap="round"/>
+                            <rect x="30" y="55" width="40" height="30" rx="4" fill="none" stroke="#ef4444" stroke-width="3"/>
+                            <circle cx="50" cy="70" r="3" fill="#ef4444"/>
+                        </svg>
+                    </div>
                 </div>
-                <div class="mt-8 text-center text-white">
-                    <h1 class="text-3xl font-black tracking-widest uppercase">SEGURIDAD ACE</h1>
-                    <p class="text-cyan-100/50 text-sm mt-1">Control total de Agentes Capacitadores.</p>
+                <div class="text-center mt-6">
+                    <h1 class="text-3xl font-black text-white tracking-widest uppercase mb-1">SEGURIDAD ACE</h1>
+                    <p class="text-cyan-100/50 text-sm font-medium tracking-wide">Control total de Agentes Capacitadores.</p>
                 </div>
             </div>
 
             <!-- Lado Derecho: Tarjeta de Login -->
             <div class="login-card">
-                <div class="text-center mb-8">
-                    <!-- Logo Hexagonal idéntico -->
-                    <div class="mx-auto w-24 h-24 mb-4">
+                <div class="text-center mb-10">
+                    <!-- Logo Hexagonal Identico -->
+                    <div class="mx-auto w-24 h-24 mb-6">
                         <svg viewBox="0 0 100 100" class="w-full h-full">
-                            <path d="M50 5 L90 28 L90 72 L50 95 L10 72 L10 28 Z" fill="none" stroke="#2563eb" stroke-width="6"/>
-                            <!-- Hexagon inner with C style -->
-                            <path d="M40 40 L60 40 L65 50 L60 60 L40 60 L35 50 Z" fill="#2563eb" opacity="0.8"/>
-                            <path d="M45 45 L65 45 L70 55 L65 65 L45 65 L40 55 Z" fill="#f97316" opacity="0.9"/>
+                            <path d="M50 5 L90 28 L90 72 L50 95 L10 72 L10 28 Z" stroke="#2563eb" stroke-width="7" fill="none"/>
+                            <path d="M40 45 Q50 35 60 45 L60 55 Q50 65 40 55 Z" fill="#2563eb" opacity="0.8"/>
+                            <path d="M45 50 Q55 40 65 50 L65 60 Q55 70 45 60 Z" fill="#f97316"/>
                         </svg>
                     </div>
-                    <h2 class="text-2xl font-black text-slate-800 uppercase tracking-tighter">ACE-CONTROL</h2>
+                    <h2 class="text-3xl font-black text-slate-800 tracking-tight uppercase font-brand italic">ACE-CONTROL</h2>
                 </div>
 
-                <form class="space-y-4" onsubmit="login(event)">
-                    <input id="email" type="email" required class="login-input" placeholder="Email">
-                    <div class="relative">
-                        <input id="password" type="password" required class="login-input" placeholder="Password">
-                        <i class="fa-solid fa-lock absolute right-4 top-4 text-slate-300 text-sm"></i>
+                <form class="space-y-6" onsubmit="login(event)">
+                    <div class="space-y-4">
+                        <input id="email" type="email" required class="login-input" placeholder="Email">
+                        <div class="relative">
+                            <input id="password" type="password" required class="login-input" placeholder="Password">
+                            <i class="fa-solid fa-lock absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 text-sm"></i>
+                        </div>
                     </div>
 
-                    <div class="flex items-center justify-between text-xs font-bold text-slate-500 px-1">
+                    <div class="flex items-center justify-between text-[11px] font-bold text-slate-400 px-1 uppercase tracking-tighter">
                         <label class="flex items-center cursor-pointer">
-                            <input type="checkbox" id="remember-me" class="mr-1"> Registrarse?
+                            <input type="checkbox" id="remember-me" class="mr-2 w-4 h-4 border-slate-200"> Registrarse?
                         </label>
                         <a href="#" class="hover:text-blue-500 transition-colors">¿Olvidó su contraseña?</a>
                     </div>
 
-                    <button type="submit" class="btn-entrar mt-4">Entrar</button>
+                    <button type="submit" class="btn-entrar shadow-lg shadow-blue-900/10">Entrar</button>
 
                     <div class="text-center mt-6">
-                        <a href="#" class="text-xs font-bold text-blue-800 hover:underline">Acceder en modo seguro</a>
+                        <a href="#" class="text-[11px] font-bold text-blue-700/80 hover:underline uppercase tracking-wide underline-offset-4">Acceder en modo seguro</a>
                     </div>
                 </form>
-                <p id="login-error" class="text-red-500 text-[10px] mt-4 text-center font-bold uppercase hidden">Credenciales incorrectas</p>
+                <p id="login-error" class="text-red-500 text-[10px] mt-6 text-center font-bold uppercase tracking-widest hidden tracking-widest">Credenciales Incorrectas</p>
             </div>
         </div>
     </div>
 
-    <!-- App Container -->
+    <!-- Dashboard Container (Preservado) -->
     <div id="app-container" class="hidden fixed inset-0 flex h-screen bg-slate-50 text-slate-800">
         <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col justify-between shrink-0">
             <div>
@@ -142,7 +178,7 @@
                 <div class="flex items-center space-x-4">
                     <div class="text-right leading-tight">
                         <p id="user-name-display" class="font-bold text-slate-800">Dario Robles</p>
-                        <p class="text-[10px] text-slate-500 uppercase font-black">Administrador ACE</p>
+                        <p class="text-[10px] text-slate-500 uppercase font-black tracking-widest">Administrador ACE</p>
                     </div>
                     <div id="user-initials" class="h-10 w-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">DR</div>
                 </div>
@@ -167,7 +203,7 @@
                     <div class="bg-white rounded-2xl border overflow-hidden shadow-sm">
                         <table class="w-full text-left border-collapse">
                             <thead id="table-header" class="bg-slate-50 text-[10px] uppercase text-slate-400 font-black border-b"></thead>
-                            <tbody id="table-body" class="divide-y text-sm font-medium"></tbody>
+                            <tbody id="table-body" class="divide-y text-sm font-medium text-slate-600"></tbody>
                         </table>
                     </div>
                 </div>
@@ -189,25 +225,25 @@
                 { name: "Cynthia Garza Lugo", email: "lugga.advisors@gmail.com", role: "USER", password: "Cynthia123" }
             ],
             courses: [
-                { name: "MANEJO SEGURO DE MONTACARGAS", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "TRABAJOS EN ALTURA (NOM-009)", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "SEGURIDAD EN SOLDADURA", durationHours: 8, thematicArea: "Seguridad industrial", creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "FORMACION DE BRIGADAS", durationHours: 24, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "ESPACIOS CONFINADOS", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "BLOQUEO Y ETIQUETADO LOTO", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "MATERIALES PELIGROSOS", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "MAQUINARIA PESADA", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "SIMULACROS", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "SUPERVISORES SSPA", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "CORTE Y BARBERIA", durationHours: 24, thematicArea: "Belleza", creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "MAQUILLAJE", durationHours: 24, thematicArea: "Belleza", creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "FORMACION INSTRUCTORES", durationHours: 8, thematicArea: "Capacitación", creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "CONSTRUCCIÓN (NOM-031)", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "MANLIFT", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "ENGANCHE 5 RUEDA", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "URGENCIAS MEDICAS", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "VEHICULOS PESADOS", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "INHALOTERAPIA", durationHours: 24, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" }
+                { name: "MANEJO SEGURO DE MONTACARGAS", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
+                { name: "TRABAJOS EN ALTURA (NOM-009)", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
+                { name: "SEGURIDAD EN SOLDADURA", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
+                { name: "FORMACION DE BRIGADAS", durationHours: 24, creatorEmail: "lugga.advisors@gmail.com" },
+                { name: "ESPACIOS CONFINADOS", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
+                { name: "BLOQUEO Y ETIQUETADO LOTO", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
+                { name: "MATERIALES PELIGROSOS", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
+                { name: "MAQUINARIA PESADA", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
+                { name: "SIMULACROS", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
+                { name: "SUPERVISORES SSPA", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
+                { name: "CORTE Y BARBERIA", durationHours: 24, creatorEmail: "lugga.advisors@gmail.com" },
+                { name: "MAQUILLAJE", durationHours: 24, creatorEmail: "lugga.advisors@gmail.com" },
+                { name: "FORMACION INSTRUCTORES", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
+                { name: "CONSTRUCCIÓN (NOM-031)", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
+                { name: "MANLIFT", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
+                { name: "ENGANCHE 5 RUEDA", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
+                { name: "URGENCIAS MEDICAS", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
+                { name: "VEHICULOS PESADOS", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
+                { name: "INHALOTERAPIA", durationHours: 24, creatorEmail: "lugga.advisors@gmail.com" }
             ],
             agents: [{ name: "CYNTHIA YADIRA GARZA LUGO", stps: "STPS-GALC780523-MP3-005" }]
         };
@@ -216,20 +252,31 @@
 
         window.onload = function() {
             lucide.createIcons();
-            const rememberedEmail = localStorage.getItem('rememberedEmail');
-            if (rememberedEmail) document.getElementById('email').value = rememberedEmail;
+            const saved = localStorage.getItem('rememberedEmail');
+            if (saved) document.getElementById('email').value = saved;
         };
+
+        function togglePassword() {
+            const p = document.getElementById('password');
+            const i = document.getElementById('password-icon');
+            p.type = p.type === 'password' ? 'text' : 'password';
+            i.classList.toggle('fa-eye'); i.classList.toggle('fa-eye-slash');
+        }
 
         async function login(e) {
             e.preventDefault();
             const email = document.getElementById('email').value.trim();
             const pass = document.getElementById('password').value.trim();
+            const rem = document.getElementById('remember-me').checked;
+
             const user = DATA.users.find(u => u.email === email && u.password === pass);
             if(user) {
-                if(document.getElementById('remember-me').checked) localStorage.setItem('rememberedEmail', email);
+                if(rem) localStorage.setItem('rememberedEmail', email);
                 else localStorage.removeItem('rememberedEmail');
                 currentUser = user; initApp();
-            } else { document.getElementById('login-error').classList.remove('hidden'); }
+            } else {
+                document.getElementById('login-error').classList.remove('hidden');
+            }
         }
 
         function initApp() {
@@ -265,27 +312,31 @@
                 document.getElementById('stat-dc3').innerText = (d.documents || []).length;
 
             } else if(currentView === 'workers') {
+                document.getElementById('view-description').innerText = "Personal registrado mediante carga de Excel.";
                 const w = await atlasAction("find", "workers", { filter });
                 document.getElementById('table-header').innerHTML = `<tr><th class="px-10 py-6">Nombre</th><th class="px-10 py-6">CURP</th><th class="px-10 py-6">Puesto</th></tr>`;
                 document.getElementById('table-body').innerHTML = (w.documents || []).map(x => `<tr class="hover:bg-slate-50 transition-colors"><td class="px-10 py-5 font-bold">${x.name}</td><td class="px-10 py-5">${x.curp}</td><td class="px-10 py-5">${x.position}</td></tr>`).join('') || '<tr><td colspan="3" class="p-20 text-center text-slate-300 uppercase">Sin personal</td></tr>';
 
             } else if(currentView === 'courses') {
+                document.getElementById('view-description').innerText = "Catálogo oficial de cursos disponibles por agente.";
                 const list = fValue === 'ALL' ? DATA.courses : DATA.courses.filter(c => c.creatorEmail === fValue);
                 document.getElementById('table-header').innerHTML = `<tr><th class="px-10 py-6">Curso</th><th class="px-10 py-6">Horas</th><th class="px-10 py-6">Área</th></tr>`;
-                document.getElementById('table-body').innerHTML = list.map(c => `<tr class="hover:bg-slate-50 transition-colors"><td class="px-10 py-5 font-bold uppercase">${c.name}</td><td class="px-10 py-5 font-bold text-blue-600">${c.durationHours} H</td><td class="px-10 py-5 italic text-slate-400">${c.thematicArea}</td></tr>`).join('') || '<tr><td colspan="3" class="p-20 text-center text-slate-300 uppercase">Sin cursos</td></tr>';
+                document.getElementById('table-body').innerHTML = list.map(c => `<tr class="hover:bg-slate-50 transition-colors"><td class="px-10 py-5 font-bold uppercase">${c.name}</td><td class="px-10 py-5 font-bold text-blue-600">${c.durationHours} H</td><td class="px-10 py-5 italic text-slate-400">Seguridad</td></tr>`).join('') || '<tr><td colspan="3" class="p-20 text-center text-slate-300 uppercase">Sin cursos</td></tr>';
 
             } else if(currentView === 'users') {
+                document.getElementById('view-description').innerText = "Gestión de accesos y roles del sistema.";
                 document.getElementById('table-header').innerHTML = `<tr><th class="px-10 py-6">Nombre</th><th class="px-10 py-6">Email</th><th class="px-10 py-6">Rol</th></tr>`;
                 document.getElementById('table-body').innerHTML = DATA.users.map(u => `<tr><td class="px-10 py-5 font-bold">${u.name}</td><td class="px-10 py-5 text-slate-500">${u.email}</td><td class="px-10 py-5"><span class="px-3 py-1 rounded-full text-[10px] font-black uppercase ${u.role==='ADMIN'?'bg-purple-100 text-purple-700':'bg-blue-100 text-blue-700'}">${u.role}</span></td></tr>`).join('');
 
             } else if(currentView === 'agents') {
-                document.getElementById('table-header').innerHTML = `<tr><th class="px-10 py-6">Nombre o Razón Social</th><th class="px-10 py-6">Registro STPS</th></tr>`;
+                document.getElementById('view-description').innerText = "Registro de Agentes Capacitadores Externos STPS.";
+                document.getElementById('table-header').innerHTML = `<tr><th class="px-10 py-6">Agente</th><th class="px-10 py-6">Registro STPS</th></tr>`;
                 document.getElementById('table-body').innerHTML = DATA.agents.map(a => `<tr class="hover:bg-slate-50 transition-colors"><td class="px-10 py-5 font-bold uppercase">${a.name}</td><td class="px-10 py-5 font-mono text-blue-600 font-bold">${a.stps}</td></tr>`).join('');
 
             } else if(currentView === 'dc3') {
-                const d = await atlasAction("find", "dc3_records", { filter });
-                document.getElementById('table-header').innerHTML = `<tr><th class="px-10 py-6">Trabajador</th><th class="px-10 py-6">Curso</th><th class="px-10 py-6">Empresa</th><th class="px-10 py-6">Acciones</th></tr>`;
-                document.getElementById('table-body').innerHTML = (d.documents || []).map(r => `<tr><td class="px-10 py-5 font-bold">${r.workerId}</td><td class="px-10 py-5">${r.courseName}</td><td class="px-10 py-5 uppercase">${r.companyName}</td><td class="px-10 py-5"><button class="text-blue-600 font-bold">Descargar PDF</button></td></tr>`).join('') || '<tr><td colspan="4" class="p-20 text-center text-slate-300 uppercase">Sin historial</td></tr>';
+                const d = await atlasAction("find", "dc3_records", { filter: f });
+                document.getElementById('table-header').innerHTML = `<tr><th class="px-10 py-6">Trabajador</th><th class="px-10 py-6">Curso</th><th class="px-10 py-6">Acciones</th></tr>`;
+                document.getElementById('table-body').innerHTML = (d.documents || []).map(r => `<tr><td class="px-10 py-5 font-bold">${r.workerId}</td><td class="px-10 py-5">${r.courseName}</td><td class="px-10 py-5"><button class="text-blue-600 font-bold">Descargar PDF</button></td></tr>`).join('') || '<tr><td colspan="3" class="p-20 text-center text-slate-300 uppercase">Sin historial</td></tr>';
             }
         }
 
@@ -298,7 +349,6 @@
 
         function logout() { location.reload(); }
         function closeModal() { document.getElementById('modal').style.display='none'; }
-        function togglePassword() { const p = document.getElementById('password'); p.type = p.type === 'password' ? 'text' : 'password'; }
 
         async function handleExcel(input) {
             const r = new FileReader(); r.onload = async (e) => {
