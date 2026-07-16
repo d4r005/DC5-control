@@ -186,6 +186,7 @@
         }
 
         async function fetchStats() {
+            // El administrador ve las métricas globales (sin filtro de email)
             const filter = currentUser.role === 'ADMIN' ? {} : { creatorEmail: currentUser.email };
             const workers = await atlasAction("find", "workers", { filter });
             const courses = await atlasAction("find", "courses", { filter });
@@ -195,27 +196,38 @@
 
         async function fetchWorkers() {
             document.getElementById('section-title').innerText = "Personal";
-            document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3 text-left">Nombre</th><th class="px-6 py-3 text-left">CURP</th><th class="px-6 py-3 text-left">Puesto</th></tr>`;
+            document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3 text-left">Nombre</th><th class="px-6 py-3 text-left">CURP</th><th class="px-6 py-3 text-left">Puesto</th><th class="px-6 py-3 text-left">Registrado por</th></tr>`;
+            // El administrador ve todo el personal
             const filter = currentUser.role === 'ADMIN' ? {} : { creatorEmail: currentUser.email };
             const data = await atlasAction("find", "workers", { filter });
-            renderTable(data.documents, ['name', 'curp', 'position']);
+
+            let html = data.documents.map(item => `<tr>
+                <td class="px-6 py-4">${item.name}</td>
+                <td class="px-6 py-4">${item.curp}</td>
+                <td class="px-6 py-4">${item.position}</td>
+                <td class="px-6 py-4"><span class="text-xs bg-gray-100 px-2 py-1 rounded">${item.creatorEmail || 'Sistema'}</span></td>
+            </tr>`).join('');
+            document.getElementById('table-body').innerHTML = html || '<tr><td colspan="4" class="p-4 text-center">No hay datos.</td></tr>';
         }
 
         async function fetchCourses() {
             document.getElementById('section-title').innerText = "Cursos";
-            document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3 text-left">Curso</th><th class="px-6 py-3 text-left">Horas</th><th class="px-6 py-3 text-left">Área</th><th class="px-6 py-3 text-left">Acciones</th></tr>`;
+            document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3 text-left">Curso</th><th class="px-6 py-3 text-left">Horas</th><th class="px-6 py-3 text-left">Área</th><th class="px-6 py-3 text-left">Propietario</th><th class="px-6 py-3 text-left">Acciones</th></tr>`;
+            // El administrador ve todos los cursos
             const filter = currentUser.role === 'ADMIN' ? {} : { creatorEmail: currentUser.email };
             const data = await atlasAction("find", "courses", { filter });
+
             const html = data.documents.map(c => `<tr>
                 <td class="px-6 py-4">${c.name}</td>
                 <td class="px-6 py-4">${c.durationHours}</td>
                 <td class="px-6 py-4">${c.thematicArea}</td>
+                <td class="px-6 py-4"><span class="text-xs bg-gray-100 px-2 py-1 rounded">${c.creatorEmail || 'Sistema'}</span></td>
                 <td class="px-6 py-4 space-x-2">
                     <button onclick='editCourse(${JSON.stringify(c)})' class="text-blue-600">Editar</button>
                     <button onclick="deleteItem('courses', '${c._id}')" class="text-red-600">Eliminar</button>
                 </td>
             </tr>`).join('');
-            document.getElementById('table-body').innerHTML = html || '<tr><td colspan="4" class="p-4 text-center">No hay datos.</td></tr>';
+            document.getElementById('table-body').innerHTML = html || '<tr><td colspan="5" class="p-4 text-center">No hay datos.</td></tr>';
         }
 
         async function fetchUsers() {
