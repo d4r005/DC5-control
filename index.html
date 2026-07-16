@@ -9,6 +9,7 @@
     <style>
         .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
         .modal-content { background: white; margin: 10% auto; padding: 20px; width: 40%; border-radius: 8px; }
+        .hidden { display: none; }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -18,7 +19,7 @@
         <div class="bg-white p-8 rounded-lg shadow-xl w-96">
             <h2 class="text-2xl font-bold mb-6 text-center text-slate-800">ACE Control Login</h2>
             <div class="space-y-4">
-                <input type="text" id="username" placeholder="Usuario" class="w-full p-3 border rounded">
+                <input type="email" id="email" placeholder="Correo electrónico" class="w-full p-3 border rounded">
                 <input type="password" id="password" placeholder="Contraseña" class="w-full p-3 border rounded">
                 <button onclick="login()" class="w-full bg-blue-600 text-white p-3 rounded font-bold hover:bg-blue-700">Entrar</button>
             </div>
@@ -26,7 +27,7 @@
         </div>
     </div>
 
-    <!-- Panel Principal (Oculto inicialmente) -->
+    <!-- Panel Principal -->
     <div id="main-panel" class="hidden flex h-screen">
         <!-- Sidebar -->
         <div class="bg-slate-900 text-white w-64 p-6 space-y-6">
@@ -35,7 +36,8 @@
                 <a href="#" onclick="showSection('dashboard')" class="block py-2.5 px-4 rounded transition hover:bg-slate-700">Dashboard</a>
                 <a href="#" onclick="showSection('workers')" class="block py-2.5 px-4 rounded transition hover:bg-slate-700">Personal (Excel)</a>
                 <a href="#" onclick="showSection('courses')" class="block py-2.5 px-4 rounded transition hover:bg-slate-700">Cursos</a>
-                <a href="#" onclick="showSection('agents')" class="block py-2.5 px-4 rounded transition hover:bg-slate-700">Agentes Capacitadores</a>
+                <a id="nav-agents" href="#" onclick="showSection('agents')" class="block py-2.5 px-4 rounded transition hover:bg-slate-700">Agentes Capacitadores</a>
+                <a id="nav-users" href="#" onclick="showSection('users')" class="block py-2.5 px-4 rounded transition hover:bg-slate-700">Gestión de Usuarios</a>
                 <a href="#" onclick="logout()" class="block py-2.5 px-4 rounded transition hover:bg-red-900 text-red-400 mt-10">Cerrar Sesión</a>
             </nav>
         </div>
@@ -50,7 +52,19 @@
             </header>
 
             <main class="flex-1 overflow-x-hidden overflow-y-auto p-6">
-                <!-- Seccion de Tablas -->
+                <!-- Stats -->
+                <div id="stats-container" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500">
+                        <h3 class="text-gray-500 text-sm font-medium">Personal Registrado</h3>
+                        <p class="text-3xl font-bold text-gray-800" id="stat-workers">0</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-500">
+                        <h3 class="text-gray-500 text-sm font-medium">Cursos</h3>
+                        <p class="text-3xl font-bold text-gray-800" id="stat-courses">0</p>
+                    </div>
+                </div>
+
+                <!-- Table Content -->
                 <div class="bg-white shadow-md rounded-lg overflow-hidden">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50" id="table-header"></thead>
@@ -61,14 +75,14 @@
         </div>
     </div>
 
-    <!-- Modal para Agregar -->
-    <div id="add-modal" class="modal">
+    <!-- Modal -->
+    <div id="modal" class="modal">
         <div class="modal-content">
             <h3 class="text-xl font-bold mb-4" id="modal-title">Agregar</h3>
             <div id="modal-fields" class="space-y-4"></div>
             <div class="mt-6 flex justify-end space-x-3">
                 <button onclick="closeModal()" class="px-4 py-2 text-gray-600">Cancelar</button>
-                <button onclick="saveNew()" class="px-4 py-2 bg-blue-600 text-white rounded">Guardar</button>
+                <button onclick="saveItem()" class="px-4 py-2 bg-blue-600 text-white rounded">Guardar</button>
             </div>
         </div>
     </div>
@@ -78,31 +92,42 @@
         const API_KEY = "al-b14XHfG6V17yJMOy1lmUWm9vCbuLZG1-Ot7Mp0YAMhH";
         const DB_CONFIG = { dataSource: "acecontrol", database: "DC3_Database" };
 
+        let currentUser = null;
         let currentSection = 'dashboard';
 
-        function login() {
-            // Login básico por ahora
-            if(document.getElementById('username').value === 'admin' && document.getElementById('password').value === '1234') {
-                document.getElementById('login-screen').classList.add('hidden');
-                document.getElementById('main-panel').classList.remove('hidden');
-                showSection('dashboard');
+        async function login() {
+            const email = document.getElementById('email').value;
+            const pass = document.getElementById('password').value;
+
+            // Login Hardcoded para el Admin principal solicitado
+            if(email === 'd4r005@gmail.com' && pass === 'Branco 2025') {
+                currentUser = { email, role: 'ADMIN', name: 'Administrador' };
+                initApp();
+                return;
+            }
+
+            // Buscar en MongoDB para otros usuarios
+            const data = await atlasAction("findOne", "users", { filter: { email, password: pass } });
+            if(data.document) {
+                currentUser = data.document;
+                initApp();
             } else {
                 document.getElementById('login-error').classList.remove('hidden');
             }
         }
 
-        function logout() { location.reload(); }
+        function initApp() {
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('main-panel').classList.remove('hidden');
 
-        function showSection(section) {
-            currentSection = section;
-            const btn = document.getElementById('add-btn');
-            btn.classList.add('hidden');
-
-            if(section === 'workers') fetchWorkers();
-            else if(section === 'courses') { btn.classList.remove('hidden'); fetchCourses(); }
-            else if(section === 'agents') { btn.classList.remove('hidden'); fetchAgents(); }
-            else fetchDashboard();
+            if(currentUser.role !== 'ADMIN') {
+                document.getElementById('nav-users').classList.add('hidden');
+                document.getElementById('nav-agents').classList.add('hidden');
+            }
+            showSection('dashboard');
         }
+
+        function logout() { location.reload(); }
 
         async function atlasAction(action, collection, payload = {}) {
             const response = await fetch(`${ATLAS_URL}/${action}`, {
@@ -113,57 +138,107 @@
             return await response.json();
         }
 
+        async function showSection(section) {
+            currentSection = section;
+            const btn = document.getElementById('add-btn');
+            btn.classList.add('hidden');
+            document.getElementById('stats-container').classList.add('hidden');
+
+            if(section === 'dashboard') {
+                document.getElementById('stats-container').classList.remove('hidden');
+                fetchStats();
+            } else if(section === 'workers') {
+                fetchWorkers();
+            } else if(section === 'courses') {
+                btn.classList.remove('hidden');
+                fetchCourses();
+            } else if(section === 'agents') {
+                btn.classList.remove('hidden');
+                fetchAgents();
+            } else if(section === 'users') {
+                btn.classList.remove('hidden');
+                fetchUsers();
+            }
+        }
+
+        async function fetchStats() {
+            const filter = currentUser.role === 'ADMIN' ? {} : { creatorEmail: currentUser.email };
+            const workers = await atlasAction("find", "workers", { filter });
+            const courses = await atlasAction("find", "courses", { filter });
+            document.getElementById('stat-workers').innerText = workers.documents.length;
+            document.getElementById('stat-courses').innerText = courses.documents.length;
+        }
+
         async function fetchWorkers() {
-            document.getElementById('section-title').innerText = "Lista de Personal (Cargado por App)";
+            document.getElementById('section-title').innerText = "Personal";
             document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3 text-left">Nombre</th><th class="px-6 py-3 text-left">CURP</th><th class="px-6 py-3 text-left">Puesto</th></tr>`;
-            const data = await atlasAction("find", "workers", { filter: {} });
+            const filter = currentUser.role === 'ADMIN' ? {} : { creatorEmail: currentUser.email };
+            const data = await atlasAction("find", "workers", { filter });
             renderTable(data.documents, ['name', 'curp', 'position']);
         }
 
         async function fetchCourses() {
-            document.getElementById('section-title').innerText = "Catálogo de Cursos";
+            document.getElementById('section-title').innerText = "Cursos";
             document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3 text-left">Curso</th><th class="px-6 py-3 text-left">Horas</th><th class="px-6 py-3 text-left">Área</th></tr>`;
-            const data = await atlasAction("find", "courses", { filter: {} });
+            const filter = currentUser.role === 'ADMIN' ? {} : { creatorEmail: currentUser.email };
+            const data = await atlasAction("find", "courses", { filter });
             renderTable(data.documents, ['name', 'durationHours', 'thematicArea']);
         }
 
-        async function fetchAgents() {
-            document.getElementById('section-title').innerText = "Agentes Capacitadores";
-            document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3 text-left">Nombre</th><th class="px-6 py-3 text-left">Registro STPS</th></tr>`;
-            const data = await atlasAction("find", "agents", { filter: {} });
-            renderTable(data.documents, ['name', 'stpsRegistry']);
+        async function fetchUsers() {
+            document.getElementById('section-title').innerText = "Gestión de Usuarios";
+            document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3 text-left">Nombre</th><th class="px-6 py-3 text-left">Email</th><th class="px-6 py-3 text-left">Rol</th><th class="px-6 py-3 text-left">Acciones</th></tr>`;
+            const data = await atlasAction("find", "users", { filter: {} });
+            const html = data.documents.map(u => `<tr>
+                <td class="px-6 py-4">${u.name}</td>
+                <td class="px-6 py-4">${u.email}</td>
+                <td class="px-6 py-4">${u.role}</td>
+                <td class="px-6 py-4"><button onclick="deleteUser('${u._id}')" class="text-red-600">Eliminar</button></td>
+            </tr>`).join('');
+            document.getElementById('table-body').innerHTML = html;
         }
 
         function renderTable(data, keys) {
             let html = data.map(item => `<tr>${keys.map(k => `<td class="px-6 py-4">${item[k] || ''}</td>`).join('')}</tr>`).join('');
-            document.getElementById('table-body').innerHTML = html || '<tr><td colspan="3" class="p-4 text-center">No hay datos registrados.</td></tr>';
+            document.getElementById('table-body').innerHTML = html || '<tr><td colspan="3" class="p-4 text-center">No hay datos.</td></tr>';
         }
 
         function openModal() {
             const fields = document.getElementById('modal-fields');
-            if(currentSection === 'courses') {
+            if(currentSection === 'users') {
+                document.getElementById('modal-title').innerText = "Nuevo Usuario";
+                fields.innerHTML = `
+                    <input id="u-name" placeholder="Nombre completo" class="w-full p-2 border">
+                    <input id="u-email" placeholder="Email" class="w-full p-2 border">
+                    <input id="u-pass" type="password" placeholder="Contraseña" class="w-full p-2 border">
+                    <select id="u-role" class="w-full p-2 border"><option value="USER">Agente Capacitador</option><option value="ADMIN">Administrador</option></select>
+                `;
+            } else if(currentSection === 'courses') {
                 document.getElementById('modal-title').innerText = "Nuevo Curso";
-                fields.innerHTML = `<input id="f1" placeholder="Nombre del curso" class="w-full p-2 border"><input id="f2" placeholder="Horas" class="w-full p-2 border"><input id="f3" placeholder="Área temática" class="w-full p-2 border">`;
-            } else {
-                document.getElementById('modal-title').innerText = "Nuevo Agente";
-                fields.innerHTML = `<input id="f1" placeholder="Nombre completo" class="w-full p-2 border"><input id="f2" placeholder="Registro STPS" class="w-full p-2 border">`;
+                fields.innerHTML = `<input id="c-name" placeholder="Nombre del curso" class="w-full p-2 border"><input id="c-hours" placeholder="Horas" class="w-full p-2 border"><input id="c-area" placeholder="Área temática" class="w-full p-2 border">`;
             }
-            document.getElementById('add-modal').style.display = 'block';
+            document.getElementById('modal').style.display = 'block';
         }
 
-        function closeModal() { document.getElementById('add-modal').style.display = 'none'; }
+        function closeModal() { document.getElementById('modal').style.display = 'none'; }
 
-        async function saveNew() {
-            let doc = {};
-            if(currentSection === 'courses') {
-                doc = { name: document.getElementById('f1').value, durationHours: parseInt(document.getElementById('f2').value), thematicArea: document.getElementById('f3').value };
+        async function saveItem() {
+            if(currentSection === 'users') {
+                const doc = { name: document.getElementById('u-name').value, email: document.getElementById('u-email').value, password: document.getElementById('u-pass').value, role: document.getElementById('u-role').value };
+                await atlasAction("insertOne", "users", { document: doc });
+            } else if(currentSection === 'courses') {
+                const doc = { name: document.getElementById('c-name').value, durationHours: parseInt(document.getElementById('c-hours').value), thematicArea: document.getElementById('c-area').value, creatorEmail: currentUser.email };
                 await atlasAction("insertOne", "courses", { document: doc });
-            } else {
-                doc = { name: document.getElementById('f1').value, stpsRegistry: document.getElementById('f2').value };
-                await atlasAction("insertOne", "agents", { document: doc });
             }
             closeModal();
             showSection(currentSection);
+        }
+
+        async function deleteUser(id) {
+            if(confirm("¿Eliminar este usuario?")) {
+                await atlasAction("deleteOne", "users", { filter: { _id: { "$oid": id } } });
+                fetchUsers();
+            }
         }
     </script>
 </body>
