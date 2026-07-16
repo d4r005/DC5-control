@@ -54,6 +54,14 @@
             <!-- Tarjeta Login -->
             <div class="w-full max-w-[420px] bg-white rounded-[3rem] p-12 shadow-2xl">
                 <div class="text-center mb-10">
+                    <div class="flex justify-center mb-4">
+                        <svg viewBox="0 0 100 100" class="w-16 h-16">
+                            <path d="M75 20 C65 10 50 8 38 14 C20 22 12 42 20 60 C28 78 50 85 68 76 C80 70 85 55 82 42" 
+                                  fill="none" stroke="#e67e22" stroke-width="8" stroke-linecap="round"/>
+                            <path d="M78 25 C70 16 52 14 40 20 C24 28 18 46 26 62 C34 76 52 80 68 72" 
+                                  fill="none" stroke="#3498db" stroke-width="8" stroke-linecap="round" opacity="0.85"/>
+                        </svg>
+                    </div>
                     <h2 class="text-3xl font-black text-slate-800 tracking-tighter uppercase italic">ACE-CONTROL</h2>
                 </div>
                 <form class="space-y-6" onsubmit="login(event)">
@@ -62,9 +70,8 @@
                         <input id="password" type="password" required class="w-full bg-slate-50 rounded-2xl px-5 py-4 text-slate-900 outline-none focus:ring-2 focus:ring-blue-500/10" placeholder="Password">
                         <i class="fa-solid fa-lock absolute right-5 top-1/2 -translate-y-1/2 text-slate-300"></i>
                     </div>
-                    <div class="flex items-center justify-between text-[11px] font-bold text-slate-400 px-1 uppercase tracking-tighter">
-                        <label class="flex items-center cursor-pointer"><input type="checkbox" id="remember-me" class="mr-2 w-4 h-4"> Registrarse?</label>
-                        <a href="#">¿Olvidó su contraseña?</a>
+                    <div class="flex items-center text-[11px] font-bold text-slate-500 px-1 uppercase tracking-tighter">
+                        <label class="flex items-center cursor-pointer"><input type="checkbox" id="remember-me" class="mr-2 w-4 h-4 accent-blue-600"> Recordar usuario</label>
                     </div>
                     <button type="submit" class="w-full bg-[#4262a0] hover:bg-[#36518a] text-white py-4 rounded-2xl font-bold text-sm transition-all shadow-lg shadow-blue-900/10 active:scale-[0.98]">Entrar</button>
                     <div class="text-center mt-6"><a href="#" class="text-[11px] font-bold text-blue-700 hover:underline uppercase tracking-wide">Acceder en modo seguro</a></div>
