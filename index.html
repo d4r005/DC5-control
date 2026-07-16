@@ -9,166 +9,180 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
-        .modal-content { background: white; margin: 5% auto; padding: 25px; width: 40%; border-radius: 12px; shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); }
-        .nav-btn.active { background-color: rgb(37 99 235); color: white; }
-
-        /* Estilos específicos para el login tipo imagen */
-        .login-input {
-            background-color: #f1f3f4;
-            border-radius: 0.75rem;
-            border: none;
-            padding: 0.75rem 1rem;
-            width: 100%;
-            outline: none;
-            color: #3c4043;
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0b1329; }
+        .login-bg {
+            background-image: radial-gradient(circle at 10% 20%, rgba(30, 41, 59, 0.4) 0%, transparent 80%),
+                              radial-gradient(circle at 90% 80%, rgba(29, 78, 216, 0.15) 0%, transparent 70%);
         }
-        .login-input::placeholder { color: #9aa0a6; }
-        .login-card {
-            background: white;
-            border-radius: 2rem;
-            padding: 3rem;
-            width: 100%;
-            max-width: 400px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-        }
+        .nav-btn.active { background-color: #2563eb; color: white; box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2); }
+        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
+        .modal-content { background: white; margin: 5% auto; padding: 30px; width: 450px; border-radius: 24px; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
-<body class="bg-slate-100 font-sans text-slate-800 h-screen overflow-hidden">
+<body class="antialiased text-slate-200 h-screen overflow-hidden">
 
-    <!-- Pantalla de Login (Estilo Idéntico a la Imagen) -->
-    <div id="view-login" class="flex min-h-screen items-center justify-center bg-[#0d2127] bg-gradient-to-br from-[#1b3a41] via-[#0d2127] to-[#051114] px-4">
+    <!-- Pantalla de Login (Nuevo Diseño Profesional) -->
+    <div id="view-login" class="login-bg min-h-screen flex items-center justify-center px-4">
+        <div class="w-full max-w-5xl bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl overflow-hidden shadow-2xl flex flex-col md:flex-row min-h-[600px]">
 
-        <div class="flex max-w-5xl w-full items-center justify-center lg:justify-between space-x-12">
+            <!-- Panel Izquierdo: Branding -->
+            <div class="w-full md:w-1/2 bg-gradient-to-br from-blue-700 to-indigo-900 p-12 flex flex-col justify-between relative overflow-hidden">
+                <div class="absolute -top-40 -left-40 w-96 h-96 bg-sky-400/20 rounded-full blur-3xl"></div>
+                <div class="absolute -bottom-20 -right-20 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl"></div>
 
-            <!-- Ilustración Izquierda -->
-            <div class="hidden lg:block w-1/2 relative">
-                <div class="relative z-10 flex flex-col items-center">
-                    <!-- Representación del Candado y Llave con SVG/Iconos -->
-                    <div class="relative w-64 h-64">
-                        <div class="absolute inset-0 bg-cyan-500/20 blur-3xl rounded-full"></div>
-                        <i data-lucide="lock" class="absolute top-0 left-0 w-48 h-48 text-cyan-400/80 drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]"></i>
-                        <i data-lucide="key" class="absolute bottom-4 right-0 w-32 h-32 text-blue-400 rotate-45 drop-shadow-[0_0_10px_rgba(96,165,250,0.5)]"></i>
-                    </div>
-                    <div class="mt-12 text-center">
-                        <h1 class="text-3xl font-black text-white tracking-widest uppercase">SEGURIDAD ACE</h1>
-                        <p class="text-cyan-100/60 text-sm mt-2">Control total de Agentes Capacitadores.</p>
-                    </div>
+                <div class="flex items-center space-x-3 z-10">
+                    <div class="h-10 w-10 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 text-white font-extrabold text-xl shadow-lg shadow-black/10">A</div>
+                    <span class="text-xl font-bold tracking-wider text-white">ACE-CONTROL</span>
                 </div>
-                <!-- Circuitos decorativos fondo -->
-                <div class="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
-                    <svg width="100%" height="100%"><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="cyan" stroke-width="0.5"/></pattern><rect width="100%" height="100%" fill="url(#grid)" /></svg>
+
+                <div class="my-auto py-12 flex flex-col items-center justify-center text-center z-10">
+                    <div class="h-28 w-28 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center shadow-inner mb-6 relative">
+                        <i data-lucide="shield-check" class="w-14 h-14 text-sky-300"></i>
+                        <div class="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-emerald-500 flex items-center justify-center text-[10px] text-white font-bold animate-pulse">✓</div>
+                    </div>
+                    <h2 class="text-3xl font-extrabold text-white tracking-tight leading-tight uppercase">Seguridad ACE</h2>
+                    <p class="mt-4 text-sm text-blue-100 max-w-sm opacity-90 leading-relaxed">
+                        Control total de Agentes Capacitadores y emisión masiva de formatos DC-3.
+                    </p>
+                </div>
+
+                <div class="flex items-center space-x-2 text-xs text-blue-200/80 z-10">
+                    <span class="h-2 w-2 rounded-full bg-emerald-400 inline-block animate-ping"></span>
+                    <span>Acceso de alta seguridad activo</span>
                 </div>
             </div>
 
-            <!-- Tarjeta de Login -->
-            <div class="login-card">
-                <div class="text-center mb-8">
-                    <!-- Logo Hexagonal ACE -->
-                    <div class="mx-auto w-20 h-20 mb-4 flex items-center justify-center">
-                        <svg viewBox="0 0 100 100" class="w-full h-full">
-                            <path d="M50 5 L90 28 L90 72 L50 95 L10 72 L10 28 Z" fill="none" stroke="#2563eb" stroke-width="6"/>
-                            <path d="M35 35 L65 35 L65 65 L35 65 Z" fill="none" stroke="#f97316" stroke-width="6" transform="rotate(45 50 50)"/>
-                            <text x="50" y="60" text-anchor="middle" font-family="Arial" font-weight="black" font-size="28" fill="#1e293b">CC</text>
-                        </svg>
+            <!-- Panel Derecho: Formulario -->
+            <div class="w-full md:w-1/2 p-12 flex flex-col justify-center bg-slate-950/40">
+                <div class="max-w-md w-full mx-auto space-y-8">
+                    <div>
+                        <h3 class="text-2xl font-bold text-white tracking-tight">Bienvenido</h3>
+                        <p class="text-sm text-slate-400 mt-1">Ingresa tus credenciales para acceder al sistema.</p>
                     </div>
-                    <h2 class="text-2xl font-black text-slate-800 tracking-tighter uppercase italic">ACE-CONTROL</h2>
-                </div>
 
-                <form class="space-y-5" onsubmit="login(event)">
-                    <div class="space-y-4">
-                        <input id="email" type="email" required class="login-input" placeholder="Email">
-                        <div class="relative">
-                            <input id="password" type="password" required class="login-input" placeholder="Password">
-                            <i class="fa-solid fa-lock absolute right-4 top-4 text-slate-300 text-sm"></i>
+                    <form class="space-y-6" onsubmit="login(event)">
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-2 ml-1">Email</label>
+                                <input id="email" type="email" required class="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3.5 text-white placeholder-slate-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all" placeholder="usuario@acecontrol.com">
+                            </div>
+                            <div>
+                                <div class="flex justify-between mb-2 ml-1">
+                                    <label class="block text-xs font-bold text-slate-500 uppercase">Password</label>
+                                    <a href="#" class="text-[10px] font-bold text-blue-500 hover:text-blue-400 uppercase tracking-wider">¿Olvidaste la clave?</a>
+                                </div>
+                                <div class="relative">
+                                    <input id="password" type="password" required class="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3.5 text-white placeholder-slate-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all" placeholder="••••••••">
+                                    <button type="button" onclick="togglePassword()" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-400">
+                                        <i id="password-icon" class="fa-solid fa-eye-slash"></i>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="flex items-center justify-between text-[11px] font-bold text-slate-500 px-1">
-                        <label class="flex items-center cursor-pointer">
-                            <input type="checkbox" class="mr-1 rounded-sm border-slate-300"> Registrarse?
-                        </label>
-                        <a href="#" class="hover:text-blue-600 transition-colors">¿Olvidó su contraseña?</a>
-                    </div>
+                        <div class="flex items-center space-x-2 ml-1">
+                            <input type="checkbox" id="remember-me" class="w-4 h-4 rounded border-slate-800 bg-slate-900 text-blue-600 focus:ring-offset-slate-950">
+                            <label for="remember-me" class="text-xs text-slate-400 font-semibold cursor-pointer">Recordarme en este equipo</label>
+                        </div>
 
-                    <button type="submit" class="w-full bg-[#4a69bd] hover:bg-[#3c54a4] text-white py-3.5 rounded-xl font-bold text-sm shadow-lg shadow-blue-900/20 transition-all active:scale-[0.98]">
-                        Entrar
-                    </button>
-
-                    <div class="text-center mt-4">
-                        <a href="#" class="text-[11px] font-bold text-blue-800 hover:underline">Acceder en modo seguro</a>
-                    </div>
-                </form>
+                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl font-bold text-sm shadow-lg shadow-blue-900/20 transition-all active:scale-[0.98]">
+                            Entrar al Panel
+                        </button>
+                    </form>
+                    <p id="login-error" class="text-red-400 text-[10px] text-center font-bold uppercase tracking-widest hidden">Error: Credenciales no válidas</p>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- App Container (Dashboard) -->
-    <div id="app-container" class="hidden flex h-screen overflow-hidden">
-        <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col justify-between shrink-0">
+    <!-- App Container -->
+    <div id="app-container" class="hidden flex h-screen overflow-hidden bg-slate-50 text-slate-800">
+        <!-- Sidebar -->
+        <aside class="w-72 bg-slate-900 text-slate-300 flex flex-col justify-between shrink-0">
             <div>
-                <div class="h-16 flex items-center px-6 border-b border-slate-800 space-x-2">
-                    <div class="h-8 w-8 bg-blue-600 rounded flex items-center justify-center text-white font-bold">A</div>
-                    <span class="font-bold text-white tracking-wider uppercase">ACE-CONTROL</span>
+                <div class="h-20 flex items-center px-8 border-b border-slate-800 space-x-3">
+                    <div class="h-9 w-9 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black text-lg">A</div>
+                    <span class="font-bold text-white tracking-widest text-lg">ACE-CONTROL</span>
                 </div>
-                <nav class="mt-6 px-4 space-y-1">
-                    <button onclick="switchView('dashboard')" id="btn-dashboard" class="nav-btn w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm transition-colors"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></button>
-                    <button onclick="switchView('workers')" id="btn-workers" class="nav-btn w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm transition-colors"><i data-lucide="file-text"></i><span>Personal (Excel)</span></button>
-                    <button onclick="switchView('courses')" id="btn-courses" class="nav-btn w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm transition-colors"><i data-lucide="book-open"></i><span>Cursos</span></button>
-                    <button onclick="switchView('agents')" id="btn-agents" class="nav-btn w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm transition-colors"><i data-lucide="award"></i><span>Agentes Cap.</span></button>
-                    <button onclick="switchView('dc3')" id="btn-dc3" class="nav-btn w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm transition-colors"><i data-lucide="file-check"></i><span>DC-3 Generados</span></button>
-                    <button onclick="switchView('users')" id="btn-users" class="nav-btn hidden w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm transition-colors"><i data-lucide="users"></i><span>Usuarios</span></button>
+                <nav class="mt-8 px-6 space-y-2">
+                    <button onclick="switchView('dashboard')" id="btn-dashboard" class="nav-btn w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="layout-dashboard" class="w-5 h-5"></i><span>Dashboard</span></button>
+                    <button onclick="switchView('workers')" id="btn-workers" class="nav-btn w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="file-text" class="w-5 h-5"></i><span>Personal (Excel)</span></button>
+                    <button onclick="switchView('courses')" id="btn-courses" class="nav-btn w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="book-open" class="w-5 h-5"></i><span>Cursos</span></button>
+                    <button onclick="switchView('agents')" id="btn-agents" class="nav-btn w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="award" class="w-5 h-5"></i><span>Agentes Cap.</span></button>
+                    <button onclick="switchView('dc3')" id="btn-dc3" class="nav-btn w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="file-check" class="w-5 h-5"></i><span>DC-3 Generados</span></button>
+                    <button onclick="switchView('users')" id="btn-users" class="nav-btn hidden w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="users" class="w-5 h-5"></i><span>Usuarios</span></button>
                 </nav>
             </div>
-            <div class="p-4 border-t border-slate-800"><button onclick="logout()" class="w-full flex items-center space-x-3 px-4 py-2.5 text-red-400 hover:bg-red-900 rounded-lg"><i data-lucide="log-out"></i><span>Cerrar Sesión</span></button></div>
+            <div class="p-6 border-t border-slate-800">
+                <button onclick="logout()" class="w-full flex items-center justify-center space-x-3 px-5 py-3 text-red-400 hover:bg-red-500/10 rounded-xl transition-all font-bold text-sm"><i data-lucide="log-out" class="w-5 h-5"></i><span>Salir del Sistema</span></button>
+            </div>
         </aside>
 
+        <!-- Main Content -->
         <main class="flex-1 flex flex-col overflow-hidden">
-            <header class="h-16 bg-white border-b flex items-center justify-between px-8 shrink-0">
-                <div class="flex items-center space-x-4">
-                    <h1 id="page-title" class="text-xl font-bold">Dashboard</h1>
-                    <select id="user-filter" onchange="refreshCurrentView()" class="hidden text-sm border rounded-lg px-3 py-1.5 bg-slate-50">
-                        <option value="ALL">Ver Todo</option>
-                    </select>
-                </div>
-                <div class="flex items-center space-x-4 text-sm">
-                    <div class="text-right leading-tight">
-                        <p id="user-name-display" class="font-bold text-slate-800">Dario Robles</p>
-                        <p id="user-role-display" class="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Administrador ACE</p>
+            <header class="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-10 shrink-0">
+                <div class="flex items-center space-x-6">
+                    <h1 id="page-title" class="text-2xl font-extrabold text-slate-800 tracking-tight">Dashboard</h1>
+                    <div id="admin-filter-container" class="hidden">
+                        <select id="user-filter" onchange="refreshCurrentView()" class="text-sm font-bold border-slate-200 rounded-xl px-4 py-2 bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="ALL">Ver Todo el Sistema</option>
+                        </select>
                     </div>
-                    <div id="user-initials" class="h-10 w-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">DR</div>
+                </div>
+                <div class="flex items-center space-x-5">
+                    <div class="text-right">
+                        <p id="user-name-display" class="font-extrabold text-slate-900 leading-none">Cargando...</p>
+                        <p id="user-role-display" class="text-[10px] text-slate-500 uppercase font-black tracking-widest mt-1">Rol</p>
+                    </div>
+                    <div id="user-initials" class="h-12 w-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-lg shadow-blue-200 uppercase">??</div>
                 </div>
             </header>
 
-            <div class="flex-1 overflow-y-auto p-8">
-                <div id="view-dashboard" class="space-y-6">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div class="bg-white p-6 rounded-xl border shadow-sm flex items-center justify-between"><div><p class="text-sm text-slate-500">Personal</p><p id="stat-workers" class="text-2xl font-bold">0</p></div><i data-lucide="users-2" class="text-blue-500"></i></div>
-                        <div class="bg-white p-6 rounded-xl border shadow-sm flex items-center justify-between"><div><p class="text-sm text-slate-500">Cursos</p><p id="stat-courses" class="text-2xl font-bold">0</p></div><i data-lucide="book-open" class="text-emerald-500"></i></div>
-                        <div class="bg-white p-6 rounded-xl border shadow-sm flex items-center justify-between"><div><p class="text-sm text-slate-500">DC-3</p><p id="stat-dc3" class="text-2xl font-bold">0</p></div><i data-lucide="file-check" class="text-violet-500"></i></div>
+            <div class="flex-1 overflow-y-auto p-10 space-y-10">
+                <!-- Vistas Dashboard -->
+                <div id="view-dashboard" class="space-y-8">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between group hover:shadow-xl transition-all">
+                            <div><p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Personal</p><p id="stat-workers" class="text-4xl font-extrabold text-slate-900">0</p></div>
+                            <div class="p-4 bg-blue-50 text-blue-600 rounded-2xl group-hover:bg-blue-600 group-hover:text-white transition-all"><i data-lucide="users-2" class="w-8 h-8"></i></div>
+                        </div>
+                        <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between group hover:shadow-xl transition-all">
+                            <div><p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Cursos</p><p id="stat-courses" class="text-4xl font-extrabold text-slate-900">0</p></div>
+                            <div class="p-4 bg-emerald-50 text-emerald-600 rounded-2xl group-hover:bg-emerald-600 group-hover:text-white transition-all"><i data-lucide="book-open" class="w-8 h-8"></i></div>
+                        </div>
+                        <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between group hover:shadow-xl transition-all">
+                            <div><p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">DC-3</p><p id="stat-dc3" class="text-4xl font-extrabold text-slate-900">0</p></div>
+                            <div class="p-4 bg-violet-50 text-violet-600 rounded-2xl group-hover:bg-violet-600 group-hover:text-white transition-all"><i data-lucide="file-check" class="w-8 h-8"></i></div>
+                        </div>
                     </div>
                 </div>
 
                 <div id="view-content" class="hidden space-y-6">
-                    <div class="flex justify-between items-center">
-                        <p id="view-description" class="text-slate-500 text-sm"></p>
-                        <div class="flex space-x-2">
+                    <div class="flex justify-between items-center bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                        <p id="view-description" class="text-slate-500 font-medium"></p>
+                        <div class="flex space-x-3">
                             <input type="file" id="excel-input" class="hidden" accept=".xlsx, .xls" onchange="handleExcel(this)">
-                            <button id="upload-btn" onclick="document.getElementById('excel-input').click()" class="hidden bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-bold">Cargar Excel</button>
-                            <button id="gen-dc3-btn" class="hidden bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold">Generar DC-3 Masivos</button>
-                            <button id="add-btn" onclick="openModal()" class="hidden bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold">+ Agregar</button>
+                            <button id="upload-btn" onclick="document.getElementById('excel-input').click()" class="hidden bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-2xl text-sm font-bold shadow-lg shadow-emerald-200 transition-all flex items-center"><i data-lucide="file-spreadsheet" class="w-4 h-4 mr-2"></i>Cargar Personal (Excel)</button>
+                            <button id="gen-dc3-btn" class="hidden bg-slate-900 hover:bg-slate-800 text-white px-6 py-3 rounded-2xl text-sm font-bold shadow-lg transition-all flex items-center"><i data-lucide="printer" class="w-4 h-4 mr-2"></i>Generación Masiva</button>
+                            <button id="add-btn" onclick="openModal()" class="hidden bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-2xl text-sm font-bold shadow-lg shadow-blue-200 transition-all flex items-center"><i data-lucide="plus" class="w-4 h-4 mr-2"></i>Nuevo Registro</button>
                         </div>
                     </div>
-                    <div class="bg-white rounded-xl border overflow-hidden shadow-sm">
+                    <div class="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-sm">
                         <table class="w-full text-left border-collapse">
-                            <thead id="table-header" class="bg-slate-50 text-xs uppercase text-slate-500 font-bold border-b"></thead>
-                            <tbody id="table-body" class="divide-y text-sm"></tbody>
+                            <thead id="table-header" class="bg-slate-50/50 text-[10px] uppercase text-slate-400 font-black tracking-[0.2em]"></thead>
+                            <tbody id="table-body" class="divide-y divide-slate-100 text-sm font-medium"></tbody>
                         </table>
                     </div>
                 </div>
             </div>
         </main>
     </div>
+
+    <!-- Modal -->
+    <div id="modal" class="modal"><div class="modal-content"><h3 id="modal-title" class="text-2xl font-black text-slate-800 mb-8 uppercase italic tracking-tighter">Agregar</h3><div id="modal-fields" class="space-y-6"></div><div class="mt-10 flex justify-end space-x-4"><button onclick="closeModal()" class="px-6 py-3 text-sm font-bold text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-all">Cancelar</button><button onclick="saveItem()" class="bg-blue-600 text-white px-8 py-3 rounded-2xl text-sm font-black uppercase tracking-widest shadow-xl shadow-blue-200 hover:bg-blue-500 transition-all">Guardar</button></div></div></div>
 
     <script>
         const ATLAS_URL = "https://data.mongodb-api.com/app/data-jshze/endpoint/data/v1/action";
@@ -180,9 +194,7 @@
             { name: "Cynthia Garza Lugo", email: "lugga.advisors@gmail.com", role: "USER", password: "Cynthia123" }
         ];
 
-        const DEFAULT_AGENTS = [
-            { name: "CYNTHIA YADIRA GARZA LUGO", stpsRegistry: "STPS-GALC780523-MP3-005" }
-        ];
+        const DEFAULT_AGENTS = [{ name: "CYNTHIA YADIRA GARZA LUGO", stpsRegistry: "STPS-GALC780523-MP3-005" }];
 
         const DEFAULT_COURSES = [
             { name: "SEGURIDAD EN TRABAJOS DE SOLDADURAS Y OXICORTE", durationHours: 8, thematicArea: "Seguridad industrial", creatorEmail: "lugga.advisors@gmail.com" },
@@ -208,12 +220,18 @@
 
         let currentUser = null, currentView = 'dashboard';
 
+        window.onload = function() {
+            lucide.createIcons();
+            const rememberedEmail = localStorage.getItem('rememberedEmail');
+            if (rememberedEmail) document.getElementById('email').value = rememberedEmail;
+        };
+
         async function login(e) {
             e.preventDefault();
             const email = document.getElementById('email').value.trim();
             const pass = document.getElementById('password').value.trim();
             const user = DEFAULT_USERS.find(u => u.email === email && u.password === pass);
-            if(user) { currentUser = user; initApp(); } else alert("Acceso denegado");
+            if(user) { currentUser = user; initApp(); } else { document.getElementById('login-error').classList.remove('hidden'); }
         }
 
         function initApp() {
@@ -221,18 +239,15 @@
             document.getElementById('app-container').classList.remove('hidden');
             document.getElementById('user-name-display').innerText = currentUser.name;
             document.getElementById('user-role-display').innerText = currentUser.role === 'ADMIN' ? 'Administrador ACE' : 'Agente Capacitador';
-            document.getElementById('user-initials').innerText = currentUser.name.substring(0,2);
+            document.getElementById('user-initials').innerText = currentUser.name.split(' ').map(n => n[0]).join('');
             if(currentUser.role === 'ADMIN') {
                 document.getElementById('btn-users').classList.remove('hidden');
-                document.getElementById('user-filter').classList.remove('hidden');
-                populateUserFilter();
+                const filterSelect = document.getElementById('user-filter');
+                filterSelect.classList.remove('hidden');
+                filterSelect.innerHTML = '<option value="ALL">Ver Todo el Sistema</option>';
+                DEFAULT_USERS.forEach(u => filterSelect.innerHTML += `<option value="${u.email}">${u.name}</option>`);
             }
             switchView('dashboard'); lucide.createIcons();
-        }
-
-        async function atlasAction(action, collection, payload = {}) {
-            const r = await fetch(`${ATLAS_URL}/${action}`, { method: "POST", headers: { "Content-Type": "application/json", "api-key": API_KEY }, body: JSON.stringify({ ...DB_CONFIG, collection, ...payload }) });
-            return await r.json();
         }
 
         async function switchView(v) {
@@ -260,23 +275,34 @@
                 document.getElementById('stat-dc3').innerText = (d.documents || []).length;
 
             } else if(currentView === 'workers') {
+                document.getElementById('view-description').innerText = "Personal registrado mediante carga de Excel.";
                 const data = await atlasAction("find", "workers", { filter });
-                document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3">Nombre</th><th class="px-6 py-3">CURP</th><th class="px-6 py-3">Puesto</th></tr>`;
-                document.getElementById('table-body').innerHTML = (data.documents || []).map(x => `<tr><td class="px-6 py-4 font-bold text-slate-800">${x.name}</td><td class="px-6 py-4">${x.curp}</td><td class="px-6 py-4">${x.position}</td></tr>`).join('') || '<tr><td colspan="3" class="p-8 text-center text-slate-400">Sin datos.</td></tr>';
+                document.getElementById('table-header').innerHTML = `<tr><th class="px-10 py-6">Nombre del Trabajador</th><th class="px-10 py-6">CURP</th><th class="px-10 py-6">Puesto / Ocupación</th></tr>`;
+                document.getElementById('table-body').innerHTML = (data.documents || []).map(x => `<tr class="hover:bg-slate-50 transition-colors"><td class="px-10 py-5 font-bold text-slate-800">${x.name}</td><td class="px-10 py-5 font-semibold text-slate-500 tracking-wider">${x.curp}</td><td class="px-10 py-5">${x.position}</td></tr>`).join('') || '<tr><td colspan="3" class="p-20 text-center text-slate-300 font-bold uppercase tracking-widest">No hay personal cargado</td></tr>';
 
             } else if(currentView === 'courses') {
+                document.getElementById('view-description').innerText = "Catálogo oficial de cursos disponibles por agente.";
                 const filteredCourses = filterEmail ? DEFAULT_COURSES.filter(c => c.creatorEmail === filterEmail) : DEFAULT_COURSES;
-                document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3">Curso</th><th class="px-6 py-3">Horas</th><th class="px-6 py-3">Área</th></tr>`;
-                document.getElementById('table-body').innerHTML = filteredCourses.map(c => `<tr class="hover:bg-slate-50"><td class="px-6 py-4 font-bold text-slate-800">${c.name}</td><td class="px-6 py-4">${c.durationHours}</td><td class="px-6 py-4 italic text-blue-600">${c.thematicArea}</td></tr>`).join('') || '<tr><td colspan="3" class="p-8 text-center text-slate-400">Sin cursos.</td></tr>';
+                document.getElementById('table-header').innerHTML = `<tr><th class="px-10 py-6">Nombre del Curso</th><th class="px-10 py-6">Duración</th><th class="px-10 py-6">Área Temática</th></tr>`;
+                document.getElementById('table-body').innerHTML = filteredCourses.map(c => `<tr class="hover:bg-slate-50 transition-colors"><td class="px-10 py-5 font-bold text-slate-800 uppercase">${c.name}</td><td class="px-10 py-5 font-bold text-blue-600">${c.durationHours} Horas</td><td class="px-10 py-5"><span class="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter border border-blue-100">${c.thematicArea}</span></td></tr>`).join('') || '<tr><td colspan="3" class="p-20 text-center text-slate-300 font-bold uppercase tracking-widest">Este agente no cuenta con cursos</td></tr>';
 
             } else if(currentView === 'users') {
-                document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3">Nombre</th><th class="px-6 py-3">Email</th><th class="px-6 py-3">Rol</th></tr>`;
-                document.getElementById('table-body').innerHTML = DEFAULT_USERS.map(u => `<tr class="hover:bg-slate-50"><td class="px-6 py-4 font-bold text-slate-800">${u.name}</td><td class="px-6 py-4">${u.email}</td><td class="px-6 py-4"><span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold">${u.role}</span></td></tr>`).join('');
+                document.getElementById('view-description').innerText = "Gestión de accesos y roles del sistema.";
+                document.getElementById('table-header').innerHTML = `<tr><th class="px-10 py-6">Nombre Completo</th><th class="px-10 py-6">Email de Acceso</th><th class="px-10 py-6">Nivel de Usuario</th></tr>`;
+                document.getElementById('table-body').innerHTML = DEFAULT_USERS.map(u => `<tr class="hover:bg-slate-50 transition-colors"><td class="px-10 py-5 font-bold text-slate-800">${u.name}</td><td class="px-10 py-5 text-slate-500">${u.email}</td><td class="px-10 py-5"><span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${u.role==='ADMIN'?'bg-purple-100 text-purple-700':'bg-blue-100 text-blue-700'}">${u.role}</span></td></tr>`).join('');
 
             } else if(currentView === 'agents') {
-                document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3">Agente</th><th class="px-6 py-3">Registro STPS</th></tr>`;
-                document.getElementById('table-body').innerHTML = DEFAULT_AGENTS.map(a => `<tr class="hover:bg-slate-50"><td class="px-6 py-4 font-bold text-slate-800">${a.name}</td><td class="px-6 py-4 text-blue-600 font-mono">${a.stpsRegistry}</td></tr>`).join('');
+                document.getElementById('view-description').innerText = "Registro de Agentes Capacitadores Externos STPS.";
+                document.getElementById('table-header').innerHTML = `<tr><th class="px-10 py-6">Nombre o Razón Social</th><th class="px-10 py-6">Número de Registro STPS</th></tr>`;
+                document.getElementById('table-body').innerHTML = DEFAULT_AGENTS.map(a => `<tr class="hover:bg-slate-50 transition-colors"><td class="px-10 py-5 font-extrabold text-slate-800 uppercase">${a.name}</td><td class="px-10 py-5 font-mono text-blue-600 font-bold tracking-tighter">${a.stpsRegistry}</td></tr>`).join('');
             }
+        }
+
+        async function atlasAction(action, collection, payload = {}) {
+            try {
+                const r = await fetch(`${ATLAS_URL}/${action}`, { method: "POST", headers: { "Content-Type": "application/json", "api-key": API_KEY }, body: JSON.stringify({ ...DB_CONFIG, collection, ...payload }) });
+                return await r.json();
+            } catch (e) { return { documents: [] }; }
         }
 
         function getFilter() {
@@ -284,10 +310,19 @@
             return (currentUser.role==='ADMIN' && v==='ALL') ? {} : { creatorEmail: v === 'ALL' ? currentUser.email : v };
         }
         function togglePassword() { const p = document.getElementById('password'); p.type = p.type === 'password' ? 'text' : 'password'; }
+        function closeModal() { document.getElementById('modal').style.display='none'; }
         function logout() { location.reload(); }
-        function populateUserFilter() {
-            const s = document.getElementById('user-filter');
-            DEFAULT_USERS.forEach(u => s.innerHTML += `<option value="${u.email}">${u.name}</option>`);
+        function handleExcel(input) {
+            const r = new FileReader();
+            r.onload = async (e) => {
+                const data = new Uint8Array(e.target.result);
+                const wb = XLSX.read(data, {type: 'array'});
+                const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+                const workers = rows.map(r => ({ name: r.Nombre || r.NOMBRE, curp: r.CURP, position: r.Puesto || r.PUESTO, creatorEmail: currentUser.email }));
+                await atlasAction("insertMany", "workers", { documents: workers });
+                alert("Excel cargado!"); refreshCurrentView();
+            };
+            r.readAsArrayBuffer(input.files[0]);
         }
     </script>
 </body>
