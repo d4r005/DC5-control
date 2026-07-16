@@ -17,25 +17,42 @@
 <body class="bg-slate-100 font-sans text-slate-800 h-screen overflow-hidden">
 
     <!-- Pantalla de Login -->
-    <div id="view-login" class="flex min-h-screen items-center justify-center bg-[#0d2127] bg-gradient-to-br from-[#0d2127] via-[#163b3f] to-[#0a1a1d] px-4">
-        <div class="flex max-w-4xl w-full items-center justify-center lg:justify-between space-x-12">
-            <div class="hidden lg:block w-1/2 text-cyan-400">
-                <i data-lucide="shield-check" class="w-48 h-48 drop-shadow-[0_0_15px_rgba(34,211,238,0.5)]"></i>
-                <h3 class="text-2xl font-bold text-white mt-4 uppercase">Seguridad ACE</h3>
-                <p class="text-cyan-100/60 text-sm">Control total de Agentes Capacitadores.</p>
+    <div id="view-login" class="flex min-h-screen items-center justify-center bg-[#0d2127] bg-gradient-to-br from-[#0d2127] via-[#163b3f] to-[#0a1a1d] px-4 font-sans">
+        <div class="flex max-w-5xl w-full items-center justify-center lg:justify-between">
+
+            <!-- Texto Izquierdo -->
+            <div class="hidden lg:block w-1/2 text-white pl-12">
+                <h1 class="text-3xl font-black tracking-tight mb-1 uppercase">SEGURIDAD ACE</h1>
+                <p class="text-sm opacity-80">Control total de Agentes Capacitadores.</p>
             </div>
-            <div class="w-full max-w-[380px] bg-white rounded-[2rem] p-10 shadow-2xl">
-                <div class="text-center mb-8">
-                    <h2 class="text-2xl font-black text-slate-800 uppercase italic">ACE-CONTROL</h2>
+
+            <!-- Tarjeta de Login (Derecha) -->
+            <div class="w-full max-w-[420px] bg-white rounded-[3rem] p-12 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+                <div class="text-center mb-10">
+                    <h2 class="text-2xl font-black text-slate-800 italic uppercase tracking-wider">ACE-CONTROL</h2>
                 </div>
-                <form class="space-y-5" onsubmit="login(event)">
-                    <input id="email" type="email" required class="w-full bg-slate-50 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500" placeholder="Email">
-                    <div class="relative">
-                        <input id="password" type="password" required class="w-full bg-slate-50 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500" placeholder="Password">
-                        <button type="button" onclick="togglePassword()" class="absolute right-4 top-3.5 text-slate-400"><i id="password-icon" class="fa-solid fa-eye"></i></button>
+
+                <form class="space-y-6" onsubmit="login(event)">
+                    <div class="space-y-4">
+                        <input id="email" name="email" type="email" required
+                            class="w-full bg-[#f8f9fa] rounded-2xl border-none px-5 py-4 text-slate-900 placeholder-[#adb5bd] outline-none focus:ring-2 focus:ring-blue-500/10 transition-all"
+                            placeholder="Email">
+
+                        <div class="relative">
+                            <input id="password" name="password" type="password" required
+                                class="w-full bg-[#f8f9fa] rounded-2xl border-none px-5 py-4 text-slate-900 placeholder-[#adb5bd] outline-none focus:ring-2 focus:ring-blue-500/10 transition-all"
+                                placeholder="Password">
+                            <button type="button" onclick="togglePassword()" class="absolute right-5 top-4.5 text-slate-400 hover:text-slate-600">
+                                <i id="password-icon" class="fa-solid fa-eye-slash text-sm opacity-50"></i>
+                            </button>
+                        </div>
                     </div>
-                    <button type="submit" class="w-full bg-[#3b5998] text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-all">Entrar</button>
+
+                    <button type="submit" class="w-full bg-[#4262a0] hover:bg-[#36518a] text-white py-4 rounded-2xl font-bold text-sm transition-all transform active:scale-[0.98] shadow-lg shadow-blue-900/10">
+                        Entrar
+                    </button>
                 </form>
+                <p id="login-error" class="text-red-500 text-[10px] mt-4 text-center font-bold uppercase tracking-widest hidden">Credenciales Incorrectas</p>
             </div>
         </div>
     </div>
