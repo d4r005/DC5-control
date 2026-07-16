@@ -9,58 +9,114 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body {
-            background-color: #0b1329;
-            background-image: radial-gradient(circle at 10% 20%, rgba(30, 41, 59, 0.4) 0%, transparent 80%),
-                              radial-gradient(circle at 90% 80%, rgba(29, 78, 216, 0.15) 0%, transparent 70%);
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+        .login-bg {
+            background-color: #0c242c;
+            background-image: radial-gradient(circle at 0% 0%, #1c454e 0%, #0c242c 100%);
         }
+
+        .login-card {
+            background: white;
+            border-radius: 1.5rem;
+            padding: 3rem 2.5rem;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .login-input {
+            background-color: #f1f3f4;
+            border: none;
+            border-radius: 0.75rem;
+            padding: 0.8rem 1rem;
+            width: 100%;
+            font-size: 1rem;
+            color: #3c4043;
+            outline: none;
+        }
+
+        .btn-entrar {
+            background-color: #537bb1;
+            color: white;
+            font-weight: 600;
+            padding: 0.8rem;
+            border-radius: 0.75rem;
+            width: 100%;
+            font-size: 1rem;
+            transition: opacity 0.2s;
+        }
+
+        .btn-entrar:hover { opacity: 0.9; }
+
         .nav-btn.active { background-color: #2563eb; color: white; }
         .hidden { display: none; }
     </style>
 </head>
-<body class="flex min-h-screen items-center justify-center font-sans antialiased text-slate-200 px-4 overflow-hidden">
+<body class="antialiased h-screen overflow-hidden">
 
-    <!-- VIEW: LOGIN (Diseño idéntico a la imagen solicitada) -->
-    <div id="view-login" class="w-full max-w-5xl bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl overflow-hidden shadow-2xl flex flex-col md:flex-row min-h-[600px]">
+    <!-- Pantalla de Login (IDENTICA A LA SEGUNDA IMAGEN) -->
+    <div id="view-login" class="login-bg min-h-screen flex items-center justify-center px-4">
 
-        <!-- Panel Izquierdo -->
-        <div class="w-full md:w-1/2 bg-gradient-to-br from-blue-700 to-indigo-900 p-12 flex flex-col justify-between relative overflow-hidden text-white">
-            <div class="absolute -top-40 -left-40 w-96 h-96 bg-sky-400/20 rounded-full blur-3xl"></div>
-            <div class="flex items-center space-x-3 z-10 font-bold italic">ACE-CONTROL</div>
-            <div class="my-auto py-12 flex flex-col items-center text-center z-10">
-                <i data-lucide="shield-check" class="w-20 h-20 text-sky-300 mb-6"></i>
-                <h2 class="text-3xl font-black uppercase tracking-widest">SEGURIDAD ACE</h2>
-                <p class="mt-2 text-sm opacity-80">Control total de Agentes Capacitadores.</p>
+        <div class="flex max-w-5xl w-full items-center justify-center lg:justify-between space-x-12">
+
+            <!-- Lado Izquierdo: Ilustración -->
+            <div class="hidden lg:block w-1/2 relative">
+                <div class="relative flex items-center justify-center">
+                    <img src="https://img.freepik.com/free-vector/cyber-security-concept_23-2148532223.jpg" class="w-[450px] opacity-80 mix-blend-screen" alt="Security Illustration">
+                </div>
+                <div class="mt-8 text-center text-white">
+                    <h1 class="text-3xl font-black tracking-widest uppercase">SEGURIDAD ACE</h1>
+                    <p class="text-cyan-100/50 text-sm mt-1">Control total de Agentes Capacitadores.</p>
+                </div>
             </div>
-        </div>
 
-        <!-- Panel Derecho -->
-        <div class="w-full md:w-1/2 p-12 flex flex-col justify-center bg-white rounded-[3rem] m-4 shadow-2xl">
-            <div class="max-w-md w-full mx-auto space-y-8">
-                <h3 class="text-2xl font-black text-slate-800 text-center italic uppercase">ACE-CONTROL</h3>
-                <form class="space-y-6" onsubmit="login(event)">
-                    <input id="email" type="email" required class="w-full bg-slate-100 rounded-xl px-4 py-3 text-slate-900 outline-none" placeholder="Email">
+            <!-- Lado Derecho: Tarjeta de Login -->
+            <div class="login-card">
+                <div class="text-center mb-8">
+                    <!-- Logo Hexagonal idéntico -->
+                    <div class="mx-auto w-24 h-24 mb-4">
+                        <svg viewBox="0 0 100 100" class="w-full h-full">
+                            <path d="M50 5 L90 28 L90 72 L50 95 L10 72 L10 28 Z" fill="none" stroke="#2563eb" stroke-width="6"/>
+                            <!-- Hexagon inner with C style -->
+                            <path d="M40 40 L60 40 L65 50 L60 60 L40 60 L35 50 Z" fill="#2563eb" opacity="0.8"/>
+                            <path d="M45 45 L65 45 L70 55 L65 65 L45 65 L40 55 Z" fill="#f97316" opacity="0.9"/>
+                        </svg>
+                    </div>
+                    <h2 class="text-2xl font-black text-slate-800 uppercase tracking-tighter">ACE-CONTROL</h2>
+                </div>
+
+                <form class="space-y-4" onsubmit="login(event)">
+                    <input id="email" type="email" required class="login-input" placeholder="Email">
                     <div class="relative">
-                        <input id="password" type="password" required class="w-full bg-slate-100 rounded-xl px-4 py-3 text-slate-900 outline-none" placeholder="Password">
-                        <i id="eye-icon" onclick="togglePassword()" class="fa-solid fa-eye-slash absolute right-4 top-4 text-slate-400 cursor-pointer"></i>
+                        <input id="password" type="password" required class="login-input" placeholder="Password">
+                        <i class="fa-solid fa-lock absolute right-4 top-4 text-slate-300 text-sm"></i>
                     </div>
-                    <div class="flex items-center justify-between text-[11px] font-bold text-slate-500">
-                        <label class="flex items-center"><input type="checkbox" id="remember-me" class="mr-1"> Registrarse?</label>
-                        <a href="#">¿Olvidó su contraseña?</a>
+
+                    <div class="flex items-center justify-between text-xs font-bold text-slate-500 px-1">
+                        <label class="flex items-center cursor-pointer">
+                            <input type="checkbox" id="remember-me" class="mr-1"> Registrarse?
+                        </label>
+                        <a href="#" class="hover:text-blue-500 transition-colors">¿Olvidó su contraseña?</a>
                     </div>
-                    <button type="submit" class="w-full bg-[#4262a0] text-white py-4 rounded-2xl font-bold hover:bg-[#36518a]">Entrar</button>
-                    <div class="text-center"><a href="#" class="text-[11px] font-bold text-blue-800 hover:underline">Acceder en modo seguro</a></div>
+
+                    <button type="submit" class="btn-entrar mt-4">Entrar</button>
+
+                    <div class="text-center mt-6">
+                        <a href="#" class="text-xs font-bold text-blue-800 hover:underline">Acceder en modo seguro</a>
+                    </div>
                 </form>
-                <p id="login-error" class="text-red-500 text-xs text-center hidden">Credenciales Incorrectas</p>
+                <p id="login-error" class="text-red-500 text-[10px] mt-4 text-center font-bold uppercase hidden">Credenciales incorrectas</p>
             </div>
         </div>
     </div>
 
-    <!-- VIEW: APP CONTAINER -->
+    <!-- App Container -->
     <div id="app-container" class="hidden fixed inset-0 flex h-screen bg-slate-50 text-slate-800">
         <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col justify-between shrink-0">
             <div>
-                <div class="h-16 flex items-center px-6 border-b border-slate-800 font-bold text-white uppercase italic">A ACE-CONTROL</div>
+                <div class="h-16 flex items-center px-6 border-b border-slate-800 font-bold text-white uppercase italic">ACE-CONTROL</div>
                 <nav class="mt-6 px-4 space-y-1">
                     <button onclick="switchView('dashboard')" id="btn-dashboard" class="nav-btn w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></button>
                     <button onclick="switchView('workers')" id="btn-workers" class="nav-btn w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm"><i data-lucide="file-text"></i><span>Personal (Excel)</span></button>
@@ -74,48 +130,53 @@
         </aside>
 
         <main class="flex-1 flex flex-col overflow-hidden">
-            <header class="h-16 bg-white border-b flex items-center justify-between px-8">
+            <header class="h-16 bg-white border-b flex items-center justify-between px-8 shrink-0 text-sm">
                 <div class="flex items-center space-x-4">
                     <h1 id="page-title" class="text-xl font-bold">Dashboard</h1>
-                    <select id="user-filter" onchange="refreshCurrentView()" class="text-sm border rounded p-1">
-                        <option value="ALL">Todos los Usuarios</option>
+                    <select id="user-filter" onchange="refreshCurrentView()" class="border rounded-lg px-3 py-1.5 bg-slate-50 focus:outline-none">
+                        <option value="ALL">Ver Todo</option>
                         <option value="d4r005@gmail.com">Dario Robles</option>
                         <option value="lugga.advisors@gmail.com">Cynthia Garza</option>
                     </select>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <div class="text-right leading-none"><p id="user-name-display" class="font-bold">Dario Robles</p><p class="text-[10px] text-slate-500 uppercase font-black">Administrador ACE</p></div>
+                    <div class="text-right leading-tight">
+                        <p id="user-name-display" class="font-bold text-slate-800">Dario Robles</p>
+                        <p class="text-[10px] text-slate-500 uppercase font-black">Administrador ACE</p>
+                    </div>
                     <div id="user-initials" class="h-10 w-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">DR</div>
                 </div>
             </header>
 
-            <div class="flex-1 overflow-y-auto p-8 space-y-6">
-                <!-- Secciones Dinámicas -->
-                <div id="view-dashboard" class="grid grid-cols-3 gap-6">
-                    <div class="bg-white p-6 rounded-2xl border shadow-sm">Personal: <span id="stat-workers" class="font-bold">0</span></div>
-                    <div class="bg-white p-6 rounded-2xl border shadow-sm">Cursos: <span id="stat-courses" class="font-bold">0</span></div>
-                    <div class="bg-white p-6 rounded-2xl border shadow-sm">DC-3: <span id="stat-dc3" class="font-bold">0</span></div>
+            <div class="flex-1 overflow-y-auto p-10 space-y-8">
+                <div id="view-dashboard" class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="bg-white p-8 rounded-2xl border shadow-sm flex items-center justify-between"><div><p class="text-xs font-black text-slate-400 uppercase mb-1">Personal</p><p id="stat-workers" class="text-3xl font-extrabold text-slate-900">0</p></div><i data-lucide="users-2" class="text-blue-500"></i></div>
+                    <div class="bg-white p-8 rounded-2xl border shadow-sm flex items-center justify-between"><div><p class="text-xs font-black text-slate-400 uppercase mb-1">Cursos</p><p id="stat-courses" class="text-3xl font-extrabold text-slate-900">0</p></div><i data-lucide="book-open" class="text-emerald-500"></i></div>
+                    <div class="bg-white p-8 rounded-2xl border shadow-sm flex items-center justify-between"><div><p class="text-xs font-black text-slate-400 uppercase mb-1">DC-3</p><p id="stat-dc3" class="text-3xl font-extrabold text-slate-900">0</p></div><i data-lucide="file-check" class="text-violet-500"></i></div>
                 </div>
-
-                <div id="view-content" class="hidden space-y-4">
-                    <div class="flex justify-between items-center">
-                        <p id="view-description" class="text-slate-500 text-sm"></p>
+                <div id="view-content" class="hidden space-y-6">
+                    <div class="flex justify-between items-center bg-white p-6 rounded-2xl border shadow-sm">
+                        <p id="view-description" class="text-slate-500 font-medium"></p>
                         <div class="flex space-x-2">
-                            <input type="file" id="excel-input" class="hidden" onchange="handleExcel(this)">
-                            <button id="upload-btn" onclick="document.getElementById('excel-input').click()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg font-bold hidden">Cargar Excel</button>
-                            <button id="gen-masivo-btn" class="bg-slate-900 text-white px-4 py-2 rounded-lg font-bold hidden">Generar DC-3 Masivo</button>
+                            <input type="file" id="excel-input" class="hidden" accept=".xlsx, .xls" onchange="handleExcel(this)">
+                            <button id="upload-btn" onclick="document.getElementById('excel-input').click()" class="hidden bg-emerald-600 text-white px-5 py-2 rounded-xl text-sm font-bold shadow-lg shadow-emerald-100 flex items-center"><i data-lucide="file-spreadsheet" class="w-4 h-4 mr-2"></i>Cargar Excel</button>
+                            <button id="gen-dc3-btn" class="hidden bg-slate-900 text-white px-5 py-2 rounded-xl text-sm font-bold shadow-lg flex items-center"><i data-lucide="printer" class="w-4 h-4 mr-2"></i>Generar DC-3</button>
+                            <button id="add-btn" onclick="openModal()" class="hidden bg-blue-600 text-white px-5 py-2 rounded-xl text-sm font-bold shadow-lg shadow-blue-100 flex items-center"><i data-lucide="plus" class="w-4 h-4 mr-2"></i>Agregar</button>
                         </div>
                     </div>
-                    <div class="bg-white rounded-2xl border overflow-hidden">
+                    <div class="bg-white rounded-2xl border overflow-hidden shadow-sm">
                         <table class="w-full text-left border-collapse">
-                            <thead id="table-header" class="bg-slate-50 uppercase text-[10px] font-bold text-slate-400"></thead>
-                            <tbody id="table-body" class="divide-y text-sm"></tbody>
+                            <thead id="table-header" class="bg-slate-50 text-[10px] uppercase text-slate-400 font-black border-b"></thead>
+                            <tbody id="table-body" class="divide-y text-sm font-medium"></tbody>
                         </table>
                     </div>
                 </div>
             </div>
         </main>
     </div>
+
+    <!-- Modal -->
+    <div id="modal" class="modal"><div class="modal-content"><h3 id="modal-title" class="text-xl font-bold mb-6">Acción</h3><div id="modal-fields" class="space-y-4"></div><div class="mt-8 flex justify-end space-x-3"><button onclick="closeModal()">Cancelar</button><button onclick="saveItem()" class="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold">Guardar</button></div></div></div>
 
     <script>
         const ATLAS_URL = "https://data.mongodb-api.com/app/data-jshze/endpoint/data/v1/action";
@@ -128,37 +189,47 @@
                 { name: "Cynthia Garza Lugo", email: "lugga.advisors@gmail.com", role: "USER", password: "Cynthia123" }
             ],
             courses: [
-                { name: "MANEJO SEGURO DE MONTACARGAS", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "TRABAJOS EN ALTURA (NOM-009)", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "SEGURIDAD EN SOLDADURA", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "FORMACION DE BRIGADAS", durationHours: 24, creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "ESPACIOS CONFINADOS", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "BLOQUEO Y ETIQUETADO LOTO", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "MATERIALES PELIGROSOS", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "MAQUINARIA PESADA", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "SIMULACROS", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "SUPERVISORES SSPA", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "CORTE Y BARBERIA", durationHours: 24, creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "MAQUILLAJE", durationHours: 24, creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "FORMACION INSTRUCTORES", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "CONSTRUCCIÓN (NOM-031)", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "MANLIFT", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "ENGANCHE 5 RUEDA", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "URGENCIAS MEDICAS", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "VEHICULOS PESADOS", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "INHALOTERAPIA", durationHours: 24, creatorEmail: "lugga.advisors@gmail.com" }
+                { name: "MANEJO SEGURO DE MONTACARGAS", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
+                { name: "TRABAJOS EN ALTURA (NOM-009)", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
+                { name: "SEGURIDAD EN SOLDADURA", durationHours: 8, thematicArea: "Seguridad industrial", creatorEmail: "lugga.advisors@gmail.com" },
+                { name: "FORMACION DE BRIGADAS", durationHours: 24, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
+                { name: "ESPACIOS CONFINADOS", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
+                { name: "BLOQUEO Y ETIQUETADO LOTO", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
+                { name: "MATERIALES PELIGROSOS", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
+                { name: "MAQUINARIA PESADA", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
+                { name: "SIMULACROS", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
+                { name: "SUPERVISORES SSPA", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
+                { name: "CORTE Y BARBERIA", durationHours: 24, thematicArea: "Belleza", creatorEmail: "lugga.advisors@gmail.com" },
+                { name: "MAQUILLAJE", durationHours: 24, thematicArea: "Belleza", creatorEmail: "lugga.advisors@gmail.com" },
+                { name: "FORMACION INSTRUCTORES", durationHours: 8, thematicArea: "Capacitación", creatorEmail: "lugga.advisors@gmail.com" },
+                { name: "CONSTRUCCIÓN (NOM-031)", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
+                { name: "MANLIFT", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
+                { name: "ENGANCHE 5 RUEDA", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
+                { name: "URGENCIAS MEDICAS", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
+                { name: "VEHICULOS PESADOS", durationHours: 8, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
+                { name: "INHALOTERAPIA", durationHours: 24, thematicArea: "Seguridad", creatorEmail: "lugga.advisors@gmail.com" }
             ],
             agents: [{ name: "CYNTHIA YADIRA GARZA LUGO", stps: "STPS-GALC780523-MP3-005" }]
         };
 
         let currentUser = null, currentView = 'dashboard';
 
+        window.onload = function() {
+            lucide.createIcons();
+            const rememberedEmail = localStorage.getItem('rememberedEmail');
+            if (rememberedEmail) document.getElementById('email').value = rememberedEmail;
+        };
+
         async function login(e) {
             e.preventDefault();
             const email = document.getElementById('email').value.trim();
             const pass = document.getElementById('password').value.trim();
             const user = DATA.users.find(u => u.email === email && u.password === pass);
-            if(user) { currentUser = user; initApp(); } else { alert("Error!"); }
+            if(user) {
+                if(document.getElementById('remember-me').checked) localStorage.setItem('rememberedEmail', email);
+                else localStorage.removeItem('rememberedEmail');
+                currentUser = user; initApp();
+            } else { document.getElementById('login-error').classList.remove('hidden'); }
         }
 
         function initApp() {
@@ -171,47 +242,65 @@
 
         async function switchView(v) {
             currentView = v;
-            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById('btn-'+v).classList.add('active');
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active', 'bg-blue-600', 'text-white'));
+            const btn = document.getElementById('btn-'+v); if(btn) btn.classList.add('active');
             document.getElementById('view-dashboard').classList.toggle('hidden', v !== 'dashboard');
             document.getElementById('view-content').classList.toggle('hidden', v === 'dashboard');
             document.getElementById('upload-btn').classList.toggle('hidden', v !== 'workers');
-            document.getElementById('gen-masivo-btn').classList.toggle('hidden', v !== 'workers');
+            document.getElementById('gen-dc3-btn').classList.toggle('hidden', v !== 'workers');
+            document.getElementById('add-btn').classList.toggle('hidden', !['courses','agents','users'].includes(v));
             refreshCurrentView(); lucide.createIcons();
         }
 
         async function refreshCurrentView() {
-            const filterValue = document.getElementById('user-filter').value;
-            const filter = (filterValue === 'ALL') ? {} : { creatorEmail: filterValue };
+            const fValue = document.getElementById('user-filter').value;
+            const filter = (fValue === 'ALL') ? {} : { creatorEmail: fValue };
 
             if(currentView === 'dashboard') {
+                const count = fValue === 'ALL' ? DATA.courses.length : DATA.courses.filter(c => c.creatorEmail === fValue).length;
+                document.getElementById('stat-courses').innerText = count;
                 const w = await atlasAction("find", "workers", { filter });
-                document.getElementById('stat-workers').innerText = w.documents.length || 0;
-                document.getElementById('stat-courses').innerText = filterValue === 'ALL' ? DATA.courses.length : DATA.courses.filter(c => c.creatorEmail === filterValue).length;
+                const d = await atlasAction("find", "dc3_records", { filter });
+                document.getElementById('stat-workers').innerText = (w.documents || []).length;
+                document.getElementById('stat-dc3').innerText = (d.documents || []).length;
+
             } else if(currentView === 'workers') {
                 const w = await atlasAction("find", "workers", { filter });
-                document.getElementById('table-header').innerHTML = `<tr><th class="p-4">Nombre</th><th class="p-4">CURP</th><th class="p-4">Puesto</th></tr>`;
-                document.getElementById('table-body').innerHTML = (w.documents || []).map(x => `<tr><td class="p-4 font-bold">${x.name}</td><td class="p-4">${x.curp}</td><td class="p-4">${x.position}</td></tr>`).join('');
+                document.getElementById('table-header').innerHTML = `<tr><th class="px-10 py-6">Nombre</th><th class="px-10 py-6">CURP</th><th class="px-10 py-6">Puesto</th></tr>`;
+                document.getElementById('table-body').innerHTML = (w.documents || []).map(x => `<tr class="hover:bg-slate-50 transition-colors"><td class="px-10 py-5 font-bold">${x.name}</td><td class="px-10 py-5">${x.curp}</td><td class="px-10 py-5">${x.position}</td></tr>`).join('') || '<tr><td colspan="3" class="p-20 text-center text-slate-300 uppercase">Sin personal</td></tr>';
+
             } else if(currentView === 'courses') {
-                const list = filterValue === 'ALL' ? DATA.courses : DATA.courses.filter(c => c.creatorEmail === filterValue);
-                document.getElementById('table-header').innerHTML = `<tr><th class="p-4">Curso</th><th class="p-4">Horas</th></tr>`;
-                document.getElementById('table-body').innerHTML = list.map(c => `<tr><td class="p-4 font-bold">${c.name}</td><td class="p-4 font-bold text-blue-600">${c.durationHours} hrs</td></tr>`).join('');
+                const list = fValue === 'ALL' ? DATA.courses : DATA.courses.filter(c => c.creatorEmail === fValue);
+                document.getElementById('table-header').innerHTML = `<tr><th class="px-10 py-6">Curso</th><th class="px-10 py-6">Horas</th><th class="px-10 py-6">Área</th></tr>`;
+                document.getElementById('table-body').innerHTML = list.map(c => `<tr class="hover:bg-slate-50 transition-colors"><td class="px-10 py-5 font-bold uppercase">${c.name}</td><td class="px-10 py-5 font-bold text-blue-600">${c.durationHours} H</td><td class="px-10 py-5 italic text-slate-400">${c.thematicArea}</td></tr>`).join('') || '<tr><td colspan="3" class="p-20 text-center text-slate-300 uppercase">Sin cursos</td></tr>';
+
             } else if(currentView === 'users') {
-                document.getElementById('table-header').innerHTML = `<tr><th class="p-4">Nombre</th><th class="p-4">Email</th><th class="p-4">Rol</th></tr>`;
-                document.getElementById('table-body').innerHTML = DATA.users.map(u => `<tr><td class="p-4 font-bold">${u.name}</td><td class="p-4">${u.email}</td><td class="p-4">${u.role}</td></tr>`).join('');
+                document.getElementById('table-header').innerHTML = `<tr><th class="px-10 py-6">Nombre</th><th class="px-10 py-6">Email</th><th class="px-10 py-6">Rol</th></tr>`;
+                document.getElementById('table-body').innerHTML = DATA.users.map(u => `<tr><td class="px-10 py-5 font-bold">${u.name}</td><td class="px-10 py-5 text-slate-500">${u.email}</td><td class="px-10 py-5"><span class="px-3 py-1 rounded-full text-[10px] font-black uppercase ${u.role==='ADMIN'?'bg-purple-100 text-purple-700':'bg-blue-100 text-blue-700'}">${u.role}</span></td></tr>`).join('');
+
             } else if(currentView === 'agents') {
-                document.getElementById('table-header').innerHTML = `<tr><th class="p-4">Nombre</th><th class="p-4">STPS</th></tr>`;
-                document.getElementById('table-body').innerHTML = DATA.agents.map(a => `<tr><td class="p-4 font-bold uppercase">${a.name}</td><td class="p-4 text-blue-600 font-bold">${a.stps}</td></tr>`).join('');
+                document.getElementById('table-header').innerHTML = `<tr><th class="px-10 py-6">Nombre o Razón Social</th><th class="px-10 py-6">Registro STPS</th></tr>`;
+                document.getElementById('table-body').innerHTML = DATA.agents.map(a => `<tr class="hover:bg-slate-50 transition-colors"><td class="px-10 py-5 font-bold uppercase">${a.name}</td><td class="px-10 py-5 font-mono text-blue-600 font-bold">${a.stps}</td></tr>`).join('');
+
+            } else if(currentView === 'dc3') {
+                const d = await atlasAction("find", "dc3_records", { filter });
+                document.getElementById('table-header').innerHTML = `<tr><th class="px-10 py-6">Trabajador</th><th class="px-10 py-6">Curso</th><th class="px-10 py-6">Empresa</th><th class="px-10 py-6">Acciones</th></tr>`;
+                document.getElementById('table-body').innerHTML = (d.documents || []).map(r => `<tr><td class="px-10 py-5 font-bold">${r.workerId}</td><td class="px-10 py-5">${r.courseName}</td><td class="px-10 py-5 uppercase">${r.companyName}</td><td class="px-10 py-5"><button class="text-blue-600 font-bold">Descargar PDF</button></td></tr>`).join('') || '<tr><td colspan="4" class="p-20 text-center text-slate-300 uppercase">Sin historial</td></tr>';
             }
         }
 
         async function atlasAction(action, collection, payload = {}) {
-            const r = await fetch(`${ATLAS_URL}/${action}`, { method: "POST", headers: { "Content-Type": "application/json", "api-key": API_KEY }, body: JSON.stringify({ ...DB_CONFIG, collection, ...payload }) });
-            return await r.json();
+            try {
+                const r = await fetch(`${ATLAS_URL}/${action}`, { method: "POST", headers: { "Content-Type": "application/json", "api-key": API_KEY }, body: JSON.stringify({ ...DB_CONFIG, collection, ...payload }) });
+                return await r.json();
+            } catch (e) { return { documents: [] }; }
         }
-        function togglePassword() { const p = document.getElementById('password'); p.type = p.type === 'password' ? 'text' : 'password'; }
+
         function logout() { location.reload(); }
-        function handleExcel(input) {
+        function closeModal() { document.getElementById('modal').style.display='none'; }
+        function togglePassword() { const p = document.getElementById('password'); p.type = p.type === 'password' ? 'text' : 'password'; }
+
+        async function handleExcel(input) {
             const r = new FileReader(); r.onload = async (e) => {
                 const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
                 const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
