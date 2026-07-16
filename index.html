@@ -20,7 +20,16 @@
             <h2 class="text-2xl font-bold mb-6 text-center text-slate-800">ACE Control Login</h2>
             <div class="space-y-4">
                 <input type="email" id="email" placeholder="Correo electrónico" class="w-full p-3 border rounded">
-                <input type="password" id="password" placeholder="Contraseña" class="w-full p-3 border rounded">
+                <div class="relative">
+                    <input type="password" id="password" placeholder="Contraseña" class="w-full p-3 border rounded pr-10">
+                    <button onclick="togglePassword()" class="absolute right-3 top-3.5 text-gray-500 hover:text-slate-800">
+                        <i id="password-icon" class="fa-solid fa-eye"></i>
+                    </button>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <input type="checkbox" id="remember-me" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    <label for="remember-me" class="text-sm text-gray-600 cursor-pointer">Recordar mi correo</label>
+                </div>
                 <button onclick="login()" class="w-full bg-blue-600 text-white p-3 rounded font-bold hover:bg-blue-700">Entrar</button>
             </div>
             <p id="login-error" class="text-red-500 text-sm mt-4 text-center hidden">Credenciales incorrectas</p>
@@ -46,7 +55,12 @@
         <div class="flex-1 flex flex-col overflow-hidden">
             <header class="bg-white shadow-sm p-4 flex justify-between items-center">
                 <h2 class="text-xl font-semibold text-gray-800" id="section-title">Resumen</h2>
-                <div class="flex space-x-2">
+                <div class="flex items-center space-x-4">
+                    <div id="admin-filter-container" class="hidden">
+                        <select id="user-filter" onchange="showSection(currentSection)" class="text-sm border rounded p-2 bg-gray-50">
+                            <option value="ALL">Todos los Usuarios</option>
+                        </select>
+                    </div>
                     <button id="add-btn" class="bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700 hidden" onclick="openModal()">+ Agregar Nuevo</button>
                 </div>
             </header>
@@ -96,13 +110,40 @@
         let currentSection = 'dashboard';
         let editingItemId = null;
 
+        window.onload = function() {
+            const rememberedEmail = localStorage.getItem('rememberedEmail');
+            if (rememberedEmail) {
+                document.getElementById('email').value = rememberedEmail;
+                document.getElementById('remember-me').checked = true;
+            }
+        };
+
+        function togglePassword() {
+            const passInput = document.getElementById('password');
+            const icon = document.getElementById('password-icon');
+            if (passInput.type === "password") {
+                passInput.type = "text";
+                icon.classList.replace('fa-eye', 'fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                passInput.type = "password";
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        }
+
         async function login() {
             const email = document.getElementById('email').value.trim();
             const pass = document.getElementById('password').value.trim();
+            const rememberMe = document.getElementById('remember-me').checked;
+
+            if (rememberMe) {
+                localStorage.setItem('rememberedEmail', email);
+            } else {
+                localStorage.removeItem('rememberedEmail');
+            }
 
             console.log("Iniciando sesión con:", email);
 
-            // Login Hardcoded para el Admin principal solicitado
             if(email === 'd4r005@gmail.com' && pass === 'Branco2025') {
                 currentUser = { email, role: 'ADMIN', name: 'Administrador' };
                 initApp();
@@ -110,18 +151,17 @@
             }
 
             try {
-                // Buscar en MongoDB para otros usuarios
                 const data = await atlasAction("findOne", "users", { filter: { email, password: pass } });
                 if(data && data.document) {
                     currentUser = data.document;
                     initApp();
                 } else {
-                    document.getElementById('login-error').innerText = "Credenciales incorrectas o usuario no registrado";
+                    document.getElementById('login-error').innerText = "Credenciales incorrectas";
                     document.getElementById('login-error').classList.remove('hidden');
                 }
             } catch (e) {
                 console.error("Error en login:", e);
-                document.getElementById('login-error').innerText = "Error de conexión con el servidor";
+                document.getElementById('login-error').innerText = "Error de conexión";
                 document.getElementById('login-error').classList.remove('hidden');
             }
         }
@@ -135,8 +175,20 @@
                 const navAgents = document.getElementById('nav-agents');
                 if(navUsers) navUsers.classList.add('hidden');
                 if(navAgents) navAgents.classList.add('hidden');
+            } else {
+                document.getElementById('admin-filter-container').classList.remove('hidden');
+                populateUserFilter();
             }
             showSection('dashboard');
+        }
+
+        async function populateUserFilter() {
+            const data = await atlasAction("find", "users", { filter: {} });
+            const filterSelect = document.getElementById('user-filter');
+            filterSelect.innerHTML = '<option value="ALL">Todos los Usuarios</option>';
+            data.documents.forEach(u => {
+                filterSelect.innerHTML += `<option value="${u.email}">${u.name} (${u.role})</option>`;
+            });
         }
 
         function logout() { location.reload(); }
@@ -148,16 +200,10 @@
                     headers: { "Content-Type": "application/json", "api-key": API_KEY },
                     body: JSON.stringify({ ...DB_CONFIG, collection, ...payload })
                 });
-
-                if (!response.ok) {
-                    const err = await response.text();
-                    console.error("Error Atlas API:", err);
-                    return { documents: [], document: null };
-                }
-
+                if (!response.ok) return { documents: [], document: null };
                 return await response.json();
             } catch (e) {
-                console.error("Error fetch:", e);
+                console.error(e);
                 return { documents: [], document: null };
             }
         }
@@ -185,9 +231,18 @@
             }
         }
 
+        function getFilter() {
+            const filterValue = document.getElementById('user-filter').value;
+            if (currentUser.role === 'ADMIN' && filterValue !== 'ALL') {
+                return { creatorEmail: filterValue };
+            } else if (currentUser.role !== 'ADMIN') {
+                return { creatorEmail: currentUser.email };
+            }
+            return {};
+        }
+
         async function fetchStats() {
-            // El administrador ve las métricas globales (sin filtro de email)
-            const filter = currentUser.role === 'ADMIN' ? {} : { creatorEmail: currentUser.email };
+            const filter = getFilter();
             const workers = await atlasAction("find", "workers", { filter });
             const courses = await atlasAction("find", "courses", { filter });
             document.getElementById('stat-workers').innerText = workers.documents.length;
@@ -197,10 +252,8 @@
         async function fetchWorkers() {
             document.getElementById('section-title').innerText = "Personal";
             document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3 text-left">Nombre</th><th class="px-6 py-3 text-left">CURP</th><th class="px-6 py-3 text-left">Puesto</th><th class="px-6 py-3 text-left">Registrado por</th></tr>`;
-            // El administrador ve todo el personal
-            const filter = currentUser.role === 'ADMIN' ? {} : { creatorEmail: currentUser.email };
+            const filter = getFilter();
             const data = await atlasAction("find", "workers", { filter });
-
             let html = data.documents.map(item => `<tr>
                 <td class="px-6 py-4">${item.name}</td>
                 <td class="px-6 py-4">${item.curp}</td>
@@ -213,10 +266,8 @@
         async function fetchCourses() {
             document.getElementById('section-title').innerText = "Cursos";
             document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3 text-left">Curso</th><th class="px-6 py-3 text-left">Horas</th><th class="px-6 py-3 text-left">Área</th><th class="px-6 py-3 text-left">Propietario</th><th class="px-6 py-3 text-left">Acciones</th></tr>`;
-            // El administrador ve todos los cursos
-            const filter = currentUser.role === 'ADMIN' ? {} : { creatorEmail: currentUser.email };
+            const filter = getFilter();
             const data = await atlasAction("find", "courses", { filter });
-
             const html = data.documents.map(c => `<tr>
                 <td class="px-6 py-4">${c.name}</td>
                 <td class="px-6 py-4">${c.durationHours}</td>
@@ -258,11 +309,6 @@
                     <button onclick="deleteItem('agents', '${a._id}')" class="text-red-600">Eliminar</button>
                 </td>
             </tr>`).join('');
-            document.getElementById('table-body').innerHTML = html || '<tr><td colspan="3" class="p-4 text-center">No hay datos.</td></tr>';
-        }
-
-        function renderTable(data, keys) {
-            let html = data.map(item => `<tr>${keys.map(k => `<td class="px-6 py-4">${item[k] || ''}</td>`).join('')}</tr>`).join('');
             document.getElementById('table-body').innerHTML = html || '<tr><td colspan="3" class="p-4 text-center">No hay datos.</td></tr>';
         }
 
