@@ -94,19 +94,18 @@
 
         let currentUser = null;
         let currentSection = 'dashboard';
+        let editingItemId = null;
 
         async function login() {
             const email = document.getElementById('email').value;
             const pass = document.getElementById('password').value;
 
-            // Login Hardcoded para el Admin principal solicitado
             if(email === 'd4r005@gmail.com' && pass === 'Branco 2025') {
                 currentUser = { email, role: 'ADMIN', name: 'Administrador' };
                 initApp();
                 return;
             }
 
-            // Buscar en MongoDB para otros usuarios
             const data = await atlasAction("findOne", "users", { filter: { email, password: pass } });
             if(data.document) {
                 currentUser = data.document;
@@ -179,10 +178,19 @@
 
         async function fetchCourses() {
             document.getElementById('section-title').innerText = "Cursos";
-            document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3 text-left">Curso</th><th class="px-6 py-3 text-left">Horas</th><th class="px-6 py-3 text-left">Área</th></tr>`;
+            document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3 text-left">Curso</th><th class="px-6 py-3 text-left">Horas</th><th class="px-6 py-3 text-left">Área</th><th class="px-6 py-3 text-left">Acciones</th></tr>`;
             const filter = currentUser.role === 'ADMIN' ? {} : { creatorEmail: currentUser.email };
             const data = await atlasAction("find", "courses", { filter });
-            renderTable(data.documents, ['name', 'durationHours', 'thematicArea']);
+            const html = data.documents.map(c => `<tr>
+                <td class="px-6 py-4">${c.name}</td>
+                <td class="px-6 py-4">${c.durationHours}</td>
+                <td class="px-6 py-4">${c.thematicArea}</td>
+                <td class="px-6 py-4 space-x-2">
+                    <button onclick='editCourse(${JSON.stringify(c)})' class="text-blue-600">Editar</button>
+                    <button onclick="deleteItem('courses', '${c._id}')" class="text-red-600">Eliminar</button>
+                </td>
+            </tr>`).join('');
+            document.getElementById('table-body').innerHTML = html || '<tr><td colspan="4" class="p-4 text-center">No hay datos.</td></tr>';
         }
 
         async function fetchUsers() {
@@ -193,9 +201,27 @@
                 <td class="px-6 py-4">${u.name}</td>
                 <td class="px-6 py-4">${u.email}</td>
                 <td class="px-6 py-4">${u.role}</td>
-                <td class="px-6 py-4"><button onclick="deleteUser('${u._id}')" class="text-red-600">Eliminar</button></td>
+                <td class="px-6 py-4 space-x-2">
+                    <button onclick='editUser(${JSON.stringify(u)})' class="text-blue-600">Editar</button>
+                    <button onclick="deleteItem('users', '${u._id}')" class="text-red-600">Eliminar</button>
+                </td>
             </tr>`).join('');
-            document.getElementById('table-body').innerHTML = html;
+            document.getElementById('table-body').innerHTML = html || '<tr><td colspan="4" class="p-4 text-center">No hay datos.</td></tr>';
+        }
+
+        async function fetchAgents() {
+            document.getElementById('section-title').innerText = "Agentes Capacitadores";
+            document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3 text-left">Nombre</th><th class="px-6 py-3 text-left">Registro STPS</th><th class="px-6 py-3 text-left">Acciones</th></tr>`;
+            const data = await atlasAction("find", "agents", { filter: {} });
+            const html = data.documents.map(a => `<tr>
+                <td class="px-6 py-4">${a.name}</td>
+                <td class="px-6 py-4">${a.stpsRegistry}</td>
+                <td class="px-6 py-4 space-x-2">
+                    <button onclick='editAgent(${JSON.stringify(a)})' class="text-blue-600">Editar</button>
+                    <button onclick="deleteItem('agents', '${a._id}')" class="text-red-600">Eliminar</button>
+                </td>
+            </tr>`).join('');
+            document.getElementById('table-body').innerHTML = html || '<tr><td colspan="3" class="p-4 text-center">No hay datos.</td></tr>';
         }
 
         function renderTable(data, keys) {
@@ -204,9 +230,11 @@
         }
 
         function openModal() {
+            editingItemId = null;
             const fields = document.getElementById('modal-fields');
+            document.getElementById('modal-title').innerText = "Agregar";
+
             if(currentSection === 'users') {
-                document.getElementById('modal-title').innerText = "Nuevo Usuario";
                 fields.innerHTML = `
                     <input id="u-name" placeholder="Nombre completo" class="w-full p-2 border">
                     <input id="u-email" placeholder="Email" class="w-full p-2 border">
@@ -214,30 +242,71 @@
                     <select id="u-role" class="w-full p-2 border"><option value="USER">Agente Capacitador</option><option value="ADMIN">Administrador</option></select>
                 `;
             } else if(currentSection === 'courses') {
-                document.getElementById('modal-title').innerText = "Nuevo Curso";
                 fields.innerHTML = `<input id="c-name" placeholder="Nombre del curso" class="w-full p-2 border"><input id="c-hours" placeholder="Horas" class="w-full p-2 border"><input id="c-area" placeholder="Área temática" class="w-full p-2 border">`;
+            } else if(currentSection === 'agents') {
+                fields.innerHTML = `<input id="a-name" placeholder="Nombre completo" class="w-full p-2 border"><input id="a-reg" placeholder="Registro STPS" class="w-full p-2 border">`;
             }
             document.getElementById('modal').style.display = 'block';
+        }
+
+        function editUser(u) {
+            openModal();
+            editingItemId = u._id;
+            document.getElementById('modal-title').innerText = "Editar Usuario";
+            document.getElementById('u-name').value = u.name;
+            document.getElementById('u-email').value = u.email;
+            document.getElementById('u-pass').value = u.password;
+            document.getElementById('u-role').value = u.role;
+        }
+
+        function editCourse(c) {
+            openModal();
+            editingItemId = c._id;
+            document.getElementById('modal-title').innerText = "Editar Curso";
+            document.getElementById('c-name').value = c.name;
+            document.getElementById('c-hours').value = c.durationHours;
+            document.getElementById('c-area').value = c.thematicArea;
+        }
+
+        function editAgent(a) {
+            openModal();
+            editingItemId = a._id;
+            document.getElementById('modal-title').innerText = "Editar Agente";
+            document.getElementById('a-name').value = a.name;
+            document.getElementById('a-reg').value = a.stpsRegistry;
         }
 
         function closeModal() { document.getElementById('modal').style.display = 'none'; }
 
         async function saveItem() {
+            let collection = "";
+            let documentData = {};
+
             if(currentSection === 'users') {
-                const doc = { name: document.getElementById('u-name').value, email: document.getElementById('u-email').value, password: document.getElementById('u-pass').value, role: document.getElementById('u-role').value };
-                await atlasAction("insertOne", "users", { document: doc });
+                collection = "users";
+                documentData = { name: document.getElementById('u-name').value, email: document.getElementById('u-email').value, password: document.getElementById('u-pass').value, role: document.getElementById('u-role').value };
             } else if(currentSection === 'courses') {
-                const doc = { name: document.getElementById('c-name').value, durationHours: parseInt(document.getElementById('c-hours').value), thematicArea: document.getElementById('c-area').value, creatorEmail: currentUser.email };
-                await atlasAction("insertOne", "courses", { document: doc });
+                collection = "courses";
+                documentData = { name: document.getElementById('c-name').value, durationHours: parseInt(document.getElementById('c-hours').value), thematicArea: document.getElementById('c-area').value, creatorEmail: currentUser.email };
+            } else if(currentSection === 'agents') {
+                collection = "agents";
+                documentData = { name: document.getElementById('a-name').value, stpsRegistry: document.getElementById('a-reg').value };
             }
+
+            if (editingItemId) {
+                await atlasAction("updateOne", collection, { filter: { _id: { "$oid": editingItemId } }, update: { "$set": documentData } });
+            } else {
+                await atlasAction("insertOne", collection, { document: documentData });
+            }
+
             closeModal();
             showSection(currentSection);
         }
 
-        async function deleteUser(id) {
-            if(confirm("¿Eliminar este usuario?")) {
-                await atlasAction("deleteOne", "users", { filter: { _id: { "$oid": id } } });
-                fetchUsers();
+        async function deleteItem(collection, id) {
+            if(confirm("¿Seguro que deseas eliminar este elemento?")) {
+                await atlasAction("deleteOne", collection, { filter: { _id: { "$oid": id } } });
+                showSection(currentSection);
             }
         }
     </script>
