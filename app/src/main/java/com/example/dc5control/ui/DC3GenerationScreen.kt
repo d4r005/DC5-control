@@ -58,6 +58,16 @@ fun DC3GenerationScreen(onBack: () -> Unit) {
                                 context, worker, selectedCourse!!, selectedAgent!!,
                                 companyName, companyRfc, startDate, endDate
                             )
+                            // Guardar registro en MongoDB para las métricas
+                            val record = DC3Record(
+                                workerId = worker.curp,
+                                companyName = companyName,
+                                courseName = selectedCourse!!.name,
+                                agentName = selectedAgent!!.name,
+                                startDate = startDate,
+                                endDate = endDate
+                            )
+                            AtlasRepository.insertData("dc3_records", record, DC3Record.serializer()) { }
                         }
                         isUploading = false
                         showSignaturePad = false
