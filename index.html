@@ -161,22 +161,22 @@
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Empresa</label>
-                        <select id="dc3-company" class="w-full bg-slate-50 border-none rounded-xl p-3 text-sm font-bold outline-none ring-1 ring-slate-200"></select>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest text-slate-400">Empresa</label>
+                        <select id="dc3-company" class="w-full bg-slate-50 border-none rounded-xl p-3 text-sm font-bold outline-none ring-1 ring-slate-200 text-slate-900"></select>
                     </div>
                     <div>
-                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Curso</label>
-                        <select id="dc3-course" class="w-full bg-slate-50 border-none rounded-xl p-3 text-sm font-bold outline-none ring-1 ring-slate-200"></select>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest text-slate-400">Curso</label>
+                        <select id="dc3-course" class="w-full bg-slate-50 border-none rounded-xl p-3 text-sm font-bold outline-none ring-1 ring-slate-200 text-slate-900"></select>
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Fecha Inicio</label>
-                        <input type="date" id="dc3-start" class="w-full bg-slate-50 border-none rounded-xl p-3 text-sm font-bold outline-none ring-1 ring-slate-200">
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest text-slate-400">Fecha Inicio</label>
+                        <input type="date" id="dc3-start" class="w-full bg-slate-50 border-none rounded-xl p-3 text-sm font-bold outline-none ring-1 ring-slate-200 text-slate-900">
                     </div>
                     <div>
-                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Fecha Fin</label>
-                        <input type="date" id="dc3-end" class="w-full bg-slate-50 border-none rounded-xl p-3 text-sm font-bold outline-none ring-1 ring-slate-200">
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest text-slate-400">Fecha Fin</label>
+                        <input type="date" id="dc3-end" class="w-full bg-slate-50 border-none rounded-xl p-3 text-sm font-bold outline-none ring-1 ring-slate-200 text-slate-900">
                     </div>
                 </div>
                 <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100">
@@ -323,13 +323,16 @@
             document.getElementById('modal').style.display = 'block';
             if(currentView === 'companies') {
                 document.getElementById('modal-title').innerText = "Nueva Empresa";
-                fields.innerHTML = `<input id="f1" placeholder="Nombre o Razón Social" class="w-full p-4 bg-slate-50 rounded-2xl outline-none"><input id="f2" placeholder="RFC" class="w-full p-4 bg-slate-50 rounded-2xl outline-none">`;
+                fields.innerHTML = `
+                    <input id="f1" placeholder="Nombre o Razón Social" class="w-full p-4 bg-slate-50 rounded-2xl outline-none text-slate-900 font-bold">
+                    <input id="f2" placeholder="RFC" class="w-full p-4 bg-slate-50 rounded-2xl outline-none text-slate-900 font-bold">
+                `;
             } else if(currentView === 'workers') {
                 document.getElementById('modal-title').innerText = "Nuevo Trabajador";
                 fields.innerHTML = `
-                    <input id="f1" placeholder="Nombre Completo" class="w-full p-4 bg-slate-50 rounded-2xl outline-none">
-                    <input id="f2" placeholder="CURP" class="w-full p-4 bg-slate-50 rounded-2xl outline-none">
-                    <input id="f3" placeholder="Puesto / Ocupación" class="w-full p-4 bg-slate-50 rounded-2xl outline-none">
+                    <input id="f1" placeholder="Nombre Completo" class="w-full p-4 bg-slate-50 rounded-2xl outline-none text-slate-900 font-bold">
+                    <input id="f2" placeholder="CURP" class="w-full p-4 bg-slate-50 rounded-2xl outline-none text-slate-900 font-bold">
+                    <input id="f3" placeholder="Puesto / Ocupación" class="w-full p-4 bg-slate-50 rounded-2xl outline-none text-slate-900 font-bold">
                 `;
             }
         }
