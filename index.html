@@ -93,6 +93,10 @@
                         <i data-lucide="award" class="w-5 h-5"></i>
                         <span>Agentes Cap.</span>
                     </button>
+                    <button onclick="switchView('dc3')" id="btn-dc3" class="nav-btn flex items-center space-x-3 w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-slate-800 hover:text-white">
+                        <i data-lucide="file-check" class="w-5 h-5"></i>
+                        <span>DC-3 Generados</span>
+                    </button>
                     <button onclick="switchView('users')" id="btn-users" class="nav-btn hidden flex items-center space-x-3 w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-slate-800 hover:text-white">
                         <i data-lucide="users" class="w-5 h-5"></i>
                         <span>Usuarios</span>
@@ -262,7 +266,7 @@
             else localStorage.removeItem('rememberedEmail');
 
             if(email === 'd4r005@gmail.com' && pass === 'Branco2025') {
-                currentUser = { email, role: 'ADMIN', name: 'Administrador Principal' };
+                currentUser = { email, role: 'ADMIN', name: 'Dario Robles' };
                 initApp();
                 return;
             }
@@ -313,6 +317,7 @@
                 workers: "Personal Registrado",
                 courses: "Catálogo de Cursos",
                 agents: "Agentes Capacitadores",
+                dc3: "Historial de DC-3 Generados",
                 users: "Gestión de Usuarios"
             };
             document.getElementById('page-title').innerText = titleMap[viewName];
@@ -325,6 +330,15 @@
             } else {
                 document.getElementById('view-dashboard').classList.add('hidden');
                 document.getElementById('view-content').classList.remove('hidden');
+
+                // Mostrar/Ocultar botón de agregar según sección
+                const addBtn = document.getElementById('add-btn');
+                if (['courses', 'agents', 'users'].includes(viewName)) {
+                    addBtn.classList.remove('hidden');
+                } else {
+                    addBtn.classList.add('hidden');
+                }
+
                 refreshCurrentView();
             }
             lucide.createIcons();
@@ -335,6 +349,21 @@
             else if(currentView === 'courses') fetchCourses();
             else if(currentView === 'agents') fetchAgents();
             else if(currentView === 'users') fetchUsers();
+            else if(currentView === 'dc3') fetchDC3Records();
+        }
+
+        async function fetchDC3Records() {
+            document.getElementById('view-description').innerText = "Historial de documentos DC-3 emitidos por el sistema.";
+            document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3">Trabajador</th><th class="px-6 py-3">Curso</th><th class="px-6 py-3">Empresa</th><th class="px-6 py-3">Fecha</th><th class="px-6 py-3">Acciones</th></tr>`;
+            const data = await atlasAction("find", "dc3_records", { filter: getFilter() });
+            let html = data.documents.map(r => `<tr class="hover:bg-slate-50">
+                <td class="px-6 py-4 font-medium text-slate-900">${r.workerId}</td>
+                <td class="px-6 py-4">${r.courseName}</td>
+                <td class="px-6 py-4">${r.companyName}</td>
+                <td class="px-6 py-4 text-xs">${r.startDate}</td>
+                <td class="px-6 py-4"><button class="text-blue-600 hover:underline"><i class="fa-solid fa-download mr-1"></i> PDF</button></td>
+            </tr>`).join('');
+            document.getElementById('table-body').innerHTML = html || '<tr><td colspan="5" class="p-8 text-center text-slate-400">No hay registros de DC-3.</td></tr>';
         }
 
         async function atlasAction(action, collection, payload = {}) {
@@ -445,7 +474,21 @@
             document.getElementById('view-description').innerText = "Control de accesos para instructores y personal administrativo.";
             document.getElementById('table-header').innerHTML = `<tr><th class="px-6 py-3">Nombre</th><th class="px-6 py-3">Email</th><th class="px-6 py-3">Rol</th><th class="px-6 py-3">Acciones</th></tr>`;
             const data = await atlasAction("find", "users", { filter: {} });
-            let html = data.documents.map(u => `<tr class="hover:bg-slate-50"><td class="px-6 py-4 font-medium text-slate-900">${u.name}</td><td class="px-6 py-4">${u.email}</td><td class="px-6 py-4"><span class="px-2 py-0.5 rounded-full text-xs font-semibold ${u.role==='ADMIN'?'bg-purple-100 text-purple-700':'bg-blue-100 text-blue-700'}">${u.role}</span></td><td class="px-6 py-4 space-x-3"><button onclick='editUser(${JSON.stringify(u)})' class="text-blue-600 hover:underline">Editar</button><button onclick="deleteItem('users', '${u._id}')" class="text-red-500 hover:underline">Eliminar</button></td></tr>`).join('');
+
+            // Agregar el usuario Administrador (Dario) a la lista visual si no está en la DB
+            const allUsers = [...data.documents];
+            if (!allUsers.find(u => u.email === 'd4r005@gmail.com')) {
+                allUsers.unshift({ name: 'Dario Robles', email: 'd4r005@gmail.com', role: 'ADMIN', isHardcoded: true });
+            }
+
+            let html = allUsers.map(u => `<tr class="hover:bg-slate-50">
+                <td class="px-6 py-4 font-medium text-slate-900">${u.name}</td>
+                <td class="px-6 py-4">${u.email}</td>
+                <td class="px-6 py-4"><span class="px-2 py-0.5 rounded-full text-xs font-semibold ${u.role==='ADMIN'?'bg-purple-100 text-purple-700':'bg-blue-100 text-blue-700'}">${u.role}</span></td>
+                <td class="px-6 py-4 space-x-3">
+                    ${!u.isHardcoded ? `<button onclick='editUser(${JSON.stringify(u)})' class="text-blue-600 hover:underline">Editar</button>
+                    <button onclick="deleteItem('users', '${u._id}')" class="text-red-500 hover:underline">Eliminar</button>` : '<span class="text-xs text-slate-400">Protegido</span>'}
+                </td></tr>`).join('');
             document.getElementById('table-body').innerHTML = html;
         }
 
