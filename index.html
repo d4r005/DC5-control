@@ -104,7 +104,7 @@
                         <input id="password" type="password" class="input-field pr-10" placeholder="••••••••" required>
                         <button type="button" onclick="togglePassword()" class="absolute right-3 top-3 text-gray-400 hover:text-gray-600">
                             <svg id="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5">
-                                <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.478 0 8.268 2.943 9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                             </svg>
                         </button>
                     </div>
@@ -438,8 +438,30 @@ const DATA = {
         { name: "Dario Robles", email: "d4r005@gmail.com", role: "ADMIN", password: "Branco2025" },
         { name: "Cynthia Garza Lugo", email: "lugga.advisors@gmail.com", role: "USER", password: "Cynthia123" }
     ],
-    courses: [],   // Cargado desde Supabase
-    agents: [],     // Cargado desde Supabase
+    courses: [
+        { name: "SEGURIDAD EN TRABAJOS DE SOLDADURAS Y OXICORTE", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", creatorEmail: "lugga.advisors@gmail.com" },
+        { name: "MANEJO SEGURO DE MONTACARGAS", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", creatorEmail: "lugga.advisors@gmail.com" },
+        { name: "FORMACION DE BRIGADAS DE EMERGENCIA (EVACUACION, BUSQUEDA Y RESCATE, PRIMEROS AUXILIOS Y MANEJO DE EXTINTORES)", durationHours: "24 HORAS", thematicArea: "(6000) SEGURIDAD", creatorEmail: "lugga.advisors@gmail.com" },
+        { name: "SEGURIDAD EN EL USO Y MANEJO DE MAQUINARIA PESADA EN CONSTRUCCION", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", creatorEmail: "lugga.advisors@gmail.com" },
+        { name: "DISEÑO Y EVALUACION DE SIMULACROS PARA EVACUACION O REPLIEGUE EN SINIESTROS", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", creatorEmail: "lugga.advisors@gmail.com" },
+        { name: "FORMACION DE SUPERVISORES DE SEGURIDAD Y SALUD OCUPACIONAL", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", creatorEmail: "lugga.advisors@gmail.com" },
+        { name: "TALLER DE CORTE Y BARBERIA PROFESIONAL", durationHours: "24 HORAS", thematicArea: "(2000) SERVICIOS", creatorEmail: "lugga.advisors@gmail.com" },
+        { name: "TALLER DE MAQUILLAJE PROFESIONAL DIA, TARDE Y NOCHE", durationHours: "24 HORAS", thematicArea: "(2000) SERVICIOS", creatorEmail: "lugga.advisors@gmail.com" },
+        { name: "FORMACION DE INSTRUCTORES", durationHours: "8 HORAS", thematicArea: "(7000) DESARROLLO PERSONAL Y FAMILIAR", creatorEmail: "lugga.advisors@gmail.com" },
+        { name: "MEDIDAS DE SEGURIDAD EN TRABAJOS DE ALTURA (NOM-009-STPS-2011)", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", creatorEmail: "lugga.advisors@gmail.com" },
+        { name: "SEGURIDAD INDUSTRIAL EN LA CONSTRUCCION (NOM-031-STPS-2011)", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", creatorEmail: "lugga.advisors@gmail.com" },
+        { name: "OPERACION SEGURA DE EQUIPOS DE ELEVACION, MANLIFT Y PLATAFORMAS", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", creatorEmail: "lugga.advisors@gmail.com" },
+        { name: "TRABAJOS EN ESPACIOS CONFINADOS", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", creatorEmail: "lugga.advisors@gmail.com" },
+        { name: "OPERACION SEGURA DE ENGANCHE Y DESENGANCHE 5 RUEDA", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", creatorEmail: "lugga.advisors@gmail.com" },
+        { name: "FORMACION DE TECNICOS EN URGENCIAS MEDICAS NIVEL 1 (BASICO)", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", creatorEmail: "lugga.advisors@gmail.com" },
+        { name: "ASEGURAMIENTO DE ENERGIA (BLOQUEO Y ETIQUETADO LOTO)", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", creatorEmail: "lugga.advisors@gmail.com" },
+        { name: "MANEJO DE MATERIALES PELIGROSOS", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", creatorEmail: "lugga.advisors@gmail.com" },
+        { name: "OPERACION SEGURA DE VEHICULOS PESADOS 5 RUEDA", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", creatorEmail: "lugga.advisors@gmail.com" },
+        { name: "FORMACION DE TECNICOS EN INHALOTERAPIA", durationHours: "24 HORAS", thematicArea: "(6000) SEGURIDAD", creatorEmail: "lugga.advisors@gmail.com" }
+    ],
+    agents: [
+        { name: "CYNTHIA YADIRA GARZA LUGO", stps: "STPS-GALC780523-MP3-005", creatorEmail: "lugga.advisors@gmail.com" }
+    ],
     companies: []   // Cargado desde Supabase
 };
 
@@ -450,12 +472,25 @@ async function loadCatalogs() {
         api('find','agents',{ filter: {} }),
         api('find','companies',{ filter: {} })
     ]);
-    DATA.courses   = coursesR.documents || [];
-    DATA.agents    = agentsR.documents  || [];
+
+    // Combinar cursos pre-cargados con los de la base de datos
+    const dbCourses = coursesR.documents || [];
+    dbCourses.forEach(dbc => {
+        const exists = DATA.courses.find(c => c.name === dbc.name && c.creatorEmail === dbc.creatorEmail);
+        if (!exists) DATA.courses.push(dbc);
+    });
+
+    // Combinar agentes pre-cargados
+    const dbAgents = agentsR.documents || [];
+    dbAgents.forEach(dba => {
+        const exists = DATA.agents.find(a => a.name === dba.name && a.stps === dba.stps);
+        if (!exists) DATA.agents.push(dba);
+    });
+
     DATA.companies = companiesR.documents || [];
 }
 
-let currentUser = null, currentView = 'dashboard', selectedWorker = null;
+let currentUser = null, currentView = 'dashboard', selectedWorker = null, editingDC3Id = null;
 
 // ─── INIT ──────────────────────────────────────────────
 window.onload = () => {
@@ -516,6 +551,13 @@ async function api(action, collection, payload = {}) {
             const { data, error } = await sb.from(table).insert(rows).select();
             if (error) { console.error('Supabase insertMany error:', error); return { error: error.message }; }
             return { insertedCount: data?.length || 0 };
+        }
+        if (action === 'update') {
+            const id = payload.id;
+            const row = toSnake(payload.document);
+            const { data, error } = await sb.from(table).update(row).eq('id', id).select();
+            if (error) { console.error('Supabase update error:', error); return { error: error.message }; }
+            return { updatedId: data?.[0]?.id };
         }
         if (action === 'deleteOne') {
             const id = payload.filter?.id || payload.id;
@@ -634,7 +676,7 @@ async function loadSection(v) {
         document.getElementById('tb-courses').innerHTML = list.length
             ? list.map(c => `<tr>
                 <td class="font-semibold">${c.name}</td>
-                <td><span class="badge badge-admin">${c.durationHours} hrs</span></td>
+                <td><span class="badge badge-admin">${c.durationHours}</span></td>
                 <td class="text-xs text-gray-500">${c.thematicArea||'–'}</td>
               </tr>`).join('')
             : `<tr><td colspan="3" class="text-center py-12 text-gray-300 text-sm">Sin cursos</td></tr>`;
@@ -652,7 +694,11 @@ async function loadSection(v) {
                 <td class="text-sm text-gray-500">${x.companyName||''}</td>
                 <td class="text-xs text-gray-400">${x.startDate||''} – ${x.endDate||''}</td>
                 <td class="text-right">
-                    <button onclick='regenDC3(${JSON.stringify(x)})' class="btn-sm btn-indigo">⬇ PDF</button>
+                    <div class="flex justify-end gap-2">
+                        <button onclick='regenDC3(${JSON.stringify(x)})' title="Descargar PDF" class="btn-sm btn-indigo">⬇ PDF</button>
+                        <button onclick='prepareEditDC3(${JSON.stringify(x)})' title="Editar Registro" class="btn-sm btn-outline">✎</button>
+                        <button onclick="delItem('dc3_records','${x.id}')" title="Eliminar" class="btn-sm btn-red">✕</button>
+                    </div>
                 </td>
               </tr>`).join('')
             : `<tr><td colspan="5" class="text-center py-12 text-gray-300 text-sm">Sin historial de constancias</td></tr>`;
@@ -744,6 +790,7 @@ async function delItem(coll, id) {
 
 // ─── MODAL DC-3 ────────────────────────────────────────
 function openDC3(worker) {
+    editingDC3Id = null;
     selectedWorker = worker;
     document.getElementById('dc3-worker-name').innerText = worker.name;
     document.getElementById('dc3-worker-curp').innerText = 'CURP: ' + (worker.curp || '–');
@@ -761,6 +808,37 @@ function openDC3(worker) {
     // Courses
     const list = currentUser.role === 'ADMIN' ? DATA.courses : DATA.courses.filter(c => c.creatorEmail === currentUser.email);
     document.getElementById('dc3-course').innerHTML = list.map(c => `<option value="${c.name}|${c.durationHours}|${c.thematicArea}">${c.name}</option>`).join('');
+
+    document.getElementById('modal-dc3').classList.add('open');
+}
+
+function prepareEditDC3(record) {
+    editingDC3Id = record.id;
+    selectedWorker = { name: record.workerName, curp: record.workerId, position: record.workerPos };
+
+    document.getElementById('dc3-worker-name').innerText = record.workerName;
+    document.getElementById('dc3-worker-curp').innerText = 'CURP: ' + (record.workerId || '–');
+
+    // Load catalogs first
+    const compSel = document.getElementById('dc3-company');
+    compSel.innerHTML = DATA.companies.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+    compSel.value = record.companyName;
+
+    const agentSel = document.getElementById('dc3-agent');
+    agentSel.innerHTML = DATA.agents.map(a => `<option value="${a.name}|${a.stps}">${a.name}</option>`).join('');
+    // Try to find matching agent
+    const agentOption = [...agentSel.options].find(opt => opt.value.startsWith(record.agentName));
+    if (agentOption) agentSel.value = agentOption.value;
+
+    const courSel = document.getElementById('dc3-course');
+    const list = currentUser.role === 'ADMIN' ? DATA.courses : DATA.courses.filter(c => c.creatorEmail === currentUser.email);
+    courSel.innerHTML = list.map(c => `<option value="${c.name}|${c.durationHours}|${c.thematicArea}">${c.name}</option>`).join('');
+    const courseOption = [...courSel.options].find(opt => opt.value.startsWith(record.courseName));
+    if (courseOption) courSel.value = courseOption.value;
+
+    document.getElementById('dc3-start').value = record.startDate;
+    document.getElementById('dc3-end').value = record.endDate;
+    document.getElementById('dc3-result').value = record.resultText || 'Aprobado';
 
     document.getElementById('modal-dc3').classList.add('open');
 }
@@ -813,7 +891,7 @@ async function regenDC3(record) {
         worker,
         company: record.companyName,
         agent:   { name: record.agentName || '–', stps: record.agentStps || '–' },
-        course:  { name: record.courseName, duration: '–', area: '–' },
+        course:  { name: record.courseName, duration: record.durationHours, area: record.thematicArea },
         start:   record.startDate,
         end:     record.endDate,
         result:  record.resultText || 'Aprobado'
@@ -957,7 +1035,25 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     const agentLine = sp(((agent.name||'') + '  ' + (agent.stps||'')).toUpperCase().trim());
     T(30, 438, agentLine.slice(0,70), 8);
 
-    // ── 12. Nombres bajo líneas de firma ─────────────────────────────────────
+    // ── 12. Firma Digital (si es Cynthia) ────────────────────────────────────
+    if (agent.name.includes('CYNTHIA')) {
+        try {
+            const sigResp = await fetch('/signatures/cynthia_firma_oficial.png');
+            if (sigResp.ok) {
+                const sigBytes = await sigResp.arrayBuffer();
+                const sigImg = await pdfDoc.embedPng(sigBytes);
+                const sigDims = sigImg.scale(0.25); // Ajustar escala según sea necesario
+                page.drawImage(sigImg, {
+                    x: 60,
+                    y: PH - 515, // Ajustado para quedar sobre el nombre
+                    width: sigDims.width,
+                    height: sigDims.height,
+                });
+            }
+        } catch (e) { console.warn('No se pudo cargar la firma:', e); }
+    }
+
+    // ── 13. Nombres bajo líneas de firma ─────────────────────────────────────
     T(70,  530, (agent.name||'').toUpperCase(), 8);    // instructor / agente
     T(245, 530, (compObj.name||'').toUpperCase().slice(0,30), 8); // patrón (empresa)
 
