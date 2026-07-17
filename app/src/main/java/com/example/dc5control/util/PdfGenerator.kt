@@ -123,15 +123,15 @@ object PdfGenerator {
     // Sección de firmas
     private const val SIG_Y1 = 443.4f
     private const val SIG_Y2 = 539.9f
-    // Columna instructor: X=24 a ~215 → logo centrado en X=120
-    private const val LOGO_X = 58f;  private const val LOGO_Y = 449f
-    private const val LOGO_W = 124f; private const val LOGO_H = 70f   // ratio 1.78:1
+    // Columna instructor: X=24 a ~215 → logo centrado en X=131
+    private const val LOGO_X = 74f;  private const val LOGO_Y = 454f
+    private const val LOGO_W = 115f; private const val LOGO_H = 65f   // ratio 1.77:1
     // Firma encima del logo
-    private const val FIRMA_X = 50f; private const val FIRMA_Y = 452f
-    private const val FIRMA_W = 105f; private const val FIRMA_H = 74f  // ratio 1.42:1
+    private const val FIRMA_X = 89f; private const val FIRMA_Y = 457f
+    private const val FIRMA_W = 85f; private const val FIRMA_H = 60f  // ratio 1.42:1
 
     // Nombre instructor bajo firma
-    private const val X_INS = 26f
+    private const val X_INS = 28f
     private const val X_PAT = 222f
     private const val X_REP = 385f
     private const val Y_NAME_L1 = 527f
@@ -269,7 +269,7 @@ object PdfGenerator {
 
         // ── RFC (carácter por celda) ──────────────────────────────────────────
         val RFC_Y_BASE = (RFC_Y1 + RFC_Y2) / 2f + 2.5f
-        val rfcClean = d.rfc.uppercase().replace("-", "").replace(" ", "").take(15)
+        val rfcClean = d.rfc.uppercase().replace(" ", "").take(15)
         rfcClean.forEachIndexed { i, c ->
             if (i < RFC_XS.size - 1)
                 charInCell(RFC_XS[i], RFC_XS[i + 1], RFC_Y_BASE, c.toString())
