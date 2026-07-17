@@ -63,20 +63,20 @@ object PdfGenerator {
 
     // ── Coordenadas RFC: 15 celdas individuales ───────────────────────────────
     private val RFC_XS = floatArrayOf(
-        34.8f, 52.2f, 66.1f, 80.8f, 95.6f, 109.8f, 124.1f, 138.4f, 152.7f,
-        167.0f, 181.3f, 195.6f, 209.8f, 227.5f, 245.0f
+        35.5f, 50.0f, 64.5f, 79.0f, 93.5f, 108.0f, 122.5f, 137.0f, 151.5f,
+        166.0f, 180.5f, 195.0f, 209.5f, 224.0f, 238.5f
     )
     private const val RFC_Y = 308.0f
 
     // ── Coordenadas de FECHA (periodo de ejecución) ───────────────────────────
-    // Fila de dígitos y ≈ 389 (PDFBox, Y desde abajo = 792 - 389 = 403)
-    private val AÑO_INI = floatArrayOf(275.6f, 291.8f, 308.0f, 324.5f)
-    private val MES_INI = floatArrayOf(348.0f, 369.4f)
-    private val DIA_INI = floatArrayOf(390.4f, 411.9f)
-    private val AÑO_FIN = floatArrayOf(452.1f, 468.3f, 484.5f, 501.0f)
-    private val MES_FIN = floatArrayOf(532.5f, 554.0f)
-    private val DIA_FIN = floatArrayOf(575.5f, 597.0f)
-    private const val FECHA_Y = 389.0f  // Y baseline dígitos de fecha
+    // Re-calibración para evitar pisar la "a" y que no se salga al final
+    private val AÑO_INI = floatArrayOf(270.0f, 285.5f, 301.0f, 316.5f)
+    private val MES_INI = floatArrayOf(343.0f, 362.0f)
+    private val DIA_INI = floatArrayOf(386.0f, 405.0f)
+    private val AÑO_FIN = floatArrayOf(446.5f, 462.0f, 477.5f, 493.0f)
+    private val MES_FIN = floatArrayOf(521.0f, 540.0f)
+    private val DIA_FIN = floatArrayOf(564.0f, 583.0f)
+    private const val FECHA_Y = 389.0f
 
     // ── Otros campos (Y en coords fitz; PDFBox Y = 792 - Y_fitz) ─────────────
     // Nota: insert_text de fitz y showText de PDFBox usan el mismo baseline
@@ -116,14 +116,15 @@ object PdfGenerator {
                 fillPage(cs, data)
             }
             
-            // Insertar Logo (detrás/debajo de la firma, más pequeño)
+            // Insertar Logo (detrás de la firma, tamaño reducido y con transparencia si es posible)
             data.logoBitmap?.let {
-                insertImage(doc, doc.getPage(0), it, x = 75f, y = 505f, w = 80f, h = 30f)
+                // Posición ajustada para no tapar el nombre del instructor
+                insertImage(doc, doc.getPage(0), it, x = 65f, y = 505f, w = 65f, h = 25f)
             }
             
-            // Insertar Firma
+            // Insertar Firma (trazo azul)
             data.signatureBitmap?.let {
-                insertImage(doc, doc.getPage(0), it, x = 50f, y = 490f, w = 130f, h = 40f)
+                insertImage(doc, doc.getPage(0), it, x = 55f, y = 495f, w = 110f, h = 35f)
             }
             
             val name = "DC3_${sanitize(data.curp.ifBlank { data.nombreTrabajador })}.pdf"
@@ -189,10 +190,10 @@ object PdfGenerator {
             cs.endText()
         }
 
-        // Escribe caracteres individuales en celdas (centrado visual -2.5pt)
+        // Escribe caracteres individuales en celdas (sin desfase negativo)
         fun boxes(font: PDType1Font, size: Float, chars: String, xs: FloatArray, yFitz: Float) {
             chars.forEachIndexed { i, c ->
-                if (i < xs.size) w(font, size, xs[i] - 2.5f, yFitz, c.toString())
+                if (i < xs.size) w(font, size, xs[i], yFitz, c.toString())
             }
         }
 
