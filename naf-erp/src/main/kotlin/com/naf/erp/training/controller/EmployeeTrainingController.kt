@@ -6,6 +6,7 @@ import com.naf.erp.training.service.EmployeeService
 import com.naf.erp.training.service.TrainingService
 import org.springframework.web.bind.annotation.*
 
+@CrossOrigin
 @RestController
 @RequestMapping("/employees")
 class EmployeeTrainingController(

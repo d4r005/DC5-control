@@ -11,7 +11,7 @@ class Instructor(
     var id: Long = 0,
 
     @Column(name = "full_name")
-    var fullName: String = "",
+    var fullName: String? = null,
 
     @Column(name = "stps_number")
     var stpsNumber: String? = null,

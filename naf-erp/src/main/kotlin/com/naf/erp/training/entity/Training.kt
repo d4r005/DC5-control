@@ -13,23 +13,23 @@ class Training(
 
     @ManyToOne(fetch=FetchType.LAZY)
     @JoinColumn(name="employee_id")
-    lateinit var employee:Employee,
+    var employee: Employee? = null,
 
     @ManyToOne(fetch=FetchType.LAZY)
     @JoinColumn(name="course_id")
-    lateinit var course:Course,
+    var course: Course? = null,
 
     @ManyToOne(fetch=FetchType.LAZY)
     @JoinColumn(name="instructor_id")
-    lateinit var instructor:Instructor,
+    var instructor: Instructor? = null,
 
-    var startDate:LocalDate?=null,
+    var startDate: LocalDate? = null,
 
-    var endDate:LocalDate?=null,
+    var endDate: LocalDate? = null,
 
-    var hours:Int=0,
+    var hours: Int = 0,
 
-    var approved:Boolean=false,
+    var approved: Boolean = false,
 
-    var score:Double=0.0
+    var score: Double = 0.0
 )

@@ -4,8 +4,9 @@ import com.naf.erp.training.entity.Instructor
 import com.naf.erp.training.service.InstructorService
 import org.springframework.web.bind.annotation.*
 
+@CrossOrigin
 @RestController
-@RequestMapping("/api/instructors")
+@RequestMapping("/instructors")
 class InstructorController(
     private val instructorService: InstructorService
 ) {

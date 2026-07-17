@@ -9,8 +9,9 @@ import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 
+@CrossOrigin
 @RestController
-@RequestMapping("/api/dc3")
+@RequestMapping("/dc3")
 class DC3Controller(
     private val dc3Service: DC3Service
 ) {
