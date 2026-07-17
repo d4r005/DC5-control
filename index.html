@@ -16,7 +16,7 @@
         .login-bg { background-color: #0c242c; background-image: radial-gradient(circle at center, #1c454e 0%, #0c242c 100%); }
         .nav-btn.active { background-color: #2563eb; color: white; box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2); }
         .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); overflow-y: auto; }
-        .modal-content { background: white; margin: 5% auto; padding: 30px; width: 500px; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+        .modal-content { background: white; margin: 2% auto; padding: 30px; width: 600px; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
     </style>
 </head>
 <body class="antialiased text-slate-200 h-screen overflow-hidden">
@@ -35,9 +35,9 @@
             <div class="w-full max-w-[420px] bg-white rounded-[3rem] p-12 shadow-2xl">
                 <div class="text-center mb-10"><h2 class="text-3xl font-black text-slate-800 tracking-tighter uppercase italic">ACE-CONTROL</h2></div>
                 <form class="space-y-6" onsubmit="login(event)">
-                    <input id="email" type="email" required class="w-full bg-slate-50 rounded-2xl px-5 py-4 text-slate-900 outline-none" placeholder="Email">
-                    <input id="password" type="password" required class="w-full bg-slate-50 rounded-2xl px-5 py-4 text-slate-900 outline-none" placeholder="Password">
-                    <button type="submit" class="w-full bg-[#4262a0] text-white py-4 rounded-2xl font-bold uppercase shadow-lg shadow-blue-900/10">Entrar</button>
+                    <input id="email" type="email" required class="w-full bg-slate-50 rounded-2xl px-5 py-4 text-slate-900 outline-none focus:ring-2 focus:ring-blue-500/20" placeholder="Email">
+                    <input id="password" type="password" required class="w-full bg-slate-50 rounded-2xl px-5 py-4 text-slate-900 outline-none focus:ring-2 focus:ring-blue-500/20" placeholder="Contraseña">
+                    <button type="submit" class="w-full bg-[#4262a0] text-white py-4 rounded-2xl font-bold uppercase shadow-lg hover:bg-blue-700 transition-all">Entrar</button>
                 </form>
                 <p id="login-error" class="text-red-500 text-center font-bold hidden mt-4 uppercase text-xs">Acceso Denegado</p>
             </div>
@@ -51,11 +51,12 @@
                 <div class="h-20 flex items-center px-8 border-b border-slate-800 font-extrabold text-white text-lg italic tracking-widest">ACE-CONTROL</div>
                 <nav class="mt-8 px-6 space-y-2">
                     <button onclick="switchView('dashboard')" id="btn-dashboard" class="nav-btn w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></button>
-                    <button onclick="switchView('workers')" id="btn-workers" class="nav-btn w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="users"></i><span>Personal (Excel)</span></button>
+                    <button onclick="switchView('employees')" id="btn-employees" class="nav-btn w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="users"></i><span>Personal</span></button>
                     <button onclick="switchView('companies')" id="btn-companies" class="nav-btn w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="building-2"></i><span>Empresas</span></button>
                     <button onclick="switchView('courses')" id="btn-courses" class="nav-btn w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="book-open"></i><span>Cursos</span></button>
-                    <button onclick="switchView('agents')" id="btn-agents" class="nav-btn w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="award"></i><span>Agentes Cap.</span></button>
-                    <button onclick="switchView('dc3')" id="btn-dc3" class="nav-btn w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="file-check"></i><span>DC-3 Generados</span></button>
+                    <button onclick="switchView('instructors')" id="btn-instructors" class="nav-btn w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="award"></i><span>Instructores</span></button>
+                    <button onclick="switchView('trainings')" id="btn-trainings" class="nav-btn w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="file-check"></i><span>Capacitaciones</span></button>
+                    <button onclick="switchView('dc3')" id="btn-dc3" class="nav-btn w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="printer"></i><span>DC-3 Historial</span></button>
                     <button onclick="switchView('users')" id="btn-users" class="nav-btn hidden w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="users-2"></i><span>Usuarios</span></button>
                 </nav>
             </div>
@@ -63,18 +64,18 @@
         </aside>
 
         <main class="flex-1 flex flex-col overflow-hidden">
-            <header class="h-20 bg-white border-b flex items-center justify-between px-10 shrink-0 text-slate-800">
+            <header class="h-20 bg-white border-b flex items-center justify-between px-10 shrink-0">
                 <div class="flex items-center space-x-4">
-                    <h1 id="page-title" class="text-2xl font-bold">Dashboard</h1>
-                    <select id="user-filter" onchange="refreshCurrentView()" class="border rounded-xl px-4 py-2 bg-slate-50 font-bold text-sm">
-                        <option value="ALL">Ver Todo el Sistema</option>
+                    <h1 id="page-title" class="text-2xl font-bold text-slate-800">Dashboard</h1>
+                    <select id="user-filter" onchange="refreshCurrentView()" class="border rounded-xl px-4 py-2 bg-slate-50 font-bold text-sm text-slate-800 focus:outline-none">
+                        <option value="ALL">Ver Todo</option>
                         <option value="d4r005@gmail.com">Dario Robles</option>
                         <option value="lugga.advisors@gmail.com">Cynthia Garza</option>
                     </select>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <div class="text-right leading-tight"><p id="user-name-display" class="font-extrabold"></p><p class="text-[10px] text-slate-500 font-black uppercase tracking-widest">Administrador ACE</p></div>
-                    <div id="user-initials" class="h-10 w-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold uppercase tracking-widest"></div>
+                    <div class="text-right leading-tight"><p id="user-name-display" class="font-extrabold text-slate-900"></p><p class="text-[10px] text-slate-500 font-black uppercase tracking-widest">Administrador ACE</p></div>
+                    <div id="user-initials" class="h-10 w-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold uppercase tracking-widest text-sm">DA</div>
                 </div>
             </header>
 
@@ -89,7 +90,7 @@
                         <div class="p-4 bg-green-50 text-green-600 rounded-2xl"><i data-lucide="book-open" class="w-8 h-8"></i></div>
                     </div>
                     <div class="bg-white p-8 rounded-3xl border shadow-sm flex justify-between items-center group hover:shadow-xl transition-all">
-                        <div><p class="text-xs font-black text-slate-400 uppercase tracking-widest">DC-3</p><p id="stat-dc3" class="text-4xl font-black mt-2">0</p></div>
+                        <div><p class="text-xs font-black text-slate-400 uppercase tracking-widest">Capacitaciones</p><p id="stat-trainings" class="text-4xl font-black mt-2">0</p></div>
                         <div class="p-4 bg-purple-50 text-purple-600 rounded-2xl"><i data-lucide="file-check" class="w-8 h-8"></i></div>
                     </div>
                 </div>
@@ -99,10 +100,10 @@
                         <div class="flex space-x-3">
                             <input type="file" id="excel-input" class="hidden" onchange="handleExcel(this)">
                             <button id="upload-btn" onclick="document.getElementById('excel-input').click()" class="bg-slate-900 text-white px-6 py-2.5 rounded-xl font-bold text-sm flex items-center space-x-2"><i data-lucide="upload" class="w-4 h-4"></i><span>Cargar Excel</span></button>
-                            <button id="add-btn" onclick="openModal()" class="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm flex items-center space-x-2 shadow-lg shadow-blue-200"><i data-lucide="plus" class="w-4 h-4"></i><span>Agregar</span></button>
+                            <button id="add-btn" onclick="openModal()" class="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm flex items-center space-x-2 shadow-lg shadow-blue-200 hover:bg-blue-500 transition-all"><i data-lucide="plus" class="w-4 h-4"></i><span>Agregar</span></button>
                         </div>
                     </div>
-                    <div class="bg-white rounded-3xl border overflow-hidden shadow-sm">
+                    <div class="bg-white rounded-3xl border shadow-sm overflow-x-auto">
                         <table class="w-full text-left border-collapse">
                             <thead id="table-header" class="bg-slate-50 border-b text-[10px] uppercase text-slate-400 font-black"></thead>
                             <tbody id="table-body" class="text-sm font-medium text-slate-600 divide-y"></tbody>
@@ -114,29 +115,7 @@
     </div>
 
     <!-- Modales -->
-    <div id="modal" class="modal"><div class="modal-content"><h3 id="modal-title" class="text-2xl font-black mb-8 uppercase italic tracking-tighter text-slate-800">Acción</h3><div id="modal-fields" class="space-y-6"></div><div class="mt-10 flex justify-end space-x-4"><button onclick="closeModal()" class="text-slate-400 font-bold uppercase text-xs">Cancelar</button><button onclick="saveItem()" class="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-blue-200 hover:bg-blue-500 transition-all">Guardar</button></div></div></div>
-
-    <div id="dc3-modal" class="modal text-slate-800">
-        <div class="modal-content" style="width: 600px;">
-            <h3 class="text-2xl font-black text-center mb-6 uppercase italic border-b pb-4">Configurar DC-3</h3>
-            <div id="dc3-fields" class="space-y-6">
-                <div><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Trabajador</label><p id="dc3-worker-name" class="text-lg font-black text-blue-600"></p></div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Empresa</label><select id="dc3-company" class="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold text-sm ring-1 ring-slate-200"></select></div>
-                    <div><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Curso</label><select id="dc3-course" class="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold text-sm ring-1 ring-slate-200"></select></div>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fecha Inicio</label><input type="date" id="dc3-start" class="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold text-sm ring-1 ring-slate-200"></div>
-                    <div><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fecha Fin</label><input type="date" id="dc3-end" class="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold text-sm ring-1 ring-slate-200"></div>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Rep. Patrón</label><input id="dc3-patron" placeholder="Nombre de quien firma" class="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold text-sm ring-1 ring-slate-200"></div>
-                    <div><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Rep. Trabajadores</label><input id="dc3-workers" placeholder="Nombre de quien firma" class="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold text-sm ring-1 ring-slate-200"></div>
-                </div>
-            </div>
-            <div class="mt-10 flex justify-end space-x-4"><button onclick="document.getElementById('dc3-modal').style.display='none'" class="text-slate-400 font-bold uppercase text-xs">Cerrar</button><button onclick="generateSingleDC3()" class="bg-slate-900 text-white px-8 py-3 rounded-2xl font-black uppercase shadow-xl tracking-widest">Generar PDF</button></div>
-        </div>
-    </div>
+    <div id="modal" class="modal"><div class="modal-content"><h3 id="modal-title" class="text-2xl font-black mb-8 uppercase italic tracking-tighter text-slate-800">Acción</h3><div id="modal-fields" class="space-y-4 max-h-[60vh] overflow-y-auto px-2"></div><div class="mt-10 flex justify-end space-x-4"><button onclick="closeModal()" class="text-slate-400 font-bold uppercase text-xs">Cancelar</button><button onclick="saveItem()" class="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-blue-200 hover:bg-blue-500 transition-all">Guardar</button></div></div></div>
 
     <script>
         const SUPABASE_URL = "https://osgfwgedjdltrmvwycjd.supabase.co";
@@ -149,11 +128,11 @@
         ];
 
         const CATALOGS = {
-            occupations: ["01 Cultivo, crianza y aprovechamiento", "04.6 Procesos industriales", "05 Procesamiento y fabricación", "06 Transporte", "07 Provisión de bienes y servicios"],
-            thematicAreas: ["1000 Producción general", "2000 Servicios", "6000 Seguridad", "7000 Desarrollo personal"]
+            occupations: ["01 Cultivo, crianza y aprovechamiento", "02 Extracción y suministro", "03 Construcción", "04 Tecnología", "05 Procesamiento y fabricación", "06 Transporte", "07 Provisión de bienes y servicios", "08 Gestión y soporte administrativo", "09 Salud y protección social", "10 Comunicación"],
+            thematicAreas: ["1000 Producción general", "2000 Servicios", "3000 Administración", "4000 Comercialización", "5000 Mantenimiento", "6000 Seguridad", "7000 Desarrollo personal"]
         };
 
-        let currentUser = null, currentView = 'dashboard', selectedWorker = null;
+        let currentUser = null, currentView = 'dashboard';
 
         async function login(e) {
             e.preventDefault();
@@ -184,23 +163,17 @@
                 if (error) throw error;
                 if (!filter) return data || [];
                 return data.filter(d => (d.creatorEmail === filter || d.creator_email === filter));
-            } catch (e) { console.error(e); return []; }
+            } catch (e) { return []; }
         }
 
         async function switchView(v) {
             currentView = v;
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             document.getElementById('btn-'+v)?.classList.add('active');
-
             document.getElementById('view-dashboard').classList.toggle('hidden', v !== 'dashboard');
             document.getElementById('view-content').classList.toggle('hidden', v === 'dashboard');
-
-            document.getElementById('upload-btn').classList.toggle('hidden', v !== 'workers');
-            document.getElementById('add-btn').classList.toggle('hidden', !['workers','companies','courses','agents'].includes(v));
-
-            const titles = { dashboard:'Dashboard', workers:'Personal', companies:'Empresas', courses:'Cursos', agents:'Agentes Cap.', dc3:'DC-3 Generados', users:'Usuarios' };
-            document.getElementById('page-title').innerText = titles[v] || v;
-
+            document.getElementById('upload-btn').classList.toggle('hidden', v !== 'employees');
+            document.getElementById('add-btn').classList.toggle('hidden', !['employees','companies','courses','instructors','trainings'].includes(v));
             refreshCurrentView();
         }
 
@@ -208,43 +181,51 @@
             const f = getFilter();
             const header = document.getElementById('table-header');
             const body = document.getElementById('table-body');
+            header.innerHTML = ""; body.innerHTML = "";
 
             if(currentView === 'dashboard') {
-                const w = await fetchResilient('workers', f);
-                const d = await fetchResilient('dc3_records', f);
-                const c = await fetchResilient('courses', f);
-                document.getElementById('stat-workers').innerText = w.length;
-                document.getElementById('stat-dc3').innerText = d.length;
+                const [emp, c, t] = await Promise.all([
+                    fetchResilient('employees', f),
+                    fetchResilient('courses', f),
+                    fetchResilient('trainings', f)
+                ]);
+                document.getElementById('stat-workers').innerText = emp.length;
                 document.getElementById('stat-courses').innerText = c.length;
+                document.getElementById('stat-trainings').innerText = t.length;
 
-            } else if(currentView === 'workers') {
-                const data = await fetchResilient('workers', f);
+            } else if(currentView === 'employees') {
+                const data = await fetchResilient('employees', f);
                 header.innerHTML = `<tr><th class="p-6">Nombre</th><th class="p-6">CURP</th><th class="p-6">Puesto</th><th class="p-6 text-right">Acciones</th></tr>`;
-                body.innerHTML = data.map(x => `<tr><td class="p-6 font-bold text-slate-800">${x.name}</td><td class="p-6 font-mono text-xs">${x.curp}</td><td class="p-6">${x.position}</td><td class="p-6 text-right"><button onclick='openDC3Modal(${JSON.stringify(x)})' class="text-blue-600 font-bold hover:underline">Generar DC-3</button></td></tr>`).join('') || '<tr><td colspan="4" class="p-10 text-center">Sin personal</td></tr>';
+                body.innerHTML = data.map(x => `<tr><td class="p-6 font-bold">${x.first_name} ${x.last_name}</td><td class="p-6 font-mono text-xs">${x.curp}</td><td class="p-6">${x.position}</td><td class="p-6 text-right"><button onclick="deleteItem('employees','${x.id}')" class="text-red-500 font-bold hover:underline">Eliminar</button></td></tr>`).join('') || '<tr><td colspan="4" class="p-10 text-center">Sin empleados</td></tr>';
 
             } else if(currentView === 'companies') {
                 const data = await fetchResilient('companies', f);
                 header.innerHTML = `<tr><th class="p-6">Empresa</th><th class="p-6">RFC</th><th class="p-6 text-right">Acciones</th></tr>`;
-                body.innerHTML = data.map(c => `<tr><td class="p-6 font-bold text-slate-800">${c.name}</td><td class="p-6 font-mono">${c.rfc}</td><td class="p-6 text-right"><button onclick="deleteItem('companies','${c.id}')" class="text-red-500 font-bold hover:underline">Eliminar</button></td></tr>`).join('') || '<tr><td colspan="3" class="p-10 text-center">Sin empresas</td></tr>';
+                body.innerHTML = data.map(c => `<tr><td class="p-6 font-bold">${c.name}</td><td class="p-6 font-mono">${c.rfc}</td><td class="p-6 text-right"><button onclick="deleteItem('companies','${c.id}')" class="text-red-500 font-bold hover:underline">Eliminar</button></td></tr>`).join('') || '<tr><td colspan="3" class="p-10 text-center">Sin empresas</td></tr>';
 
             } else if(currentView === 'courses') {
                 const data = await fetchResilient('courses', f);
-                header.innerHTML = `<tr><th class="p-6">Curso</th><th class="p-6">Horas</th><th class="p-6 text-right">Acciones</th></tr>`;
-                body.innerHTML = data.map(c => `<tr><td class="p-6 font-bold uppercase text-slate-800">${c.name}</td><td class="p-6 font-bold text-blue-600">${c.durationHours || c.duration_hours || 0} H</td><td class="p-6 text-right"><button onclick="deleteItem('courses','${c.id}')" class="text-red-500 font-bold">Eliminar</button></td></tr>`).join('') || '<tr><td colspan="3" class="p-10 text-center">Sin cursos</td></tr>';
+                header.innerHTML = `<tr><th class="p-6">Curso</th><th class="p-6">Duración</th><th class="p-6 text-right">Acciones</th></tr>`;
+                body.innerHTML = data.map(c => `<tr><td class="p-6 font-bold uppercase">${c.name}</td><td class="p-6 font-bold text-blue-600">${c.duration} H</td><td class="p-6 text-right"><button onclick="deleteItem('courses','${c.id}')" class="text-red-500 font-bold hover:underline">Eliminar</button></td></tr>`).join('') || '<tr><td colspan="3" class="p-10 text-center">Sin cursos</td></tr>';
 
-            } else if(currentView === 'agents') {
-                const data = await fetchResilient('agents', f);
-                header.innerHTML = `<tr><th class="p-6">Agente</th><th class="p-6">Registro STPS</th><th class="p-6 text-right">Acciones</th></tr>`;
-                body.innerHTML = data.map(a => `<tr><td class="p-6 font-bold uppercase text-slate-800">${a.name}</td><td class="p-6">${a.stps}</td><td class="p-6 text-right"><button onclick="deleteItem('agents','${a.id}')" class="text-red-500 font-bold">Eliminar</button></td></tr>`).join('') || '<tr><td colspan="3" class="p-10 text-center">Sin agentes</td></tr>';
+            } else if(currentView === 'instructors') {
+                const data = await fetchResilient('instructors', f);
+                header.innerHTML = `<tr><th class="p-6">Nombre Completo</th><th class="p-6">Registro STPS</th><th class="p-6 text-right">Acciones</th></tr>`;
+                body.innerHTML = data.map(i => `<tr><td class="p-6 font-bold uppercase">${i.full_name}</td><td class="p-6 font-mono">${i.stps_number || 'N/A'}</td><td class="p-6 text-right"><button onclick="deleteItem('instructors','${i.id}')" class="text-red-500 font-bold hover:underline">Eliminar</button></td></tr>`).join('') || '<tr><td colspan="3" class="p-10 text-center">Sin instructores</td></tr>';
+
+            } else if(currentView === 'trainings') {
+                const data = await fetchResilient('trainings', f);
+                header.innerHTML = `<tr><th class="p-6">Empleado ID</th><th class="p-6">Curso ID</th><th class="p-6">Inicio</th><th class="p-6">Fin</th><th class="p-6 text-right">Acciones</th></tr>`;
+                body.innerHTML = data.map(t => `<tr><td class="p-6 font-bold">${t.employee_id}</td><td class="p-6">${t.course_id}</td><td class="p-6 font-mono text-xs">${t.start_date}</td><td class="p-6 font-mono text-xs">${t.end_date}</td><td class="p-6 text-right"><button onclick="deleteItem('trainings','${t.id}')" class="text-red-500 font-bold hover:underline">Eliminar</button></td></tr>`).join('') || '<tr><td colspan="5" class="p-10 text-center">Sin capacitaciones</td></tr>';
 
             } else if(currentView === 'dc3') {
                 const data = await fetchResilient('dc3_records', f);
-                header.innerHTML = `<tr><th class="p-6">Trabajador</th><th class="p-6">Curso</th><th class="p-6">Fecha</th><th class="p-6 text-right">Acciones</th></tr>`;
-                body.innerHTML = data.map(d => `<tr><td class="p-6 font-bold text-slate-800">${d.worker_name || d.workerName || d.workerId}</td><td class="p-6">${d.course_name || d.courseName}</td><td class="p-6">${d.start_date || d.startDate}</td><td class="p-6 text-right"><button class="text-blue-600 font-bold">Ver PDF</button></td></tr>`).join('') || '<tr><td colspan="4" class="p-10 text-center">Sin registros</td></tr>';
+                header.innerHTML = `<tr><th class="p-6">Empleado</th><th class="p-6">Curso</th><th class="p-6 text-right">Acciones</th></tr>`;
+                body.innerHTML = data.map(d => `<tr><td class="p-6 font-bold">${d.worker_name || d.workerId}</td><td class="p-6">${d.course_name}</td><td class="p-6 text-right"><button class="text-blue-600 font-bold hover:underline">Descargar PDF</button></td></tr>`).join('') || '<tr><td colspan="3" class="p-10 text-center">Sin historial</td></tr>';
 
             } else if(currentView === 'users') {
                 header.innerHTML = `<tr><th class="p-6">Nombre</th><th class="p-6">Email</th><th class="p-6">Rol</th></tr>`;
-                body.innerHTML = USERS.map(u => `<tr><td class="p-6 font-bold text-slate-800">${u.name}</td><td class="p-6">${u.email}</td><td class="p-6"><span class="px-3 py-1 rounded-full text-xs font-black bg-blue-100 text-blue-700">${u.role}</span></td></tr>`).join('');
+                body.innerHTML = USERS.map(u => `<tr><td class="p-6 font-bold">${u.name}</td><td class="p-6">${u.email}</td><td class="p-6"><span class="px-3 py-1 rounded-full text-xs font-black bg-blue-100 text-blue-700">${u.role}</span></td></tr>`).join('');
             }
             lucide.createIcons();
         }
@@ -252,92 +233,50 @@
         function openModal() {
             const fields = document.getElementById('modal-fields');
             document.getElementById('modal').style.display = 'block';
-            if(currentView === 'workers') {
-                document.getElementById('modal-title').innerText = "Nuevo Trabajador";
-                fields.innerHTML = `<input id="f1" placeholder="Nombre Completo" class="w-full p-4 bg-slate-50 rounded-2xl border font-bold text-slate-800"><input id="f2" placeholder="CURP" class="w-full p-4 bg-slate-50 rounded-2xl border mt-4 font-bold text-slate-800"><select id="f3" class="w-full p-4 bg-slate-50 rounded-2xl border mt-4 font-bold text-slate-800">${CATALOGS.occupations.map(o=>`<option value="${o}">${o}</option>`).join('')}</select><input id="f4" placeholder="Puesto" class="w-full p-4 bg-slate-50 rounded-2xl border mt-4 font-bold text-slate-800">`;
+            fields.innerHTML = "";
+            if(currentView === 'employees') {
+                document.getElementById('modal-title').innerText = "Nuevo Empleado";
+                fields.innerHTML = `
+                    <div class="grid grid-cols-2 gap-4"><input id="v1" placeholder="No. Empleado" class="p-4 bg-slate-50 border rounded-2xl"><input id="v2" placeholder="CURP" class="p-4 bg-slate-50 border rounded-2xl"></div>
+                    <input id="v3" placeholder="Nombre(s)" class="w-full p-4 bg-slate-50 border rounded-2xl mt-4">
+                    <div class="grid grid-cols-2 gap-4 mt-4"><input id="v4" placeholder="Apellido Paterno" class="p-4 bg-slate-50 border rounded-2xl"><input id="v5" placeholder="Apellido Materno" class="p-4 bg-slate-50 border rounded-2xl"></div>
+                    <input id="v6" placeholder="Puesto" class="w-full p-4 bg-slate-50 border rounded-2xl mt-4">
+                `;
             } else if(currentView === 'companies') {
                 document.getElementById('modal-title').innerText = "Nueva Empresa";
-                fields.innerHTML = `<input id="f1" placeholder="Nombre o Razón Social" class="w-full p-4 bg-slate-50 rounded-2xl border font-bold text-slate-800"><input id="f2" placeholder="RFC" class="w-full p-4 bg-slate-50 rounded-2xl border mt-4 font-bold text-slate-800">`;
+                fields.innerHTML = `<input id="f1" placeholder="Nombre o Razón Social" class="w-full p-4 bg-slate-50 border rounded-2xl"><input id="f2" placeholder="RFC" class="w-full p-4 bg-slate-50 border rounded-2xl mt-4">`;
             } else if(currentView === 'courses') {
                 document.getElementById('modal-title').innerText = "Nuevo Curso";
-                fields.innerHTML = `<input id="f1" placeholder="Nombre del Curso" class="w-full p-4 bg-slate-50 rounded-2xl border font-bold text-slate-800"><input id="f2" type="number" placeholder="Horas" class="w-full p-4 bg-slate-50 rounded-2xl border mt-4 font-bold text-slate-800"><select id="f3" class="w-full p-4 bg-slate-50 rounded-2xl border mt-4 font-bold text-slate-800">${CATALOGS.thematicAreas.map(a=>`<option value="${a}">${a}</option>`).join('')}</select>`;
-            } else if(currentView === 'agents') {
-                document.getElementById('modal-title').innerText = "Nuevo Agente";
-                fields.innerHTML = `<input id="f1" placeholder="Nombre del Agente" class="w-full p-4 bg-slate-50 rounded-2xl border font-bold text-slate-800"><input id="f2" placeholder="Registro STPS" class="w-full p-4 bg-slate-50 rounded-2xl border mt-4 font-bold text-slate-800">`;
+                fields.innerHTML = `<input id="c1" placeholder="Nombre del Curso" class="w-full p-4 bg-slate-50 border rounded-2xl"><input id="c2" type="number" placeholder="Horas" class="w-full p-4 bg-slate-50 border rounded-2xl mt-4">`;
+            } else if(currentView === 'instructors') {
+                document.getElementById('modal-title').innerText = "Nuevo Instructor";
+                fields.innerHTML = `<input id="i1" placeholder="Nombre Completo" class="w-full p-4 bg-slate-50 border rounded-2xl"><input id="i2" placeholder="Registro STPS" class="w-full p-4 bg-slate-50 border rounded-2xl mt-4">`;
+            } else if(currentView === 'trainings') {
+                document.getElementById('modal-title').innerText = "Nueva Capacitación";
+                fields.innerHTML = `<input id="t1" placeholder="ID Empleado" class="w-full p-4 bg-slate-50 border rounded-2xl"><input id="t2" placeholder="ID Curso" class="w-full p-4 bg-slate-50 border rounded-2xl mt-4"><input id="t3" type="date" class="w-full p-4 bg-slate-50 border rounded-2xl mt-4">`;
             }
         }
 
         async function saveItem() {
             let doc = { creatorEmail: currentUser.email };
-            if(currentView === 'workers') doc = { ...doc, name: document.getElementById('f1').value, curp: document.getElementById('f2').value.toUpperCase(), occupation: document.getElementById('f3').value, position: document.getElementById('f4').value };
-            else if(currentView === 'companies') doc = { ...doc, name: document.getElementById('f1').value, rfc: document.getElementById('f2').value.toUpperCase() };
-            else if(currentView === 'courses') doc = { ...doc, name: document.getElementById('f1').value, durationHours: parseInt(document.getElementById('f2').value), thematicArea: document.getElementById('f3').value };
-            else if(currentView === 'agents') doc = { ...doc, name: document.getElementById('f1').value, stps: document.getElementById('f2').value };
-
-            const { error } = await sb.from(currentView).insert([doc]);
-            if(!error) { alert("¡Guardado!"); closeModal(); refreshCurrentView(); } else { alert("Error: " + error.message); }
-        }
-
-        async function openDC3Modal(worker) {
-            selectedWorker = worker;
-            document.getElementById('dc3-worker-name').innerText = worker.name;
-            const cos = await fetchResilient('companies', null);
-            const crs = await fetchResilient('courses', null);
-            document.getElementById('dc3-company').innerHTML = cos.map(c => `<option value="${c.name}">${c.name}</option>`).join('') || '<option value="">Sin empresas</option>';
-            document.getElementById('dc3-course').innerHTML = crs.map(c => `<option value="${c.name}">${c.name}</option>`).join('') || '<option value="">Sin cursos</option>';
-            document.getElementById('dc3-modal').style.display = 'block';
-        }
-
-        async function generateSingleDC3() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            const companyName = document.getElementById('dc3-company').value;
-            const courseName = document.getElementById('dc3-course').value;
-
-            doc.setFont("helvetica", "bold"); doc.setFontSize(14);
-            doc.text("FORMATO DC-3", 105, 20, null, null, "center");
-            doc.setFontSize(8); doc.text("CONSTANCIA DE COMPETENCIAS O DE HABILIDADES LABORALES", 105, 28, null, null, "center");
-
-            const drawBar = (text, y) => {
-                doc.setFillColor(230, 230, 230); doc.rect(15, y, 180, 6, 'F');
-                doc.setFontSize(7); doc.setTextColor(0); doc.text(text, 17, y + 4.5);
-            };
-
-            drawBar("DATOS DEL TRABAJADOR", 38);
-            doc.setFontSize(6); doc.setTextColor(150, 0, 0); doc.text("Nombre (Anotar apellido paterno, apellido materno y nombre(s))", 15, 50);
-            doc.setFontSize(10); doc.setTextColor(0); doc.text(selectedWorker.name.toUpperCase(), 15, 56);
-            doc.line(15, 57, 195, 57);
-
-            doc.setFontSize(6); doc.setTextColor(150, 0, 0); doc.text("Clave Única de Registro de Población", 15, 64);
-            const curp = selectedWorker.curp.toUpperCase().padEnd(18);
-            for(let i=0; i<18; i++) { doc.rect(15 + (i * 4.5), 66, 4.5, 6); doc.text(curp[i], 16 + (i * 4.5), 70.5); }
-
-            drawBar("DATOS DE LA EMPRESA", 85);
-            doc.setFontSize(6); doc.setTextColor(150, 0, 0); doc.text("Nombre o razón social", 15, 97);
-            doc.setFontSize(10); doc.setTextColor(0); doc.text(companyName.toUpperCase(), 15, 103);
-            doc.line(15, 104, 195, 104);
-
-            doc.save(`DC3_${selectedWorker.curp}.pdf`);
-
-            await sb.from('dc3_records').insert([{ worker_name: selectedWorker.name, worker_id: selectedWorker.curp, course_name: courseName, company_name: companyName, start_date: document.getElementById('dc3-start').value, creatorEmail: currentUser.email }]);
-            document.getElementById('dc3-modal').style.display='none';
-            refreshCurrentView();
+            if(currentView === 'employees') {
+                doc = { ...doc, employee_number: document.getElementById('v1').value, curp: document.getElementById('v2').value.toUpperCase(), first_name: document.getElementById('v3').value, last_name: document.getElementById('v4').value, middle_name: document.getElementById('v5').value, position: document.getElementById('v6').value };
+            } else if(currentView === 'companies') {
+                doc = { ...doc, name: document.getElementById('f1').value, rfc: document.getElementById('f2').value.toUpperCase() };
+            } else if(currentView === 'courses') {
+                doc = { ...doc, name: document.getElementById('c1').value, duration: parseInt(document.getElementById('c2').value) };
+            } else if(currentView === 'instructors') {
+                doc = { ...doc, full_name: document.getElementById('i1').value, stps_number: document.getElementById('i2').value };
+            } else if(currentView === 'trainings') {
+                doc = { ...doc, employee_id: parseInt(document.getElementById('t1').value), course_id: parseInt(document.getElementById('t2').value), start_date: document.getElementById('t3').value };
+            }
+            await sb.from(currentView).insert([doc]);
+            closeModal(); refreshCurrentView();
         }
 
         function closeModal() { document.getElementById('modal').style.display = 'none'; }
         function logout() { location.reload(); }
-        async function deleteItem(table, id) { if(confirm("¿Seguro que deseas eliminar este registro?")) { await sb.from(table).delete().match({id}); refreshCurrentView(); } }
-        async function handleExcel(input) {
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
-                const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-                const docs = rows.map(r => ({ name: r.Nombre || r.NOMBRE, curp: r.CURP, position: r.Puesto || r.PUESTO, creatorEmail: currentUser.email }));
-                await sb.from('workers').insert(docs);
-                alert("Excel cargado!"); refreshCurrentView();
-            };
-            reader.readAsArrayBuffer(input.files[0]);
-        }
+        async function deleteItem(t, id) { if(confirm("¿Borrar?")) { await sb.from(t).delete().match({id}); refreshCurrentView(); } }
     </script>
 </body>
 </html>

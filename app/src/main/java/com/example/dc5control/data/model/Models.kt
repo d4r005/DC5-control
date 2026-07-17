@@ -1,20 +1,38 @@
 package com.example.dc5control.data.model
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerialName
 
 @Serializable
-data class Worker(
-    val id: String? = null,
-    val name: String = "",
+data class Employee(
+    val id: Long? = null,
+    @SerialName("employee_number") val employeeNumber: String = "",
+    @SerialName("first_name") val firstName: String = "",
+    @SerialName("last_name") val lastName: String = "",
+    @SerialName("middle_name") val middleName: String? = null,
     val curp: String = "",
-    val occupation: String = "",
+    val rfc: String = "",
+    val nss: String? = null,
     val position: String = "",
-    val creatorEmail: String? = null
+    val department: String? = null,
+    @SerialName("hire_date") val hireDate: String? = null,
+    val active: Boolean = true,
+    @SerialName("creatorEmail") val creatorEmail: String? = null
+)
+
+@Serializable
+data class Instructor(
+    val id: Long? = null,
+    @SerialName("full_name") val fullName: String = "",
+    @SerialName("stps_number") val stpsNumber: String? = null,
+    val external: Boolean = false,
+    val company: String? = null,
+    @SerialName("creatorEmail") val creatorEmail: String? = null
 )
 
 @Serializable
 data class Company(
-    val id: String? = null,
+    val id: Long? = null,
     val name: String = "",
     val rfc: String = "",
     val creatorEmail: String? = null
@@ -22,31 +40,37 @@ data class Company(
 
 @Serializable
 data class Course(
-    val id: String? = null,
+    val id: Long? = null,
     val name: String = "",
-    val durationHours: Int = 8,
-    val thematicArea: String = "",
-    val creatorEmail: String? = null
+    val duration: Int = 8,
+    @SerialName("thematic_area") val thematicArea: String = "",
+    @SerialName("occupation_key") val occupationKey: String? = null,
+    val description: String? = null,
+    @SerialName("creatorEmail") val creatorEmail: String? = null
 )
 
 @Serializable
-data class TrainingAgent(
-    val id: String? = null,
-    val name: String = "",
-    val stps: String = "",
-    val creatorEmail: String? = null
+data class Training(
+    val id: Long? = null,
+    @SerialName("employee_id") val employeeId: Long,
+    @SerialName("course_id") val courseId: Long,
+    @SerialName("instructor_id") val instructorId: Long,
+    @SerialName("start_date") val startDate: String,
+    @SerialName("end_date") val endDate: String,
+    val hours: Int,
+    val approved: Boolean = true,
+    val score: Double? = null,
+    @SerialName("creatorEmail") val creatorEmail: String? = null
 )
 
 @Serializable
 data class DC3Record(
-    val id: String? = null,
-    val workerId: String = "",
-    val workerName: String = "",
-    val courseName: String = "",
-    val companyName: String = "",
-    val startDate: String = "",
-    val endDate: String = "",
-    val representativePatron: String = "",
-    val representativeWorkers: String = "",
-    val creatorEmail: String? = null
+    val id: Long? = null,
+    @SerialName("worker_id") val workerId: String = "",
+    @SerialName("worker_name") val workerName: String = "",
+    @SerialName("course_name") val courseName: String = "",
+    @SerialName("company_name") val companyName: String = "",
+    @SerialName("start_date") val startDate: String = "",
+    @SerialName("end_date") val endDate: String = "",
+    @SerialName("creatorEmail") val creatorEmail: String? = null
 )
