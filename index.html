@@ -1078,6 +1078,32 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
         });
     }
 
+    // ── 0. CABECERA (Logo Luber y Slogan) ──────────────────────────────────
+    try {
+        const logoResp = await fetch('/signatures/logo_luber.png');
+        if (logoResp.ok) {
+            const logoBytes = await logoResp.arrayBuffer();
+            const logoImg = await pdfDoc.embedPng(logoBytes);
+            // Dibujar slogan arriba (X=300 centro)
+            const StandardFonts = PDFLib.StandardFonts;
+            const sloganFont = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
+            const slogan = sp("Tu seguridad, nuestra mision");
+            const sw = sloganFont.widthOfTextAtSize(slogan, 22);
+            page.drawText(slogan, { x: 300 - sw/2, y: PH - 65, size: 22, font: sloganFont, color: rgb(0.4, 0.4, 0.4) });
+
+            // Dibujar logo abajo del slogan
+            page.drawImage(logoImg, {
+                x: 235, y: PH - 145,
+                width: 130, height: 70
+            });
+
+            // Texto FORMATO DC-3
+            const dc3Text = "FORMATO DC-3";
+            const dw = fontB.widthOfTextAtSize(dc3Text, 18);
+            page.drawText(dc3Text, { x: 300 - dw/2, y: PH - 175, size: 18, font: fontB });
+        }
+    } catch(e) { console.warn('Error en cabecera:', e); }
+
     // ── 1. Nombre trabajador ─────────────────────────────────────────────────
     T(30, 170, (worker.name||'').toUpperCase(), 9, true);
 
@@ -1088,7 +1114,8 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     // ── 3. Ocupación (col derecha) ───────────────────────────────────────────
     T(305, 193, (worker.occupation||worker.position||'').toUpperCase().slice(0,50), 7);
 
-    // ── 4. Puesto (e escribimos directamente sin borrar bordes) ──────────────
+    // ── 4. Puesto (limpieza quirúrgica solo para el texto) ────────────────────
+    page.drawRectangle({ x:31, y: PH-229, width:538, height:13, color: rgb(1,1,1) });
     T(30, 223, (worker.position||'').toUpperCase(), 9);
 
     // ── 5. Nombre empresa ────────────────────────────────────────────────────
@@ -1122,10 +1149,10 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     T(30, 438, agentLine.slice(0,70), 8);
 
     // ── 12. Limpiar etiquetas y firmas antiguas de forma quirúrgica (no borrar bordes) ──
-    // Limpiamos los títulos (Instructor, Patron, Repr) con rectángulos muy precisos
-    page.drawRectangle({ x: 31, y: PH - 508, width: 538, height: 18, color: rgb(1,1,1) });
+    // Limpiamos los títulos (Instructor, Patron, Repr) con rectángulos muy precisos para no dejar rastro
+    page.drawRectangle({ x: 31, y: PH - 510, width: 538, height: 21, color: rgb(1,1,1) });
     // Limpiamos las líneas originales y "Nombre y firma" con rectángulos muy precisos
-    page.drawRectangle({ x: 31, y: PH - 553, width: 538, height: 21, color: rgb(1,1,1) });
+    page.drawRectangle({ x: 31, y: PH - 555, width: 538, height: 24, color: rgb(1,1,1) });
 
     // Logo LUBER (fondo) - Centrado en X=120
     const LOGO_H = 70, LOGO_W = 130;
