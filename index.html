@@ -460,7 +460,7 @@ const DATA = {
         { name: "FORMACION DE TECNICOS EN INHALOTERAPIA", durationHours: "24 HORAS", thematicArea: "(6000) SEGURIDAD", creatorEmail: "lugga.advisors@gmail.com" }
     ],
     agents: [
-        { name: "CYNTHIA YADIRA GARZA LUGO", stps: "STPS-GALC780523-MP3-005", creatorEmail: "lugga.advisors@gmail.com" }
+        { name: "ING. CYNTHIA YADIRA GARZA LUGO", stps: "STPS-GALC780523-MP3-005", creatorEmail: "lugga.advisors@gmail.com" }
     ],
     companies: []   // Cargado desde Supabase
 };
@@ -1038,25 +1038,37 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     const agentLine = sp(((agent.name||'') + '  ' + (agent.stps||'')).toUpperCase().trim());
     T(30, 438, agentLine.slice(0,70), 8);
 
-    // ── 12. Firma Digital de Cynthia (Limpieza total de logos previos) ───────
-    // Limpiamos un área grande para eliminar el logotipo de LUBER
-    page.drawRectangle({ x: 30, y: PH - 525, width: 220, height: 80, color: rgb(1,1,1) });
+    // ── 12. Firma Digital de Cynthia (Personalizada con Logo LUBER) ──────────
+    // Limpiamos el área original de la plantilla
+    page.drawRectangle({ x: 35, y: PH - 525, width: 215, height: 75, color: rgb(1,1,1) });
 
     if (agent.name.toUpperCase().includes('CYNTHIA')) {
         try {
+            // 1. Logo LUBER (Fondo)
+            const luberResp = await fetch('/signatures/image4.png');
+            if (luberResp.ok) {
+                const luberBytes = await luberResp.arrayBuffer();
+                const luberImg = await pdfDoc.embedPng(luberBytes);
+                const luberDims = luberImg.scale(0.22);
+                page.drawImage(luberImg, {
+                    x: 60, y: PH - 505,
+                    width: luberDims.width, height: luberDims.height,
+                    opacity: 0.4
+                });
+            }
+
+            // 2. Firma Azul (Sobre el logo)
             const sigResp = await fetch('/signatures/cynthia_firma_oficial.png');
             if (sigResp.ok) {
                 const sigBytes = await sigResp.arrayBuffer();
                 const sigImg = await pdfDoc.embedPng(sigBytes);
-                const sigDims = sigImg.scale(0.38);
+                const sigDims = sigImg.scale(0.42);
                 page.drawImage(sigImg, {
-                    x: 60,
-                    y: PH - 515,
-                    width: sigDims.width,
-                    height: sigDims.height,
+                    x: 65, y: PH - 515,
+                    width: sigDims.width, height: sigDims.height,
                 });
             }
-        } catch (e) { console.warn('Error cargando firma:', e); }
+        } catch (e) { console.warn('Error en firma personalizada:', e); }
     }
 
     // ── 13. Nombres bajo líneas de firma ─────────────────────────────────────
