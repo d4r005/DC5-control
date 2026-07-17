@@ -844,14 +844,17 @@ function prepareEditDC3(record) {
 }
 
 async function generateDC3() {
-    const company   = document.getElementById('dc3-company').value;
-    const agentVal  = document.getElementById('dc3-agent').value;
-    const courseVal = document.getElementById('dc3-course').value;
-    const start     = document.getElementById('dc3-start').value;
-    const end       = document.getElementById('dc3-end').value;
-    const result    = document.getElementById('dc3-result').value;
+    const companyName = document.getElementById('dc3-company').value;
+    const agentVal    = document.getElementById('dc3-agent').value;
+    const courseVal   = document.getElementById('dc3-course').value;
+    const start       = document.getElementById('dc3-start').value;
+    const end         = document.getElementById('dc3-end').value;
+    const result      = document.getElementById('dc3-result').value;
 
     if (!start || !end) { alert('Selecciona las fechas de inicio y término'); return; }
+
+    // Buscar el objeto empresa completo para obtener el RFC
+    const company = DATA.companies.find(c => c.name === companyName) || { name: companyName, rfc: '' };
 
     const [agentName, agentStps] = agentVal.split('|');
     const [courseName, courseDuration, courseArea] = courseVal.split('|');
@@ -972,7 +975,7 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     const DIA_INI  = [390.4,411.9];
     const AÑO_FIN  = [452.1,471.7,491.2,511.5];
     const MES_FIN  = [532.5,554.0];
-    const DIA_FIN  = [575.5];
+    const DIA_FIN  = [575.5, 597.0];
     const FECHA_Y  = PH - 389;
 
     // Helper: dibuja texto
@@ -1042,10 +1045,10 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
             if (sigResp.ok) {
                 const sigBytes = await sigResp.arrayBuffer();
                 const sigImg = await pdfDoc.embedPng(sigBytes);
-                const sigDims = sigImg.scale(0.25); // Ajustar escala según sea necesario
+                const sigDims = sigImg.scale(0.35); // Aumentado ligeramente para mejor visibilidad
                 page.drawImage(sigImg, {
-                    x: 60,
-                    y: PH - 515, // Ajustado para quedar sobre el nombre
+                    x: 75,
+                    y: PH - 510, // Ajustado para quedar centrado sobre la línea
                     width: sigDims.width,
                     height: sigDims.height,
                 });
