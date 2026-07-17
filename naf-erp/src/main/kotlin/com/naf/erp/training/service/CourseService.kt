@@ -11,7 +11,8 @@ class CourseService(
 
     fun all(): List<Course> = repository.findAll()
 
-    fun save(course: Course): Course =
-        repository.save(course)
+    fun find(id: Long): Course =
+        repository.findById(id)
+            .orElseThrow { RuntimeException("Curso no encontrado") }
 
-}
+    fun delete(id: Long) = repository.deleteById(id)
