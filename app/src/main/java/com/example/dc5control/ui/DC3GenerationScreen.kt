@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.dp
 import com.example.dc5control.data.model.*
 import com.example.dc5control.data.repository.SupabaseRepository
 import com.example.dc5control.ui.components.SignaturePad
+import com.example.dc5control.util.CloudflareHelper
 import com.example.dc5control.util.PdfGenerator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -64,7 +65,7 @@ fun DC3GenerationScreen(onBack: () -> Unit) {
 
                         // Generar DC-3 con PDFBox para cada empleado activo
                         employees.filter { it.active }.forEach { employee ->
-                            PdfGenerator.generateDC3(
+                            val file = PdfGenerator.generateDC3(
                                 context = context,
                                 employee = employee,
                                 course = selectedCourse!!,
@@ -77,6 +78,17 @@ fun DC3GenerationScreen(onBack: () -> Unit) {
                                 logoBitmap = logoBitmap
                             )
 
+                            // Subir PDF a Cloudflare
+                            CloudflareHelper.uploadPdf(
+                                file = file,
+                                onSuccess = { 
+                                    android.util.Log.d("Cloudflare", "PDF subidó con éxito: ${file.name}")
+                                },
+                                onError = { error ->
+                                    android.util.Log.e("Cloudflare", "Error al subir PDF: $error")
+                                }
+                            )
+
                             // Guardar registro del DC-3 generado
                             val record = DC3Record(
                                 workerId = employee.curp,
@@ -86,7 +98,13 @@ fun DC3GenerationScreen(onBack: () -> Unit) {
                                 startDate = startDate,
                                 endDate = endDate
                             )
-                            SupabaseRepository.insertData("dc3_records", record, DC3Record.serializer()) { }
+                            SupabaseRepository.insertData("dc3_records", record, DC3Record.serializer()) { success ->
+                                if (success) {
+                                    android.util.Log.d("Supabase", "Registro guardado en Cloudflare/Supabase")
+                                } else {
+                                    android.util.Log.e("Supabase", "Error al guardar registro")
+                                }
+                            }
                         }
                     }
                     isGenerating = false
