@@ -41,4 +41,12 @@ interface TrainingRepository : JpaRepository<Training, Long> {
         )
     """)
     fun trainingsWithoutDC3(): List<Training>
+
+    fun countByApprovedTrue(): Long
+
+    @Query("SELECT COUNT(t) FROM Training t WHERE t.approved = true AND t.endDate < :date")
+    fun countVencidos(date: java.time.LocalDate): Long
+
+    @Query("SELECT COUNT(t) FROM Training t WHERE t.approved = true AND t.endDate BETWEEN :start AND :end")
+    fun countPorVencer(start: java.time.LocalDate, end: java.time.LocalDate): Long
 }

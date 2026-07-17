@@ -52,11 +52,8 @@ class DC3Service(
 
     private fun generateNumber(): String {
         val year = java.time.LocalDate.now().year
-        val random = java.util.UUID.randomUUID()
-            .toString()
-            .substring(0, 8)
-            .uppercase()
-        return "DC3-$year-$random"
+        val count = dc3Repository.count() + 1
+        return "DC3-$year-${count.toString().padStart(6, '0')}"
     }
 
     fun all(): List<DC3> = dc3Repository.findAll()
