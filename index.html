@@ -986,9 +986,9 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     // CURP: separadores exactos
     const CURP_SEPS = [24.2,39.6,55.0,70.6,85.9,101.1,116.7,132.1,147.4,
                        162.8,178.1,193.5,208.9,224.3,239.6,255.0,270.3,285.7,301.1];
-    // RFC: separadores exactos
-    const RFC_SEPS  = [24.2,38.8,53.4,68.0,82.6,97.2,111.8,126.4,
-                       141.0,155.6,170.2,184.8,199.4,214.0,228.6,243.2];
+    // RFC: separadores exactos con paso de 14.2 para centrado perfecto
+    const RFC_SEPS  = [24.2, 38.4, 52.6, 66.8, 81.0, 95.2, 109.4, 123.6,
+                       137.8, 152.0, 166.2, 180.4, 194.6, 208.8, 223.0, 237.2];
 
     // Baseline Y para cada fila (centro vertical de la celda + ajuste)
     const CURP_Y  = (185.8 + 201.2)/2 + 2.5;  // 193.5
@@ -1041,10 +1041,8 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     T(30, 282, (compObj.name||company||'').toUpperCase().slice(0,70), 9, true);
 
     // Corregir espacio en "DATOS DELAEMPRESA"
-    page.drawRectangle({ x: 250, y: PH - 263, width: 200, height: 15, color: rgb(0,0,0) });
-    T(258, 260, 'DATOS DE LA EMPRESA', 10, true);
-    // Cambiar color de texto a blanco para este caso
-    page.drawText('DATOS DE LA EMPRESA', { x: 258, y: PH - 260, size: 10, font: fontB, color: rgb(1,1,1) });
+    page.drawRectangle({ x: 230, y: PH - 265, width: 220, height: 20, color: rgb(0,0,0) });
+    page.drawText('DATOS DE LA EMPRESA', { x: 258, y: PH - 260, size: 11, font: fontB, color: rgb(1,1,1) });
 
     // ── 6. RFC empresa (carácter por celda centrado) ──────────────────────────
     const rfcClean = (compObj.rfc||'').toUpperCase().replace(/\s/g,'').slice(0,15);
@@ -1080,9 +1078,9 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     // Firma: ratio 1.419 → H=60, W=60*1.419=85 → centrado: x0=131-42.5=88.5≈89
     page.drawRectangle({ x: 25, y: PH - 541, width: 185, height: 88, color: rgb(1,1,1) });
 
-    // Logo LUBER (fondo)
-    const LOGO_H = 80, LOGO_W = 150;
-    const LOGO_X = 45;
+    // Logo LUBER (fondo) - Centrado en X=131
+    const LOGO_H = 80, LOGO_W = 140;
+    const LOGO_X = 61; // (131 - 140/2) = 61
     const LOGO_Y_FITZ = 450;
     try {
         const logoResp = await fetch('/signatures/logo_luber.png');
@@ -1092,14 +1090,14 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
             page.drawImage(logoImg, {
                 x: LOGO_X, y: PH - (LOGO_Y_FITZ + LOGO_H),
                 width: LOGO_W, height: LOGO_H,
-                opacity: 1.0
+                opacity: 0.8
             });
         }
     } catch(e) { console.warn('Error cargando logo:', e); }
 
-    // ── 13. Firma del instructor (encima del logo) ────────────────────────────
-    const FIRMA_H = 75, FIRMA_W = 120;
-    const FIRMA_X = 60;
+    // Firma del instructor (encima del logo)
+    const FIRMA_H = 75, FIRMA_W = 110;
+    const FIRMA_X = 76; // (131 - 110/2) = 76
     const FIRMA_Y_FITZ = 455;
     try {
         const sigResp = await fetch('/signatures/firma_instructor.png');

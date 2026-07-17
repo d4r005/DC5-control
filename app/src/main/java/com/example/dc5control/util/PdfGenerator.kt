@@ -76,10 +76,10 @@ object PdfGenerator {
     private const val CURP_Y1 = 185.8f  // top de celda
     private const val CURP_Y2 = 201.2f  // bottom de celda
 
-    // RFC: 16 celdas (x0 de cada separador)
+    // RFC: 15 celdas exactas para RFC con guiones
     private val RFC_XS = floatArrayOf(
-        24.2f,38.8f,53.4f,68.0f,82.6f,97.2f,111.8f,126.4f,
-        141.0f,155.6f,170.2f,184.8f,199.4f,214.0f,228.6f,243.2f
+        24.2f, 38.4f, 52.6f, 66.8f, 81.0f, 95.2f, 109.4f, 123.6f,
+        137.8f, 152.0f, 166.2f, 180.4f, 194.6f, 208.8f, 223.0f, 237.2f
     )
     private const val RFC_Y1 = 300.3f
     private const val RFC_Y2 = 315.2f
@@ -123,12 +123,12 @@ object PdfGenerator {
     // Sección de firmas
     private const val SIG_Y1 = 443.4f
     private const val SIG_Y2 = 539.9f
-    // Columna instructor: X=24 a ~215 → centro en X=120
-    private const val LOGO_X = 45f;   private const val LOGO_Y = 450f
-    private const val LOGO_W = 150f;  private const val LOGO_H = 80f
-    // Firma encima del logo, centrada
-    private const val FIRMA_X = 60f;  private const val FIRMA_Y = 455f
-    private const val FIRMA_W = 120f; private const val FIRMA_H = 75f
+    // Columna instructor: X=24 a ~215 → centro en X=131
+    private const val LOGO_X = 61f;   private const val LOGO_Y = 450f
+    private const val LOGO_W = 140f;  private const val LOGO_H = 80f
+    // Firma encima del logo, centrada en X=131
+    private const val FIRMA_X = 76f;  private const val FIRMA_Y = 455f
+    private const val FIRMA_W = 110f; private const val FIRMA_H = 75f
 
     // Nombre instructor bajo firma
     private const val X_INS = 30f
@@ -264,8 +264,10 @@ object PdfGenerator {
         canvas.drawRect(25f * SCALE, 209f * SCALE, 586f * SCALE, 228f * SCALE, erasePaint)
         text(pNormal, 30f, Y_PUESTO, d.puesto.uppercase())
 
-        // Corregir espacio en "DATOS DELAEMPRESA"
-        val pWhite = Paint().apply { color = Color.WHITE; textSize = 10f * SCALE; isAntiAlias = true; typeface = Typeface.DEFAULT_BOLD }
+        // Corregir espacio en "DATOS DELAEMPRESA" - Tapar y redibujar
+        val bgPaint = Paint().apply { color = Color.BLACK; style = Paint.Style.FILL }
+        canvas.drawRect(240f * SCALE, 245f * SCALE, 450f * SCALE, 268f * SCALE, bgPaint)
+        val pWhite = Paint().apply { color = Color.WHITE; textSize = 11f * SCALE; isAntiAlias = true; typeface = Typeface.DEFAULT_BOLD }
         canvas.drawText("DATOS DE LA EMPRESA", 258f * SCALE, 260f * SCALE, pWhite)
 
         // ── Empresa ───────────────────────────────────────────────────────────
