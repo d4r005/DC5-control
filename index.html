@@ -1166,18 +1166,18 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     // ── 14. Nombres bajo imágenes ───────────────────────────────────────────
     const CENTER_X_INS = 120;
 
-    // Texto "Instructor o tutor" alineado con los otros (Y=483 aprox para que baje)
-    T_Centered(CENTER_X_INS, 483, "Instructor o tutor", 9, true);
+    // Texto "Instructor o tutor" alineado con los otros (Y=502 para bajarlo al nivel de los otros)
+    T_Centered(CENTER_X_INS, 502, "Instructor o tutor", 8, true);
 
     const insName = sp((agent.name||'').toUpperCase());
     const insLines = splitNameJS(insName, 26);
     T_Centered(CENTER_X_INS, 520, insLines[0], 8);
     if (insLines[1]) T_Centered(CENTER_X_INS, 530, insLines[1], 8);
 
-    // Dibujar línea (sin el texto "Nombre y firma" para evitar duplicados)
+    // Dibujar línea (Bajada a 542 para que sea lineal con las otras del PDF)
     page.drawLine({
-        start: { x: 35, y: PH - 536 },
-        end: { x: 205, y: PH - 536 },
+        start: { x: 35, y: PH - 542 },
+        end: { x: 205, y: PH - 542 },
         thickness: 1,
         color: rgb(0,0,0)
     });
