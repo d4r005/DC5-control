@@ -1080,30 +1080,38 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
 
     // ── 0. CABECERA (Logo y Slogan) ────────────────────────────────────────
     try {
-        const sloganFont = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
-        const logoHeaderPath = '/signatures/image3.png';
+        // Cargar fuente cursiva (Dancing Script) para el eslogan
+        const fontUrl = 'https://cdn.jsdelivr.net/font-nosvg/1.0/DancingScript-Regular.ttf';
+        const sloganFontBytes = await fetch(fontUrl).then(res => res.arrayBuffer()).catch(() => null);
+        let sloganFont = await pdfDoc.embedFont(PDFLib.StandardFonts.TimesRomanItalic);
+        if (sloganFontBytes) {
+            sloganFont = await pdfDoc.embedFont(sloganFontBytes);
+        }
+
+        // Logo de cabecera (image2.png es el logo oficial negro/dorado de alta resolucion)
+        const logoHeaderPath = '/signatures/image2.png';
         const logoResp = await fetch(logoHeaderPath);
 
         if (logoResp.ok) {
             const logoBytes = await logoResp.arrayBuffer();
             const logoImg = await pdfDoc.embedPng(logoBytes);
 
-            // Slogan
+            // 1. Eslogan en cursiva (Mas arriba para no encimarse)
             const slogan = sp("Tu seguridad, nuestra mision");
-            const sw = sloganFont.widthOfTextAtSize(slogan, 22);
+            const sw = sloganFont.widthOfTextAtSize(slogan, 26);
             page.drawText(slogan, {
-                x: 300 - sw/2, y: PH - 50,
-                size: 22, font: sloganFont, color: rgb(0.3, 0.3, 0.3)
+                x: 300 - sw/2, y: PH - 35,
+                size: 26, font: sloganFont, color: rgb(0.1, 0.1, 0.1)
             });
 
-            // Logo
-            const LH = 65, LW = 110;
+            // 2. Logo negro/dorado centrado (Mas arriba)
+            const LH = 65, LW = 120;
             page.drawImage(logoImg, {
-                x: 300 - LW/2, y: PH - 125,
+                x: 300 - LW/2, y: PH - 105,
                 width: LW, height: LH
             });
         }
-    } catch(e) { console.error('Error cabecera:', e); }
+    } catch(e) { console.warn('Error en cabecera:', e); }
 
     // ── 1. Nombre trabajador ─────────────────────────────────────────────────
     T(30, 170, (worker.name||'').toUpperCase(), 9, true);
