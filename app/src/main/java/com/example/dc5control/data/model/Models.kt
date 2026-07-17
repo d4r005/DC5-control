@@ -50,6 +50,18 @@ data class Course(
 )
 
 @Serializable
+data class ThematicArea(
+    val code: String = "",
+    val description: String = ""
+)
+
+@Serializable
+data class Occupation(
+    val code: String = "",
+    val description: String = ""
+)
+
+@Serializable
 data class Training(
     val id: Long? = null,
     @SerialName("employee_id") val employeeId: Long,
@@ -60,6 +72,18 @@ data class Training(
     val hours: Int,
     val approved: Boolean = true,
     val score: Double? = null,
+    @SerialName("creatorEmail") val creatorEmail: String? = null
+)
+
+@Serializable
+data class DC3(
+    val id: Long? = null,
+    @SerialName("training_id") val trainingId: Long,
+    @SerialName("dc3_number") val dc3Number: String? = null,
+    val generated: String? = null,
+    val pdf: String? = null,
+    val docx: String? = null,
+    val signed: Boolean = false,
     @SerialName("creatorEmail") val creatorEmail: String? = null
 )
 

@@ -1,0 +1,20 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://db.osgfwgedjdltrmvwycjd.supabase.co:5432/postgres
+    username: postgres
+    password: ${DB_PASSWORD:Branco2025.}
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+server:
+  port: 8080
+  servlet:
+    context-path: /api/v1

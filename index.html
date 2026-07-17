@@ -17,6 +17,7 @@
         .nav-btn.active { background-color: #2563eb; color: white; box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2); }
         .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); overflow-y: auto; }
         .modal-content { background: white; margin: 2% auto; padding: 30px; width: 600px; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+        #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; padding: 12px 24px; border-radius: 12px; font-weight: 700; transition: opacity 0.3s; opacity: 0; pointer-events: none; }
     </style>
 </head>
 <body class="antialiased text-slate-200 h-screen overflow-hidden">
@@ -47,9 +48,9 @@
     <!-- App Container -->
     <div id="app-container" class="hidden fixed inset-0 flex h-screen bg-slate-50 text-slate-800 overflow-hidden">
         <aside class="w-72 bg-slate-900 text-slate-300 flex flex-col justify-between shrink-0">
-            <div>
+            <div class="overflow-y-auto">
                 <div class="h-20 flex items-center px-8 border-b border-slate-800 font-extrabold text-white text-lg italic tracking-widest">ACE-CONTROL</div>
-                <nav class="mt-8 px-6 space-y-2">
+                <nav class="mt-8 px-6 space-y-2 pb-10">
                     <button onclick="switchView('dashboard')" id="btn-dashboard" class="nav-btn w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></button>
                     <button onclick="switchView('employees')" id="btn-employees" class="nav-btn w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="users"></i><span>Personal</span></button>
                     <button onclick="switchView('companies')" id="btn-companies" class="nav-btn w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="building-2"></i><span>Empresas</span></button>
@@ -57,6 +58,9 @@
                     <button onclick="switchView('instructors')" id="btn-instructors" class="nav-btn w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="award"></i><span>Instructores</span></button>
                     <button onclick="switchView('trainings')" id="btn-trainings" class="nav-btn w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="file-check"></i><span>Capacitaciones</span></button>
                     <button onclick="switchView('dc3')" id="btn-dc3" class="nav-btn w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="printer"></i><span>DC-3 Historial</span></button>
+                    <div class="pt-4 border-t border-slate-800 mt-4 opacity-50 text-[10px] uppercase font-black px-5 tracking-widest">Catálogos</div>
+                    <button onclick="switchView('thematic_areas')" id="btn-thematic_areas" class="nav-btn w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-xs font-semibold transition-all"><i data-lucide="list"></i><span>Áreas Temáticas</span></button>
+                    <button onclick="switchView('occupation_catalog')" id="btn-occupation_catalog" class="nav-btn w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-xs font-semibold transition-all"><i data-lucide="briefcase"></i><span>Ocupaciones</span></button>
                     <button onclick="switchView('users')" id="btn-users" class="nav-btn hidden w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="users-2"></i><span>Usuarios</span></button>
                 </nav>
             </div>
@@ -64,17 +68,17 @@
         </aside>
 
         <main class="flex-1 flex flex-col overflow-hidden">
-            <header class="h-20 bg-white border-b flex items-center justify-between px-10 shrink-0">
+            <header class="h-20 bg-white border-b flex items-center justify-between px-10 shrink-0 text-slate-800">
                 <div class="flex items-center space-x-4">
-                    <h1 id="page-title" class="text-2xl font-bold text-slate-800">Dashboard</h1>
-                    <select id="user-filter" onchange="refreshCurrentView()" class="border rounded-xl px-4 py-2 bg-slate-50 font-bold text-sm text-slate-800 focus:outline-none">
+                    <h1 id="page-title" class="text-2xl font-bold">Dashboard</h1>
+                    <select id="user-filter" onchange="refreshCurrentView()" class="border rounded-xl px-4 py-2 bg-slate-50 font-bold text-sm">
                         <option value="ALL">Ver Todo</option>
                         <option value="d4r005@gmail.com">Dario Robles</option>
                         <option value="lugga.advisors@gmail.com">Cynthia Garza</option>
                     </select>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <div class="text-right leading-tight"><p id="user-name-display" class="font-extrabold text-slate-900"></p><p class="text-[10px] text-slate-500 font-black uppercase tracking-widest">Administrador ACE</p></div>
+                    <div class="text-right leading-tight"><p id="user-name-display" class="font-extrabold"></p><p class="text-[10px] text-slate-500 font-bold uppercase"></p></div>
                     <div id="user-initials" class="h-10 w-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold uppercase tracking-widest text-sm">DA</div>
                 </div>
             </header>
@@ -127,11 +131,6 @@
             { name: "Cynthia Garza Lugo", email: "lugga.advisors@gmail.com", role: "USER", password: "Cynthia123" }
         ];
 
-        const CATALOGS = {
-            occupations: ["01 Cultivo, crianza y aprovechamiento", "02 Extracción y suministro", "03 Construcción", "04 Tecnología", "05 Procesamiento y fabricación", "06 Transporte", "07 Provisión de bienes y servicios", "08 Gestión y soporte administrativo", "09 Salud y protección social", "10 Comunicación"],
-            thematicAreas: ["1000 Producción general", "2000 Servicios", "3000 Administración", "4000 Comercialización", "5000 Mantenimiento", "6000 Seguridad", "7000 Desarrollo personal"]
-        };
-
         let currentUser = null, currentView = 'dashboard';
 
         async function login(e) {
@@ -146,6 +145,7 @@
             document.getElementById('view-login').classList.add('hidden');
             document.getElementById('app-container').classList.remove('hidden');
             document.getElementById('user-name-display').innerText = currentUser.name;
+            document.getElementById('user-role-display').innerText = currentUser.role === 'ADMIN' ? 'Administrador ACE' : 'Usuario ACE';
             document.getElementById('user-initials').innerText = currentUser.name.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase();
             if(currentUser.role === 'ADMIN') document.getElementById('btn-users')?.classList.remove('hidden');
             switchView('dashboard');
@@ -161,9 +161,9 @@
             try {
                 let { data, error } = await sb.from(table).select('*');
                 if (error) throw error;
-                if (!filter) return data || [];
+                if (!filter || table === 'thematic_areas' || table === 'occupation_catalog') return data || [];
                 return data.filter(d => (d.creatorEmail === filter || d.creator_email === filter));
-            } catch (e) { return []; }
+            } catch (e) { console.error(e); return []; }
         }
 
         async function switchView(v) {
@@ -173,7 +173,7 @@
             document.getElementById('view-dashboard').classList.toggle('hidden', v !== 'dashboard');
             document.getElementById('view-content').classList.toggle('hidden', v === 'dashboard');
             document.getElementById('upload-btn').classList.toggle('hidden', v !== 'employees');
-            document.getElementById('add-btn').classList.toggle('hidden', !['employees','companies','courses','instructors','trainings'].includes(v));
+            document.getElementById('add-btn').classList.toggle('hidden', !['employees','companies','courses','instructors','trainings','dc3','thematic_areas','occupation_catalog'].includes(v));
             refreshCurrentView();
         }
 
@@ -206,7 +206,7 @@
             } else if(currentView === 'courses') {
                 const data = await fetchResilient('courses', f);
                 header.innerHTML = `<tr><th class="p-6">Curso</th><th class="p-6">Duración</th><th class="p-6 text-right">Acciones</th></tr>`;
-                body.innerHTML = data.map(c => `<tr><td class="p-6 font-bold uppercase">${c.name}</td><td class="p-6 font-bold text-blue-600">${c.duration} H</td><td class="p-6 text-right"><button onclick="deleteItem('courses','${c.id}')" class="text-red-500 font-bold hover:underline">Eliminar</button></td></tr>`).join('') || '<tr><td colspan="3" class="p-10 text-center">Sin cursos</td></tr>';
+                body.innerHTML = data.map(c => `<tr><td class="p-6 font-bold uppercase text-slate-800">${c.name}</td><td class="p-6 font-bold text-blue-600">${c.duration} H</td><td class="p-6 text-right"><button onclick="deleteItem('courses','${c.id}')" class="text-red-500 font-bold hover:underline">Eliminar</button></td></tr>`).join('') || '<tr><td colspan="3" class="p-10 text-center">Sin cursos</td></tr>';
 
             } else if(currentView === 'instructors') {
                 const data = await fetchResilient('instructors', f);
@@ -215,17 +215,27 @@
 
             } else if(currentView === 'trainings') {
                 const data = await fetchResilient('trainings', f);
-                header.innerHTML = `<tr><th class="p-6">Empleado ID</th><th class="p-6">Curso ID</th><th class="p-6">Inicio</th><th class="p-6">Fin</th><th class="p-6 text-right">Acciones</th></tr>`;
-                body.innerHTML = data.map(t => `<tr><td class="p-6 font-bold">${t.employee_id}</td><td class="p-6">${t.course_id}</td><td class="p-6 font-mono text-xs">${t.start_date}</td><td class="p-6 font-mono text-xs">${t.end_date}</td><td class="p-6 text-right"><button onclick="deleteItem('trainings','${t.id}')" class="text-red-500 font-bold hover:underline">Eliminar</button></td></tr>`).join('') || '<tr><td colspan="5" class="p-10 text-center">Sin capacitaciones</td></tr>';
+                header.innerHTML = `<tr><th class="p-6">ID</th><th class="p-6">Empleado</th><th class="p-6">Curso</th><th class="p-6 text-right">Acciones</th></tr>`;
+                body.innerHTML = data.map(t => `<tr><td class="p-6 font-bold">${t.id}</td><td class="p-6">${t.employee_id}</td><td class="p-6">${t.course_id}</td><td class="p-6 text-right"><button onclick="deleteItem('trainings','${t.id}')" class="text-red-500 font-bold hover:underline">Eliminar</button></td></tr>`).join('') || '<tr><td colspan="4" class="p-10 text-center">Sin capacitaciones</td></tr>';
 
             } else if(currentView === 'dc3') {
-                const data = await fetchResilient('dc3_records', f);
-                header.innerHTML = `<tr><th class="p-6">Empleado</th><th class="p-6">Curso</th><th class="p-6 text-right">Acciones</th></tr>`;
-                body.innerHTML = data.map(d => `<tr><td class="p-6 font-bold">${d.worker_name || d.workerId}</td><td class="p-6">${d.course_name}</td><td class="p-6 text-right"><button class="text-blue-600 font-bold hover:underline">Descargar PDF</button></td></tr>`).join('') || '<tr><td colspan="3" class="p-10 text-center">Sin historial</td></tr>';
+                const data = await fetchResilient('dc3', f);
+                header.innerHTML = `<tr><th class="p-6">No. DC-3</th><th class="p-6">Capacitación</th><th class="p-6 text-right">Acciones</th></tr>`;
+                body.innerHTML = data.map(d => `<tr><td class="p-6 font-bold text-slate-800">${d.dc3_number || d.id}</td><td class="p-6">${d.training_id}</td><td class="p-6 text-right"><button onclick="deleteItem('dc3','${d.id}')" class="text-red-500 font-bold hover:underline">Eliminar</button></td></tr>`).join('') || '<tr><td colspan="3" class="p-10 text-center">Sin DC-3</td></tr>';
+
+            } else if(currentView === 'thematic_areas') {
+                const data = await fetchResilient('thematic_areas', null);
+                header.innerHTML = `<tr><th class="p-6">Código</th><th class="p-6">Descripción</th><th class="p-6 text-right">Acciones</th></tr>`;
+                body.innerHTML = data.map(a => `<tr><td class="p-6 font-bold text-blue-600">${a.code}</td><td class="p-6">${a.description}</td><td class="p-6 text-right"><button onclick="deleteItem('thematic_areas','${a.code}')" class="text-red-500 font-bold hover:underline">Eliminar</button></td></tr>`).join('') || '<tr><td colspan="3" class="p-10 text-center">Sin áreas temáticas</td></tr>';
+
+            } else if(currentView === 'occupation_catalog') {
+                const data = await fetchResilient('occupation_catalog', null);
+                header.innerHTML = `<tr><th class="p-6">Código</th><th class="p-6">Descripción</th><th class="p-6 text-right">Acciones</th></tr>`;
+                body.innerHTML = data.map(a => `<tr><td class="p-6 font-bold text-blue-600">${a.code}</td><td class="p-6">${a.description}</td><td class="p-6 text-right"><button onclick="deleteItem('occupation_catalog','${a.code}')" class="text-red-500 font-bold hover:underline">Eliminar</button></td></tr>`).join('') || '<tr><td colspan="3" class="p-10 text-center">Sin ocupaciones</td></tr>';
 
             } else if(currentView === 'users') {
                 header.innerHTML = `<tr><th class="p-6">Nombre</th><th class="p-6">Email</th><th class="p-6">Rol</th></tr>`;
-                body.innerHTML = USERS.map(u => `<tr><td class="p-6 font-bold">${u.name}</td><td class="p-6">${u.email}</td><td class="p-6"><span class="px-3 py-1 rounded-full text-xs font-black bg-blue-100 text-blue-700">${u.role}</span></td></tr>`).join('');
+                body.innerHTML = USERS.map(u => `<tr><td class="p-6 font-bold text-slate-800">${u.name}</td><td class="p-6">${u.email}</td><td class="p-6"><span class="px-3 py-1 rounded-full text-xs font-black bg-blue-100 text-blue-700">${u.role}</span></td></tr>`).join('');
             }
             lucide.createIcons();
         }
@@ -236,12 +246,7 @@
             fields.innerHTML = "";
             if(currentView === 'employees') {
                 document.getElementById('modal-title').innerText = "Nuevo Empleado";
-                fields.innerHTML = `
-                    <div class="grid grid-cols-2 gap-4"><input id="v1" placeholder="No. Empleado" class="p-4 bg-slate-50 border rounded-2xl"><input id="v2" placeholder="CURP" class="p-4 bg-slate-50 border rounded-2xl"></div>
-                    <input id="v3" placeholder="Nombre(s)" class="w-full p-4 bg-slate-50 border rounded-2xl mt-4">
-                    <div class="grid grid-cols-2 gap-4 mt-4"><input id="v4" placeholder="Apellido Paterno" class="p-4 bg-slate-50 border rounded-2xl"><input id="v5" placeholder="Apellido Materno" class="p-4 bg-slate-50 border rounded-2xl"></div>
-                    <input id="v6" placeholder="Puesto" class="w-full p-4 bg-slate-50 border rounded-2xl mt-4">
-                `;
+                fields.innerHTML = `<div class="grid grid-cols-2 gap-4"><input id="v1" placeholder="No. Empleado" class="p-4 bg-slate-50 border rounded-2xl"><input id="v2" placeholder="CURP" class="p-4 bg-slate-50 border rounded-2xl"></div><input id="v3" placeholder="Nombre(s)" class="w-full p-4 bg-slate-50 border rounded-2xl mt-4"><div class="grid grid-cols-2 gap-4 mt-4"><input id="v4" placeholder="Apellido Paterno" class="p-4 bg-slate-50 border rounded-2xl"><input id="v5" placeholder="Apellido Materno" class="p-4 bg-slate-50 border rounded-2xl"></div><input id="v6" placeholder="Puesto" class="w-full p-4 bg-slate-50 border rounded-2xl mt-4">`;
             } else if(currentView === 'companies') {
                 document.getElementById('modal-title').innerText = "Nueva Empresa";
                 fields.innerHTML = `<input id="f1" placeholder="Nombre o Razón Social" class="w-full p-4 bg-slate-50 border rounded-2xl"><input id="f2" placeholder="RFC" class="w-full p-4 bg-slate-50 border rounded-2xl mt-4">`;
@@ -253,7 +258,16 @@
                 fields.innerHTML = `<input id="i1" placeholder="Nombre Completo" class="w-full p-4 bg-slate-50 border rounded-2xl"><input id="i2" placeholder="Registro STPS" class="w-full p-4 bg-slate-50 border rounded-2xl mt-4">`;
             } else if(currentView === 'trainings') {
                 document.getElementById('modal-title').innerText = "Nueva Capacitación";
-                fields.innerHTML = `<input id="t1" placeholder="ID Empleado" class="w-full p-4 bg-slate-50 border rounded-2xl"><input id="t2" placeholder="ID Curso" class="w-full p-4 bg-slate-50 border rounded-2xl mt-4"><input id="t3" type="date" class="w-full p-4 bg-slate-50 border rounded-2xl mt-4">`;
+                fields.innerHTML = `<input id="t1" placeholder="ID Empleado" class="w-full p-4 bg-slate-50 border rounded-2xl"><input id="t2" placeholder="ID Curso" class="w-full p-4 bg-slate-50 border rounded-2xl mt-4">`;
+            } else if(currentView === 'dc3') {
+                document.getElementById('modal-title').innerText = "Nuevo Registro DC-3";
+                fields.innerHTML = `<input id="d1" placeholder="ID Capacitación" class="w-full p-4 bg-slate-50 border rounded-2xl"><input id="d2" placeholder="Número DC-3" class="w-full p-4 bg-slate-50 border rounded-2xl mt-4">`;
+            } else if(currentView === 'thematic_areas') {
+                document.getElementById('modal-title').innerText = "Nueva Área Temática";
+                fields.innerHTML = `<input id="a1" placeholder="Código" class="w-full p-4 bg-slate-50 border rounded-2xl"><input id="a2" placeholder="Descripción" class="w-full p-4 bg-slate-50 border rounded-2xl mt-4">`;
+            } else if(currentView === 'occupation_catalog') {
+                document.getElementById('modal-title').innerText = "Nueva Ocupación";
+                fields.innerHTML = `<input id="o1" placeholder="Código" class="w-full p-4 bg-slate-50 border rounded-2xl"><input id="o2" placeholder="Descripción" class="w-full p-4 bg-slate-50 border rounded-2xl mt-4">`;
             }
         }
 
@@ -268,7 +282,15 @@
             } else if(currentView === 'instructors') {
                 doc = { ...doc, full_name: document.getElementById('i1').value, stps_number: document.getElementById('i2').value };
             } else if(currentView === 'trainings') {
-                doc = { ...doc, employee_id: parseInt(document.getElementById('t1').value), course_id: parseInt(document.getElementById('t2').value), start_date: document.getElementById('t3').value };
+                doc = { ...doc, employee_id: parseInt(document.getElementById('t1').value), course_id: parseInt(document.getElementById('t2').value) };
+            } else if(currentView === 'dc3') {
+                doc = { ...doc, training_id: parseInt(document.getElementById('d1').value), dc3_number: document.getElementById('d2').value, generated: new Date().toISOString() };
+            } else if(currentView === 'thematic_areas') {
+                doc = { code: document.getElementById('a1').value, description: document.getElementById('a2').value };
+                delete doc.creatorEmail;
+            } else if(currentView === 'occupation_catalog') {
+                doc = { code: document.getElementById('o1').value, description: document.getElementById('o2').value };
+                delete doc.creatorEmail;
             }
             await sb.from(currentView).insert([doc]);
             closeModal(); refreshCurrentView();
@@ -276,7 +298,11 @@
 
         function closeModal() { document.getElementById('modal').style.display = 'none'; }
         function logout() { location.reload(); }
-        async function deleteItem(t, id) { if(confirm("¿Borrar?")) { await sb.from(t).delete().match({id}); refreshCurrentView(); } }
+        async function deleteItem(table, id) { if(confirm("¿Borrar?")) {
+            const col = (table === 'thematic_areas' || table === 'occupation_catalog') ? 'code' : 'id';
+            await sb.from(table).delete().match({[col]: id});
+            refreshCurrentView();
+        } }
     </script>
 </body>
 </html>
