@@ -1038,27 +1038,28 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     const agentLine = sp(((agent.name||'') + '  ' + (agent.stps||'')).toUpperCase().trim());
     T(30, 438, agentLine.slice(0,70), 8);
 
-    // ── 12. Firma Digital (si es Cynthia) ────────────────────────────────────
-    if (agent.name.includes('CYNTHIA')) {
+    // ── 12. Firma Digital de Cynthia (Trazo Azul) ───────────────────────────
+    if (agent.name.toUpperCase().includes('CYNTHIA')) {
         try {
             const sigResp = await fetch('/signatures/cynthia_firma_oficial.png');
             if (sigResp.ok) {
                 const sigBytes = await sigResp.arrayBuffer();
                 const sigImg = await pdfDoc.embedPng(sigBytes);
-                const sigDims = sigImg.scale(0.35); // Aumentado ligeramente para mejor visibilidad
+                const sigDims = sigImg.scale(0.35);
                 page.drawImage(sigImg, {
                     x: 75,
-                    y: PH - 510, // Ajustado para quedar centrado sobre la línea
+                    y: PH - 510, // Posicionada exactamente sobre el nombre
                     width: sigDims.width,
                     height: sigDims.height,
                 });
             }
-        } catch (e) { console.warn('No se pudo cargar la firma:', e); }
+        } catch (e) { console.warn('Error cargando firma:', e); }
     }
 
     // ── 13. Nombres bajo líneas de firma ─────────────────────────────────────
     T(70,  530, (agent.name||'').toUpperCase(), 8);    // instructor / agente
-    T(245, 530, (compObj.name||'').toUpperCase().slice(0,30), 8); // patrón (empresa)
+    // El Patrón o representante legal se deja en blanco según solicitud
+    // T(245, 530, (compObj.name||'').toUpperCase().slice(0,30), 8);
 
     // Guardar y descargar
     const outBytes = await pdfDoc.save();
