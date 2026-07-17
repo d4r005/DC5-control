@@ -1,6 +1,6 @@
 /**
  * DC5-control Cloudflare Worker
- * Backend API con Supabase (reemplaza MongoDB Atlas)
+ * Backend API con Supabase
  * 
  * Aunque el index.html usa Supabase JS client directamente,
  * este Worker queda como API de respaldo para la app Android.

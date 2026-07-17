@@ -1,9 +1,7 @@
 package com.example.dc5control.util
 
 import android.content.Context
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Paint
+import android.graphics.*
 import android.graphics.pdf.PdfDocument
 import com.example.dc5control.data.model.Worker
 import com.example.dc5control.data.model.Course
@@ -12,15 +10,19 @@ import java.io.File
 import java.io.FileOutputStream
 
 /**
- * Generador de PDF con el formato oficial DC-3 (STPS).
- * Anverso: datos del trabajador, empresa, programa de capacitación y firmas.
- * Reverso: catálogos de áreas ocupacionales y áreas temáticas.
+ * Generador de PDF con el formato oficial DC-3 (STPS) exacto.
+ * Basado en los lineamientos de validez oficial y las imágenes proporcionadas.
  */
 object PdfGenerator {
 
     private const val PAGE_W = 595
     private const val PAGE_H = 842
-    private const val MARGIN = 40f
+    private const val MARGIN = 25f
+    
+    // Colores oficiales
+    private val ORANGE_LABEL = Color.rgb(204, 51, 0) // Naranja/Rojo STPS
+    private val HEADER_BG = Color.BLACK
+    private val LINE_COLOR = Color.rgb(180, 180, 180)
 
     fun generateDC3(
         context: Context,
@@ -30,396 +32,354 @@ object PdfGenerator {
         companyName: String,
         companyRfc: String,
         startDate: String,
-        endDate: String,
-        thematicArea: String = "(6000) Seguridad",
-        occupationCode: String = ""
+        endDate: String
     ): File {
         val pdfDocument = PdfDocument()
-        // ── PÁGINA 1: ANVERSO ──
-        val page1 = pdfDocument.startPage(PdfDocument.PageInfo.Builder(PAGE_W, PAGE_H, 1).create())
-        drawAnverso(page1.canvas, worker, course, agent, companyName, companyRfc, startDate, endDate, thematicArea, occupationCode)
+        
+        // --- PÁGINA 1: ANVERSO ---
+        val pageInfo1 = PdfDocument.PageInfo.Builder(PAGE_W, PAGE_H, 1).create()
+        val page1 = pdfDocument.startPage(pageInfo1)
+        drawAnverso(page1.canvas, worker, course, agent, companyName, companyRfc, startDate, endDate)
         pdfDocument.finishPage(page1)
 
-        // ── PÁGINA 2: REVERSO ──
-        val page2 = pdfDocument.startPage(PdfDocument.PageInfo.Builder(PAGE_W, PAGE_H, 2).create())
+        // --- PÁGINA 2: REVERSO ---
+        val pageInfo2 = PdfDocument.PageInfo.Builder(PAGE_W, PAGE_H, 2).create()
+        val page2 = pdfDocument.startPage(pageInfo2)
         drawReverso(page2.canvas)
         pdfDocument.finishPage(page2)
 
-        val file = File(context.getExternalFilesDir(null), "DC3_${worker.curp.ifEmpty { worker.name }}.pdf")
-        pdfDocument.writeTo(FileOutputStream(file))
+        val file = File(context.getExternalFilesDir(null), "DC3_${worker.curp.ifEmpty { worker.name.replace(" ", "_") }}.pdf")
+        FileOutputStream(file).use { out ->
+            pdfDocument.writeTo(out)
+        }
         pdfDocument.close()
         return file
     }
 
     private fun drawAnverso(
         canvas: Canvas, worker: Worker, course: Course, agent: TrainingAgent,
-        companyName: String, companyRfc: String, startDate: String, endDate: String,
-        thematicArea: String, occupationCode: String
+        companyName: String, companyRfc: String, startDate: String, endDate: String
     ) {
-        val paint = Paint().apply { color = Color.BLACK; isAntiAlias = true }
-        val thin = Paint().apply { color = Color.BLACK; strokeWidth = 0.8f; isAntiAlias = true }
-        val bold = Paint().apply { color = Color.BLACK; isFakeBoldText = true; isAntiAlias = true }
-        val gray = Paint().apply { color = Color.rgb(230,230,230) }
-        val labelPaint = Paint().apply { color = Color.rgb(80,80,80); textSize = 6f; isAntiAlias = true }
-        val valuePaint = Paint().apply { color = Color.BLACK; textSize = 8f; isFakeBoldText = true; isAntiAlias = true }
+        val paint = Paint().apply { isAntiAlias = true }
+        var y = 40f
 
-        var y = 30f
+        // Fondo blanco
+        paint.color = Color.WHITE
+        canvas.drawRect(0f, 0f, PAGE_W.toFloat(), PAGE_H.toFloat(), paint)
 
-        // ── Título ──
-        bold.textSize = 13f
-        canvas.drawText("FORMATO DC-3", 240f, y, bold)
-        y += 14f
-        paint.textSize = 7f
-        canvas.drawText("CONSTANCIA DE COMPETENCIAS O DE HABILIDADES LABORALES", 165f, y, paint)
+        // Títulos Principales
+        paint.color = Color.BLACK
+        paint.isFakeBoldText = true
+        paint.textSize = 14f
+        drawCenteredText(canvas, "FORMATO DC-3", PAGE_W / 2f, y, paint)
+        y += 15f
+        paint.textSize = 9f
+        drawCenteredText(canvas, "CONSTANCIA DE COMPETENCIAS O DE HABILIDADES LABORALES", PAGE_W / 2f, y, paint)
+        y += 25f
+
+        // --- SECCIÓN 1: DATOS DEL TRABAJADOR ---
+        drawSectionHeader(canvas, "DATOS DEL TRABAJADOR", y, paint)
         y += 16f
+        val sec1Start = y
 
-        // ── Sección 1: DATOS DEL TRABAJADOR ──
-        drawSectionBar(canvas, "DATOS DEL TRABAJADOR", y, gray, bold)
-        y += 14f
-
-        // Nombre
-        labelPaint.textSize = 6f
-        canvas.drawText("Nombre (Anotar apellido paterno, apellido materno y nombre(s))", MARGIN, y, labelPaint)
-        y += 8f
-        valuePaint.textSize = 9f
-        canvas.drawText(worker.name, MARGIN, y, valuePaint)
-        canvas.drawLine(MARGIN, y + 2f, PAGE_W - MARGIN, y + 2f, thin)
-        y += 14f
-
-        // CURP grid (18 casillas)
-        labelPaint.textSize = 5f
-        canvas.drawText("Clave Única de Registro de Población", MARGIN, y, labelPaint)
-        y += 6f
-        drawCharGrid(canvas, worker.curp.uppercase().padEnd(18).take(18), MARGIN, y, 18, 12f, 14f, thin, valuePaint)
-
-        // Ocupación al lado derecho del CURP
-        val occX = MARGIN + 18 * 12f + 8f
-        labelPaint.textSize = 5f
-        canvas.drawText("Ocupación específica (Catálogo Nacional de Ocupaciones)", occX, y - 2f, labelPaint)
-        y += 16f
-        val occText = if (occupationCode.isNotEmpty()) "$occupationCode ${worker.occupation}" else worker.occupation
-        valuePaint.textSize = 7f
-        canvas.drawText(occText, occX, y, valuePaint)
-        canvas.drawLine(occX, y + 2f, PAGE_W - MARGIN, y + 2f, thin)
-        y += 12f
+        drawOrangeLabel(canvas, "Nombre (Anotar apellido paterno, apellido materno y nombre(s))", MARGIN + 6f, y + 10f, paint)
+        drawBlackValue(canvas, worker.name.uppercase(), MARGIN + 6f, y + 23f, paint, 10f)
+        y += 28f
+        
+        canvas.drawLine(MARGIN, y, PAGE_W - MARGIN, y, paint.apply { color = LINE_COLOR })
+        
+        // CURP y Ocupación
+        drawOrangeLabel(canvas, "Clave Única de Registro de Población (CURP)", MARGIN + 6f, y + 10f, paint)
+        drawCharGrid(canvas, worker.curp.uppercase(), MARGIN + 6f, y + 14f, 18, paint)
+        
+        val col2X = MARGIN + (PAGE_W - 2 * MARGIN) / 2
+        drawOrangeLabel(canvas, "Ocupación específica (Catálogo Nacional de Ocupaciones)", col2X + 6f, y + 10f, paint)
+        drawBlackValue(canvas, worker.occupation.uppercase(), col2X + 6f, y + 24f, paint, 8.5f)
+        
+        y += 34f
+        canvas.drawLine(MARGIN, y, PAGE_W - MARGIN, y, paint.apply { color = LINE_COLOR })
 
         // Puesto
-        labelPaint.textSize = 5f
-        canvas.drawText("Puesto", MARGIN, y, labelPaint)
-        y += 7f
-        valuePaint.textSize = 8f
-        canvas.drawText(worker.position, MARGIN, y, valuePaint)
-        canvas.drawLine(MARGIN, y + 2f, PAGE_W - MARGIN, y + 2f, thin)
+        drawOrangeLabel(canvas, "Puesto", MARGIN + 6f, y + 10f, paint)
+        drawBlackValue(canvas, worker.position.uppercase(), MARGIN + 6f, y + 22f, paint, 9f)
+        y += 27f
+
+        // Recuadro Sección 1
+        paint.style = Paint.Style.STROKE
+        paint.color = Color.BLACK
+        canvas.drawRect(MARGIN, sec1Start, PAGE_W - MARGIN, y, paint)
+        canvas.drawLine(col2X, sec1Start + 28f, col2X, sec1Start + 62f, paint)
+        paint.style = Paint.Style.FILL
+
+        y += 15f
+
+        // --- SECCIÓN 2: DATOS DE LA EMPRESA ---
+        drawSectionHeader(canvas, "DATOS DE LA EMPRESA", y, paint)
         y += 16f
+        val sec2Start = y
 
-        // ── Sección 2: DATOS DE LA EMPRESA ──
-        drawSectionBar(canvas, "DATOS DE LA EMPRESA", y, gray, bold)
-        y += 14f
+        drawOrangeLabel(canvas, "Nombre o razón social (En caso de persona física, anotar apellido paterno, materno y nombre(s))", MARGIN + 6f, y + 10f, paint)
+        drawBlackValue(canvas, companyName.uppercase(), MARGIN + 6f, y + 23f, paint, 10f)
+        y += 28f
 
-        // Nombre o razón social
-        labelPaint.textSize = 6f
-        canvas.drawText("Nombre o razón social (En caso de persona física, anotar apellido paterno, materno y nombre(s))", MARGIN, y, labelPaint)
-        y += 8f
-        valuePaint.textSize = 9f
-        canvas.drawText(companyName, MARGIN, y, valuePaint)
-        canvas.drawLine(MARGIN, y + 2f, PAGE_W - MARGIN, y + 2f, thin)
-        y += 14f
+        canvas.drawLine(MARGIN, y, PAGE_W - MARGIN, y, paint.apply { color = LINE_COLOR })
 
-        // RFC grid (13 casillas con homoclave)
-        labelPaint.textSize = 5f
-        canvas.drawText("Registro Federal de Contribuyentes con homoclave (SHCP)", MARGIN, y, labelPaint)
-        y += 6f
-        drawCharGrid(canvas, companyRfc.uppercase().padEnd(13).take(13), MARGIN, y, 13, 14f, 14f, thin, valuePaint)
-        y += 22f
+        drawOrangeLabel(canvas, "Registro Federal de Contribuyentes con homoclave (SHCP)", MARGIN + 6f, y + 10f, paint)
+        drawCharGrid(canvas, companyRfc.uppercase().replace("-",""), MARGIN + 6f, y + 14f, 13, paint)
+        y += 34f
 
-        // ── Sección 3: DATOS DEL PROGRAMA DE CAPACITACIÓN ──
-        drawSectionBar(canvas, "DATOS DEL PROGRAMA DE CAPACITACIÓN, ADIESTRAMIENTO Y PRODUCTIVIDAD", y, gray, bold)
-        y += 14f
+        paint.style = Paint.Style.STROKE
+        paint.color = Color.BLACK
+        canvas.drawRect(MARGIN, sec2Start, PAGE_W - MARGIN, y, paint)
+        paint.style = Paint.Style.FILL
 
-        // Nombre del curso
-        labelPaint.textSize = 6f
-        canvas.drawText("Nombre del curso", MARGIN, y, labelPaint)
-        y += 8f
-        valuePaint.textSize = 9f
-        canvas.drawText(course.name, MARGIN, y, valuePaint)
-        canvas.drawLine(MARGIN, y + 2f, PAGE_W - MARGIN, y + 2f, thin)
-        y += 14f
+        y += 15f
 
-        // Duración en horas
-        labelPaint.textSize = 5f
-        canvas.drawText("Duración en horas", MARGIN, y, labelPaint)
-        y += 7f
-        valuePaint.textSize = 8f
-        canvas.drawText("${course.duration_hours} HORAS", MARGIN, y, valuePaint)
-        canvas.drawLine(MARGIN, y + 2f, MARGIN + 80f, y + 2f, thin)
-        y += 14f
+        // --- SECCIÓN 3: DATOS DEL PROGRAMA ---
+        drawSectionHeader(canvas, "DATOS DEL PROGRAMA DE CAPACITACIÓN, ADIESTRAMIENTO Y PRODUCTIVIDAD", y, paint)
+        y += 16f
+        val sec3Start = y
 
-        // Periodo de ejecución
-        labelPaint.textSize = 5f
-        canvas.drawText("Periodo de ejecución:", MARGIN, y, labelPaint)
-        y += 8f
-        valuePaint.textSize = 7f
-        canvas.drawText("De: $startDate    a: $endDate", MARGIN + 60f, y, valuePaint)
-        canvas.drawLine(MARGIN + 55f, y + 2f, PAGE_W - MARGIN, y + 2f, thin)
-        y += 14f
+        drawOrangeLabel(canvas, "Nombre del curso", MARGIN + 6f, y + 10f, paint)
+        drawBlackValue(canvas, course.name.uppercase(), MARGIN + 6f, y + 23f, paint, 9.5f)
+        y += 28f
 
-        // Área temática
-        labelPaint.textSize = 5f
-        canvas.drawText("Área temática del curso", MARGIN, y, labelPaint)
-        y += 8f
-        valuePaint.textSize = 8f
-        canvas.drawText(thematicArea, MARGIN, y, valuePaint)
-        canvas.drawLine(MARGIN, y + 2f, PAGE_W - MARGIN, y + 2f, thin)
-        y += 14f
+        canvas.drawLine(MARGIN, y, PAGE_W - MARGIN, y, paint.apply { color = LINE_COLOR })
 
-        // Nombre del agente capacitador o STPS
-        labelPaint.textSize = 5f
-        canvas.drawText("Nombre del agente capacitador o STPS", MARGIN, y, labelPaint)
-        y += 8f
-        valuePaint.textSize = 8f
-        canvas.drawText("${agent.name}    ${agent.stps}", MARGIN, y, valuePaint)
-        canvas.drawLine(MARGIN, y + 2f, PAGE_W - MARGIN, y + 2f, thin)
-        y += 24f
+        // Duración y Periodo
+        drawOrangeLabel(canvas, "Duración en horas", MARGIN + 6f, y + 10f, paint)
+        drawBlackValue(canvas, "${course.duration_hours} HORAS", MARGIN + 6f, y + 23f, paint, 9f)
 
-        // ── Firmas ──
-        val sigY = 680f
-        thin.strokeWidth = 1f
+        drawOrangeLabel(canvas, "Periodo de ejecución:   De", MARGIN + 110f, y + 10f, paint)
+        
+        // Fecha Inicio
+        drawDateHeaders(canvas, MARGIN + 225f, y + 8f, paint)
+        drawDateGrid(canvas, startDate, MARGIN + 215f, y + 11f, paint)
 
-        // Instructor con firma digital del agente capacitador
-        try {
-            // Cargar firma desde assets o URL remota
-            val sigUrl = java.net.URL("https://base44.app/api/apps/6a598f68ede9a4fd7c7f8cb7/files/mp/public/6a598f68ede9a4fd7c7f8cb7/c6b537496_agent_signature.png")
-            val sigBitmap = android.graphics.BitmapFactory.decodeStream(sigUrl.openStream())
-            if (sigBitmap != null) {
-                // Escalar la firma proporcionalmente (max 100px ancho)
-                val maxW = 100f
-                val maxH = 60f
-                var w = maxW
-                var h = maxW * (sigBitmap.height.toFloat() / sigBitmap.width)
-                if (h > maxH) { h = maxH; w = maxH * (sigBitmap.width.toFloat() / sigBitmap.height) }
-                val sigPaint = Paint().apply { isAntiAlias = true; alpha = 220 }
-                val rect = android.graphics.RectF(55f, sigY - h - 2f, 55f + w, sigY - 2f)
-                canvas.drawBitmap(sigBitmap, null, rect, sigPaint)
-                sigBitmap.recycle()
-            }
-        } catch (e: Exception) {
-            // Si no se puede cargar la firma, solo mostrar el nombre
+        drawOrangeLabel(canvas, "a", MARGIN + 335f, y + 22f, paint)
+
+        // Fecha Fin
+        drawDateHeaders(canvas, MARGIN + 365f, y + 8f, paint)
+        drawDateGrid(canvas, endDate, MARGIN + 355f, y + 11f, paint)
+
+        y += 28f
+        canvas.drawLine(MARGIN, y, PAGE_W - MARGIN, y, paint.apply { color = LINE_COLOR })
+
+        drawOrangeLabel(canvas, "Área temática del curso", MARGIN + 6f, y + 10f, paint)
+        drawBlackValue(canvas, course.thematicArea.uppercase(), MARGIN + 6f, y + 22f, paint, 9f)
+        y += 27f
+
+        canvas.drawLine(MARGIN, y, PAGE_W - MARGIN, y, paint.apply { color = LINE_COLOR })
+
+        drawOrangeLabel(canvas, "Nombre del agente capacitador o STPS", MARGIN + 6f, y + 10f, paint)
+        drawBlackValue(canvas, "${agent.name.uppercase()}  (STPS REG: ${agent.stps.uppercase()})", MARGIN + 6f, y + 22f, paint, 9f)
+        y += 27f
+
+        paint.style = Paint.Style.STROKE
+        paint.color = Color.BLACK
+        canvas.drawRect(MARGIN, sec3Start, PAGE_W - MARGIN, y, paint)
+        paint.style = Paint.Style.FILL
+
+        y += 20f
+
+        // --- ÁREA DE FIRMAS ---
+        paint.textSize = 7f
+        paint.color = Color.BLACK
+        paint.isFakeBoldText = false
+        drawCenteredText(canvas, "aquél que no se conduce con verdad.", PAGE_W / 2f, y, paint)
+        y += 40f
+
+        val sigW = 155f
+        val gap = (PAGE_W - 2 * MARGIN - 3 * sigW) / 2
+        
+        // Líneas de firma
+        paint.strokeWidth = 0.8f
+        canvas.drawLine(MARGIN, y, MARGIN + sigW, y, paint)
+        canvas.drawLine(MARGIN + sigW + gap, y, MARGIN + 2 * sigW + gap, y, paint)
+        canvas.drawLine(PAGE_W - MARGIN - sigW, y, PAGE_W - MARGIN, y, paint)
+
+        // Textos de firma
+        paint.textSize = 6.5f
+        drawCenteredText(canvas, "Instructor o tutor", MARGIN + sigW / 2f, y + 10f, paint)
+        drawCenteredText(canvas, "Nombre y firma", MARGIN + sigW / 2f, y + 18f, paint)
+
+        drawCenteredText(canvas, "Patrón o representante legal", MARGIN + sigW + gap + sigW / 2f, y + 10f, paint)
+        drawCenteredText(canvas, "Nombre y firma", MARGIN + sigW + gap + sigW / 2f, y + 18f, paint)
+
+        drawCenteredText(canvas, "Representante de los trabajadores", PAGE_W - MARGIN - sigW / 2f, y + 10f, paint)
+        drawCenteredText(canvas, "Nombre y firma", PAGE_W - MARGIN - sigW / 2f, y + 18f, paint)
+
+        // Instrucciones al pie
+        y = 760f
+        paint.color = Color.rgb(100, 100, 100)
+        paint.textSize = 6f
+        canvas.drawText("INSTRUCCIONES", MARGIN, y, paint)
+        y += 10f
+        val footers = listOf(
+            "- Llenar a máquina o con letra de molde con tinta negra.",
+            "- Entregar esta constancia a los trabajadores que aprueben el curso correspondiente, dentro de los veinte días hábiles siguientes al término del mismo.",
+            "- Las áreas y subáreas de ocupación específica se refieren al Catálogo Nacional de Ocupaciones.",
+            "- Las áreas temáticas de los cursos se refieren al catálogo de la parte posterior de este formato."
+        )
+        for (line in footers) {
+            canvas.drawText(line, MARGIN, y, paint)
+            y += 8f
         }
-
-        canvas.drawLine(50f, sigY, 180f, sigY, thin)
-        labelPaint.textSize = 7f
-        canvas.drawText("Instructor o tutor", 85f, sigY + 12f, labelPaint)
-        valuePaint.textSize = 6f
-        canvas.drawText(agent.name, 55f, sigY - 22f, valuePaint)
-
-        // Patrón
-        canvas.drawLine(210f, sigY, 380f, sigY, thin)
-        labelPaint.textSize = 7f
-        canvas.drawText("Patrón o representante legal", 230f, sigY + 12f, labelPaint)
-
-        // Representante trabajadores
-        canvas.drawLine(410f, sigY, 550f, sigY, thin)
-        labelPaint.textSize = 7f
-        canvas.drawText("Representante de los trabajadores", 415f, sigY + 12f, labelPaint)
-
-        // Nota legal
-        labelPaint.textSize = 5f
-        canvas.drawText("Aviso de privacidad: En el acto de firma, se presume la conformidad del trabajador con la información asentada.", MARGIN, 720f, labelPaint)
-        canvas.drawText("Serán sancionados aquellos que no se conduzcan con verdad.", MARGIN, 728f, labelPaint)
+        
+        paint.textSize = 8f
+        paint.isFakeBoldText = true
+        paint.color = Color.BLACK
+        canvas.drawText("DC-3 ANVERSO", PAGE_W - MARGIN - 70f, PAGE_H - 20f, paint)
     }
 
     private fun drawReverso(canvas: Canvas) {
-        val thin = Paint().apply { color = Color.BLACK; strokeWidth = 0.6f; isAntiAlias = true }
-        val bold = Paint().apply { color = Color.BLACK; isFakeBoldText = true; textSize = 8f; isAntiAlias = true }
-        val normal = Paint().apply { color = Color.BLACK; textSize = 6f; isAntiAlias = true }
+        val paint = Paint().apply { isAntiAlias = true }
+        var y = 35f
 
-        var y = 30f
+        paint.color = Color.WHITE
+        canvas.drawRect(0f, 0f, PAGE_W.toFloat(), PAGE_H.toFloat(), paint)
 
-        // ── Título ──
-        bold.textSize = 10f
-        canvas.drawText("CLAVES Y DENOMINACIONES DE ÁREAS Y SUBÁREAS DEL CATÁLOGO NACIONAL DE OCUPACIONES", 30f, y, bold)
-        y += 14f
+        paint.color = Color.BLACK
+        paint.isFakeBoldText = true
+        paint.textSize = 9f
+        drawCenteredText(canvas, "CLAVES Y DENOMINACIONES DE ÁREAS Y SUBÁREAS DEL CATÁLOGO NACIONAL DE OCUPACIONES", PAGE_W / 2f, y, paint)
+        y += 20f
 
-        // Tabla de áreas ocupacionales (2 columnas)
-        val occupations = listOf(
-            "01" to "Cultivo, crianza y aprovechamiento",
-            "01.1" to "Agricultura y silvicultura",
-            "01.2" to "Ganadería",
-            "01.3" to "Pesca y acuacultura",
-            "02" to "Extracción y suministro",
-            "02.1" to "Exploración",
-            "02.2" to "Extracción",
-            "02.3" to "Refinación y beneficio",
-            "02.4" to "Provisión de energía",
-            "02.5" to "Provisión de agua",
-            "03" to "Construcción",
-            "03.1" to "Planeación y dirección de obras",
-            "03.2" to "Edificación y urbanización",
-            "03.3" to "Acabado",
-            "03.4" to "Instalación y mantenimiento",
-            "04" to "Tecnología",
-            "04.1" to "Mecánica",
-            "04.2" to "Electricidad",
-            "04.3" to "Electrónica",
-            "04.4" to "Informática",
-            "04.5" to "Telecomunicaciones",
-            "04.6" to "Procesos industriales",
-            "05" to "Procesamiento y fabricación",
-            "05.1" to "Minerales no metálicos",
-            "05.2" to "Metales",
-            "05.3" to "Alimentos y bebidas",
-            "05.4" to "Textiles y prendas de vestir",
-            "05.5" to "Materia orgánica",
-            "05.6" to "Productos químicos",
-            "05.7" to "Productos metálicos y de hule y plástico",
-            "05.8" to "Productos eléctricos y electrónicos",
-            "05.9" to "Productos impresos"
-        )
-        val occupations2 = listOf(
-            "06" to "Transporte",
-            "06.1" to "Ferroviario",
-            "06.2" to "Autotransporte",
-            "06.3" to "Aéreo",
-            "06.4" to "Marítimo y fluvial",
-            "06.5" to "Servicios de apoyo",
-            "07" to "Provisión de bienes y servicios",
-            "07.1" to "Comercio",
-            "07.2" to "Alimentación y hospedaje",
-            "07.3" to "Turismo",
-            "07.4" to "Deporte y esparcimiento",
-            "07.5" to "Servicios personales",
-            "07.6" to "Reparación de artículos de uso doméstico y personal",
-            "07.7" to "Limpieza",
-            "07.8" to "Servicio postal y mensajería",
-            "08" to "Gestión y soporte administrativo",
-            "08.1" to "Bolsa, banca y seguros",
-            "08.2" to "Administración",
-            "08.3" to "Servicios legales",
-            "09" to "Salud y protección social",
-            "09.1" to "Servicios médicos",
-            "09.2" to "Inspección sanitaria y del medio ambiente",
-            "09.3" to "Seguridad social",
-            "09.4" to "Protección de bienes y/o personas",
-            "10" to "Comunicación",
-            "10.1" to "Publicación",
-            "10.2" to "Radio, cine, televisión y teatro",
-            "10.3" to "Interpretación artística",
-            "10.4" to "Traducción e interpretación lingüística",
-            "10.5" to "Publicidad, propaganda y relaciones públicas",
-            "11" to "Desarrollo y extensión del conocimiento",
-            "11.1" to "Investigación",
-            "11.2" to "Enseñanza",
-            "11.3" to "Difusión cultural"
+        paint.textSize = 7.5f
+        paint.isFakeBoldText = false
+        
+        // Simulación de las dos columnas de ocupaciones
+        val occs = listOf(
+            "01  Cultivo, crianza y aprovechamiento forestal" to "06  Transporte",
+            "02  Extracción y saneamiento" to "07  Provisión de bienes y servicios",
+            "03  Construcción" to "08  Servicios educativos, sociales y de salud",
+            "04  Electricidad, gas y agua" to "09  Gobierno, administración y defensa",
+            "05  Industria manufacturera" to ""
         )
 
-        // Header de la tabla
-        drawTableCell(canvas, "CLAVE DEL\nÁREA/SUBÁREA", 30f, y, 60f, 10f, thin, bold, 5f)
-        drawTableCell(canvas, "DENOMINACIÓN", 90f, y, 200f, 10f, thin, bold, 5f)
-        drawTableCell(canvas, "CLAVE DEL\nÁREA/SUBÁREA", 300f, y, 60f, 10f, thin, bold, 5f)
-        drawTableCell(canvas, "DENOMINACIÓN", 360f, y, 200f, 10f, thin, bold, 5f)
-        y += 12f
-
-        val maxRows = maxOf(occupations.size, occupations2.size)
-        for (i in 0 until maxRows) {
-            val rowH = 8f
-            // Columna izquierda
-            if (i < occupations.size) {
-                drawTableCell(canvas, occupations[i].first, 30f, y, 60f, rowH, thin, normal, 5f)
-                drawTableCell(canvas, occupations[i].second, 90f, y, 210f, rowH, thin, normal, 5f)
-            } else {
-                drawTableCell(canvas, "", 30f, y, 60f, rowH, thin, normal, 5f)
-                drawTableCell(canvas, "", 90f, y, 210f, rowH, thin, normal, 5f)
-            }
-            // Columna derecha
-            if (i < occupations2.size) {
-                drawTableCell(canvas, occupations2[i].first, 300f, y, 60f, rowH, thin, normal, 5f)
-                drawTableCell(canvas, occupations2[i].second, 360f, y, 210f, rowH, thin, normal, 5f)
-            } else {
-                drawTableCell(canvas, "", 300f, y, 60f, rowH, thin, normal, 5f)
-                drawTableCell(canvas, "", 360f, y, 210f, rowH, thin, normal, 5f)
-            }
-            y += rowH
+        val colW = (PAGE_W - 2 * MARGIN) / 2
+        for (pair in occs) {
+            canvas.drawText(pair.first, MARGIN + 6f, y, paint)
+            if (pair.second.isNotEmpty()) canvas.drawText(pair.second, MARGIN + colW + 6f, y, paint)
+            y += 12f
         }
 
-        y += 10f
+        y += 20f
+        paint.isFakeBoldText = true
+        drawCenteredText(canvas, "ÁREAS TEMÁTICAS DE LOS CURSOS", PAGE_W / 2f, y, paint)
+        y += 15f
 
-        // ── Áreas temáticas ──
-        bold.textSize = 8f
-        canvas.drawText("CLAVES Y DENOMINACIONES DEL CATÁLOGO DE ÁREAS TEMÁTICAS DE LOS CURSOS", 30f, y, bold)
-        y += 12f
-
-        val thematic = listOf(
-            "1000" to "Producción general",
-            "2000" to "Servicios",
-            "3000" to "Administración, contabilidad y economía",
-            "4000" to "Comercialización",
-            "5000" to "Mantenimiento y reparación",
-            "6000" to "Seguridad",
-            "7000" to "Desarrollo personal y familiar",
-            "8000" to "Uso de tecnologías de la información y comunicación",
-            "9000" to "Participación social"
+        paint.isFakeBoldText = false
+        val areas = listOf(
+            "1000  Producción agropecuaria" to "6000  Seguridad e higiene",
+            "2000  Tecnología de la información" to "7000  Desarrollo humano",
+            "3000  Servicios" to "8000  Idiomas y comunicación",
+            "4000  Procesos industriales" to "9000  Otros servicios",
+            "5000  Administración y mercadotecnia" to ""
         )
 
-        // Header
-        drawTableCell(canvas, "CLAVE DEL\nÁREA", 30f, y, 60f, 10f, thin, bold, 5f)
-        drawTableCell(canvas, "DENOMINACIÓN", 90f, y, 210f, 10f, thin, bold, 5f)
-        drawTableCell(canvas, "CLAVE DEL\nÁREA", 300f, y, 60f, 10f, thin, bold, 5f)
-        drawTableCell(canvas, "DENOMINACIÓN", 360f, y, 210f, 10f, thin, bold, 5f)
-        y += 12f
-
-        val half = (thematic.size + 1) / 2
-        for (i in 0 until half) {
-            val rowH = 10f
-            // Izquierda
-            if (i < thematic.size) {
-                drawTableCell(canvas, thematic[i].first, 30f, y, 60f, rowH, thin, normal, 5f)
-                drawTableCell(canvas, thematic[i].second, 90f, y, 210f, rowH, thin, normal, 5f)
-            }
-            // Derecha
-            val j = i + half
-            if (j < thematic.size) {
-                drawTableCell(canvas, thematic[j].first, 300f, y, 60f, rowH, thin, normal, 5f)
-                drawTableCell(canvas, thematic[j].second, 360f, y, 210f, rowH, thin, normal, 5f)
-            } else {
-                drawTableCell(canvas, "", 300f, y, 60f, rowH, thin, normal, 5f)
-                drawTableCell(canvas, "", 360f, y, 210f, rowH, thin, normal, 5f)
-            }
-            y += rowH
+        for (pair in areas) {
+            canvas.drawText(pair.first, MARGIN + 6f, y, paint)
+            if (pair.second.isNotEmpty()) canvas.drawText(pair.second, MARGIN + colW + 6f, y, paint)
+            y += 12f
         }
+
+        paint.textSize = 8f
+        paint.isFakeBoldText = true
+        canvas.drawText("DC-3 REVERSO", PAGE_W - MARGIN - 70f, PAGE_H - 20f, paint)
     }
 
-    // ─── Helpers ───────────────────────────────────────────────────
-    private fun drawSectionBar(canvas: Canvas, title: String, y: Float, gray: Paint, bold: Paint) {
-        canvas.drawRect(40f, y - 2f, 555f, y + 8f, gray)
-        bold.textSize = 7f
-        canvas.drawText(title, 44f, y + 6f, bold)
+    // --- HELPERS DE DIBUJO ---
+
+    private fun drawSectionHeader(canvas: Canvas, title: String, y: Float, paint: Paint) {
+        paint.color = HEADER_BG
+        canvas.drawRect(MARGIN, y, PAGE_W - MARGIN, y + 16f, paint)
+        paint.color = Color.WHITE
+        paint.isFakeBoldText = true
+        paint.textSize = 8.5f
+        drawCenteredText(canvas, title, PAGE_W / 2f, y + 11.5f, paint)
+        paint.color = Color.BLACK // Reset
     }
 
-    private fun drawCharGrid(
-        canvas: Canvas, text: String, x: Float, y: Float,
-        count: Int, boxW: Float, boxH: Float, line: Paint, textPaint: Paint
-    ) {
+    private fun drawOrangeLabel(canvas: Canvas, text: String, x: Float, y: Float, paint: Paint) {
+        paint.color = ORANGE_LABEL
+        paint.textSize = 6.5f
+        paint.isFakeBoldText = false
+        canvas.drawText(text, x, y, paint)
+    }
+
+    private fun drawBlackValue(canvas: Canvas, text: String, x: Float, y: Float, paint: Paint, size: Float) {
+        paint.color = Color.BLACK
+        paint.textSize = size
+        paint.isFakeBoldText = true
+        canvas.drawText(text, x, y, paint)
+    }
+
+    private fun drawCharGrid(canvas: Canvas, text: String, x: Float, y: Float, count: Int, paint: Paint) {
+        val boxW = 12f
+        val boxH = 14f
+        val spacing = 1.5f
+        paint.style = Paint.Style.STROKE
+        paint.color = Color.BLACK
+        val charPaint = Paint().apply { isAntiAlias = true; textSize = 8.5f; isFakeBoldText = true }
+
         for (i in 0 until count) {
-            val cx = x + (i * boxW)
-            canvas.drawRect(cx, y, cx + boxW, y + boxH, line)
+            val bx = x + i * (boxW + spacing)
+            canvas.drawRect(bx, y, bx + boxW, y + boxH, paint)
             if (i < text.length) {
-                val ch = text[i]
-                val tw = textPaint.measureText(ch.toString())
-                canvas.drawText(ch.toString(), cx + (boxW - tw) / 2f, y + boxH - 3f, textPaint)
+                val charStr = text[i].toString()
+                val tw = charPaint.measureText(charStr)
+                canvas.drawText(charStr, bx + (boxW - tw) / 2f, y + 10.5f, charPaint)
             }
         }
+        paint.style = Paint.Style.FILL
     }
 
-    private fun drawTableCell(
-        canvas: Canvas, text: String, x: Float, y: Float,
-        w: Float, h: Float, line: Paint, textPaint: Paint, textSize: Float = 6f
-    ) {
-        canvas.drawRect(x, y, x + w, y + h, line)
-        textPaint.textSize = textSize
-        // Soportar \n
-        val lines = text.split("\n")
-        lines.forEachIndexed { i, ln ->
-            canvas.drawText(ln, x + 3f, y + h - 4f - (lines.size - 1 - i) * (textSize + 1f), textPaint)
+    private fun drawDateGrid(canvas: Canvas, dateStr: String, x: Float, y: Float, paint: Paint) {
+        // Formato esperado: YYYY-MM-DD
+        val clean = dateStr.replace("-", "").replace("/", "")
+        val year = if (clean.length >= 4) clean.substring(0, 4) else "    "
+        val month = if (clean.length >= 6) clean.substring(4, 6) else "  "
+        val day = if (clean.length >= 8) clean.substring(6, 8) else "  "
+
+        val boxW = 12f
+        val spacing = 1f
+        
+        // Año (4)
+        drawSubGrid(canvas, year, x, y, 4, boxW, paint)
+        // Mes (2)
+        drawSubGrid(canvas, month, x + 4 * (boxW + spacing) + 4f, y, 2, boxW, paint)
+        // Día (2)
+        drawSubGrid(canvas, day, x + 6 * (boxW + spacing) + 8f, y, 2, boxW, paint)
+    }
+
+    private fun drawSubGrid(canvas: Canvas, text: String, x: Float, y: Float, count: Int, boxW: Float, paint: Paint) {
+        paint.style = Paint.Style.STROKE
+        val charPaint = Paint().apply { isAntiAlias = true; textSize = 8f; isFakeBoldText = true }
+        for (i in 0 until count) {
+            val bx = x + i * (boxW + 1f)
+            canvas.drawRect(bx, y, bx + boxW, y + 14f, paint)
+            if (i < text.length) {
+                val charStr = text[i].toString()
+                canvas.drawText(charStr, bx + (boxW - charPaint.measureText(charStr)) / 2f, y + 10.5f, charPaint)
+            }
         }
+        paint.style = Paint.Style.FILL
+    }
+
+    private fun drawDateHeaders(canvas: Canvas, x: Float, y: Float, paint: Paint) {
+        val oldColor = paint.color
+        paint.color = Color.BLACK
+        paint.textSize = 6f
+        paint.isFakeBoldText = false
+        canvas.drawText("AÑO", x, y, paint)
+        canvas.drawText("MES", x + 25f, y, paint)
+        canvas.drawText("DÍA", x + 45f, y, paint)
+        paint.color = oldColor
+    }
+
+    private fun drawCenteredText(canvas: Canvas, text: String, x: Float, y: Float, paint: Paint) {
+        val width = paint.measureText(text)
+        canvas.drawText(text, x - width / 2f, y, paint)
     }
 }

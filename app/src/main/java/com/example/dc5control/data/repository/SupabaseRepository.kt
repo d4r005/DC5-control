@@ -9,7 +9,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
 
 /**
- * Reemplaza AtlasRepository — ahora usa Supabase REST API.
+ * SupabaseRepository — usa Supabase REST API.
  * Tablas: workers, companies, courses, agents, dc3_records
  */
 object SupabaseRepository {

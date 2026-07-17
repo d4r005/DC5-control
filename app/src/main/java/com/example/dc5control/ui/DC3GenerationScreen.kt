@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 import com.example.dc5control.data.model.*
-import com.example.dc5control.data.repository.AtlasRepository
+import com.example.dc5control.data.repository.SupabaseRepository
 import com.example.dc5control.ui.components.SignaturePad
 import com.example.dc5control.util.PdfGenerator
 import kotlinx.coroutines.launch
@@ -39,10 +39,10 @@ fun DC3GenerationScreen(onBack: () -> Unit) {
     val agents = remember { mutableStateListOf<TrainingAgent>() }
 
     LaunchedEffect(Unit) {
-        AtlasRepository.fetchData("courses", Course.serializer()) { fetchedCourses ->
+        SupabaseRepository.fetchData("courses", Course.serializer()) { fetchedCourses ->
             courses.addAll(fetchedCourses)
         }
-        AtlasRepository.fetchData("agents", TrainingAgent.serializer()) { fetchedAgents ->
+        SupabaseRepository.fetchData("agents", TrainingAgent.serializer()) { fetchedAgents ->
             agents.addAll(fetchedAgents)
         }
     }
@@ -52,13 +52,13 @@ fun DC3GenerationScreen(onBack: () -> Unit) {
             onSave = { bitmap ->
                 scope.launch {
                     isUploading = true
-                    AtlasRepository.fetchData("workers", Worker.serializer()) { workers ->
+                    SupabaseRepository.fetchData("workers", Worker.serializer()) { workers ->
                         workers.forEach { worker ->
                             PdfGenerator.generateDC3(
                                 context, worker, selectedCourse!!, selectedAgent!!,
                                 companyName, companyRfc, startDate, endDate
                             )
-                            // Guardar registro en MongoDB para las métricas
+                            // Guardar registro en Supabase para las métricas
                             val record = DC3Record(
                                 workerId = worker.curp,
                                 companyName = companyName,
@@ -67,7 +67,7 @@ fun DC3GenerationScreen(onBack: () -> Unit) {
                                 startDate = startDate,
                                 endDate = endDate
                             )
-                            AtlasRepository.insertData("dc3_records", record, DC3Record.serializer()) { }
+                            SupabaseRepository.insertData("dc3_records", record, DC3Record.serializer()) { }
                         }
                         isUploading = false
                         showSignaturePad = false
