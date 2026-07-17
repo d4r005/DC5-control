@@ -410,7 +410,17 @@
 // ─── CONFIG ───────────────────────────────────────────
 const SUPABASE_URL = "https://osgfwgedjdltrmvwycjd.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zZ2Z3Z2VkamRsdHJtdnd5Y2pkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyNDAxMzcsImV4cCI6MjA5OTgxNjEzN30.jeV98eAfhQzkXiGj88DUOLqLPLFr_IKPrcnTaefEgj0";
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let sb = null;
+try {
+    if (typeof supabase !== 'undefined') {
+        sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    } else {
+        console.error("Supabase library not loaded. Check internet connection.");
+    }
+} catch (e) {
+    console.error("Error initializing Supabase:", e);
+}
 
 const CATALOGS = {
     occupations: [
@@ -526,6 +536,7 @@ function toCamel(obj) {
 }
 
 async function api(action, collection, payload = {}) {
+    if (!sb) { console.warn("Supabase not initialized, API call skipped:", action, collection); return { documents: [] }; }
     const table = TABLE_MAP[collection] || collection;
     try {
         if (action === 'find') {
@@ -571,27 +582,54 @@ async function api(action, collection, payload = {}) {
 
 // ─── LOGIN ─────────────────────────────────────────────
 async function login(e) {
-    e.preventDefault();
-    const email = document.getElementById('email').value.trim();
-    const pass = document.getElementById('password').value;
-    const user = DATA.users.find(u => u.email === email && u.password === pass);
-    if (!user) { document.getElementById('login-error').classList.remove('hidden'); return; }
-    if (document.getElementById('remember-me').checked) localStorage.setItem('rememberedEmail', email);
-    currentUser = user;
-    initApp();
+    try {
+        e.preventDefault();
+        const email = document.getElementById('email').value.trim();
+        const pass = document.getElementById('password').value;
+        const user = DATA.users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === pass);
+
+        if (!user) {
+            document.getElementById('login-error').classList.remove('hidden');
+            return;
+        }
+
+        document.getElementById('login-error').classList.add('hidden');
+        if (document.getElementById('remember-me').checked) {
+            localStorage.setItem('rememberedEmail', email);
+        } else {
+            localStorage.removeItem('rememberedEmail');
+        }
+
+        currentUser = user;
+        await initApp();
+    } catch (err) {
+        console.error("Login error:", err);
+        alert("Error al intentar entrar: " + err.message);
+    }
 }
 
 async function initApp() {
-    document.getElementById('view-login').style.display = 'none';
-    document.getElementById('view-app').style.display = 'block';
-    document.getElementById('user-avatar').innerText = currentUser.name.substring(0,2).toUpperCase();
-    document.getElementById('user-name-display').innerText = currentUser.name;
-    document.getElementById('user-role-display').innerText = currentUser.role;
-    if (currentUser.role === 'ADMIN') {
-        document.getElementById('btn-users').classList.remove('hidden');
+    try {
+        document.getElementById('view-login').style.display = 'none';
+        document.getElementById('view-app').style.display = 'block';
+
+        if (currentUser) {
+            document.getElementById('user-avatar').innerText = currentUser.name.substring(0,2).toUpperCase();
+            document.getElementById('user-name-display').innerText = currentUser.name;
+            document.getElementById('user-role-display').innerText = currentUser.role;
+
+            if (currentUser.role === 'ADMIN') {
+                document.getElementById('btn-users').classList.remove('hidden');
+            } else {
+                document.getElementById('btn-users').classList.add('hidden');
+            }
+        }
+
+        await loadCatalogs();
+        setView('dashboard');
+    } catch (err) {
+        console.error("App init error:", err);
     }
-    await loadCatalogs();
-    setView('dashboard');
 }
 
 function logout() {
@@ -995,8 +1033,6 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     const RFC_Y   = (300.3 + 315.2)/2 + 2.5;  // 310.25
     const FECHA_Y = (380.3 + 394.0)/2 + 2.5;  // 389.65
 
-    // Helper: dibuja texto centrado
-    function T_Centered(xCenter, yFitz, text, size, useBold) {
     // Helper: dibuja texto en coordenada (x, yFitz desde arriba)
     function T(x, yFitz, text, size, useBold) {
         const s = sp(String(text||''));
@@ -1153,10 +1189,6 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
         const repLines = splitNameJS(repName, 26);
         T_Centered(CENTER_X_REP, 495, repLines[0], 8);
         if (repLines[1]) T_Centered(CENTER_X_REP, 506, repLines[1], 8);
-    }
-
-    // Guardar y descargar
-        if (repLines[1]) T(390, 530, repLines[1], 7.5);
     }
 
     // Guardar y descargar
