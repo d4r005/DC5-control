@@ -21,9 +21,9 @@ class DC3Controller(
     }
 
     @PostMapping("/generate/{trainingId}")
-    fun generate(@PathVariable trainingId: Long): ResponseEntity<DC3Response> {
-        val dc3 = dc3Service.generate(trainingId)
-        return ResponseEntity.ok(DC3Mapper.map(dc3))
+    fun generate(@PathVariable trainingId: Long): ResponseEntity<String> {
+        val path = dc3Service.createAndGenerate(trainingId)
+        return ResponseEntity.ok(path)
     }
 
     @GetMapping("/pdf/{id}")

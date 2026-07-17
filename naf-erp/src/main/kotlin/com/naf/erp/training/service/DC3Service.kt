@@ -22,6 +22,28 @@ class DC3Service(
     private val trainingRepository: TrainingRepository
 ) {
 
+    fun createAndGenerate(trainingId: Long): String {
+        val training = trainingRepository.findById(trainingId)
+            .orElseThrow { RuntimeException("Capacitación no encontrada") }
+
+        if (dc3Repository.existsByTraining(training))
+            throw RuntimeException("Ya existe un DC3 para esta capacitación")
+
+        var dc3 = DC3()
+        dc3.training = training
+        dc3.generated = LocalDateTime.now()
+        dc3.dc3Number = generateNumber()
+        
+        dc3 = dc3Repository.save(dc3)
+
+        val path = generate(dc3)
+        
+        dc3.docx = path
+        dc3Repository.save(dc3)
+
+        return path
+    }
+
     fun generate(
         dc3: DC3
     ): String {
