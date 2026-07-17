@@ -405,9 +405,12 @@
 <!-- ══════════════════════════════════════════════════════
      SCRIPT
 ══════════════════════════════════════════════════════ -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 // ─── CONFIG ───────────────────────────────────────────
-const API_URL = "https://kaelo-7967dfa3.base44.app/functions/mongoApi";
+const SUPABASE_URL = "https://osgfwgedjdltrmvwycjd.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zZ2Z3Z2VkamRsdHJtdnd5Y2pkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyNDAxMzcsImV4cCI6MjA5OTgxNjEzN30.jeV98eAfhQzkXiGj88DUOLqLPLFr_IKPrcnTaefEgj0";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const CATALOGS = {
     occupations: [
@@ -435,32 +438,22 @@ const DATA = {
         { name: "Dario Robles", email: "d4r005@gmail.com", role: "ADMIN", password: "Branco2025" },
         { name: "Cynthia Garza Lugo", email: "lugga.advisors@gmail.com", role: "USER", password: "Cynthia123" }
     ],
-    courses: [
-        { name: "MANEJO SEGURO DE MONTACARGAS", durationHours: 8, thematicArea: "6000 Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-        { name: "TRABAJOS EN ALTURA (NOM-009)", durationHours: 8, thematicArea: "6000 Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-        { name: "SEGURIDAD EN SOLDADURA", durationHours: 8, thematicArea: "6000 Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-        { name: "FORMACIÓN DE BRIGADAS", durationHours: 24, thematicArea: "6000 Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-        { name: "ESPACIOS CONFINADOS", durationHours: 8, thematicArea: "6000 Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-        { name: "BLOQUEO Y ETIQUETADO LOTO", durationHours: 8, thematicArea: "6000 Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-        { name: "MATERIALES PELIGROSOS", durationHours: 8, thematicArea: "6000 Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-        { name: "MAQUINARIA PESADA", durationHours: 8, thematicArea: "6000 Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-        { name: "SIMULACROS", durationHours: 8, thematicArea: "6000 Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-        { name: "SUPERVISORES SSPA", durationHours: 8, thematicArea: "6000 Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-        { name: "CORTE Y BARBERÍA", durationHours: 24, thematicArea: "2000 Servicios", creatorEmail: "lugga.advisors@gmail.com" },
-        { name: "MAQUILLAJE", durationHours: 24, thematicArea: "2000 Servicios", creatorEmail: "lugga.advisors@gmail.com" },
-        { name: "FORMACIÓN DE INSTRUCTORES", durationHours: 8, thematicArea: "11000 Enseñanza", creatorEmail: "lugga.advisors@gmail.com" },
-        { name: "CONSTRUCCIÓN (NOM-031)", durationHours: 8, thematicArea: "6000 Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-        { name: "MANLIFT", durationHours: 8, thematicArea: "6000 Seguridad", creatorEmail: "lugga.advisors@gmail.com" },
-        { name: "ENGANCHE 5 RUEDA", durationHours: 8, thematicArea: "06 Transporte", creatorEmail: "lugga.advisors@gmail.com" },
-        { name: "URGENCIAS MÉDICAS", durationHours: 8, thematicArea: "09.1 Servicios médicos", creatorEmail: "lugga.advisors@gmail.com" },
-        { name: "VEHÍCULOS PESADOS", durationHours: 8, thematicArea: "06 Transporte", creatorEmail: "lugga.advisors@gmail.com" },
-        { name: "INHALOTERAPIA", durationHours: 24, thematicArea: "09.1 Servicios médicos", creatorEmail: "lugga.advisors@gmail.com" }
-    ],
-    agents: [
-        { name: "CYNTHIA YADIRA GARZA LUGO", stps: "STPS-GALC780523-MP3-005", creatorEmail: "lugga.advisors@gmail.com" }
-    ],
-    companies: []
+    courses: [],   // Cargado desde Supabase
+    agents: [],     // Cargado desde Supabase
+    companies: []   // Cargado desde Supabase
 };
+
+// Cargar catálogos desde Supabase al iniciar
+async function loadCatalogs() {
+    const [coursesR, agentsR, companiesR] = await Promise.all([
+        api('find','courses',{ filter: {} }),
+        api('find','agents',{ filter: {} }),
+        api('find','companies',{ filter: {} })
+    ]);
+    DATA.courses   = coursesR.documents || [];
+    DATA.agents    = agentsR.documents  || [];
+    DATA.companies = companiesR.documents || [];
+}
 
 let currentUser = null, currentView = 'dashboard', selectedWorker = null;
 
@@ -471,15 +464,67 @@ window.onload = () => {
 };
 
 // ─── API ──────────────────────────────────────────────
+// ─── SUPABASE API ──────────────────────────────────
+// Map frontend collection names to Supabase table names
+const TABLE_MAP = { workers:'workers', companies:'companies', courses:'courses', dc3_records:'dc3_records', agents:'agents' };
+
+// Map camelCase fields to snake_case for DB
+function toSnake(obj) {
+    const map = { creatorEmail:'creator_email', workerId:'worker_id', workerName:'worker_name', workerPos:'worker_pos',
+                  courseName:'course_name', companyName:'company_name', agentName:'agent_name', agentStps:'agent_stps',
+                  startDate:'start_date', endDate:'end_date', resultText:'result_text', durationHours:'duration_hours',
+                  thematicArea:'thematic_area' };
+    const out = {};
+    for (const [k,v] of Object.entries(obj)) out[map[k]||k] = v;
+    return out;
+}
+
+// Map snake_case back to camelCase for frontend
+function toCamel(obj) {
+    const map = { creator_email:'creatorEmail', worker_id:'workerId', worker_name:'workerName', worker_pos:'workerPos',
+                  course_name:'courseName', company_name:'companyName', agent_name:'agentName', agent_stps:'agentStps',
+                  start_date:'startDate', end_date:'endDate', result_text:'resultText', duration_hours:'durationHours',
+                  thematic_area:'thematicArea', created_at:'createdAt' };
+    const out = {};
+    for (const [k,v] of Object.entries(obj)) out[map[k]||k] = v;
+    return out;
+}
+
 async function api(action, collection, payload = {}) {
+    const table = TABLE_MAP[collection] || collection;
     try {
-        const r = await fetch(API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action, collection, ...payload })
-        });
-        return await r.json();
-    } catch(e) { console.error(e); return { documents: [] }; }
+        if (action === 'find') {
+            let q = sb.from(table).select('*');
+            if (payload.filter) {
+                for (const [k,v] of Object.entries(toSnake(payload.filter))) {
+                    if (v && v !== '') q = q.eq(k, v);
+                }
+            }
+            q = q.order('created_at', { ascending: false });
+            const { data, error } = await q;
+            if (error) { console.error('Supabase find error:', error); return { documents: [] }; }
+            return { documents: (data||[]).map(toCamel) };
+        }
+        if (action === 'insertOne') {
+            const row = toSnake(payload.document);
+            const { data, error } = await sb.from(table).insert(row).select();
+            if (error) { console.error('Supabase insert error:', error); return { error: error.message }; }
+            return { insertedId: data?.[0]?.id };
+        }
+        if (action === 'insertMany') {
+            const rows = (payload.documents||[]).map(toSnake);
+            const { data, error } = await sb.from(table).insert(rows).select();
+            if (error) { console.error('Supabase insertMany error:', error); return { error: error.message }; }
+            return { insertedCount: data?.length || 0 };
+        }
+        if (action === 'deleteOne') {
+            const id = payload.filter?.id || payload.id;
+            const { error } = await sb.from(table).delete().eq('id', id);
+            if (error) { console.error('Supabase delete error:', error); return { error: error.message }; }
+            return { deletedCount: 1 };
+        }
+        return { error: 'Unknown action: ' + action };
+    } catch(e) { console.error('API error:', e); return { documents: [] }; }
 }
 
 // ─── LOGIN ─────────────────────────────────────────────
@@ -494,7 +539,7 @@ async function login(e) {
     initApp();
 }
 
-function initApp() {
+async function initApp() {
     document.getElementById('view-login').style.display = 'none';
     document.getElementById('view-app').style.display = 'block';
     document.getElementById('user-avatar').innerText = currentUser.name.substring(0,2).toUpperCase();
@@ -503,6 +548,7 @@ function initApp() {
     if (currentUser.role === 'ADMIN') {
         document.getElementById('btn-users').classList.remove('hidden');
     }
+    await loadCatalogs();
     setView('dashboard');
 }
 
