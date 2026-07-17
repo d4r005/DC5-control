@@ -2,30 +2,17 @@ package com.example.dc5control.ui
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Upload
-import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.unit.dp
-
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.dc5control.data.repository.SupabaseRepository
 import com.example.dc5control.util.ExcelHelper
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -33,6 +20,7 @@ import kotlinx.coroutines.launch
 fun DashboardScreen(
     onNavigateToCourses: () -> Unit,
     onNavigateToAgents: () -> Unit,
+    onNavigateToCompanies: () -> Unit,
     onNavigateToGenerate: () -> Unit,
     onNavigateToHistory: () -> Unit
 ) {
@@ -46,11 +34,8 @@ fun DashboardScreen(
             scope.launch {
                 try {
                     val workers = ExcelHelper.readWorkersFromExcel(context, it)
-                    SupabaseRepository.insertWorkers(workers) { success ->
-                        // TODO: Mostrar Snackbar de éxito o error
-                    }
-                } catch (e: Exception) {
-                }
+                    SupabaseRepository.insertWorkers(workers) { success -> }
+                } catch (e: Exception) {}
             }
         }
     }
@@ -67,31 +52,16 @@ fun DashboardScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            DashboardButton("Empresas", Icons.Default.Business, onNavigateToCompanies)
+            DashboardButton("Catálogo de Cursos", Icons.Default.List, onNavigateToCourses)
+            DashboardButton("Agentes Capacitadores", Icons.Default.Person, onNavigateToAgents)
             DashboardButton(
-                text = "Catálogo de Cursos",
-                icon = Icons.Default.List,
-                onClick = onNavigateToCourses
+                "Cargar Excel de Personal",
+                Icons.Default.Upload,
+                { launcher.launch("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") }
             )
-            DashboardButton(
-                text = "Agentes Capacitadores",
-                icon = Icons.Default.Person,
-                onClick = onNavigateToAgents
-            )
-            DashboardButton(
-                text = "Cargar Excel de Personal",
-                icon = Icons.Default.Upload,
-                onClick = { launcher.launch("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") }
-            )
-            DashboardButton(
-                text = "Generar DC-3",
-                icon = Icons.Default.Add,
-                onClick = onNavigateToGenerate
-            )
-            DashboardButton(
-                text = "Ver Historial (PDFs)",
-                icon = Icons.Default.PictureAsPdf,
-                onClick = onNavigateToHistory
-            )
+            DashboardButton("Generar DC-3", Icons.Default.Add, onNavigateToGenerate)
+            DashboardButton("Ver Historial (PDFs)", Icons.Default.PictureAsPdf, onNavigateToHistory)
         }
     }
 }

@@ -26,28 +26,25 @@ fun DC3GenerationScreen(onBack: () -> Unit) {
 
     var selectedCourse by remember { mutableStateOf<Course?>(null) }
     var selectedInstructor by remember { mutableStateOf<Instructor?>(null) }
-
-    // Datos de la empresa
-    var companyName by remember { mutableStateOf("") }
-    var companyRfc by remember { mutableStateOf("") }
-    var companyPatron by remember { mutableStateOf("") }
-    var companyRepresentante by remember { mutableStateOf("") }
+    var selectedCompany by remember { mutableStateOf<Company?>(null) }
+    var companyDropdownExpanded by remember { mutableStateOf(false) }
 
     var startDate by remember { mutableStateOf("") }
     var endDate by remember { mutableStateOf("") }
 
     var showSignaturePad by remember { mutableStateOf(false) }
     var isGenerating by remember { mutableStateOf(false) }
-    var statusMessage by remember { mutableStateOf("") }
 
     val courses = remember { mutableStateListOf<Course>() }
     val instructors = remember { mutableStateListOf<Instructor>() }
     val employees = remember { mutableStateListOf<Employee>() }
+    val companies = remember { mutableStateListOf<Company>() }
 
     LaunchedEffect(Unit) {
         SupabaseRepository.fetchData("courses", Course.serializer()) { courses.addAll(it) }
         SupabaseRepository.fetchData("instructors", Instructor.serializer()) { instructors.addAll(it) }
         SupabaseRepository.fetchData("employees", Employee.serializer()) { employees.addAll(it) }
+        SupabaseRepository.fetchData("companies", Company.serializer()) { companies.addAll(it) }
     }
 
     if (showSignaturePad) {
@@ -55,7 +52,6 @@ fun DC3GenerationScreen(onBack: () -> Unit) {
             onSave = { bitmap ->
                 scope.launch {
                     isGenerating = true
-                    statusMessage = "Generando constancias DC-3..."
                     withContext(Dispatchers.IO) {
                         employees.filter { it.active }.forEach { employee ->
                             val file = PdfGenerator.generateDC3(
@@ -63,14 +59,14 @@ fun DC3GenerationScreen(onBack: () -> Unit) {
                                 employee = employee,
                                 course = selectedCourse!!,
                                 instructor = selectedInstructor!!,
-                                companyName = companyName,
-                                companyRfc = companyRfc,
-                                companyPatron = companyPatron,
-                                companyRepresentante = companyRepresentante.ifBlank { null },
+                                companyName = selectedCompany!!.name,
+                                companyRfc = selectedCompany!!.rfc,
+                                companyPatron = selectedCompany!!.patron,
+                                companyRepresentante = selectedCompany!!.representante,
                                 startDate = startDate,
                                 endDate = endDate,
-                                signatureBitmap = bitmap,  // firma dibujada en pantalla (opcional, sobreescribe asset)
-                                logoBitmap = null          // null → carga logo_luber.png desde assets
+                                signatureBitmap = bitmap,
+                                logoBitmap = null  // null → carga logo_luber.png desde assets
                             )
 
                             CloudflareHelper.uploadPdf(
@@ -83,7 +79,7 @@ fun DC3GenerationScreen(onBack: () -> Unit) {
                                 workerId   = employee.curp,
                                 workerName = "${employee.lastName} ${employee.firstName}",
                                 courseName = selectedCourse!!.name,
-                                companyName = companyName,
+                                companyName = selectedCompany!!.name,
                                 startDate  = startDate,
                                 endDate    = endDate
                             )
@@ -111,7 +107,7 @@ fun DC3GenerationScreen(onBack: () -> Unit) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         CircularProgressIndicator()
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text(statusMessage.ifBlank { "Generando constancias DC-3..." })
+                        Text("Generando constancias DC-3...")
                     }
                 }
                 return@Scaffold
@@ -126,34 +122,67 @@ fun DC3GenerationScreen(onBack: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 // ─────────────────────────────────────────────────────────────
-                // DATOS DE LA EMPRESA
+                // EMPRESA (selección de lista)
                 // ─────────────────────────────────────────────────────────────
-                Text("Datos de la Empresa", style = MaterialTheme.typography.titleMedium)
+                Text("Empresa", style = MaterialTheme.typography.titleMedium)
 
-                TextField(
-                    value = companyName,
-                    onValueChange = { companyName = it },
-                    label = { Text("Nombre o Razón Social") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                TextField(
-                    value = companyRfc,
-                    onValueChange = { companyRfc = it },
-                    label = { Text("RFC de la Empresa") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                TextField(
-                    value = companyPatron,
-                    onValueChange = { companyPatron = it },
-                    label = { Text("Patrón o Representante Legal") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                TextField(
-                    value = companyRepresentante,
-                    onValueChange = { companyRepresentante = it },
-                    label = { Text("Representante de los Trabajadores (opcional)") },
-                    modifier = Modifier.fillMaxWidth()
-                )
+                ExposedDropdownMenuBox(
+                    expanded = companyDropdownExpanded,
+                    onExpandedChange = { companyDropdownExpanded = it }
+                ) {
+                    OutlinedTextField(
+                        value = selectedCompany?.name ?: "",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Seleccionar empresa") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = companyDropdownExpanded) },
+                        modifier = Modifier.fillMaxWidth().menuAnchor()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = companyDropdownExpanded,
+                        onDismissRequest = { companyDropdownExpanded = false }
+                    ) {
+                        if (companies.isEmpty()) {
+                            DropdownMenuItem(
+                                text = { Text("No hay empresas registradas") },
+                                onClick = { companyDropdownExpanded = false }
+                            )
+                        }
+                        companies.forEach { company ->
+                            DropdownMenuItem(
+                                text = {
+                                    Column {
+                                        Text(company.name)
+                                        Text("RFC: ${company.rfc}", style = MaterialTheme.typography.bodySmall)
+                                    }
+                                },
+                                onClick = {
+                                    selectedCompany = company
+                                    companyDropdownExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                // Mostrar datos del patrón y representante de la empresa seleccionada
+                if (selectedCompany != null) {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text("Patrón o Representante Legal:", style = MaterialTheme.typography.labelMedium)
+                            Text(
+                                selectedCompany!!.patron.ifBlank { "(no especificado)" },
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("Representante de los Trabajadores:", style = MaterialTheme.typography.labelMedium)
+                            Text(
+                                selectedCompany!!.representante ?: "(no especificado)",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -161,9 +190,6 @@ fun DC3GenerationScreen(onBack: () -> Unit) {
                 // CURSO
                 // ─────────────────────────────────────────────────────────────
                 Text("Curso", style = MaterialTheme.typography.titleMedium)
-                if (courses.isEmpty()) {
-                    Text("Cargando cursos...", style = MaterialTheme.typography.bodySmall)
-                }
                 courses.forEach { course ->
                     OutlinedButton(
                         onClick = { selectedCourse = course },
@@ -181,12 +207,9 @@ fun DC3GenerationScreen(onBack: () -> Unit) {
                 Spacer(modifier = Modifier.height(4.dp))
 
                 // ─────────────────────────────────────────────────────────────
-                // AGENTE CAPACITADOR / INSTRUCTOR
+                // INSTRUCTOR
                 // ─────────────────────────────────────────────────────────────
                 Text("Agente Capacitador / Instructor", style = MaterialTheme.typography.titleMedium)
-                if (instructors.isEmpty()) {
-                    Text("Cargando instructores...", style = MaterialTheme.typography.bodySmall)
-                }
                 instructors.forEach { instructor ->
                     OutlinedButton(
                         onClick = { selectedInstructor = instructor },
@@ -225,27 +248,24 @@ fun DC3GenerationScreen(onBack: () -> Unit) {
                 // ─────────────────────────────────────────────────────────────
                 val activeCount = employees.count { it.active }
                 if (activeCount > 0) {
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            "Se generarán $activeCount constancias DC-3 (empleados activos)",
-                            modifier = Modifier.padding(12.dp),
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
+                    Text(
+                        "Se generarán $activeCount constancias DC-3 (empleados activos)",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // ─────────────────────────────────────────────────────────────
-                // BOTÓN GENERAR
+                // BOTÓN
                 // ─────────────────────────────────────────────────────────────
                 Button(
                     onClick = { showSignaturePad = true },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = selectedCourse != null
                           && selectedInstructor != null
-                          && companyName.isNotEmpty()
-                          && companyPatron.isNotEmpty()
+                          && selectedCompany != null
                           && startDate.isNotEmpty()
                           && endDate.isNotEmpty()
                 ) {
