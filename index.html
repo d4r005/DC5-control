@@ -1088,8 +1088,7 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     // ── 3. Ocupación (col derecha) ───────────────────────────────────────────
     T(305, 193, (worker.occupation||worker.position||'').toUpperCase().slice(0,50), 7);
 
-    // ── 4. Puesto (ajuste para no borrar bordes del recuadro) ────────────────
-    page.drawRectangle({ x:30, y: PH-229, width:550, height:13, color: rgb(1,1,1) });
+    // ── 4. Puesto (e escribimos directamente sin borrar bordes) ──────────────
     T(30, 223, (worker.position||'').toUpperCase(), 9);
 
     // ── 5. Nombre empresa ────────────────────────────────────────────────────
@@ -1123,10 +1122,10 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     T(30, 438, agentLine.slice(0,70), 8);
 
     // ── 12. Limpiar etiquetas y firmas antiguas de forma quirúrgica (no borrar bordes) ──
-    // Limpiamos los títulos (Instructor, Patron, Repr)
-    page.drawRectangle({ x: 31, y: PH - 504, width: 538, height: 12, color: rgb(1,1,1) });
-    // Limpiamos las líneas originales y "Nombre y firma"
-    page.drawRectangle({ x: 31, y: PH - 552, width: 538, height: 20, color: rgb(1,1,1) });
+    // Limpiamos los títulos (Instructor, Patron, Repr) con rectángulos muy precisos
+    page.drawRectangle({ x: 31, y: PH - 508, width: 538, height: 18, color: rgb(1,1,1) });
+    // Limpiamos las líneas originales y "Nombre y firma" con rectángulos muy precisos
+    page.drawRectangle({ x: 31, y: PH - 553, width: 538, height: 21, color: rgb(1,1,1) });
 
     // Logo LUBER (fondo) - Centrado en X=120
     const LOGO_H = 70, LOGO_W = 130;
