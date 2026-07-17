@@ -36,9 +36,8 @@
                 <form class="space-y-6" onsubmit="login(event)">
                     <input id="email" type="email" required class="w-full bg-slate-50 rounded-2xl px-5 py-4 text-slate-900 outline-none" placeholder="Email">
                     <input id="password" type="password" required class="w-full bg-slate-50 rounded-2xl px-5 py-4 text-slate-900 outline-none" placeholder="Password">
-                    <button type="submit" class="w-full bg-[#4262a0] text-white py-4 rounded-2xl font-bold uppercase shadow-lg shadow-blue-900/10">Entrar</button>
+                    <button type="submit" class="w-full bg-[#4262a0] text-white py-4 rounded-2xl font-bold uppercase shadow-lg">Entrar</button>
                 </form>
-                <p id="login-error" class="text-red-500 text-center font-bold hidden mt-4 uppercase text-xs">Acceso Denegado</p>
             </div>
         </div>
     </div>
@@ -64,7 +63,7 @@
                 <div class="flex items-center space-x-4">
                     <h1 id="page-title" class="text-2xl font-bold">Dashboard</h1>
                     <select id="user-filter" onchange="refreshCurrentView()" class="border rounded-xl px-4 py-2 bg-slate-50 font-bold text-sm text-slate-800">
-                        <option value="ALL">Ver Todo el Sistema</option>
+                        <option value="ALL">Ver Todo</option>
                         <option value="d4r005@gmail.com">Dario Robles</option>
                         <option value="lugga.advisors@gmail.com">Cynthia Garza</option>
                     </select>
@@ -114,19 +113,23 @@
 
     <div id="dc3-modal" class="modal text-slate-800">
         <div class="modal-content" style="width: 600px;">
-            <h3 class="text-2xl font-black text-center mb-6 uppercase italic border-b pb-4">Configurar DC-3</h3>
+            <h3 class="text-2xl font-black text-center mb-6 uppercase italic border-b pb-4">Configurar Formato Oficial DC-3</h3>
             <div id="dc3-fields" class="space-y-6">
                 <div><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Trabajador</label><p id="dc3-worker-name" class="text-lg font-black text-blue-600"></p></div>
                 <div class="grid grid-cols-2 gap-4">
-                    <div><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Empresa</label><select id="dc3-company" class="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold text-sm ring-1 ring-slate-200"></select></div>
-                    <div><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Curso</label><select id="dc3-course" class="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold text-sm ring-1 ring-slate-200"></select></div>
+                    <div><label class="text-[10px] font-black text-slate-400 uppercase">Empresa</label><select id="dc3-company" class="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold text-sm ring-1 ring-slate-200"></select></div>
+                    <div><label class="text-[10px] font-black text-slate-400 uppercase">Curso</label><select id="dc3-course" class="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold text-sm ring-1 ring-slate-200"></select></div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
-                    <div><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fecha Inicio</label><input type="date" id="dc3-start" class="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold text-sm ring-1 ring-slate-200"></div>
-                    <div><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fecha Fin</label><input type="date" id="dc3-end" class="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold text-sm ring-1 ring-slate-200"></div>
+                    <div><label class="text-[10px] font-black text-slate-400 uppercase">Fecha Inicio</label><input type="date" id="dc3-start" class="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold text-sm ring-1 ring-slate-200"></div>
+                    <div><label class="text-[10px] font-black text-slate-400 uppercase">Fecha Fin</label><input type="date" id="dc3-end" class="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold text-sm ring-1 ring-slate-200"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="text-[10px] font-black text-slate-400 uppercase">Rep. Patrón</label><input id="dc3-patron" placeholder="Nombre de quien firma" class="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold text-sm ring-1 ring-slate-200"></div>
+                    <div><label class="text-[10px] font-black text-slate-400 uppercase">Rep. Trabajadores</label><input id="dc3-workers" placeholder="Nombre de quien firma" class="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold text-sm ring-1 ring-slate-200"></div>
                 </div>
             </div>
-            <div class="mt-10 flex justify-end space-x-4"><button onclick="document.getElementById('dc3-modal').style.display='none'" class="text-slate-400 font-bold uppercase text-xs">Cerrar</button><button onclick="generateSingleDC3()" class="bg-slate-900 text-white px-8 py-3 rounded-2xl font-black uppercase shadow-xl tracking-widest">Generar PDF</button></div>
+            <div class="mt-10 flex justify-end space-x-4"><button onclick="document.getElementById('dc3-modal').style.display='none'" class="text-slate-400 font-bold uppercase text-xs">Cerrar</button><button onclick="generateSingleDC3()" class="bg-slate-900 text-white px-8 py-3 rounded-2xl font-black uppercase shadow-xl tracking-widest">Generar y Descargar PDF</button></div>
         </div>
     </div>
 
@@ -140,29 +143,19 @@
             { name: "Cynthia Garza Lugo", email: "lugga.advisors@gmail.com", role: "USER", password: "Cynthia123" }
         ];
 
-        const CATALOGS = {
-            occupations: ["01 Cultivo, crianza y aprovechamiento", "04.6 Procesos industriales", "05 Procesamiento y fabricación", "06 Transporte", "07 Provisión de bienes y servicios"],
-            thematicAreas: ["1000 Producción general", "2000 Servicios", "6000 Seguridad", "7000 Desarrollo personal"]
-        };
-
         let currentUser = null, currentView = 'dashboard', selectedWorker = null;
 
         async function login(e) {
             e.preventDefault();
-            const email = document.getElementById('email').value.trim();
-            const pass = document.getElementById('password').value.trim();
-            const user = USERS.find(u => u.email === email && u.password === pass);
-            if(user) {
-                currentUser = user;
-                initApp();
-            } else { document.getElementById('login-error').classList.remove('hidden'); }
+            const user = USERS.find(u => u.email === document.getElementById('email').value.trim() && u.password === document.getElementById('password').value.trim());
+            if(user) { currentUser = user; initApp(); } else { document.getElementById('login-error').classList.remove('hidden'); }
         }
 
         function initApp() {
             document.getElementById('view-login').classList.add('hidden');
             document.getElementById('app-container').classList.remove('hidden');
             document.getElementById('user-name-display').innerText = currentUser.name;
-            document.getElementById('user-initials').innerText = currentUser.name.substring(0,2).toUpperCase();
+            document.getElementById('user-initials').innerText = currentUser.name.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase();
             if(currentUser.role === 'ADMIN') document.getElementById('btn-users')?.classList.remove('hidden');
             switchView('dashboard');
         }
@@ -175,11 +168,10 @@
 
         async function fetchResilient(table, filter) {
             try {
-                let { data, error } = await sb.from(table).select('*');
-                if (error) throw error;
+                let { data } = await sb.from(table).select('*');
                 if (!filter) return data || [];
                 return data.filter(d => (d.creatorEmail === filter || d.creator_email === filter));
-            } catch (e) { console.error(e); return []; }
+            } catch (e) { return []; }
         }
 
         async function switchView(v) {
@@ -204,24 +196,12 @@
                 document.getElementById('stat-courses').innerText = c.length;
             } else if(currentView === 'workers') {
                 const data = await fetchResilient('workers', f);
-                document.getElementById('table-header').innerHTML = `<tr><th class="p-6">Nombre</th><th class="p-6">CURP</th><th class="p-6">Puesto</th><th class="p-6 text-right">Acciones</th></tr>`;
-                document.getElementById('table-body').innerHTML = data.map(x => `<tr><td class="p-6 font-bold">${x.name}</td><td class="p-6 font-mono text-xs">${x.curp}</td><td class="p-6">${x.position}</td><td class="p-6 text-right"><button onclick='openDC3Modal(${JSON.stringify(x)})' class="text-blue-600 font-bold hover:underline">Generar DC-3</button></td></tr>`).join('') || '<tr><td colspan="4" class="p-10 text-center">Sin personal</td></tr>';
+                document.getElementById('table-header').innerHTML = `<tr><th class="p-6">Nombre</th><th class="p-6">CURP</th><th class="p-6 text-right">Acciones</th></tr>`;
+                document.getElementById('table-body').innerHTML = data.map(x => `<tr><td class="p-6 font-bold text-slate-800">${x.name}</td><td class="p-6 font-mono text-xs">${x.curp}</td><td class="p-6 text-right"><button onclick='openDC3Modal(${JSON.stringify(x)})' class="text-blue-600 font-bold">Generar DC-3</button></td></tr>`).join('') || '<tr><td colspan="3" class="p-10 text-center">Sin personal</td></tr>';
             } else if(currentView === 'companies') {
                 const data = await fetchResilient('companies', f);
                 document.getElementById('table-header').innerHTML = `<tr><th class="p-6">Empresa</th><th class="p-6">RFC</th><th class="p-6 text-right">Acciones</th></tr>`;
-                document.getElementById('table-body').innerHTML = data.map(c => `<tr><td class="p-6 font-bold">${c.name}</td><td class="p-6 font-mono">${c.rfc}</td><td class="p-6 text-right"><button onclick="deleteItem('companies','${c.id}')" class="text-red-500 font-bold">Borrar</button></td></tr>`).join('') || '<tr><td colspan="3" class="p-10 text-center text-slate-400">Sin empresas</td></tr>';
-            } else if(currentView === 'courses') {
-                const data = await fetchResilient('courses', f);
-                document.getElementById('table-header').innerHTML = `<tr><th class="p-6">Curso</th><th class="p-6">Horas</th><th class="p-6 text-right">Acciones</th></tr>`;
-                document.getElementById('table-body').innerHTML = data.map(c => `<tr><td class="p-6 font-bold uppercase">${c.name}</td><td class="p-6 font-bold text-blue-600">${c.duration_hours || c.durationHours || 0} H</td><td class="p-6 text-right"><button onclick="deleteItem('courses','${c.id}')" class="text-red-500 font-bold">Borrar</button></td></tr>`).join('') || '<tr><td colspan="3" class="p-10 text-center">Sin cursos</td></tr>';
-            } else if(currentView === 'agents') {
-                const data = await fetchResilient('agents', f);
-                document.getElementById('table-header').innerHTML = `<tr><th class="p-6">Agente</th><th class="p-6">STPS</th><th class="p-6 text-right">Acciones</th></tr>`;
-                document.getElementById('table-body').innerHTML = data.map(a => `<tr><td class="p-6 font-bold uppercase">${a.name}</td><td class="p-6">${a.stps}</td><td class="p-6 text-right"><button onclick="deleteItem('agents','${a.id}')" class="text-red-500 font-bold">Borrar</button></td></tr>`).join('') || '<tr><td colspan="3" class="p-10 text-center">Sin agentes</td></tr>';
-            } else if(currentView === 'dc3') {
-                const data = await fetchResilient('dc3_records', f);
-                document.getElementById('table-header').innerHTML = `<tr><th class="p-6">Trabajador</th><th class="p-6">Curso</th><th class="p-6 text-right">Acciones</th></tr>`;
-                document.getElementById('table-body').innerHTML = data.map(d => `<tr><td class="p-6 font-bold">${d.worker_name || d.workerName || d.workerId}</td><td class="p-6">${d.course_name || d.courseName}</td><td class="p-6 text-right"><button class="text-blue-600 font-bold">Ver PDF</button></td></tr>`).join('') || '<tr><td colspan="4" class="p-10 text-center">Sin registros</td></tr>';
+                document.getElementById('table-body').innerHTML = data.map(c => `<tr><td class="p-6 font-bold text-slate-800">${c.name}</td><td class="p-6 font-mono">${c.rfc}</td><td class="p-6 text-right"><button onclick="deleteItem('companies','${c.id}')" class="text-red-500 font-bold">Borrar</button></td></tr>`).join('') || '<tr><td colspan="3" class="p-10 text-center">Sin empresas</td></tr>';
             }
             lucide.createIcons();
         }
@@ -230,21 +210,18 @@
             const fields = document.getElementById('modal-fields');
             document.getElementById('modal').style.display = 'block';
             if(currentView === 'workers') {
-                document.getElementById('modal-title').innerText = "Nuevo Trabajador";
-                fields.innerHTML = `<input id="f1" placeholder="Nombre Completo" class="w-full p-4 bg-slate-50 rounded-2xl outline-none border font-bold text-slate-800"><input id="f2" placeholder="CURP" class="w-full p-4 bg-slate-50 rounded-2xl outline-none border mt-4 font-bold text-slate-800"><select id="f3" class="w-full p-4 bg-slate-50 rounded-2xl outline-none border mt-4 font-bold text-slate-800">${CATALOGS.occupations.map(o=>`<option value="${o}">${o}</option>`).join('')}</select><input id="f4" placeholder="Puesto" class="w-full p-4 bg-slate-50 rounded-2xl outline-none border mt-4 font-bold text-slate-800">`;
+                fields.innerHTML = `<input id="f1" placeholder="Nombre Completo" class="w-full p-4 bg-slate-50 rounded-2xl border font-bold text-slate-800"><input id="f2" placeholder="CURP" class="w-full p-4 bg-slate-50 rounded-2xl border mt-4 font-bold text-slate-800"><input id="f4" placeholder="Puesto" class="w-full p-4 bg-slate-50 rounded-2xl border mt-4 font-bold text-slate-800">`;
             } else if(currentView === 'companies') {
-                document.getElementById('modal-title').innerText = "Nueva Empresa";
-                fields.innerHTML = `<input id="f1" placeholder="Nombre" class="w-full p-4 bg-slate-50 rounded-2xl outline-none border font-bold text-slate-800"><input id="f2" placeholder="RFC" class="w-full p-4 bg-slate-50 rounded-2xl outline-none border mt-4 font-bold text-slate-800">`;
+                fields.innerHTML = `<input id="f1" placeholder="Nombre" class="w-full p-4 bg-slate-50 rounded-2xl border font-bold text-slate-800"><input id="f2" placeholder="RFC" class="w-full p-4 bg-slate-50 rounded-2xl border mt-4 font-bold text-slate-800">`;
             }
         }
 
         async function saveItem() {
             let doc = { creatorEmail: currentUser.email };
-            if(currentView === 'workers') doc = { ...doc, name: document.getElementById('f1').value, curp: document.getElementById('f2').value.toUpperCase(), occupation: document.getElementById('f3').value, position: document.getElementById('f4').value };
+            if(currentView === 'workers') doc = { ...doc, name: document.getElementById('f1').value, curp: document.getElementById('f2').value.toUpperCase(), position: document.getElementById('f4').value };
             else if(currentView === 'companies') doc = { ...doc, name: document.getElementById('f1').value, rfc: document.getElementById('f2').value.toUpperCase() };
-
-            const { error } = await sb.from(currentView).insert([doc]);
-            if(!error) { alert("¡Guardado!"); closeModal(); refreshCurrentView(); }
+            await sb.from(currentView).insert([doc]);
+            closeModal(); refreshCurrentView();
         }
 
         async function openDC3Modal(worker) {
@@ -257,29 +234,55 @@
             document.getElementById('dc3-modal').style.display = 'block';
         }
 
-        function generateSingleDC3() {
+        async function generateSingleDC3() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
+            const company = (await fetchResilient('companies', null)).find(c => c.name === document.getElementById('dc3-company').value);
+            const course = (await fetchResilient('courses', null)).find(c => c.name === document.getElementById('dc3-course').value);
+
+            // PLANTILLA OFICIAL - COORDENADAS FIJAS SEGÚN IMAGEN
+            doc.setFont("helvetica", "bold"); doc.setFontSize(14);
             doc.text("FORMATO DC-3", 105, 20, null, null, "center");
-            doc.text(`Trabajador: ${selectedWorker.name}`, 20, 40);
+            doc.setFontSize(8); doc.text("CONSTANCIA DE COMPETENCIAS O DE HABILIDADES LABORALES", 105, 28, null, null, "center");
+
+            const drawBar = (text, y) => {
+                doc.setFillColor(230, 230, 230); doc.rect(15, y, 180, 6, 'F');
+                doc.setFontSize(7); doc.setTextColor(0); doc.text(text, 17, y + 4.5);
+            };
+
+            // SECCIÓN 1: TRABAJADOR
+            drawBar("DATOS DEL TRABAJADOR", 38);
+            doc.setFontSize(6); doc.setTextColor(150, 0, 0); doc.text("Nombre (Anotar apellido paterno, apellido materno y nombre(s))", 15, 50);
+            doc.setFontSize(10); doc.setTextColor(0); doc.text(selectedWorker.name.toUpperCase(), 15, 56);
+            doc.line(15, 57, 195, 57);
+
+            doc.setFontSize(6); doc.setTextColor(150, 0, 0); doc.text("Clave Única de Registro de Población", 15, 64);
+            const curp = selectedWorker.curp.toUpperCase().padEnd(18);
+            for(let i=0; i<18; i++) { doc.rect(15 + (i * 4.5), 66, 4.5, 6); doc.text(curp[i], 16 + (i * 4.5), 70.5); }
+
+            // SECCIÓN 2: EMPRESA
+            drawBar("DATOS DE LA EMPRESA", 85);
+            doc.setFontSize(6); doc.setTextColor(150, 0, 0); doc.text("Nombre o razón social", 15, 97);
+            doc.setFontSize(10); doc.setTextColor(0); doc.text(company.name.toUpperCase(), 15, 103);
+            doc.line(15, 104, 195, 104);
+
+            // FIRMAS
+            doc.setFontSize(7); doc.text("aquél que no se conduce con verdad.", 105, 180, null, null, "center");
+            const pat = document.getElementById('dc3-patron').value;
+            const wor = document.getElementById('dc3-workers').value;
+            doc.line(80, 210, 130, 210); doc.text("Patrón", 105, 215, null, null, "center"); doc.text(pat, 105, 208, null, null, "center");
+            doc.line(140, 210, 190, 210); doc.text("Representante", 165, 215, null, null, "center"); doc.text(wor, 165, 208, null, null, "center");
+
             doc.save(`DC3_${selectedWorker.curp}.pdf`);
+            // Guardar registro
+            await sb.from('dc3_records').insert([{ worker_name: selectedWorker.name, worker_id: selectedWorker.curp, course_name: course.name, company_name: company.name, start_date: document.getElementById('dc3-start').value, creatorEmail: currentUser.email }]);
             document.getElementById('dc3-modal').style.display='none';
+            refreshCurrentView();
         }
 
         function closeModal() { document.getElementById('modal').style.display = 'none'; }
         function logout() { location.reload(); }
-        async function deleteItem(table, id) { if(confirm("¿Borrar?")) { await sb.from(table).delete().match({id}); refreshCurrentView(); } }
-        async function handleExcel(input) {
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
-                const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-                const docs = rows.map(r => ({ name: r.Nombre || r.NOMBRE, curp: r.CURP, position: r.Puesto || r.PUESTO, creatorEmail: currentUser.email }));
-                await sb.from('workers').insert(docs);
-                alert("Excel cargado!"); refreshCurrentView();
-            };
-            reader.readAsArrayBuffer(input.files[0]);
-        }
+        async function deleteItem(t, id) { if(confirm("¿Borrar?")) { await sb.from(t).delete().match({id}); refreshCurrentView(); } }
     </script>
 </body>
 </html>

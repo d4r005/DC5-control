@@ -4,41 +4,49 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class Worker(
+    val id: String? = null,
     val name: String = "",
     val curp: String = "",
     val occupation: String = "",
     val position: String = "",
-    val creator_email: String? = null
+    val creatorEmail: String? = null
 )
 
 @Serializable
 data class Company(
+    val id: String? = null,
     val name: String = "",
     val rfc: String = "",
-    val creator_email: String? = null
+    val creatorEmail: String? = null
 )
 
 @Serializable
 data class Course(
+    val id: String? = null,
     val name: String = "",
-    val duration_hours: Int = 8,
-    val creator_email: String? = null
+    val durationHours: Int = 8,
+    val thematicArea: String = "",
+    val creatorEmail: String? = null
 )
 
 @Serializable
 data class TrainingAgent(
+    val id: String? = null,
     val name: String = "",
     val stps: String = "",
-    val creator_email: String? = null
+    val creatorEmail: String? = null
 )
 
 @Serializable
 data class DC3Record(
-    val worker_id: String = "",
-    val worker_name: String = "",
-    val course_name: String = "",
-    val company_name: String = "",
-    val start_date: String = "",
-    val end_date: String = "",
-    val creator_email: String? = null
+    val id: String? = null,
+    val workerId: String = "",
+    val workerName: String = "",
+    val courseName: String = "",
+    val companyName: String = "",
+    val startDate: String = "",
+    val endDate: String = "",
+    val representativePatron: String = "",
+    val representativeWorkers: String = "",
+    val creatorEmail: String? = null
 )
