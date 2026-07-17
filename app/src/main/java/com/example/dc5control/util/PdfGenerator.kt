@@ -1,9 +1,7 @@
 package com.example.dc5control.util
 
 import android.content.Context
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Paint
+import android.graphics.*
 import android.graphics.pdf.PdfDocument
 import com.example.dc5control.data.model.Worker
 import com.example.dc5control.data.model.Course
@@ -11,7 +9,20 @@ import com.example.dc5control.data.model.TrainingAgent
 import java.io.File
 import java.io.FileOutputStream
 
+/**
+ * Generador de PDF con el formato oficial DC-3 (STPS) exacto basado en la imagen proporcionada.
+ */
 object PdfGenerator {
+
+    private const val PAGE_W = 595
+    private const val PAGE_H = 842
+    private const val MARGIN = 30f
+    
+    // Colores del formato
+    private val GRAY_BAR = Color.rgb(230, 230, 230)
+    private val TEXT_BLACK = Color.BLACK
+    private val LINE_GRAY = Color.rgb(180, 180, 180)
+
     fun generateDC3(
         context: Context,
         worker: Worker,
@@ -23,109 +34,177 @@ object PdfGenerator {
         endDate: String
     ): File {
         val pdfDocument = PdfDocument()
-        val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create() // A4 Size
-        val page = pdfDocument.startPage(pageInfo)
-        val canvas = page.canvas
-        val paint = Paint()
-
-        // --- DRAWING FRONT (ANVERSO) ---
-        paint.color = Color.BLACK
-        paint.textSize = 14f
-        paint.isFakeBoldText = true
-        canvas.drawText("FORMATO DC-3", 240f, 50f, paint)
-        paint.textSize = 10f
-        canvas.drawText("CONSTANCIA DE COMPETENCIAS O DE HABILIDADES LABORALES", 140f, 70f, paint)
-
-        // Worker Data
-        drawSectionHeader(canvas, "DATOS DEL TRABAJADOR", 50f, 100f, paint)
-        paint.isFakeBoldText = false
-        drawField(canvas, "Nombre:", worker.name, 60f, 130f, paint)
         
-        // CURP Grid Simulation
-        drawCurpGrid(canvas, worker.curp, 60f, 150f, paint)
+        // --- PÁGINA 1: ANVERSO ---
+        val pageInfo1 = PdfDocument.PageInfo.Builder(PAGE_W, PAGE_H, 1).create()
+        val page1 = pdfDocument.startPage(pageInfo1)
+        drawAnverso(page1.canvas, worker, course, agent, companyName, companyRfc, startDate, endDate)
+        pdfDocument.finishPage(page1)
 
-        drawField(canvas, "Ocupación específica:", worker.occupation, 60f, 190f, paint)
-        drawField(canvas, "Puesto:", worker.position, 60f, 210f, paint)
+        // --- PÁGINA 2: REVERSO ---
+        val pageInfo2 = PdfDocument.PageInfo.Builder(PAGE_W, PAGE_H, 2).create()
+        val page2 = pdfDocument.startPage(pageInfo2)
+        drawReverso(page2.canvas)
+        pdfDocument.finishPage(page2)
 
-        // Company Data
-        drawSectionHeader(canvas, "DATOS DE LA EMPRESA", 50f, 250f, paint)
-        drawField(canvas, "Nombre o razón social:", companyName, 60f, 280f, paint)
-        drawRfcGrid(canvas, companyRfc, 60f, 300f, paint)
-
-        // Course Data
-        drawSectionHeader(canvas, "DATOS DEL PROGRAMA DE CAPACITACIÓN", 50f, 350f, paint)
-        drawField(canvas, "Nombre del curso:", course.name, 60f, 380f, paint)
-        drawField(canvas, "Duración en horas:", "${course.durationHours}", 60f, 400f, paint)
-        drawField(canvas, "Periodo de ejecución:", "De $startDate a $endDate", 60f, 420f, paint)
-        drawField(canvas, "Área temática del curso:", course.thematicArea, 60f, 440f, paint)
-        drawField(canvas, "Nombre del agente capacitador:", agent.name, 60f, 460f, paint)
-        drawField(canvas, "Registro STPS:", agent.stpsRegistry, 60f, 480f, paint)
-
-        // Signatures
-        paint.textSize = 8f
-        canvas.drawLine(60f, 650f, 200f, 650f, paint)
-        canvas.drawText("Instructor o Tutor", 90f, 665f, paint)
-        
-        canvas.drawLine(240f, 650f, 380f, 650f, paint)
-        canvas.drawText("Patrón o representante legal", 250f, 665f, paint)
-
-        canvas.drawLine(420f, 650f, 550f, 650f, paint)
-        canvas.drawText("Representante de los trabajadores", 425f, 665f, paint)
-
-        pdfDocument.finishPage(page)
-    }
-
-    private fun drawSectionHeader(canvas: Canvas, title: String, x: Float, y: Float, paint: Paint) {
-        paint.color = Color.BLACK
-        paint.isFakeBoldText = true
-        paint.textSize = 10f
-        canvas.drawRect(x, y - 15f, 545f, y + 5f, Paint().apply { color = Color.LTGRAY; alpha = 100 })
-        canvas.drawText(title, x + 10f, y, paint)
-    }
-
-    private fun drawField(canvas: Canvas, label: String, value: String, x: Float, y: Float, paint: Paint) {
-        paint.isFakeBoldText = true
-        canvas.drawText(label, x, y, paint)
-        paint.isFakeBoldText = false
-        canvas.drawText(value, x + paint.measureText(label) + 10f, y, paint)
-    }
-
-    private fun drawCurpGrid(canvas: Canvas, curp: String, x: Float, y: Float, paint: Paint) {
-        val boxSize = 15f
-        paint.style = Paint.Style.STROKE
-        for (i in 0 until 18) {
-            canvas.drawRect(x + (i * boxSize), y, x + ((i + 1) * boxSize), y + boxSize, paint)
-            if (i < curp.length) {
-                paint.style = Paint.Style.FILL
-                canvas.drawText(curp[i].toString(), x + (i * boxSize) + 4f, y + 11f, paint)
-                paint.style = Paint.Style.STROKE
-            }
+        val file = File(context.getExternalFilesDir(null), "DC3_${worker.curp.ifEmpty { worker.name.replace(" ", "_") }}.pdf")
+        FileOutputStream(file).use { out ->
+            pdfDocument.writeTo(out)
         }
-        paint.style = Paint.Style.FILL
-        canvas.drawText("CURP", x, y - 5f, paint)
-    }
-
-    private fun drawRfcGrid(canvas: Canvas, rfc: String, x: Float, y: Float, paint: Paint) {
-        val boxSize = 15f
-        paint.style = Paint.Style.STROKE
-        for (i in 0 until 13) {
-            canvas.drawRect(x + (i * boxSize), y, x + ((i + 1) * boxSize), y + boxSize, paint)
-            if (i < rfc.length) {
-                paint.style = Paint.Style.FILL
-                canvas.drawText(rfc[i].toString(), x + (i * boxSize) + 4f, y + 11f, paint)
-                paint.style = Paint.Style.STROKE
-            }
-        }
-        paint.style = Paint.Style.FILL
-        canvas.drawText("RFC con homoclave", x, y - 5f, paint)
-    }
-
-        // --- DRAWING BACK (REVERSO) ---
-        // (Similar logic for the tables shown in the second image)
-
-        val file = File(context.getExternalFilesDir(null), "DC3_${worker.curp}.pdf")
-        pdfDocument.writeTo(FileOutputStream(file))
         pdfDocument.close()
         return file
+    }
+
+    private fun drawAnverso(
+        canvas: Canvas, worker: Worker, course: Course, agent: TrainingAgent,
+        companyName: String, companyRfc: String, startDate: String, endDate: String
+    ) {
+        val paint = Paint().apply { isAntiAlias = true; color = TEXT_BLACK }
+        var y = 50f
+
+        // Fondo blanco
+        paint.color = Color.WHITE
+        canvas.drawRect(0f, 0f, PAGE_W.toFloat(), PAGE_H.toFloat(), paint)
+
+        // Títulos Principales
+        paint.color = TEXT_BLACK
+        paint.isFakeBoldText = true
+        paint.textSize = 16f
+        drawCenteredText(canvas, "FORMATO DC-3", PAGE_W / 2f, y, paint)
+        y += 18f
+        paint.textSize = 10f
+        drawCenteredText(canvas, "CONSTANCIA DE COMPETENCIAS O DE HABILIDADES LABORALES", PAGE_W / 2f, y, paint)
+        y += 35f
+
+        // --- SECCIÓN 1: DATOS DEL TRABAJADOR ---
+        drawGraySectionHeader(canvas, "DATOS DEL TRABAJADOR", y, paint)
+        y += 20f
+
+        drawLabel(canvas, "Nombre (Anotar apellido paterno, apellido materno y nombre(s))", MARGIN, y, paint)
+        y += 15f
+        drawValue(canvas, worker.name.uppercase(), MARGIN, y, paint, 11f)
+        y += 5f
+        canvas.drawLine(MARGIN, y, PAGE_W - MARGIN, y, paint.apply { color = TEXT_BLACK; strokeWidth = 0.8f })
+        y += 25f
+        
+        // CURP y Ocupación
+        drawLabel(canvas, "Clave Única de Registro de Población", MARGIN, y, paint)
+        val col2X = MARGIN + 310f
+        drawLabel(canvas, "Ocupación específica (Catálogo Nacional de Ocupaciones)", col2X, y, paint)
+        y += 8f
+        drawCharBoxes(canvas, worker.curp.uppercase(), MARGIN, y, 18, paint)
+        drawValue(canvas, worker.occupation, col2X, y + 12f, paint, 9f)
+        y += 15f
+        canvas.drawLine(col2X, y, PAGE_W - MARGIN, y, paint)
+        y += 25f
+
+        // Puesto
+        drawLabel(canvas, "Puesto", MARGIN, y, paint)
+        y += 15f
+        drawValue(canvas, worker.position.uppercase(), MARGIN, y, paint, 10f)
+        y += 5f
+        canvas.drawLine(MARGIN, y, PAGE_W - MARGIN, y, paint)
+        y += 40f
+
+        // --- SECCIÓN 2: DATOS DE LA EMPRESA ---
+        drawGraySectionHeader(canvas, "DATOS DE LA EMPRESA", y, paint)
+        y += 20f
+
+        drawLabel(canvas, "Nombre o razón social (En caso de persona física, anotar apellido paterno, materno y nombre(s))", MARGIN, y, paint)
+        y += 15f
+        drawValue(canvas, companyName.uppercase(), MARGIN, y, paint, 11f)
+        y += 5f
+        canvas.drawLine(MARGIN, y, PAGE_W - MARGIN, y, paint)
+        y += 25f
+
+        drawLabel(canvas, "Registro Federal de Contribuyentes con homoclave (SHCP)", MARGIN, y, paint)
+        y += 8f
+        drawCharBoxes(canvas, companyRfc.uppercase().replace("-",""), MARGIN, y, 13, paint)
+        y += 40f
+
+        // --- SECCIÓN 3: DATOS DEL PROGRAMA ---
+        drawGraySectionHeader(canvas, "DATOS DEL PROGRAMA DE CAPACITACIÓN, ADIESTRAMIENTO Y PRODUCTIVIDAD", y, paint)
+        y += 20f
+
+        drawLabel(canvas, "Nombre del curso", MARGIN, y, paint)
+        y += 15f
+        drawValue(canvas, course.name.uppercase(), MARGIN, y, paint, 11f)
+        y += 5f
+        canvas.drawLine(MARGIN, y, PAGE_W - MARGIN, y, paint)
+        y += 25f
+
+        // Duración
+        drawLabel(canvas, "Duración en horas", MARGIN, y, paint)
+        y += 15f
+        drawValue(canvas, "${course.duration_hours} HORAS", MARGIN, y, paint, 10f)
+        y += 5f
+        canvas.drawLine(MARGIN, y, MARGIN + 120f, y, paint)
+
+        // Footer Anverso
+        paint.textSize = 8f
+        paint.isFakeBoldText = false
+        canvas.drawText("DC-3 ANVERSO", PAGE_W - MARGIN - 70f, PAGE_H - 30f, paint)
+    }
+
+    private fun drawReverso(canvas: Canvas) {
+        val paint = Paint().apply { isAntiAlias = true; color = TEXT_BLACK }
+        var y = 40f
+        paint.color = Color.WHITE
+        canvas.drawRect(0f, 0f, PAGE_W.toFloat(), PAGE_H.toFloat(), paint)
+        paint.color = TEXT_BLACK
+        paint.textSize = 9f
+        paint.isFakeBoldText = true
+        drawCenteredText(canvas, "CATÁLOGO DE OCUPACIONES Y ÁREAS TEMÁTICAS", PAGE_W / 2f, y, paint)
+    }
+
+    // --- HELPERS ---
+
+    private fun drawGraySectionHeader(canvas: Canvas, title: String, y: Float, paint: Paint) {
+        paint.color = GRAY_BAR
+        canvas.drawRect(MARGIN, y - 14f, PAGE_W - MARGIN, y + 4f, paint)
+        paint.color = TEXT_BLACK
+        paint.isFakeBoldText = true
+        paint.textSize = 10f
+        canvas.drawText(title, MARGIN + 5f, y - 1f, paint)
+    }
+
+    private fun drawLabel(canvas: Canvas, text: String, x: Float, y: Float, paint: Paint) {
+        paint.color = TEXT_BLACK
+        paint.isFakeBoldText = false
+        paint.textSize = 7f
+        canvas.drawText(text, x, y, paint)
+    }
+
+    private fun drawValue(canvas: Canvas, text: String, x: Float, y: Float, paint: Paint, size: Float) {
+        paint.color = TEXT_BLACK
+        paint.isFakeBoldText = true
+        paint.textSize = size
+        canvas.drawText(text, x, y, paint)
+    }
+
+    private fun drawCharBoxes(canvas: Canvas, text: String, x: Float, y: Float, count: Int, paint: Paint) {
+        val boxW = 14f
+        val boxH = 16f
+        paint.style = Paint.Style.STROKE
+        paint.color = TEXT_BLACK
+        paint.strokeWidth = 1f
+        
+        val charPaint = Paint().apply { isAntiAlias = true; textSize = 10f; isFakeBoldText = true; color = TEXT_BLACK }
+
+        for (i in 0 until count) {
+            val bx = x + i * boxW
+            canvas.drawRect(bx, y, bx + boxW, y + boxH, paint)
+            if (i < text.length) {
+                val charStr = text[i].toString()
+                val tw = charPaint.measureText(charStr)
+                canvas.drawText(charStr, bx + (boxW - tw) / 2f, y + 12f, charPaint)
+            }
+        }
+        paint.style = Paint.Style.FILL
+    }
+
+    private fun drawCenteredText(canvas: Canvas, text: String, x: Float, y: Float, paint: Paint) {
+        val width = paint.measureText(text)
+        canvas.drawText(text, x - width / 2f, y, paint)
     }
 }

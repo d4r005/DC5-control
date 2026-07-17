@@ -11,7 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.dc5control.data.model.Course
-import com.example.dc5control.data.repository.AtlasRepository
+import com.example.dc5control.data.repository.SupabaseRepository
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -22,7 +22,7 @@ fun CourseListScreen(onBack: () -> Unit) {
     var showAddDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        AtlasRepository.fetchData("courses", Course.serializer()) { fetchedCourses ->
+        SupabaseRepository.fetchData("courses", Course.serializer()) { fetchedCourses ->
             courses.clear()
             courses.addAll(fetchedCourses)
         }
@@ -61,7 +61,7 @@ fun CourseListScreen(onBack: () -> Unit) {
             onDismiss = { showAddDialog = false },
             onConfirm = { name, hours, area ->
                 val newCourse = Course(name = name, durationHours = hours, thematicArea = area)
-                AtlasRepository.insertData("courses", newCourse, Course.serializer()) { success ->
+                SupabaseRepository.insertData("courses", newCourse, Course.serializer()) { success ->
                     if (success) {
                         courses.add(newCourse)
                         showAddDialog = false

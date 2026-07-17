@@ -24,7 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.example.dc5control.data.repository.AtlasRepository
+import com.example.dc5control.data.repository.SupabaseRepository
 import com.example.dc5control.util.ExcelHelper
 import kotlinx.coroutines.launch
 
@@ -46,7 +46,7 @@ fun DashboardScreen(
             scope.launch {
                 try {
                     val workers = ExcelHelper.readWorkersFromExcel(context, it)
-                    AtlasRepository.insertWorkers(workers) { success ->
+                    SupabaseRepository.insertWorkers(workers) { success ->
                         // TODO: Mostrar Snackbar de éxito o error
                     }
                 } catch (e: Exception) {

@@ -11,7 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.dc5control.data.model.TrainingAgent
-import com.example.dc5control.data.repository.AtlasRepository
+import com.example.dc5control.data.repository.SupabaseRepository
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -22,7 +22,7 @@ fun AgentListScreen(onBack: () -> Unit) {
     var showAddDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        AtlasRepository.fetchData("agents", TrainingAgent.serializer()) { fetchedAgents ->
+        SupabaseRepository.fetchData("agents", TrainingAgent.serializer()) { fetchedAgents ->
             agents.clear()
             agents.addAll(fetchedAgents)
         }
@@ -61,7 +61,7 @@ fun AgentListScreen(onBack: () -> Unit) {
             onDismiss = { showAddDialog = false },
             onConfirm = { name, registry ->
                 val newAgent = TrainingAgent(name = name, stpsRegistry = registry)
-                AtlasRepository.insertData("agents", newAgent, TrainingAgent.serializer()) { success ->
+                SupabaseRepository.insertData("agents", newAgent, TrainingAgent.serializer()) { success ->
                     if (success) {
                         agents.add(newAgent)
                         showAddDialog = false
