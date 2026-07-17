@@ -26,28 +26,28 @@ fun DC3GenerationScreen(onBack: () -> Unit) {
 
     var selectedCourse by remember { mutableStateOf<Course?>(null) }
     var selectedInstructor by remember { mutableStateOf<Instructor?>(null) }
+
+    // Datos de la empresa
     var companyName by remember { mutableStateOf("") }
     var companyRfc by remember { mutableStateOf("") }
+    var companyPatron by remember { mutableStateOf("") }
+    var companyRepresentante by remember { mutableStateOf("") }
+
     var startDate by remember { mutableStateOf("") }
     var endDate by remember { mutableStateOf("") }
 
     var showSignaturePad by remember { mutableStateOf(false) }
     var isGenerating by remember { mutableStateOf(false) }
+    var statusMessage by remember { mutableStateOf("") }
 
     val courses = remember { mutableStateListOf<Course>() }
     val instructors = remember { mutableStateListOf<Instructor>() }
     val employees = remember { mutableStateListOf<Employee>() }
 
     LaunchedEffect(Unit) {
-        SupabaseRepository.fetchData("courses", Course.serializer()) { fetched ->
-            courses.addAll(fetched)
-        }
-        SupabaseRepository.fetchData("instructors", Instructor.serializer()) { fetched ->
-            instructors.addAll(fetched)
-        }
-        SupabaseRepository.fetchData("employees", Employee.serializer()) { fetched ->
-            employees.addAll(fetched)
-        }
+        SupabaseRepository.fetchData("courses", Course.serializer()) { courses.addAll(it) }
+        SupabaseRepository.fetchData("instructors", Instructor.serializer()) { instructors.addAll(it) }
+        SupabaseRepository.fetchData("employees", Employee.serializer()) { employees.addAll(it) }
     }
 
     if (showSignaturePad) {
@@ -55,15 +55,8 @@ fun DC3GenerationScreen(onBack: () -> Unit) {
             onSave = { bitmap ->
                 scope.launch {
                     isGenerating = true
+                    statusMessage = "Generando constancias DC-3..."
                     withContext(Dispatchers.IO) {
-                        // Cargar logo si existe en assets (opcional)
-                        val logoBitmap = try {
-                            context.assets.open("logo_luber.png").use { 
-                                android.graphics.BitmapFactory.decodeStream(it)
-                            }
-                        } catch (e: Exception) { null }
-
-                        // Generar DC-3 con PDFBox para cada empleado activo
                         employees.filter { it.active }.forEach { employee ->
                             val file = PdfGenerator.generateDC3(
                                 context = context,
@@ -72,39 +65,29 @@ fun DC3GenerationScreen(onBack: () -> Unit) {
                                 instructor = selectedInstructor!!,
                                 companyName = companyName,
                                 companyRfc = companyRfc,
+                                companyPatron = companyPatron,
+                                companyRepresentante = companyRepresentante.ifBlank { null },
                                 startDate = startDate,
                                 endDate = endDate,
-                                signatureBitmap = bitmap,
-                                logoBitmap = logoBitmap
+                                signatureBitmap = bitmap,  // firma dibujada en pantalla (opcional, sobreescribe asset)
+                                logoBitmap = null          // null → carga logo_luber.png desde assets
                             )
 
-                            // Subir PDF a Cloudflare
                             CloudflareHelper.uploadPdf(
                                 file = file,
-                                onSuccess = { 
-                                    android.util.Log.d("Cloudflare", "PDF subidó con éxito: ${file.name}")
-                                },
-                                onError = { error ->
-                                    android.util.Log.e("Cloudflare", "Error al subir PDF: $error")
-                                }
+                                onSuccess = { android.util.Log.d("DC3", "PDF subido: ${file.name}") },
+                                onError  = { e -> android.util.Log.e("DC3", "Error al subir: $e") }
                             )
 
-                            // Guardar registro del DC-3 generado
                             val record = DC3Record(
-                                workerId = employee.curp,
+                                workerId   = employee.curp,
                                 workerName = "${employee.lastName} ${employee.firstName}",
                                 courseName = selectedCourse!!.name,
                                 companyName = companyName,
-                                startDate = startDate,
-                                endDate = endDate
+                                startDate  = startDate,
+                                endDate    = endDate
                             )
-                            SupabaseRepository.insertData("dc3_records", record, DC3Record.serializer()) { success ->
-                                if (success) {
-                                    android.util.Log.d("Supabase", "Registro guardado en Cloudflare/Supabase")
-                                } else {
-                                    android.util.Log.e("Supabase", "Error al guardar registro")
-                                }
-                            }
+                            SupabaseRepository.insertData("dc3_records", record, DC3Record.serializer()) {}
                         }
                     }
                     isGenerating = false
@@ -119,9 +102,7 @@ fun DC3GenerationScreen(onBack: () -> Unit) {
             topBar = {
                 TopAppBar(
                     title = { Text("Generar DC-3") },
-                    navigationIcon = {
-                        TextButton(onClick = onBack) { Text("←") }
-                    }
+                    navigationIcon = { TextButton(onClick = onBack) { Text("←") } }
                 )
             }
         ) { padding ->
@@ -130,7 +111,7 @@ fun DC3GenerationScreen(onBack: () -> Unit) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         CircularProgressIndicator()
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text("Generando constancias DC-3 con PDFBox...")
+                        Text(statusMessage.ifBlank { "Generando constancias DC-3..." })
                     }
                 }
                 return@Scaffold
@@ -144,8 +125,11 @@ fun DC3GenerationScreen(onBack: () -> Unit) {
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // --- Datos de la Empresa ---
+                // ─────────────────────────────────────────────────────────────
+                // DATOS DE LA EMPRESA
+                // ─────────────────────────────────────────────────────────────
                 Text("Datos de la Empresa", style = MaterialTheme.typography.titleMedium)
+
                 TextField(
                     value = companyName,
                     onValueChange = { companyName = it },
@@ -155,15 +139,31 @@ fun DC3GenerationScreen(onBack: () -> Unit) {
                 TextField(
                     value = companyRfc,
                     onValueChange = { companyRfc = it },
-                    label = { Text("RFC") },
+                    label = { Text("RFC de la Empresa") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                TextField(
+                    value = companyPatron,
+                    onValueChange = { companyPatron = it },
+                    label = { Text("Patrón o Representante Legal") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                TextField(
+                    value = companyRepresentante,
+                    onValueChange = { companyRepresentante = it },
+                    label = { Text("Representante de los Trabajadores (opcional)") },
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("Curso y Agente Capacitador", style = MaterialTheme.typography.titleMedium)
 
-                // --- Selección de Curso ---
-                Text("Cursos disponibles:", style = MaterialTheme.typography.bodySmall)
+                // ─────────────────────────────────────────────────────────────
+                // CURSO
+                // ─────────────────────────────────────────────────────────────
+                Text("Curso", style = MaterialTheme.typography.titleMedium)
+                if (courses.isEmpty()) {
+                    Text("Cargando cursos...", style = MaterialTheme.typography.bodySmall)
+                }
                 courses.forEach { course ->
                     OutlinedButton(
                         onClick = { selectedCourse = course },
@@ -174,14 +174,19 @@ fun DC3GenerationScreen(onBack: () -> Unit) {
                         ),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(course.name)
+                        Text("${course.name} (${course.duration} h)")
                     }
                 }
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // --- Selección de Instructor ---
-                Text("Agente capacitador:", style = MaterialTheme.typography.bodySmall)
+                // ─────────────────────────────────────────────────────────────
+                // AGENTE CAPACITADOR / INSTRUCTOR
+                // ─────────────────────────────────────────────────────────────
+                Text("Agente Capacitador / Instructor", style = MaterialTheme.typography.titleMedium)
+                if (instructors.isEmpty()) {
+                    Text("Cargando instructores...", style = MaterialTheme.typography.bodySmall)
+                }
                 instructors.forEach { instructor ->
                     OutlinedButton(
                         onClick = { selectedInstructor = instructor },
@@ -192,13 +197,16 @@ fun DC3GenerationScreen(onBack: () -> Unit) {
                         ),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(instructor.fullName)
+                        Text("${instructor.fullName}${if (instructor.stpsNumber != null) " — ${instructor.stpsNumber}" else ""}")
                     }
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // --- Fechas ---
+                // ─────────────────────────────────────────────────────────────
+                // FECHAS
+                // ─────────────────────────────────────────────────────────────
+                Text("Período de Ejecución", style = MaterialTheme.typography.titleMedium)
                 TextField(
                     value = startDate,
                     onValueChange = { startDate = it },
@@ -212,20 +220,34 @@ fun DC3GenerationScreen(onBack: () -> Unit) {
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                // --- Info ---
-                Text(
-                    "Se generarán ${employees.count { it.active }} constancias DC-3 (una por empleado activo)",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                // ─────────────────────────────────────────────────────────────
+                // INFO
+                // ─────────────────────────────────────────────────────────────
+                val activeCount = employees.count { it.active }
+                if (activeCount > 0) {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            "Se generarán $activeCount constancias DC-3 (empleados activos)",
+                            modifier = Modifier.padding(12.dp),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
+                // ─────────────────────────────────────────────────────────────
+                // BOTÓN GENERAR
+                // ─────────────────────────────────────────────────────────────
                 Button(
                     onClick = { showSignaturePad = true },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = selectedCourse != null && selectedInstructor != null &&
-                             companyName.isNotEmpty() && startDate.isNotEmpty() && endDate.isNotEmpty()
+                    enabled = selectedCourse != null
+                          && selectedInstructor != null
+                          && companyName.isNotEmpty()
+                          && companyPatron.isNotEmpty()
+                          && startDate.isNotEmpty()
+                          && endDate.isNotEmpty()
                 ) {
                     Text("Firmar y Generar DC-3")
                 }

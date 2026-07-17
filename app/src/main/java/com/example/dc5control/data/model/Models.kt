@@ -35,6 +35,8 @@ data class Company(
     val id: Long? = null,
     val name: String = "",
     val rfc: String = "",
+    val patron: String = "",
+    val representante: String? = null,
     val creatorEmail: String? = null
 )
 
