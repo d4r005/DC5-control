@@ -17,12 +17,10 @@
         .nav-btn.active { background-color: #2563eb; color: white; box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2); }
         .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); overflow-y: auto; }
         .modal-content { background: white; margin: 5% auto; padding: 30px; width: 500px; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
-        #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; padding: 12px 24px; border-radius: 12px; font-weight: 700; transition: opacity 0.3s; opacity: 0; pointer-events: none; }
     </style>
 </head>
 <body class="antialiased text-slate-200 h-screen overflow-hidden">
 
-    <!-- Pantalla de Login -->
     <div id="view-login" class="login-bg min-h-screen flex items-center justify-center px-4">
         <div class="flex max-w-5xl w-full items-center justify-between">
             <div class="hidden lg:flex w-1/2 flex-col items-center">
@@ -38,17 +36,13 @@
                 <form class="space-y-6" onsubmit="login(event)">
                     <input id="email" type="email" required class="w-full bg-slate-50 rounded-2xl px-5 py-4 text-slate-900 outline-none" placeholder="Email">
                     <input id="password" type="password" required class="w-full bg-slate-50 rounded-2xl px-5 py-4 text-slate-900 outline-none" placeholder="Password">
-                    <div class="flex items-center text-[11px] font-bold text-slate-500 px-1 uppercase">
-                        <label class="flex items-center cursor-pointer"><input type="checkbox" id="remember-me" class="mr-2 w-4 h-4 accent-blue-600"> Recordar usuario</label>
-                    </div>
-                    <button type="submit" class="w-full bg-[#4262a0] text-white py-4 rounded-2xl font-bold uppercase shadow-lg shadow-blue-900/10 active:scale-[0.98]">Entrar</button>
+                    <button type="submit" class="w-full bg-[#4262a0] text-white py-4 rounded-2xl font-bold uppercase shadow-lg shadow-blue-900/10">Entrar</button>
                 </form>
                 <p id="login-error" class="text-red-500 text-center font-bold hidden mt-4 uppercase text-xs">Acceso Denegado</p>
             </div>
         </div>
     </div>
 
-    <!-- App Container -->
     <div id="app-container" class="hidden fixed inset-0 flex h-screen bg-slate-50 text-slate-800 overflow-hidden">
         <aside class="w-72 bg-slate-900 text-slate-300 flex flex-col justify-between shrink-0">
             <div>
@@ -60,40 +54,39 @@
                     <button onclick="switchView('courses')" id="btn-courses" class="nav-btn w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="book-open"></i><span>Cursos</span></button>
                     <button onclick="switchView('agents')" id="btn-agents" class="nav-btn w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="award"></i><span>Agentes Cap.</span></button>
                     <button onclick="switchView('dc3')" id="btn-dc3" class="nav-btn w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="file-check"></i><span>DC-3 Generados</span></button>
-                    <button onclick="switchView('users')" id="btn-users" class="nav-btn hidden w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="users-2"></i><span>Usuarios</span></button>
                 </nav>
             </div>
-            <div class="p-6 border-t border-slate-800"><button onclick="logout()" class="w-full text-red-400 font-bold hover:bg-red-500/10 py-3 rounded-xl transition-all">Salir del Sistema</button></div>
+            <div class="p-6 border-t border-slate-800"><button onclick="logout()" class="w-full text-red-400 font-bold hover:bg-red-500/10 py-3 rounded-xl">Salir del Sistema</button></div>
         </aside>
 
         <main class="flex-1 flex flex-col overflow-hidden">
             <header class="h-20 bg-white border-b flex items-center justify-between px-10 shrink-0">
                 <div class="flex items-center space-x-4">
                     <h1 id="page-title" class="text-2xl font-bold">Dashboard</h1>
-                    <select id="user-filter" onchange="refreshCurrentView()" class="border rounded-xl px-4 py-2 bg-slate-50 font-bold text-sm">
+                    <select id="user-filter" onchange="refreshCurrentView()" class="border rounded-xl px-4 py-2 bg-slate-50 font-bold text-sm text-slate-800">
                         <option value="ALL">Ver Todo el Sistema</option>
                         <option value="d4r005@gmail.com">Dario Robles</option>
                         <option value="lugga.advisors@gmail.com">Cynthia Garza</option>
                     </select>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <div class="text-right leading-tight"><p id="user-name-display" class="font-extrabold"></p><p class="text-[10px] text-slate-500 font-black uppercase tracking-widest">Administrador ACE</p></div>
+                    <div class="text-right leading-tight"><p id="user-name-display" class="font-extrabold text-slate-900"></p><p class="text-[10px] text-slate-500 font-black uppercase tracking-widest">Administrador ACE</p></div>
                     <div id="user-initials" class="h-10 w-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold uppercase tracking-widest"></div>
                 </div>
             </header>
 
             <div class="flex-1 overflow-y-auto p-10 space-y-10">
-                <div id="view-dashboard" class="grid grid-cols-3 gap-8">
+                <div id="view-dashboard" class="grid grid-cols-3 gap-8 text-slate-800">
                     <div class="bg-white p-8 rounded-3xl border shadow-sm flex justify-between items-center group hover:shadow-xl transition-all">
-                        <div><p class="text-xs font-black text-slate-400 uppercase tracking-widest">Personal</p><p id="stat-workers" class="text-4xl font-black text-slate-800 mt-2">0</p></div>
+                        <div><p class="text-xs font-black text-slate-400 uppercase tracking-widest">Personal</p><p id="stat-workers" class="text-4xl font-black mt-2">0</p></div>
                         <div class="p-4 bg-blue-50 text-blue-600 rounded-2xl"><i data-lucide="users" class="w-8 h-8"></i></div>
                     </div>
                     <div class="bg-white p-8 rounded-3xl border shadow-sm flex justify-between items-center group hover:shadow-xl transition-all">
-                        <div><p class="text-xs font-black text-slate-400 uppercase tracking-widest">Cursos</p><p id="stat-courses" class="text-4xl font-black text-slate-800 mt-2">0</p></div>
+                        <div><p class="text-xs font-black text-slate-400 uppercase tracking-widest">Cursos</p><p id="stat-courses" class="text-4xl font-black mt-2">0</p></div>
                         <div class="p-4 bg-green-50 text-green-600 rounded-2xl"><i data-lucide="book-open" class="w-8 h-8"></i></div>
                     </div>
                     <div class="bg-white p-8 rounded-3xl border shadow-sm flex justify-between items-center group hover:shadow-xl transition-all">
-                        <div><p class="text-xs font-black text-slate-400 uppercase tracking-widest">DC-3</p><p id="stat-dc3" class="text-4xl font-black text-slate-800 mt-2">0</p></div>
+                        <div><p class="text-xs font-black text-slate-400 uppercase tracking-widest">DC-3</p><p id="stat-dc3" class="text-4xl font-black mt-2">0</p></div>
                         <div class="p-4 bg-purple-50 text-purple-600 rounded-2xl"><i data-lucide="file-check" class="w-8 h-8"></i></div>
                     </div>
                 </div>
@@ -117,10 +110,9 @@
         </main>
     </div>
 
-    <!-- Modales -->
-    <div id="modal" class="modal"><div class="modal-content"><h3 id="modal-title" class="text-2xl font-black mb-8 uppercase italic tracking-tighter">Acción</h3><div id="modal-fields" class="space-y-6"></div><div class="mt-10 flex justify-end space-x-4"><button onclick="closeModal()" class="text-slate-400 font-bold uppercase text-xs">Cancelar</button><button onclick="saveItem()" class="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-blue-200 hover:bg-blue-500 transition-all">Guardar</button></div></div></div>
+    <div id="modal" class="modal"><div class="modal-content"><h3 id="modal-title" class="text-2xl font-black mb-8 uppercase italic tracking-tighter text-slate-800">Acción</h3><div id="modal-fields" class="space-y-6"></div><div class="mt-10 flex justify-end space-x-4"><button onclick="closeModal()" class="text-slate-400 font-bold uppercase text-xs">Cancelar</button><button onclick="saveItem()" class="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-blue-200 hover:bg-blue-500 transition-all">Guardar</button></div></div></div>
 
-    <div id="dc3-modal" class="modal">
+    <div id="dc3-modal" class="modal text-slate-800">
         <div class="modal-content" style="width: 600px;">
             <h3 class="text-2xl font-black text-center mb-6 uppercase italic border-b pb-4">Configurar DC-3</h3>
             <div id="dc3-fields" class="space-y-6">
@@ -155,20 +147,12 @@
 
         let currentUser = null, currentView = 'dashboard', selectedWorker = null;
 
-        window.onload = () => {
-            lucide.createIcons();
-            const saved = localStorage.getItem('rememberedEmail');
-            if (saved) document.getElementById('email').value = saved;
-        };
-
         async function login(e) {
             e.preventDefault();
             const email = document.getElementById('email').value.trim();
             const pass = document.getElementById('password').value.trim();
             const user = USERS.find(u => u.email === email && u.password === pass);
             if(user) {
-                const rememberMe = document.getElementById('remember-me');
-                if(rememberMe && rememberMe.checked) localStorage.setItem('rememberedEmail', email);
                 currentUser = user;
                 initApp();
             } else { document.getElementById('login-error').classList.remove('hidden'); }
@@ -178,8 +162,8 @@
             document.getElementById('view-login').classList.add('hidden');
             document.getElementById('app-container').classList.remove('hidden');
             document.getElementById('user-name-display').innerText = currentUser.name;
-            document.getElementById('user-initials').innerText = currentUser.name.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase();
-            if(currentUser.role === 'ADMIN') document.getElementById('btn-users').classList.remove('hidden');
+            document.getElementById('user-initials').innerText = currentUser.name.substring(0,2).toUpperCase();
+            if(currentUser.role === 'ADMIN') document.getElementById('btn-users')?.classList.remove('hidden');
             switchView('dashboard');
         }
 
@@ -195,7 +179,7 @@
                 if (error) throw error;
                 if (!filter) return data || [];
                 return data.filter(d => (d.creatorEmail === filter || d.creator_email === filter));
-            } catch (e) { console.error("Fetch Error:", e); return []; }
+            } catch (e) { console.error(e); return []; }
         }
 
         async function switchView(v) {
@@ -206,8 +190,6 @@
             document.getElementById('view-content').classList.toggle('hidden', v === 'dashboard');
             document.getElementById('upload-btn').classList.toggle('hidden', v !== 'workers');
             document.getElementById('add-btn').classList.toggle('hidden', !['workers','companies','courses','agents'].includes(v));
-            const titles = { dashboard:'Dashboard', workers:'Personal', companies:'Empresas', courses:'Cursos', agents:'Agentes Cap.', dc3:'DC-3 Generados', users:'Usuarios' };
-            document.getElementById('page-title').innerText = titles[v] || v;
             refreshCurrentView();
         }
 
@@ -223,26 +205,23 @@
             } else if(currentView === 'workers') {
                 const data = await fetchResilient('workers', f);
                 document.getElementById('table-header').innerHTML = `<tr><th class="p-6">Nombre</th><th class="p-6">CURP</th><th class="p-6">Puesto</th><th class="p-6 text-right">Acciones</th></tr>`;
-                document.getElementById('table-body').innerHTML = data.map(x => `<tr><td class="p-6 font-bold text-slate-800">${x.name}</td><td class="p-6 font-mono text-xs">${x.curp}</td><td class="p-6">${x.position}</td><td class="p-6 text-right"><button onclick='openDC3Modal(${JSON.stringify(x)})' class="text-blue-600 font-bold hover:underline">Generar DC-3</button></td></tr>`).join('') || '<tr><td colspan="4" class="p-10 text-center">Sin personal registrado</td></tr>';
+                document.getElementById('table-body').innerHTML = data.map(x => `<tr><td class="p-6 font-bold">${x.name}</td><td class="p-6 font-mono text-xs">${x.curp}</td><td class="p-6">${x.position}</td><td class="p-6 text-right"><button onclick='openDC3Modal(${JSON.stringify(x)})' class="text-blue-600 font-bold hover:underline">Generar DC-3</button></td></tr>`).join('') || '<tr><td colspan="4" class="p-10 text-center">Sin personal</td></tr>';
             } else if(currentView === 'companies') {
                 const data = await fetchResilient('companies', f);
                 document.getElementById('table-header').innerHTML = `<tr><th class="p-6">Empresa</th><th class="p-6">RFC</th><th class="p-6 text-right">Acciones</th></tr>`;
-                document.getElementById('table-body').innerHTML = data.map(c => `<tr><td class="p-6 font-bold text-slate-800">${c.name}</td><td class="p-6 font-mono">${c.rfc}</td><td class="p-6 text-right"><button onclick="deleteItem('companies','${c.id}')" class="text-red-500 font-bold hover:underline">Eliminar</button></td></tr>`).join('') || '<tr><td colspan="3" class="p-10 text-center text-slate-400">Sin empresas registradas</td></tr>';
+                document.getElementById('table-body').innerHTML = data.map(c => `<tr><td class="p-6 font-bold">${c.name}</td><td class="p-6 font-mono">${c.rfc}</td><td class="p-6 text-right"><button onclick="deleteItem('companies','${c.id}')" class="text-red-500 font-bold">Borrar</button></td></tr>`).join('') || '<tr><td colspan="3" class="p-10 text-center text-slate-400">Sin empresas</td></tr>';
             } else if(currentView === 'courses') {
                 const data = await fetchResilient('courses', f);
                 document.getElementById('table-header').innerHTML = `<tr><th class="p-6">Curso</th><th class="p-6">Horas</th><th class="p-6 text-right">Acciones</th></tr>`;
                 document.getElementById('table-body').innerHTML = data.map(c => `<tr><td class="p-6 font-bold uppercase">${c.name}</td><td class="p-6 font-bold text-blue-600">${c.duration_hours || c.durationHours || 0} H</td><td class="p-6 text-right"><button onclick="deleteItem('courses','${c.id}')" class="text-red-500 font-bold">Borrar</button></td></tr>`).join('') || '<tr><td colspan="3" class="p-10 text-center">Sin cursos</td></tr>';
             } else if(currentView === 'agents') {
                 const data = await fetchResilient('agents', f);
-                document.getElementById('table-header').innerHTML = `<tr><th class="p-6">Agente</th><th class="p-6">Registro STPS</th><th class="p-6 text-right">Acciones</th></tr>`;
+                document.getElementById('table-header').innerHTML = `<tr><th class="p-6">Agente</th><th class="p-6">STPS</th><th class="p-6 text-right">Acciones</th></tr>`;
                 document.getElementById('table-body').innerHTML = data.map(a => `<tr><td class="p-6 font-bold uppercase">${a.name}</td><td class="p-6">${a.stps}</td><td class="p-6 text-right"><button onclick="deleteItem('agents','${a.id}')" class="text-red-500 font-bold">Borrar</button></td></tr>`).join('') || '<tr><td colspan="3" class="p-10 text-center">Sin agentes</td></tr>';
             } else if(currentView === 'dc3') {
                 const data = await fetchResilient('dc3_records', f);
-                document.getElementById('table-header').innerHTML = `<tr><th class="p-6">Trabajador</th><th class="p-6">Curso</th><th class="p-6">Fecha</th><th class="p-6 text-right">Acciones</th></tr>`;
-                document.getElementById('table-body').innerHTML = data.map(d => `<tr><td class="p-6 font-bold text-slate-800">${d.worker_name || d.workerName || d.workerId}</td><td class="p-6">${d.course_name || d.courseName}</td><td class="p-6">${d.start_date || d.startDate}</td><td class="p-6 text-right"><button class="text-blue-600 font-bold">Ver PDF</button></td></tr>`).join('') || '<tr><td colspan="4" class="p-10 text-center">Sin registros</td></tr>';
-            } else if(currentView === 'users') {
-                document.getElementById('table-header').innerHTML = `<tr><th class="p-6">Nombre</th><th class="p-6">Email</th><th class="p-6">Rol</th></tr>`;
-                document.getElementById('table-body').innerHTML = USERS.map(u => `<tr><td class="p-6 font-bold">${u.name}</td><td class="p-6">${u.email}</td><td class="p-6"><span class="px-3 py-1 rounded-full text-xs font-black bg-blue-100 text-blue-700">${u.role}</span></td></tr>`).join('');
+                document.getElementById('table-header').innerHTML = `<tr><th class="p-6">Trabajador</th><th class="p-6">Curso</th><th class="p-6 text-right">Acciones</th></tr>`;
+                document.getElementById('table-body').innerHTML = data.map(d => `<tr><td class="p-6 font-bold">${d.worker_name || d.workerName || d.workerId}</td><td class="p-6">${d.course_name || d.courseName}</td><td class="p-6 text-right"><button class="text-blue-600 font-bold">Ver PDF</button></td></tr>`).join('') || '<tr><td colspan="4" class="p-10 text-center">Sin registros</td></tr>';
             }
             lucide.createIcons();
         }
@@ -252,16 +231,10 @@
             document.getElementById('modal').style.display = 'block';
             if(currentView === 'workers') {
                 document.getElementById('modal-title').innerText = "Nuevo Trabajador";
-                fields.innerHTML = `<input id="f1" placeholder="Nombre Completo" class="w-full p-4 bg-slate-50 rounded-2xl outline-none border font-bold"><input id="f2" placeholder="CURP" class="w-full p-4 bg-slate-50 rounded-2xl outline-none border mt-4 font-bold"><select id="f3" class="w-full p-4 bg-slate-50 rounded-2xl outline-none border mt-4 font-bold">${CATALOGS.occupations.map(o=>`<option value="${o}">${o}</option>`).join('')}</select><input id="f4" placeholder="Puesto" class="w-full p-4 bg-slate-50 rounded-2xl outline-none border mt-4 font-bold">`;
+                fields.innerHTML = `<input id="f1" placeholder="Nombre Completo" class="w-full p-4 bg-slate-50 rounded-2xl outline-none border font-bold text-slate-800"><input id="f2" placeholder="CURP" class="w-full p-4 bg-slate-50 rounded-2xl outline-none border mt-4 font-bold text-slate-800"><select id="f3" class="w-full p-4 bg-slate-50 rounded-2xl outline-none border mt-4 font-bold text-slate-800">${CATALOGS.occupations.map(o=>`<option value="${o}">${o}</option>`).join('')}</select><input id="f4" placeholder="Puesto" class="w-full p-4 bg-slate-50 rounded-2xl outline-none border mt-4 font-bold text-slate-800">`;
             } else if(currentView === 'companies') {
                 document.getElementById('modal-title').innerText = "Nueva Empresa";
-                fields.innerHTML = `<input id="f1" placeholder="Nombre" class="w-full p-4 bg-slate-50 rounded-2xl outline-none border font-bold"><input id="f2" placeholder="RFC" class="w-full p-4 bg-slate-50 rounded-2xl outline-none border mt-4 font-bold">`;
-            } else if(currentView === 'courses') {
-                document.getElementById('modal-title').innerText = "Nuevo Curso";
-                fields.innerHTML = `<input id="f1" placeholder="Nombre del Curso" class="w-full p-4 bg-slate-50 rounded-2xl outline-none border font-bold"><input id="f2" type="number" placeholder="Horas" class="w-full p-4 bg-slate-50 rounded-2xl outline-none border mt-4 font-bold"><select id="f3" class="w-full p-4 bg-slate-50 rounded-2xl outline-none border mt-4 font-bold">${CATALOGS.thematicAreas.map(a=>`<option value="${a}">${a}</option>`).join('')}</select>`;
-            } else if(currentView === 'agents') {
-                document.getElementById('modal-title').innerText = "Nuevo Agente";
-                fields.innerHTML = `<input id="f1" placeholder="Nombre" class="w-full p-4 bg-slate-50 rounded-2xl outline-none border font-bold"><input id="f2" placeholder="Registro STPS" class="w-full p-4 bg-slate-50 rounded-2xl outline-none border mt-4 font-bold">`;
+                fields.innerHTML = `<input id="f1" placeholder="Nombre" class="w-full p-4 bg-slate-50 rounded-2xl outline-none border font-bold text-slate-800"><input id="f2" placeholder="RFC" class="w-full p-4 bg-slate-50 rounded-2xl outline-none border mt-4 font-bold text-slate-800">`;
             }
         }
 
@@ -269,11 +242,9 @@
             let doc = { creatorEmail: currentUser.email };
             if(currentView === 'workers') doc = { ...doc, name: document.getElementById('f1').value, curp: document.getElementById('f2').value.toUpperCase(), occupation: document.getElementById('f3').value, position: document.getElementById('f4').value };
             else if(currentView === 'companies') doc = { ...doc, name: document.getElementById('f1').value, rfc: document.getElementById('f2').value.toUpperCase() };
-            else if(currentView === 'courses') doc = { ...doc, name: document.getElementById('f1').value, durationHours: parseInt(document.getElementById('f2').value), thematicArea: document.getElementById('f3').value };
-            else if(currentView === 'agents') doc = { ...doc, name: document.getElementById('f1').value, stps: document.getElementById('f2').value };
 
             const { error } = await sb.from(currentView).insert([doc]);
-            if(!error) { alert("¡Guardado!"); closeModal(); refreshCurrentView(); } else { alert("Error: " + error.message); }
+            if(!error) { alert("¡Guardado!"); closeModal(); refreshCurrentView(); }
         }
 
         async function openDC3Modal(worker) {
@@ -281,22 +252,18 @@
             document.getElementById('dc3-worker-name').innerText = worker.name;
             const cos = await fetchResilient('companies', null);
             const crs = await fetchResilient('courses', null);
-            document.getElementById('dc3-company').innerHTML = cos.map(c => `<option value="${c.name}">${c.name}</option>`).join('') || '<option value="">Sin empresas</option>';
-            document.getElementById('dc3-course').innerHTML = crs.map(c => `<option value="${c.name}">${c.name}</option>`).join('') || '<option value="">Sin cursos</option>';
+            document.getElementById('dc3-company').innerHTML = cos.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+            document.getElementById('dc3-course').innerHTML = crs.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
             document.getElementById('dc3-modal').style.display = 'block';
         }
 
-        async function generateSingleDC3() {
+        function generateSingleDC3() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            const companyName = document.getElementById('dc3-company').value;
-            const courseName = document.getElementById('dc3-course').value;
             doc.text("FORMATO DC-3", 105, 20, null, null, "center");
             doc.text(`Trabajador: ${selectedWorker.name}`, 20, 40);
             doc.save(`DC3_${selectedWorker.curp}.pdf`);
-            await sb.from('dc3_records').insert([{ worker_name: selectedWorker.name, worker_id: selectedWorker.curp, course_name: courseName, company_name: companyName, start_date: document.getElementById('dc3-start').value, creatorEmail: currentUser.email }]);
             document.getElementById('dc3-modal').style.display='none';
-            refreshCurrentView();
         }
 
         function closeModal() { document.getElementById('modal').style.display = 'none'; }
