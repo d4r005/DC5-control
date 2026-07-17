@@ -1,11 +1,13 @@
 // ============================================================
 // PdfGenerator.kt
 // Rellena la plantilla oficial DC-3 STPS con datos reales.
-// Usa PDFBox 3.0.1 (ya declarado en build.gradle.kts).
+// PDFBox 3.0.1 — coordenadas calibradas con PyMuPDF sobre el
+// PDF oficial STPS (612×792 pts / Letter).
 //
-// Coordenadas calibradas con pymupdf sobre el PDF oficial STPS
-// (612 × 792 pts / Letter). Origen PyMuPDF: esquina sup-izq.
-// PDFBox usa Y desde abajo → y_pdfbox = 792 - y_fitz
+// Origen PyMuPDF: esquina sup-izq (Y crece hacia abajo).
+// PDFBox:         esquina inf-izq (Y crece hacia arriba).
+// Conversión: y_pdfbox = PAGE_H - y_fitz
+// Para imágenes: y_pdfbox = PAGE_H - y_fitz - h
 // ============================================================
 
 package com.example.dc5control.util
@@ -22,10 +24,6 @@ import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject
 import java.io.ByteArrayOutputStream
 import java.io.File
 
-/**
- * Datos necesarios para generar una constancia DC-3.
- * fechaInicio / fechaFin → formato "dd/mm/yyyy"
- */
 data class DC3FormData(
     val nombreTrabajador: String,
     val curp: String,
@@ -35,12 +33,12 @@ data class DC3FormData(
     val rfc: String,
     val nombreCurso: String,
     val duracionHoras: String,
-    val fechaInicio: String,   // "dd/mm/yyyy"
-    val fechaFin: String,      // "dd/mm/yyyy"
+    val fechaInicio: String,   // "dd/MM/yyyy"
+    val fechaFin: String,      // "dd/MM/yyyy"
     val areaTematica: String,
     val agenteCapacitador: String,
     val instructor: String,
-    val patron: String,
+    val patron: String = "",
     val representante: String? = null,
     val signatureBitmap: Bitmap? = null,
     val logoBitmap: Bitmap? = null
@@ -48,104 +46,91 @@ data class DC3FormData(
 
 object PdfGenerator {
 
-    private const val TEMPLATE_ASSET   = "plantilla_dc3.pdf"
-    private const val LOGO_ASSET       = "logo_luber.png"
-    private const val FIRMA_ASSET      = "firma_instructor.png"
-
-    // ── Fuentes ──────────────────────────────────────────────────────────────
-    private val FONT_REGULAR get() = PDType1Font(FontName.HELVETICA)
-    private val FONT_BOLD    get() = PDType1Font(FontName.HELVETICA_BOLD)
-
-    // ── Coordenadas CURP: 18 celdas individuales ─────────────────────────────
-    private val CURP_XS = floatArrayOf(
-        31.9f, 47.3f, 62.8f, 78.3f, 93.5f, 108.9f, 124.4f, 139.7f, 155.1f,
-        170.5f, 185.8f, 201.2f, 216.6f, 231.9f, 247.3f, 262.7f, 278.0f, 293.4f
-    )
-    private const val CURP_Y = 195.0f
-
-    // ── Coordenadas RFC: 15 celdas individuales ───────────────────────────────
-    private val RFC_XS = floatArrayOf(
-        35.5f, 50.0f, 64.5f, 79.0f, 93.5f, 108.0f, 122.5f, 137.0f, 151.5f,
-        166.0f, 180.5f, 195.0f, 209.5f, 224.0f, 238.5f
-    )
-    private const val RFC_Y = 308.0f
-
-    // ── Coordenadas de FECHA — centros exactos de celda (pymupdf) ────────────
-    // Orden en formulario: Año (4) | Mes (2) | Día (2) — para inicio y fin
-    private val AÑO_INI = floatArrayOf(259.9f, 275.6f, 291.9f, 308.1f)
-    private val MES_INI = floatArrayOf(326.6f, 348.0f)
-    private val DIA_INI = floatArrayOf(369.4f, 390.4f)
-    private val AÑO_FIN = floatArrayOf(432.5f, 452.1f, 471.7f, 491.2f)
-    private val MES_FIN = floatArrayOf(511.6f, 532.5f)
-    private val DIA_FIN = floatArrayOf(554.0f, 575.5f)
-    private const val FECHA_Y = 389.0f
-
-    // ── Coordenadas campos de texto ───────────────────────────────────────────
-    private const val Y_NOMBRE_TRAB   = 170.0f
-    private const val Y_OCUPACION     = 193.0f
-    private const val X_OCUPACION     = 305.0f
-    private const val Y_PUESTO        = 223.0f
-    private const val Y_EMPRESA       = 282.0f
-    private const val Y_CURSO         = 365.0f
-    private const val Y_DURACION      = 391.0f
-    private const val Y_AREA          = 416.0f
-    private const val Y_AGENTE        = 438.0f
-
-    // Área de firmas: sección Y=443–540 (fitz), columnas X≈25-180 / 181-400 / 401-586
-    // Nombre instructor: Y=535 (sobre línea "Nombre y firma" que está en Y=540)
-    private const val Y_FIRMA_NOMBRE  = 535.0f
-    private const val X_FIRMA_INS     = 26.0f
-    private const val X_FIRMA_PAT     = 222.0f
-    private const val X_FIRMA_REP     = 385.0f
-
-    // Logo LUBER en columna instructor — cubre toda la sección
-    // Fitz: X=25-175 (150pt ancho), Y=446-530 (84pt alto)
-    private const val LOGO_X = 25f;  private const val LOGO_Y = 446f
-    private const val LOGO_W = 150f; private const val LOGO_H = 84f
-
-    // Firma azul — encima del logo, centrada en columna instructor
-    // Fitz: X=40-150 (110pt), Y=453-513 (60pt)
-    private const val FIRMA_X = 40f;  private const val FIRMA_Y = 453f
-    private const val FIRMA_W = 110f; private const val FIRMA_H = 60f
+    private const val TEMPLATE_ASSET = "plantilla_dc3.pdf"
+    private const val LOGO_ASSET     = "logo_luber.png"
+    private const val FIRMA_ASSET    = "firma_instructor.png"
+    private const val PAGE_H         = 792f
 
     // ── Tamaños de fuente ─────────────────────────────────────────────────────
     private const val FS_NORMAL = 9f
     private const val FS_SMALL  = 8f
     private const val FS_BOX    = 7f
 
-    // ─────────────────────────────────────────────────────────────────────────
-    //  API PÚBLICA
-    // ─────────────────────────────────────────────────────────────────────────
+    // ── CURP: 18 celdas (extraídas con pymupdf) ───────────────────────────────
+    private val CURP_XS = floatArrayOf(
+        31.9f, 47.3f, 62.8f, 78.3f, 93.5f, 108.9f, 124.4f, 139.7f, 155.1f,
+        170.5f, 185.8f, 201.2f, 216.6f, 231.9f, 247.3f, 262.7f, 278.0f, 293.4f
+    )
+    private const val CURP_Y = 195.0f
 
-    /**
-     * Genera el PDF DC-3 llenando la plantilla oficial STPS.
-     * Carga firma y logo desde assets (firma_instructor.png / logo_luber.png).
-     * Si se pasan bitmaps como parámetros, los usa en su lugar.
-     */
+    // ── RFC: 15 celdas ────────────────────────────────────────────────────────
+    private val RFC_XS = floatArrayOf(
+        35.5f, 50.0f, 64.5f, 79.0f, 93.5f, 108.0f, 122.5f, 137.0f, 151.5f,
+        166.0f, 180.5f, 195.0f, 209.5f, 224.0f, 238.5f
+    )
+    private const val RFC_Y = 308.0f
+
+    // ── FECHA: centros de celda – 2.5pt para centrar glifo de ~4pt ───────────
+    // Orden: Año(4) | Mes(2) | Día(2)   para inicio y fin
+    private val AÑO_INI = floatArrayOf(257.4f, 273.1f, 289.4f, 305.6f)
+    private val MES_INI = floatArrayOf(324.1f, 345.5f)
+    private val DIA_INI = floatArrayOf(366.9f, 387.9f)
+    private val AÑO_FIN = floatArrayOf(430.0f, 449.6f, 469.2f, 488.7f)
+    private val MES_FIN = floatArrayOf(509.1f, 530.0f)
+    private val DIA_FIN = floatArrayOf(551.5f, 573.0f)
+    private const val FECHA_Y = 389.0f
+
+    // ── Coordenadas de texto ──────────────────────────────────────────────────
+    private const val Y_NOMBRE_TRAB  = 170.0f
+    private const val Y_PUESTO       = 223.0f
+    private const val Y_EMPRESA      = 282.0f
+    private const val Y_AREA         = 416.0f
+    private const val Y_AGENTE       = 438.0f
+    private const val Y_CURSO        = 365.0f
+    private const val Y_DURACION     = 391.0f
+
+    // ── Área de firmas (sección Y=443–540, sin divisiones verticales internas) ─
+    // Columnas aproximadas según posición de etiquetas:
+    //   Instructor:     X=24  – X≈215   (centro ~120)
+    //   Patrón:         X=216 – X≈400   (centro ~310)
+    //   Representante:  X=401 – X=586   (centro ~493)
+    private const val X_FIRMA_INS = 26.0f
+    private const val X_FIRMA_PAT = 222.0f
+    private const val X_FIRMA_REP = 385.0f
+    private const val Y_FIRMA_L1  = 528.0f   // primera línea del nombre
+    private const val Y_FIRMA_L2  = 536.0f   // segunda línea
+
+    // Logo LUBER: fondo semitransparente centrado en columna instructor
+    // W=105, H=59 (ratio 1.78:1 preservado), X centrado en col (center=120→X=68)
+    private const val LOGO_X = 68f;  private const val LOGO_Y = 453f
+    private const val LOGO_W = 105f; private const val LOGO_H = 59f
+
+    // Firma azul: encima del logo, ligeramente solapando
+    // W=85, H=60 (ratio 1.42:1), X=55 para que quede centrada visualmente
+    private const val FIRMA_X = 55f;  private const val FIRMA_Y = 455f
+    private const val FIRMA_W = 85f;  private const val FIRMA_H = 60f
+
+    // ─────────────────────────────────────────────────────────────────────────
     fun generate(context: Context, data: DC3FormData): File {
         val doc = loadTemplate(context)
         try {
             val page = doc.getPage(0)
-
-            // Rellenar campos de texto
+            // 1. Texto
             PDPageContentStream(doc, page, AppendMode.APPEND, true, true).use { cs ->
                 fillPage(cs, data)
             }
-
-            // Logo LUBER (fondo, primero)
+            // 2. Logo (fondo — primero para que quede detrás)
             val logoBmp = data.logoBitmap ?: loadAssetBitmap(context, LOGO_ASSET)
-            logoBmp?.let {
-                insertImage(doc, page, it, LOGO_X, LOGO_Y, LOGO_W, LOGO_H)
-            }
+            logoBmp?.let { insertImage(doc, page, it, LOGO_X, LOGO_Y, LOGO_W, LOGO_H) }
 
-            // Firma azul (encima del logo)
+            // 3. Firma (encima del logo — se inserta después)
             val firmaBmp = data.signatureBitmap ?: loadAssetBitmap(context, FIRMA_ASSET)
-            firmaBmp?.let {
-                insertImage(doc, page, it, FIRMA_X, FIRMA_Y, FIRMA_W, FIRMA_H)
-            }
+            firmaBmp?.let { insertImage(doc, page, it, FIRMA_X, FIRMA_Y, FIRMA_W, FIRMA_H) }
 
-            val name = "DC3_${sanitize(data.curp.ifBlank { data.nombreTrabajador })}.pdf"
-            val out = File(context.getExternalFilesDir(null), name)
+            val out = File(
+                context.getExternalFilesDir(null),
+                "DC3_${sanitize(data.curp.ifBlank { data.nombreTrabajador })}.pdf"
+            )
             doc.save(out)
             return out
         } finally {
@@ -153,9 +138,6 @@ object PdfGenerator {
         }
     }
 
-    /**
-     * Versión simplificada para generar DC-3 desde modelos de datos.
-     */
     fun generateDC3(
         context: Context,
         employee: com.example.dc5control.data.model.Employee,
@@ -169,135 +151,124 @@ object PdfGenerator {
         endDate: String,
         signatureBitmap: Bitmap? = null,
         logoBitmap: Bitmap? = null
-    ): File {
-        val data = DC3FormData(
+    ): File = generate(
+        context,
+        DC3FormData(
             nombreTrabajador = "${employee.lastName} ${employee.firstName} ${employee.middleName ?: ""}".trim(),
-            curp = employee.curp,
-            ocupacion = employee.position,
-            puesto = employee.position,
-            razonSocial = companyName,
-            rfc = companyRfc,
-            nombreCurso = course.name,
-            duracionHoras = "${course.duration} HORAS",
-            fechaInicio = startDate,
-            fechaFin = endDate,
-            areaTematica = course.thematicArea,
+            curp             = employee.curp,
+            ocupacion        = employee.position,
+            puesto           = employee.position,
+            razonSocial      = companyName,
+            rfc              = companyRfc,
+            nombreCurso      = course.name,
+            duracionHoras    = "${course.duration} HORAS",
+            fechaInicio      = startDate,
+            fechaFin         = endDate,
+            areaTematica     = course.thematicArea,
             agenteCapacitador = "${instructor.fullName} ${instructor.stpsNumber ?: ""}".trim(),
-            instructor = instructor.fullName,
-            patron = companyPatron,
-            representante = companyRepresentante,
-            signatureBitmap = signatureBitmap,
-            logoBitmap = logoBitmap
+            instructor       = instructor.fullName,
+            patron           = companyPatron,
+            representante    = companyRepresentante,
+            signatureBitmap  = signatureBitmap,
+            logoBitmap       = logoBitmap
         )
-        return generate(context, data)
-    }
+    )
 
     // ─────────────────────────────────────────────────────────────────────────
-    //  LLENADO DE LA PÁGINA
-    // ─────────────────────────────────────────────────────────────────────────
-
     private fun fillPage(cs: PDPageContentStream, d: DC3FormData) {
-        val PH = 792f
 
         fun w(font: PDType1Font, size: Float, x: Float, yFitz: Float, text: String) {
             if (text.isBlank()) return
             cs.beginText()
             cs.setFont(font, size)
-            cs.newLineAtOffset(x, PH - yFitz)
+            cs.newLineAtOffset(x, PAGE_H - yFitz)
             cs.showText(sanitize(text))
             cs.endText()
         }
 
         fun boxes(font: PDType1Font, size: Float, chars: String, xs: FloatArray, yFitz: Float) {
-            chars.forEachIndexed { i, c ->
-                if (i < xs.size) w(font, size, xs[i], yFitz, c.toString())
-            }
+            chars.forEachIndexed { i, c -> if (i < xs.size) w(font, size, xs[i], yFitz, c.toString()) }
         }
 
-        // Parsear "dd/mm/yyyy" → Triple(año4, mes2, dia2)
+        // Parsear "dd/MM/yyyy" → (año4, mes2, dia2)
         fun parseFecha(f: String): Triple<String, String, String> {
-            if (f.length < 10) return Triple("", "", "")
-            val parts = f.split("/")
+            val p = f.split("/")
             return Triple(
-                parts.getOrElse(2) { "" }.padStart(4, '0'),
-                parts.getOrElse(1) { "" }.padStart(2, '0'),
-                parts.getOrElse(0) { "" }.padStart(2, '0')
+                p.getOrElse(2) { "" }.padStart(4, '0'),
+                p.getOrElse(1) { "" }.padStart(2, '0'),
+                p.getOrElse(0) { "" }.padStart(2, '0')
             )
         }
 
-        // 1. Nombre trabajador
-        w(FONT_BOLD, FS_NORMAL, 30f, Y_NOMBRE_TRAB, d.nombreTrabajador.uppercase())
+        val FONT_R = PDType1Font(FontName.HELVETICA)
+        val FONT_B = PDType1Font(FontName.HELVETICA_BOLD)
 
-        // 2. CURP (carácter por celda)
-        boxes(FONT_REGULAR, FS_BOX, d.curp.uppercase().take(18), CURP_XS, CURP_Y)
+        // Nombre del trabajador
+        w(FONT_B, FS_NORMAL, 30f, Y_NOMBRE_TRAB, d.nombreTrabajador.uppercase())
 
-        // 3. Ocupación
-        w(FONT_REGULAR, FS_BOX, X_OCUPACION, Y_OCUPACION, d.ocupacion.uppercase().take(50))
+        // CURP celda por celda
+        boxes(FONT_R, FS_BOX, d.curp.uppercase().take(18), CURP_XS, CURP_Y)
 
-        // 4. Puesto (borrar texto de ejemplo de la plantilla + reescribir)
+        // Puesto: borrar texto de ejemplo y reescribir
         cs.setNonStrokingColor(1f, 1f, 1f)
-        cs.addRect(25f, PH - 231f, 560f, 18f)
+        cs.addRect(25f, PAGE_H - 231f, 560f, 18f)
         cs.fill()
         cs.setNonStrokingColor(0f, 0f, 0f)
-        w(FONT_REGULAR, FS_NORMAL, 30f, Y_PUESTO, d.puesto.uppercase())
+        w(FONT_R, FS_NORMAL, 30f, Y_PUESTO, d.puesto.uppercase())
 
-        // 5. Empresa
-        w(FONT_BOLD, FS_NORMAL, 30f, Y_EMPRESA, d.razonSocial.uppercase().take(70))
+        // Empresa
+        w(FONT_B, FS_NORMAL, 30f, Y_EMPRESA, d.razonSocial.uppercase().take(70))
 
-        // 6. RFC (carácter por celda)
+        // RFC celda por celda
         val rfcClean = d.rfc.uppercase().replace("-", "").replace(" ", "").take(15)
-        boxes(FONT_REGULAR, FS_BOX, rfcClean, RFC_XS, RFC_Y)
+        boxes(FONT_R, FS_BOX, rfcClean, RFC_XS, RFC_Y)
 
-        // 7. Nombre curso
-        w(FONT_BOLD, FS_SMALL, 30f, Y_CURSO, d.nombreCurso.uppercase().take(80))
+        // Curso
+        w(FONT_B, FS_SMALL, 30f, Y_CURSO, d.nombreCurso.uppercase().take(80))
 
-        // 8. Duración
-        w(FONT_REGULAR, FS_SMALL, 30f, Y_DURACION, d.duracionHoras)
+        // Duración
+        w(FONT_R, FS_SMALL, 30f, Y_DURACION, d.duracionHoras)
 
-        // 9. Fecha (dígito por celda)
+        // Fecha — dígito por celda
         val (yi, mi, di) = parseFecha(d.fechaInicio)
         val (yf, mf, df) = parseFecha(d.fechaFin)
-        boxes(FONT_REGULAR, FS_BOX, yi, AÑO_INI, FECHA_Y)
-        boxes(FONT_REGULAR, FS_BOX, mi, MES_INI, FECHA_Y)
-        boxes(FONT_REGULAR, FS_BOX, di, DIA_INI, FECHA_Y)
-        boxes(FONT_REGULAR, FS_BOX, yf, AÑO_FIN, FECHA_Y)
-        boxes(FONT_REGULAR, FS_BOX, mf, MES_FIN, FECHA_Y)
-        boxes(FONT_REGULAR, FS_BOX, df, DIA_FIN, FECHA_Y)
+        boxes(FONT_R, FS_BOX, yi, AÑO_INI, FECHA_Y)
+        boxes(FONT_R, FS_BOX, mi, MES_INI, FECHA_Y)
+        boxes(FONT_R, FS_BOX, di, DIA_INI, FECHA_Y)
+        boxes(FONT_R, FS_BOX, yf, AÑO_FIN, FECHA_Y)
+        boxes(FONT_R, FS_BOX, mf, MES_FIN, FECHA_Y)
+        boxes(FONT_R, FS_BOX, df, DIA_FIN, FECHA_Y)
 
-        // 10. Área temática
-        w(FONT_REGULAR, FS_SMALL, 30f, Y_AREA, d.areaTematica.take(80))
+        // Área temática
+        w(FONT_R, FS_SMALL, 30f, Y_AREA, d.areaTematica.take(80))
 
-        // 11. Agente capacitador
-        w(FONT_REGULAR, FS_SMALL, 30f, Y_AGENTE, d.agenteCapacitador.uppercase().take(70))
+        // Agente capacitador
+        w(FONT_R, FS_SMALL, 30f, Y_AGENTE, d.agenteCapacitador.uppercase().take(70))
 
-        // 12. Nombres en área de firmas
-        // Instructor: texto en dos líneas si es largo (max ~20 chars por línea en col 155pt)
-        val insLines = splitName(d.instructor.uppercase(), maxChars = 22)
-        w(FONT_REGULAR, FS_BOX, X_FIRMA_INS, Y_FIRMA_NOMBRE - (if (insLines.size > 1) 7f else 0f), insLines[0])
-        if (insLines.size > 1) w(FONT_REGULAR, FS_BOX, X_FIRMA_INS, Y_FIRMA_NOMBRE, insLines[1])
+        // ── Nombres en área de firmas ─────────────────────────────────────────
+        // Instructor (hasta 2 líneas)
+        val insLines = splitName(d.instructor.uppercase(), 24)
+        w(FONT_R, FS_BOX, X_FIRMA_INS, if (insLines.size > 1) Y_FIRMA_L1 else Y_FIRMA_L2, insLines[0])
+        if (insLines.size > 1) w(FONT_R, FS_BOX, X_FIRMA_INS, Y_FIRMA_L2, insLines[1])
 
         // Patrón
         if (d.patron.isNotBlank()) {
-            val patLines = splitName(d.patron.uppercase(), maxChars = 25)
-            w(FONT_REGULAR, FS_BOX, X_FIRMA_PAT, Y_FIRMA_NOMBRE - (if (patLines.size > 1) 7f else 0f), patLines[0])
-            if (patLines.size > 1) w(FONT_REGULAR, FS_BOX, X_FIRMA_PAT, Y_FIRMA_NOMBRE, patLines[1])
+            val patLines = splitName(d.patron.uppercase(), 26)
+            w(FONT_R, FS_BOX, X_FIRMA_PAT, if (patLines.size > 1) Y_FIRMA_L1 else Y_FIRMA_L2, patLines[0])
+            if (patLines.size > 1) w(FONT_R, FS_BOX, X_FIRMA_PAT, Y_FIRMA_L2, patLines[1])
         }
 
         // Representante
         d.representante?.let { rep ->
             if (rep.isNotBlank()) {
-                val repLines = splitName(rep.uppercase(), maxChars = 22)
-                w(FONT_REGULAR, FS_BOX, X_FIRMA_REP, Y_FIRMA_NOMBRE - (if (repLines.size > 1) 7f else 0f), repLines[0])
-                if (repLines.size > 1) w(FONT_REGULAR, FS_BOX, X_FIRMA_REP, Y_FIRMA_NOMBRE, repLines[1])
+                val repLines = splitName(rep.uppercase(), 24)
+                w(FONT_R, FS_BOX, X_FIRMA_REP, if (repLines.size > 1) Y_FIRMA_L1 else Y_FIRMA_L2, repLines[0])
+                if (repLines.size > 1) w(FONT_R, FS_BOX, X_FIRMA_REP, Y_FIRMA_L2, repLines[1])
             }
         }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    //  HELPERS
-    // ─────────────────────────────────────────────────────────────────────────
-
-    /** Divide un nombre largo en máximo 2 líneas de maxChars caracteres */
     private fun splitName(name: String, maxChars: Int): List<String> {
         if (name.length <= maxChars) return listOf(name)
         val mid = name.lastIndexOf(' ', maxChars)
@@ -310,36 +281,31 @@ object PdfGenerator {
         return Loader.loadPDF(bytes)
     }
 
-    /** Carga un bitmap desde assets, retorna null si no existe */
-    private fun loadAssetBitmap(context: Context, assetName: String): Bitmap? {
-        return try {
-            context.assets.open(assetName).use {
-                android.graphics.BitmapFactory.decodeStream(it)
-            }
-        } catch (e: Exception) {
-            android.util.Log.w("PdfGenerator", "Asset no encontrado: $assetName")
-            null
-        }
+    private fun loadAssetBitmap(context: Context, assetName: String): Bitmap? = try {
+        context.assets.open(assetName).use { android.graphics.BitmapFactory.decodeStream(it) }
+    } catch (e: Exception) {
+        android.util.Log.w("PdfGenerator", "Asset no encontrado: $assetName — ${e.message}")
+        null
     }
 
     private fun insertImage(
-        doc: PDDocument, page: org.apache.pdfbox.pdmodel.PDPage,
+        doc: PDDocument,
+        page: org.apache.pdfbox.pdmodel.PDPage,
         bmp: Bitmap, x: Float, y: Float, w: Float, h: Float
     ) {
         val baos = ByteArrayOutputStream()
-        bmp.compress(Bitmap.CompressFormat.PNG, 90, baos)
+        bmp.compress(Bitmap.CompressFormat.PNG, 100, baos)
         val img = PDImageXObject.createFromByteArray(doc, baos.toByteArray(), "img")
-        val PH = 792f
         PDPageContentStream(doc, page, AppendMode.APPEND, true, true).use { cs ->
-            cs.drawImage(img, x, PH - y - h, w, h)
+            // PDFBox Y=0 es abajo → y_pdfbox = PAGE_H - y_fitz - h
+            cs.drawImage(img, x, PAGE_H - y - h, w, h)
         }
     }
 
-    /** Elimina acentos y caracteres no ASCII para PDType1Font */
     private fun sanitize(s: String): String {
         val map = mapOf(
-            'á' to 'a', 'é' to 'e', 'í' to 'i', 'ó' to 'o', 'ú' to 'u', 'ü' to 'u', 'ñ' to 'n',
-            'Á' to 'A', 'É' to 'E', 'Í' to 'I', 'Ó' to 'O', 'Ú' to 'U', 'Ü' to 'U', 'Ñ' to 'N'
+            'á' to 'a','é' to 'e','í' to 'i','ó' to 'o','ú' to 'u','ü' to 'u','ñ' to 'n',
+            'Á' to 'A','É' to 'E','Í' to 'I','Ó' to 'O','Ú' to 'U','Ü' to 'U','Ñ' to 'N'
         )
         return s.map { map[it] ?: it }.joinToString("").filter { it.code in 32..126 }
     }
