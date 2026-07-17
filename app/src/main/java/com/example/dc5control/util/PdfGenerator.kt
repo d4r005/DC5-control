@@ -1,210 +1,263 @@
 package com.example.dc5control.util
 
 import android.content.Context
-import android.graphics.*
-import android.graphics.pdf.PdfDocument
-import com.example.dc5control.data.model.Worker
 import com.example.dc5control.data.model.Course
-import com.example.dc5control.data.model.TrainingAgent
+import com.example.dc5control.data.model.Employee
+import com.example.dc5control.data.model.Instructor
+import org.apache.pdfbox.Loader
+import org.apache.pdfbox.pdmodel.PDDocument
+import org.apache.pdfbox.pdmodel.PDPageContentStream
+import org.apache.pdfbox.pdmodel.font.PDType1Font
+import org.apache.pdfbox.pdmodel.font.Standard14Fonts
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import java.io.ByteArrayOutputStream
 import java.io.File
-import java.io.FileOutputStream
+import java.io.InputStream
 
 /**
- * Generador de PDF con el formato oficial DC-3 (STPS) exacto basado en la imagen proporcionada.
+ * Generador de constancias DC-3 usando Apache PDFBox 3.0.1.
+ * Carga una plantilla PDF desde assets y escribe los datos del trabajador,
+ * curso, empresa e instructor sobre ella.
+ *
+ * Coloca tu plantilla oficial STPS en:
+ *   app/src/main/assets/plantilla_dc3.pdf
  */
 object PdfGenerator {
 
-    private const val PAGE_W = 595
-    private const val PAGE_H = 842
-    private const val MARGIN = 30f
-    
-    // Colores del formato
-    private val GRAY_BAR = Color.rgb(230, 230, 230)
-    private val TEXT_BLACK = Color.BLACK
-    private val LINE_GRAY = Color.rgb(180, 180, 180)
+    private const val TEMPLATE_ASSET = "plantilla_dc3.pdf"
 
+    /**
+     * Genera un PDF DC-3 individual para un empleado.
+     *
+     * @param context      Contexto de la app (para acceder a assets y almacenamiento)
+     * @param employee     Datos del trabajador (nombre, CURP, RFC, puesto, ocupación)
+     * @param course       Datos del curso (nombre, duración, área temática)
+     * @param instructor   Datos del agente capacitador
+     * @param companyName   Nombre o razón social de la empresa
+     * @param companyRfc    RFC de la empresa
+     * @param startDate     Fecha de inicio (formato dd/MM/yyyy)
+     * @param endDate       Fecha de fin (formato dd/MM/yyyy)
+     * @param signatureBitmap  Bitmap de la firma del instructor (opcional, null = sin firma)
+     * @return              El archivo PDF generado
+     */
     fun generateDC3(
         context: Context,
-        worker: Worker,
+        employee: Employee,
         course: Course,
-        agent: TrainingAgent,
+        instructor: Instructor,
         companyName: String,
         companyRfc: String,
         startDate: String,
-        endDate: String
+        endDate: String,
+        signatureBitmap: Bitmap? = null
     ): File {
-        val pdfDocument = PdfDocument()
-        
-        // --- PÁGINA 1: ANVERSO ---
-        val pageInfo1 = PdfDocument.PageInfo.Builder(PAGE_W, PAGE_H, 1).create()
-        val page1 = pdfDocument.startPage(pageInfo1)
-        drawAnverso(page1.canvas, worker, course, agent, companyName, companyRfc, startDate, endDate)
-        pdfDocument.finishPage(page1)
 
-        // --- PÁGINA 2: REVERSO ---
-        val pageInfo2 = PdfDocument.PageInfo.Builder(PAGE_W, PAGE_H, 2).create()
-        val page2 = pdfDocument.startPage(pageInfo2)
-        drawReverso(page2.canvas)
-        pdfDocument.finishPage(page2)
+        // 1. Cargar la plantilla PDF desde assets
+        val document: PDDocument = loadTemplate(context)
 
-        val file = File(context.getExternalFilesDir(null), "DC3_${worker.curp.ifEmpty { worker.name.replace(" ", "_") }}.pdf")
-        FileOutputStream(file).use { out ->
-            pdfDocument.writeTo(out)
+        try {
+            // Asumimos que los datos van en la primera página (anverso)
+            val page = document.getPage(0)
+
+            // 2. Preparar el flujo de contenido para escribir sobre el PDF
+            PDPageContentStream(
+                document,
+                page,
+                PDPageContentStream.AppendMode.APPEND,
+                true,
+                true
+            ).use { cs ->
+
+                // --- NOMBRE DEL TRABAJADOR ---
+                cs.setFont(PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD), 10f)
+                cs.beginText()
+                cs.newLineAtOffset(120f, 650f)
+                cs.showText(formatNombreTrabajador(employee))
+                cs.endText()
+
+                // --- CURP ---
+                cs.setFont(PDType1Font(Standard14Fonts.FontName.HELVETICA), 9f)
+                cs.beginText()
+                cs.newLineAtOffset(120f, 620f)
+                cs.showText(employee.curp.uppercase())
+                cs.endText()
+
+                // --- RFC DEL TRABAJADOR ---
+                cs.beginText()
+                cs.newLineAtOffset(350f, 620f)
+                cs.showText(employee.rfc.uppercase())
+                cs.endText()
+
+                // --- PUESTO / OCUPACIÓN ---
+                cs.beginText()
+                cs.newLineAtOffset(120f, 590f)
+                cs.showText(employee.position.uppercase())
+                cs.endText()
+
+                // --- NOMBRE DE LA EMPRESA ---
+                cs.setFont(PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD), 10f)
+                cs.beginText()
+                cs.newLineAtOffset(120f, 540f)
+                cs.showText(companyName.uppercase())
+                cs.endText()
+
+                // --- RFC DE LA EMPRESA ---
+                cs.setFont(PDType1Font(Standard14Fonts.FontName.HELVETICA), 9f)
+                cs.beginText()
+                cs.newLineAtOffset(120f, 510f)
+                cs.showText(companyRfc.uppercase().replace("-", ""))
+                cs.endText()
+
+                // --- NOMBRE DEL CURSO ---
+                cs.setFont(PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD), 10f)
+                cs.beginText()
+                cs.newLineAtOffset(120f, 460f)
+                cs.showText(course.name.uppercase())
+                cs.endText()
+
+                // --- DURACIÓN EN HORAS ---
+                cs.setFont(PDType1Font(Standard14Fonts.FontName.HELVETICA), 9f)
+                cs.beginText()
+                cs.newLineAtOffset(120f, 430f)
+                cs.showText("${course.duration} horas")
+                cs.endText()
+
+                // --- ÁREA TEMÁTICA ---
+                cs.beginText()
+                cs.newLineAtOffset(300f, 430f)
+                cs.showText(course.thematicArea.uppercase())
+                cs.endText()
+
+                // --- PERIODO: FECHA INICIO Y FIN ---
+                cs.beginText()
+                cs.newLineAtOffset(120f, 400f)
+                cs.showText("$startDate - $endDate")
+                cs.endText()
+
+                // --- NOMBRE DEL AGENTE CAPACITADOR ---
+                cs.setFont(PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD), 9f)
+                cs.beginText()
+                cs.newLineAtOffset(120f, 350f)
+                cs.showText(instructor.fullName.uppercase())
+                cs.endText()
+
+                // --- NÚMERO DE REGISTRO STPS ---
+                cs.setFont(PDType1Font(Standard14Fonts.FontName.HELVETICA), 8f)
+                cs.beginText()
+                cs.newLineAtOffset(120f, 330f)
+                cs.showText(instructor.stpsNumber ?: "")
+                cs.endText()
+            }
+
+            // 3. Insertar la firma del instructor si está disponible
+            if (signatureBitmap != null) {
+                insertarFirma(document, page, signatureBitmap)
+            }
+
+            // 4. Guardar el documento generado
+            val fileName = "DC3_${employee.curp.ifEmpty { employee.lastName + "_" + employee.firstName }}.pdf"
+            val outFile = File(context.getExternalFilesDir(null), fileName)
+            document.save(outFile)
+
+            return outFile
+
+        } finally {
+            document.close()
         }
-        pdfDocument.close()
-        return file
     }
 
-    private fun drawAnverso(
-        canvas: Canvas, worker: Worker, course: Course, agent: TrainingAgent,
-        companyName: String, companyRfc: String, startDate: String, endDate: String
-    ) {
-        val paint = Paint().apply { isAntiAlias = true; color = TEXT_BLACK }
-        var y = 50f
-
-        // Fondo blanco
-        paint.color = Color.WHITE
-        canvas.drawRect(0f, 0f, PAGE_W.toFloat(), PAGE_H.toFloat(), paint)
-
-        // Títulos Principales
-        paint.color = TEXT_BLACK
-        paint.isFakeBoldText = true
-        paint.textSize = 16f
-        drawCenteredText(canvas, "FORMATO DC-3", PAGE_W / 2f, y, paint)
-        y += 18f
-        paint.textSize = 10f
-        drawCenteredText(canvas, "CONSTANCIA DE COMPETENCIAS O DE HABILIDADES LABORALES", PAGE_W / 2f, y, paint)
-        y += 35f
-
-        // --- SECCIÓN 1: DATOS DEL TRABAJADOR ---
-        drawGraySectionHeader(canvas, "DATOS DEL TRABAJADOR", y, paint)
-        y += 20f
-
-        drawLabel(canvas, "Nombre (Anotar apellido paterno, apellido materno y nombre(s))", MARGIN, y, paint)
-        y += 15f
-        drawValue(canvas, worker.name.uppercase(), MARGIN, y, paint, 11f)
-        y += 5f
-        canvas.drawLine(MARGIN, y, PAGE_W - MARGIN, y, paint.apply { color = TEXT_BLACK; strokeWidth = 0.8f })
-        y += 25f
-        
-        // CURP y Ocupación
-        drawLabel(canvas, "Clave Única de Registro de Población", MARGIN, y, paint)
-        val col2X = MARGIN + 310f
-        drawLabel(canvas, "Ocupación específica (Catálogo Nacional de Ocupaciones)", col2X, y, paint)
-        y += 8f
-        drawCharBoxes(canvas, worker.curp.uppercase(), MARGIN, y, 18, paint)
-        drawValue(canvas, worker.occupation, col2X, y + 12f, paint, 9f)
-        y += 15f
-        canvas.drawLine(col2X, y, PAGE_W - MARGIN, y, paint)
-        y += 25f
-
-        // Puesto
-        drawLabel(canvas, "Puesto", MARGIN, y, paint)
-        y += 15f
-        drawValue(canvas, worker.position.uppercase(), MARGIN, y, paint, 10f)
-        y += 5f
-        canvas.drawLine(MARGIN, y, PAGE_W - MARGIN, y, paint)
-        y += 40f
-
-        // --- SECCIÓN 2: DATOS DE LA EMPRESA ---
-        drawGraySectionHeader(canvas, "DATOS DE LA EMPRESA", y, paint)
-        y += 20f
-
-        drawLabel(canvas, "Nombre o razón social (En caso de persona física, anotar apellido paterno, materno y nombre(s))", MARGIN, y, paint)
-        y += 15f
-        drawValue(canvas, companyName.uppercase(), MARGIN, y, paint, 11f)
-        y += 5f
-        canvas.drawLine(MARGIN, y, PAGE_W - MARGIN, y, paint)
-        y += 25f
-
-        drawLabel(canvas, "Registro Federal de Contribuyentes con homoclave (SHCP)", MARGIN, y, paint)
-        y += 8f
-        drawCharBoxes(canvas, companyRfc.uppercase().replace("-",""), MARGIN, y, 13, paint)
-        y += 40f
-
-        // --- SECCIÓN 3: DATOS DEL PROGRAMA ---
-        drawGraySectionHeader(canvas, "DATOS DEL PROGRAMA DE CAPACITACIÓN, ADIESTRAMIENTO Y PRODUCTIVIDAD", y, paint)
-        y += 20f
-
-        drawLabel(canvas, "Nombre del curso", MARGIN, y, paint)
-        y += 15f
-        drawValue(canvas, course.name.uppercase(), MARGIN, y, paint, 11f)
-        y += 5f
-        canvas.drawLine(MARGIN, y, PAGE_W - MARGIN, y, paint)
-        y += 25f
-
-        // Duración
-        drawLabel(canvas, "Duración en horas", MARGIN, y, paint)
-        y += 15f
-        drawValue(canvas, "${course.duration_hours} HORAS", MARGIN, y, paint, 10f)
-        y += 5f
-        canvas.drawLine(MARGIN, y, MARGIN + 120f, y, paint)
-
-        // Footer Anverso
-        paint.textSize = 8f
-        paint.isFakeBoldText = false
-        canvas.drawText("DC-3 ANVERSO", PAGE_W - MARGIN - 70f, PAGE_H - 30f, paint)
+    /**
+     * Genera constancias DC-3 en lote para una lista de empleados.
+     * Retorna la lista de archivos PDF generados.
+     */
+    fun generateDC3Batch(
+        context: Context,
+        employees: List<Employee>,
+        course: Course,
+        instructor: Instructor,
+        companyName: String,
+        companyRfc: String,
+        startDate: String,
+        endDate: String,
+        signatureBitmap: Bitmap? = null
+    ): List<File> {
+        return employees.map { employee ->
+            generateDC3(
+                context, employee, course, instructor,
+                companyName, companyRfc, startDate, endDate, signatureBitmap
+            )
+        }
     }
 
-    private fun drawReverso(canvas: Canvas) {
-        val paint = Paint().apply { isAntiAlias = true; color = TEXT_BLACK }
-        var y = 40f
-        paint.color = Color.WHITE
-        canvas.drawRect(0f, 0f, PAGE_W.toFloat(), PAGE_H.toFloat(), paint)
-        paint.color = TEXT_BLACK
-        paint.textSize = 9f
-        paint.isFakeBoldText = true
-        drawCenteredText(canvas, "CATÁLOGO DE OCUPACIONES Y ÁREAS TEMÁTICAS", PAGE_W / 2f, y, paint)
-    }
+    // ====== HELPERS ======
 
-    // --- HELPERS ---
-
-    private fun drawGraySectionHeader(canvas: Canvas, title: String, y: Float, paint: Paint) {
-        paint.color = GRAY_BAR
-        canvas.drawRect(MARGIN, y - 14f, PAGE_W - MARGIN, y + 4f, paint)
-        paint.color = TEXT_BLACK
-        paint.isFakeBoldText = true
-        paint.textSize = 10f
-        canvas.drawText(title, MARGIN + 5f, y - 1f, paint)
-    }
-
-    private fun drawLabel(canvas: Canvas, text: String, x: Float, y: Float, paint: Paint) {
-        paint.color = TEXT_BLACK
-        paint.isFakeBoldText = false
-        paint.textSize = 7f
-        canvas.drawText(text, x, y, paint)
-    }
-
-    private fun drawValue(canvas: Canvas, text: String, x: Float, y: Float, paint: Paint, size: Float) {
-        paint.color = TEXT_BLACK
-        paint.isFakeBoldText = true
-        paint.textSize = size
-        canvas.drawText(text, x, y, paint)
-    }
-
-    private fun drawCharBoxes(canvas: Canvas, text: String, x: Float, y: Float, count: Int, paint: Paint) {
-        val boxW = 14f
-        val boxH = 16f
-        paint.style = Paint.Style.STROKE
-        paint.color = TEXT_BLACK
-        paint.strokeWidth = 1f
-        
-        val charPaint = Paint().apply { isAntiAlias = true; textSize = 10f; isFakeBoldText = true; color = TEXT_BLACK }
-
-        for (i in 0 until count) {
-            val bx = x + i * boxW
-            canvas.drawRect(bx, y, bx + boxW, y + boxH, paint)
-            if (i < text.length) {
-                val charStr = text[i].toString()
-                val tw = charPaint.measureText(charStr)
-                canvas.drawText(charStr, bx + (boxW - tw) / 2f, y + 12f, charPaint)
+    /**
+     * Carga la plantilla PDF desde los assets de la app.
+     * Si no existe la plantilla, crea un PDF en blanco de tamaño A4.
+     */
+    private fun loadTemplate(context: Context): PDDocument {
+        return try {
+            val assetManager = context.assets
+            val inputStream: InputStream = assetManager.open(TEMPLATE_ASSET)
+            val bytes = inputStream.readBytes()
+            inputStream.close()
+            Loader.loadPDF(bytes)
+        } catch (e: Exception) {
+            // Si no hay plantilla, crear un documento A4 en blanco
+            org.apache.pdfbox.pdmodel.PDDocument().also { doc ->
+                val page = org.apache.pdfbox.pdmodel.PDPage(org.apache.pdfbox.pdmodel.common.PDRectangle.A4)
+                doc.addPage(page)
             }
         }
-        paint.style = Paint.Style.FILL
     }
 
-    private fun drawCenteredText(canvas: Canvas, text: String, x: Float, y: Float, paint: Paint) {
-        val width = paint.measureText(text)
-        canvas.drawText(text, x - width / 2f, y, paint)
+    /**
+     * Formatea el nombre completo del trabajador: Apellido Paterno + Materno + Nombre(s)
+     */
+    private fun formatNombreTrabajador(employee: Employee): String {
+        return buildString {
+            append(employee.lastName.uppercase())
+            if (!employee.middleName.isNullOrBlank()) {
+                append(" ")
+                append(employee.middleName.uppercase())
+            }
+            append(" ")
+            append(employee.firstName.uppercase())
+        }
+    }
+
+    /**
+     * Inserta la imagen de la firma del instructor en el PDF.
+     * La firma se coloca en la posición típica de firma del agente capacitador.
+     */
+    private fun insertarFirma(document: PDDocument, page: org.apache.pdfbox.pdmodel.PDPage, bitmap: Bitmap) {
+        try {
+            val stream = ByteArrayOutputStream()
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+            val imageData = stream.toByteArray()
+            stream.close()
+
+            val pdImage = PDImageXObject.createFromByteArray(document, imageData, "firma")
+
+            PDPageContentStream(
+                document,
+                page,
+                PDPageContentStream.AppendMode.APPEND,
+                true,
+                true
+            ).use { cs ->
+                // Posición de la firma (esquina inferior izquierda del área de firma)
+                val x = 120f
+                val y = 260f
+                val width = 150f
+                val height = (pdImage.height.toFloat() / pdImage.width.toFloat()) * width
+                cs.drawImage(pdImage, x, y, width, height)
+            }
+        } catch (e: Exception) {
+            // Si falla la inserción de la firma, continuamos sin ella
+            e.printStackTrace()
+        }
     }
 }

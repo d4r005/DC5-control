@@ -5,45 +5,47 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.example.dc5control.data.AppDatabase
-import com.example.dc5control.data.model.*
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
-
 import com.example.dc5control.data.model.*
 import com.example.dc5control.data.repository.SupabaseRepository
 import com.example.dc5control.ui.components.SignaturePad
 import com.example.dc5control.util.PdfGenerator
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DC3GenerationScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    
+
     var selectedCourse by remember { mutableStateOf<Course?>(null) }
-    var selectedAgent by remember { mutableStateOf<TrainingAgent?>(null) }
+    var selectedInstructor by remember { mutableStateOf<Instructor?>(null) }
     var companyName by remember { mutableStateOf("") }
     var companyRfc by remember { mutableStateOf("") }
     var startDate by remember { mutableStateOf("") }
     var endDate by remember { mutableStateOf("") }
-    
+
     var showSignaturePad by remember { mutableStateOf(false) }
-    var isUploading by remember { mutableStateOf(false) }
+    var isGenerating by remember { mutableStateOf(false) }
 
     val courses = remember { mutableStateListOf<Course>() }
-    val agents = remember { mutableStateListOf<TrainingAgent>() }
+    val instructors = remember { mutableStateListOf<Instructor>() }
+    val employees = remember { mutableStateListOf<Employee>() }
 
     LaunchedEffect(Unit) {
-        SupabaseRepository.fetchData("courses", Course.serializer()) { fetchedCourses ->
-            courses.addAll(fetchedCourses)
+        SupabaseRepository.fetchData("courses", Course.serializer()) { fetched ->
+            courses.addAll(fetched)
         }
-        SupabaseRepository.fetchData("agents", TrainingAgent.serializer()) { fetchedAgents ->
-            agents.addAll(fetchedAgents)
+        SupabaseRepository.fetchData("instructors", Instructor.serializer()) { fetched ->
+            instructors.addAll(fetched)
+        }
+        SupabaseRepository.fetchData("employees", Employee.serializer()) { fetched ->
+            employees.addAll(fetched)
         }
     }
 
@@ -51,103 +53,155 @@ fun DC3GenerationScreen(onBack: () -> Unit) {
         SignaturePad(
             onSave = { bitmap ->
                 scope.launch {
-                    isUploading = true
-                    SupabaseRepository.fetchData("workers", Worker.serializer()) { workers ->
-                        workers.forEach { worker ->
+                    isGenerating = true
+                    withContext(Dispatchers.IO) {
+                        // Generar DC-3 con PDFBox para cada empleado activo
+                        employees.filter { it.active }.forEach { employee ->
                             PdfGenerator.generateDC3(
-                                context, worker, selectedCourse!!, selectedAgent!!,
-                                companyName, companyRfc, startDate, endDate
-                            )
-                            // Guardar registro en Supabase para las métricas
-                            val record = DC3Record(
-                                workerId = worker.curp,
+                                context = context,
+                                employee = employee,
+                                course = selectedCourse!!,
+                                instructor = selectedInstructor!!,
                                 companyName = companyName,
+                                companyRfc = companyRfc,
+                                startDate = startDate,
+                                endDate = endDate,
+                                signatureBitmap = bitmap
+                            )
+
+                            // Guardar registro del DC-3 generado
+                            val record = DC3Record(
+                                workerId = employee.curp,
+                                workerName = "${employee.lastName} ${employee.firstName}",
                                 courseName = selectedCourse!!.name,
-                                agentName = selectedAgent!!.name,
+                                companyName = companyName,
                                 startDate = startDate,
                                 endDate = endDate
                             )
                             SupabaseRepository.insertData("dc3_records", record, DC3Record.serializer()) { }
                         }
-                        isUploading = false
-                        showSignaturePad = false
-                        onBack()
                     }
+                    isGenerating = false
+                    showSignaturePad = false
+                    onBack()
                 }
             },
             onDismiss = { showSignaturePad = false }
         )
     } else {
         Scaffold(
-            topBar = { TopAppBar(title = { Text("Generar DC-3") }, navigationIcon = { IconButton(onClick = onBack) { Text("<-") } }) }
+            topBar = {
+                TopAppBar(
+                    title = { Text("Generar DC-3") },
+                    navigationIcon = {
+                        TextButton(onClick = onBack) { Text("←") }
+                    }
+                )
+            }
         ) { padding ->
-            if (isUploading) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                    CircularProgressIndicator()
+            if (isGenerating) {
+                Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator()
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("Generando constancias DC-3 con PDFBox...")
+                    }
                 }
+                return@Scaffold
             }
-            Column(modifier = Modifier.padding(padding).padding(16.dp).fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+
+            Column(
+                modifier = Modifier
+                    .padding(padding)
+                    .padding(16.dp)
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // --- Datos de la Empresa ---
                 Text("Datos de la Empresa", style = MaterialTheme.typography.titleMedium)
-                TextField(value = companyName, onValueChange = { companyName = it }, label = { Text("Nombre o Razón Social") }, modifier = Modifier.fillMaxWidth())
-                TextField(value = companyRfc, onValueChange = { companyRfc = it }, label = { Text("RFC") }, modifier = Modifier.fillMaxWidth())
-                
+                TextField(
+                    value = companyName,
+                    onValueChange = { companyName = it },
+                    label = { Text("Nombre o Razón Social") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                TextField(
+                    value = companyRfc,
+                    onValueChange = { companyRfc = it },
+                    label = { Text("RFC") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("Curso y Agente", style = MaterialTheme.typography.titleMedium)
-                
-                Text("Cursos disponibles:")
+                Text("Curso y Agente Capacitador", style = MaterialTheme.typography.titleMedium)
+
+                // --- Selección de Curso ---
+                Text("Cursos disponibles:", style = MaterialTheme.typography.bodySmall)
                 courses.forEach { course ->
-                    OutlinedButton(onClick = { selectedCourse = course }, colors = ButtonDefaults.outlinedButtonColors(containerColor = if(selectedCourse == course) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface)) { Text(course.name) }
+                    OutlinedButton(
+                        onClick = { selectedCourse = course },
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = if (selectedCourse == course)
+                                MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surface
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(course.name)
+                    }
                 }
 
-                Text("Agente capacitador:")
-                agents.forEach { agent ->
-                    OutlinedButton(onClick = { selectedAgent = agent }, colors = ButtonDefaults.outlinedButtonColors(containerColor = if(selectedAgent == agent) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface)) { Text(agent.name) }
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // --- Selección de Instructor ---
+                Text("Agente capacitador:", style = MaterialTheme.typography.bodySmall)
+                instructors.forEach { instructor ->
+                    OutlinedButton(
+                        onClick = { selectedInstructor = instructor },
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = if (selectedInstructor == instructor)
+                                MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surface
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(instructor.fullName)
+                    }
                 }
 
-                TextField(value = startDate, onValueChange = { startDate = it }, label = { Text("Fecha Inicio") }, modifier = Modifier.fillMaxWidth())
-                TextField(value = endDate, onValueChange = { endDate = it }, label = { Text("Fecha Fin") }, modifier = Modifier.fillMaxWidth())
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // --- Fechas ---
+                TextField(
+                    value = startDate,
+                    onValueChange = { startDate = it },
+                    label = { Text("Fecha Inicio (dd/MM/yyyy)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                TextField(
+                    value = endDate,
+                    onValueChange = { endDate = it },
+                    label = { Text("Fecha Fin (dd/MM/yyyy)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // --- Info ---
+                Text(
+                    "Se generarán ${employees.count { it.active }} constancias DC-3 (una por empleado activo)",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
 
                 Spacer(modifier = Modifier.height(16.dp))
+
                 Button(
                     onClick = { showSignaturePad = true },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = selectedCourse != null && selectedAgent != null && companyName.isNotEmpty()
+                    enabled = selectedCourse != null && selectedInstructor != null &&
+                             companyName.isNotEmpty() && startDate.isNotEmpty() && endDate.isNotEmpty()
                 ) {
-                    Text("Continuar a Firma y Generar")
-                }
-            }
-        }
-    }
-}
-                // ... (rest of the UI)
-                Text("Datos de la Empresa", style = MaterialTheme.typography.titleMedium)
-                TextField(value = companyName, onValueChange = { companyName = it }, label = { Text("Nombre o Razón Social") }, modifier = Modifier.fillMaxWidth())
-                TextField(value = companyRfc, onValueChange = { companyRfc = it }, label = { Text("RFC") }, modifier = Modifier.fillMaxWidth())
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                Text("Curso y Agente", style = MaterialTheme.typography.titleMedium)
-                
-                // Example simplified selection
-                Text("Cursos disponibles:")
-                courses.forEach { course ->
-                    OutlinedButton(onClick = { selectedCourse = course }, colors = ButtonDefaults.outlinedButtonColors(containerColor = if(selectedCourse == course) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface)) { Text(course.name) }
-                }
-
-                Text("Agente capacitador:")
-                agents.forEach { agent ->
-                    OutlinedButton(onClick = { selectedAgent = agent }, colors = ButtonDefaults.outlinedButtonColors(containerColor = if(selectedAgent == agent) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface)) { Text(agent.name) }
-                }
-
-                TextField(value = startDate, onValueChange = { startDate = it }, label = { Text("Fecha Inicio") }, modifier = Modifier.fillMaxWidth())
-                TextField(value = endDate, onValueChange = { endDate = it }, label = { Text("Fecha Fin") }, modifier = Modifier.fillMaxWidth())
-
-                Spacer(modifier = Modifier.height(16.dp))
-                Button(
-                    onClick = { showSignaturePad = true },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = selectedCourse != null && selectedAgent != null && companyName.isNotEmpty()
-                ) {
-                    Text("Continuar a Firma y Generar")
+                    Text("Firmar y Generar DC-3")
                 }
             }
         }
