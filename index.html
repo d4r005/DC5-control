@@ -1096,11 +1096,6 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
                 x: 235, y: PH - 145,
                 width: 130, height: 70
             });
-
-            // Texto FORMATO DC-3
-            const dc3Text = "FORMATO DC-3";
-            const dw = fontB.widthOfTextAtSize(dc3Text, 18);
-            page.drawText(dc3Text, { x: 300 - dw/2, y: PH - 175, size: 18, font: fontB });
         }
     } catch(e) { console.warn('Error en cabecera:', e); }
 
