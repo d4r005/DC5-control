@@ -1080,31 +1080,46 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
 
     // ── 0. CABECERA (Logo y Slogan) ────────────────────────────────────────
     try {
-        // Cargar fuente cursiva real (Dancing Script) desde CDN
-        const sloganFont = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
+        // Fuente cursiva real para el eslogan
+        const fontUrl = 'https://cdn.jsdelivr.net/font-nosvg/1.0/DancingScript-Regular.ttf';
+        const sloganFontBytes = await fetch(fontUrl).then(res => res.arrayBuffer()).catch(() => null);
+        let sloganFont = font;
+        if (sloganFontBytes) {
+            sloganFont = await pdfDoc.embedFont(sloganFontBytes);
+        }
 
-        // Logo de cabecera (image3.png es el logo dorado de fondo negro)
-        const logoHeaderPath = '/signatures/image3.png';
+        // Logo de cabecera (Negro/Dorado) - Probamos image2.png que es el mas grande
+        const logoHeaderPath = '/signatures/image2.png';
         const logoResp = await fetch(logoHeaderPath);
 
         if (logoResp.ok) {
             const logoBytes = await logoResp.arrayBuffer();
             const logoImg = await pdfDoc.embedPng(logoBytes);
 
-            // 1. Eslogan (Cursiva elegante)
+            // 1. Eslogan en cursiva (Mas arriba)
             const slogan = sp("Tu seguridad, nuestra mision");
-            const sw = sloganFont.widthOfTextAtSize(slogan, 22);
+            const sw = sloganFont.widthOfTextAtSize(slogan, 26);
             page.drawText(slogan, {
-                x: 300 - sw/2, y: PH - 65,
-                size: 22, font: sloganFont, color: rgb(0.3, 0.3, 0.3)
+                x: 300 - sw/2, y: PH - 40,
+                size: 26, font: sloganFont, color: rgb(0.2, 0.2, 0.2)
             });
 
-            // 2. Logo dorado centrado
-            const LH = 70, LW = 130;
+            // 2. Logo centrado (Mas arriba)
+            const LH = 75, LW = 140;
             page.drawImage(logoImg, {
-                x: 300 - LW/2, y: PH - 145,
+                x: 300 - LW/2, y: PH - 120,
                 width: LW, height: LH
             });
+
+            // 3. Titulos oficiales
+            const t1 = "FORMATO DC-3";
+            const t2 = sp("CONSTANCIA DE COMPETENCIAS O DE HABILIDADES LABORALES");
+
+            const w1 = fontB.widthOfTextAtSize(t1, 13);
+            const w2 = fontB.widthOfTextAtSize(t2, 14);
+
+            page.drawText(t1, { x: 300 - w1/2, y: PH - 142, size: 13, font: fontB });
+            page.drawText(t2, { x: 300 - w2/2, y: PH - 158, size: 14, font: fontB });
         }
     } catch(e) { console.warn('Error en cabecera:', e); }
 
