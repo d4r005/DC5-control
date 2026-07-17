@@ -986,9 +986,9 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     // CURP: separadores exactos
     const CURP_SEPS = [24.2,39.6,55.0,70.6,85.9,101.1,116.7,132.1,147.4,
                        162.8,178.1,193.5,208.9,224.3,239.6,255.0,270.3,285.7,301.1];
-    // RFC: separadores exactos con paso de 14.2 para centrado perfecto
-    const RFC_SEPS  = [24.2, 38.4, 52.6, 66.8, 81.0, 95.2, 109.4, 123.6,
-                       137.8, 152.0, 166.2, 180.4, 194.6, 208.8, 223.0, 237.2];
+    // RFC: separadores desplazados 3.5pts a la derecha para centrar caracteres
+    const RFC_SEPS  = [27.7, 41.9, 56.1, 70.3, 84.5, 98.7, 112.9, 127.1,
+                       141.3, 155.5, 169.7, 183.9, 198.1, 212.3, 226.5, 240.7];
 
     // Baseline Y para cada fila (centro vertical de la celda + ajuste)
     const CURP_Y  = (185.8 + 201.2)/2 + 2.5;  // 193.5
@@ -1040,10 +1040,6 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     const compObj = (typeof company === 'object') ? company : { name: company, rfc: '' };
     T(30, 282, (compObj.name||company||'').toUpperCase().slice(0,70), 9, true);
 
-    // Corregir espacio en "DATOS DELAEMPRESA"
-    page.drawRectangle({ x: 230, y: PH - 265, width: 220, height: 20, color: rgb(0,0,0) });
-    page.drawText('DATOS DE LA EMPRESA', { x: 258, y: PH - 260, size: 11, font: fontB, color: rgb(1,1,1) });
-
     // ── 6. RFC empresa (carácter por celda centrado) ──────────────────────────
     const rfcClean = (compObj.rfc||'').toUpperCase().replace(/\s/g,'').slice(0,15);
     drawInCells(rfcClean, RFC_SEPS, [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14], RFC_Y, 7);
@@ -1079,9 +1075,9 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     page.drawRectangle({ x: 25, y: PH - 541, width: 185, height: 88, color: rgb(1,1,1) });
 
     // Logo LUBER (fondo) - Centrado en X=131
-    const LOGO_H = 80, LOGO_W = 140;
-    const LOGO_X = 61; // (131 - 140/2) = 61
-    const LOGO_Y_FITZ = 450;
+    const LOGO_H = 75, LOGO_W = 140;
+    const LOGO_X = 61;
+    const LOGO_Y_FITZ = 440;
     try {
         const logoResp = await fetch('/signatures/logo_luber.png');
         if (logoResp.ok) {
@@ -1096,9 +1092,9 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     } catch(e) { console.warn('Error cargando logo:', e); }
 
     // Firma del instructor (encima del logo)
-    const FIRMA_H = 75, FIRMA_W = 110;
-    const FIRMA_X = 76; // (131 - 110/2) = 76
-    const FIRMA_Y_FITZ = 455;
+    const FIRMA_H = 70, FIRMA_W = 110;
+    const FIRMA_X = 76;
+    const FIRMA_Y_FITZ = 442;
     try {
         const sigResp = await fetch('/signatures/firma_instructor.png');
         if (sigResp.ok) {
@@ -1112,12 +1108,11 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     } catch(e) { console.warn('Error cargando firma:', e); }
 
     // ── 14. Nombres bajo imágenes, antes de la línea Y=539.9 ─────────────────
-    // Línea 1 en Y=521, Línea 2 en Y=530
     const insName = sp((agent.name||'').toUpperCase());
     const insLines = splitNameJS(insName, 26);
-    T(30, 525, insLines[0], 7.5);
-    if (insLines[1]) T(30, 534, insLines[1], 7.5);
-    else T(30, 534, '', 7.5);
+    T(30, 515, insLines[0], 7.5);
+    if (insLines[1]) T(30, 524, insLines[1], 7.5);
+    else T(30, 524, '', 7.5);
 
     // Patrón: columna 2 — línea Y=539.9 empieza en X=216.3
     if (compObj.patron) {

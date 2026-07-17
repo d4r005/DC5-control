@@ -76,10 +76,10 @@ object PdfGenerator {
     private const val CURP_Y1 = 185.8f  // top de celda
     private const val CURP_Y2 = 201.2f  // bottom de celda
 
-    // RFC: 15 celdas exactas para RFC con guiones
+    // RFC: 15 celdas exactas - Desplazadas 3.5pts a la derecha para centrar
     private val RFC_XS = floatArrayOf(
-        24.2f, 38.4f, 52.6f, 66.8f, 81.0f, 95.2f, 109.4f, 123.6f,
-        137.8f, 152.0f, 166.2f, 180.4f, 194.6f, 208.8f, 223.0f, 237.2f
+        27.7f, 41.9f, 56.1f, 70.3f, 84.5f, 98.7f, 112.9f, 127.1f,
+        141.3f, 155.5f, 169.7f, 183.9f, 198.1f, 212.3f, 226.5f, 240.7f
     )
     private const val RFC_Y1 = 300.3f
     private const val RFC_Y2 = 315.2f
@@ -120,22 +120,20 @@ object PdfGenerator {
     private const val Y_AREA        = 414.0f
     private const val Y_AGENTE      = 437.0f
 
-    // Sección de firmas
+    // Sección de firmas - Movida hacia arriba para no chocar con "Nombre y firma"
     private const val SIG_Y1 = 443.4f
     private const val SIG_Y2 = 539.9f
-    // Columna instructor: X=24 a ~215 → centro en X=131
-    private const val LOGO_X = 61f;   private const val LOGO_Y = 450f
-    private const val LOGO_W = 140f;  private const val LOGO_H = 80f
-    // Firma encima del logo, centrada en X=131
-    private const val FIRMA_X = 76f;  private const val FIRMA_Y = 455f
-    private const val FIRMA_W = 110f; private const val FIRMA_H = 75f
+    private const val LOGO_X = 61f;   private const val LOGO_Y = 440f
+    private const val LOGO_W = 140f;  private const val LOGO_H = 75f
+    private const val FIRMA_X = 76f;  private const val FIRMA_Y = 442f
+    private const val FIRMA_W = 110f; private const val FIRMA_H = 70f
 
-    // Nombre instructor bajo firma
+    // Nombre instructor bajo firma - Subido para dar aire
     private const val X_INS = 30f
     private const val X_PAT = 222f
     private const val X_REP = 385f
-    private const val Y_NAME_L1 = 525f
-    private const val Y_NAME_L2 = 534f
+    private const val Y_NAME_L1 = 515f
+    private const val Y_NAME_L2 = 524f
 
     // ─────────────────────────────────────────────────────────────────────────
     //  API PÚBLICA
@@ -263,12 +261,6 @@ object PdfGenerator {
         val erasePaint = Paint().apply { color = Color.WHITE; style = Paint.Style.FILL }
         canvas.drawRect(25f * SCALE, 209f * SCALE, 586f * SCALE, 228f * SCALE, erasePaint)
         text(pNormal, 30f, Y_PUESTO, d.puesto.uppercase())
-
-        // Corregir espacio en "DATOS DELAEMPRESA" - Tapar y redibujar
-        val bgPaint = Paint().apply { color = Color.BLACK; style = Paint.Style.FILL }
-        canvas.drawRect(240f * SCALE, 245f * SCALE, 450f * SCALE, 268f * SCALE, bgPaint)
-        val pWhite = Paint().apply { color = Color.WHITE; textSize = 11f * SCALE; isAntiAlias = true; typeface = Typeface.DEFAULT_BOLD }
-        canvas.drawText("DATOS DE LA EMPRESA", 258f * SCALE, 260f * SCALE, pWhite)
 
         // ── Empresa ───────────────────────────────────────────────────────────
         text(pBold, 30f, Y_EMPRESA, d.razonSocial.uppercase().take(70))
