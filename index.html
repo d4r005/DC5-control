@@ -2,7 +2,8 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="theme-color" content="#0c242c">
     <title>ACE-Control | Gestión de Agente Capacitador Externo</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -12,24 +13,37 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0b1329; }
+        * { -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0b1329; overscroll-behavior: none; }
         .login-bg {
             background-color: #0c242c;
             background-image: radial-gradient(circle at center, #1c454e 0%, #0c242c 100%);
         }
         .nav-btn.active { background-color: #2563eb; color: white; box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2); }
-        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
-        .modal-content { background: white; margin: 5% auto; padding: 30px; width: 500px; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
-        ::-webkit-scrollbar { width: 6px; }
+        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); overflow-y: auto; }
+        .modal-content { background: white; margin: auto; padding: 24px; width: 500px; max-width: calc(100% - 24px); border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); position: relative; top: 50%; transform: translateY(-50%); }
+        @media (max-width: 768px) {
+            .modal-content { top: 20px; transform: none; width: calc(100% - 16px); padding: 16px; }
+        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        #toast { position: fixed; bottom: 32px; right: 32px; z-index: 9999; padding: 14px 24px; border-radius: 16px; font-weight: 700; font-size: 14px; box-shadow: 0 8px 30px rgba(0,0,0,0.15); transition: opacity .4s; opacity: 0; pointer-events: none; }
+        #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; padding: 14px 24px; border-radius: 16px; font-weight: 700; font-size: 14px; box-shadow: 0 8px 30px rgba(0,0,0,0.15); transition: opacity .4s; opacity: 0; pointer-events: none; max-width: calc(100% - 40px); text-align: center; }
+        .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .sidebar { transition: transform 0.3s ease; z-index: 50; }
+        @media (max-width: 1024px) {
+            .sidebar { position: fixed; top: 0; left: 0; height: 100%; transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 40; }
+            .sidebar-overlay.show { display: block; }
+        }
+        input, select, button { font-size: 16px; } /* Prevents iOS zoom on focus */
     </style>
 </head>
 <body class="antialiased text-slate-200 h-screen overflow-hidden">
 
     <!-- Pantalla de Login -->
     <div id="view-login" class="login-bg min-h-screen flex items-center justify-center px-4">
-        <div class="flex max-w-5xl w-full items-center justify-center lg:justify-between space-x-12">
+        <div class="flex max-w-5xl w-full items-center justify-center lg:justify-between space-x-0 lg:space-x-12">
             <!-- Lado Izquierdo: Ilustración -->
             <div class="hidden lg:flex w-1/2 flex-col items-center justify-center relative">
                 <div class="relative w-[350px] h-[350px] flex items-center justify-center">
@@ -54,7 +68,7 @@
             </div>
 
             <!-- Tarjeta Login -->
-            <div class="w-full max-w-[420px] bg-white rounded-[3rem] p-12 shadow-2xl">
+            <div class="w-full max-w-[420px] bg-white rounded-[3rem] p-8 sm:p-12 shadow-2xl">
                 <div class="text-center mb-10">
                     <h2 class="text-3xl font-black text-slate-800 tracking-tighter uppercase italic">ACE-CONTROL</h2>
                 </div>
@@ -76,7 +90,8 @@
 
     <!-- App Container -->
     <div id="app-container" class="hidden fixed inset-0 flex h-screen bg-slate-50 text-slate-800 overflow-hidden">
-        <aside class="w-72 bg-slate-900 text-slate-300 flex flex-col justify-between shrink-0">
+        <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+        <aside id="sidebar" class="sidebar w-72 bg-slate-900 text-slate-300 flex flex-col justify-between shrink-0">
             <div>
                 <div class="h-20 flex items-center px-8 border-b border-slate-800 font-bold text-white uppercase italic tracking-widest text-lg">ACE-CONTROL</div>
                 <nav class="mt-8 px-6 space-y-2">
@@ -92,54 +107,59 @@
             <div class="p-6 border-t border-slate-800"><button onclick="logout()" class="w-full flex items-center justify-center space-x-3 px-5 py-3 text-red-400 hover:bg-red-500/10 rounded-xl transition-all font-bold text-sm"><i data-lucide="log-out" class="w-5 h-5"></i><span>Salir del Sistema</span></button></div>
         </aside>
 
-        <main class="flex-1 flex flex-col overflow-hidden">
-            <header class="h-20 bg-white border-b flex items-center justify-between px-10 shrink-0 text-sm">
-                <div class="flex items-center space-x-4">
-                    <h1 id="page-title" class="text-xl font-bold">Dashboard</h1>
-                    <select id="user-filter" onchange="refreshCurrentView()" class="border rounded-lg px-3 py-1.5 bg-slate-50 focus:outline-none">
-                        <option value="ALL">Ver Todo el Sistema</option>
+        <main class="flex-1 flex flex-col overflow-hidden min-w-0">
+            <header class="h-16 sm:h-20 bg-white border-b flex items-center justify-between px-4 sm:px-10 shrink-0 text-sm gap-3">
+                <div class="flex items-center space-x-3 min-w-0">
+                    <button onclick="toggleSidebar()" class="lg:hidden p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-lg shrink-0">
+                        <i data-lucide="menu" class="w-6 h-6"></i>
+                    </button>
+                    <h1 id="page-title" class="text-lg sm:text-xl font-bold truncate">Dashboard</h1>
+                    <select id="user-filter" onchange="refreshCurrentView()" class="border rounded-lg px-2 sm:px-3 py-1.5 bg-slate-50 focus:outline-none text-xs sm:text-sm shrink-0">
+                        <option value="ALL">Ver Todo</option>
                         <option value="d4r005@gmail.com">Dario Robles</option>
                         <option value="lugga.advisors@gmail.com">Cynthia Garza</option>
                     </select>
                 </div>
-                <div class="flex items-center space-x-4">
-                    <div class="text-right leading-tight">
-                        <p id="user-name-display" class="font-bold text-slate-800">Dario Robles</p>
+                <div class="flex items-center space-x-3 sm:space-x-4 shrink-0">
+                    <div class="text-right leading-tight hidden sm:block">
+                        <p id="user-name-display" class="font-bold text-slate-800 text-sm">Dario Robles</p>
                         <p class="text-[10px] text-slate-500 uppercase font-black">Administrador ACE</p>
                     </div>
-                    <div id="user-initials" class="h-10 w-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold uppercase tracking-widest">DR</div>
+                    <div id="user-initials" class="h-9 w-9 sm:h-10 sm:w-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold uppercase tracking-widest text-sm shrink-0">DR</div>
                 </div>
             </header>
 
-            <div class="flex-1 overflow-y-auto p-10 space-y-8 text-slate-600">
+            <div class="flex-1 overflow-y-auto p-4 sm:p-10 space-y-8 text-slate-600">
                 <!-- Dashboard -->
-                <div id="view-dashboard" class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <div class="bg-white p-8 rounded-3xl border shadow-sm flex items-center justify-between group hover:shadow-xl transition-all">
-                        <div><p class="text-xs font-black text-slate-400 uppercase tracking-wider">Personal Registrado</p><p id="stat-workers" class="text-4xl font-black text-slate-800 mt-2">0</p></div>
-                        <div class="h-14 w-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600"><i data-lucide="users" class="w-7 h-7"></i></div>
+                <div id="view-dashboard" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8">
+                    <div class="bg-white p-6 sm:p-8 rounded-3xl border shadow-sm flex items-center justify-between group hover:shadow-xl transition-all">
+                        <div><p class="text-xs font-black text-slate-400 uppercase tracking-wider">Personal Registrado</p><p id="stat-workers" class="text-3xl sm:text-4xl font-black text-slate-800 mt-2">0</p></div>
+                        <div class="h-12 w-12 sm:h-14 sm:w-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600"><i data-lucide="users" class="w-6 h-6 sm:w-7 sm:h-7"></i></div>
                     </div>
-                    <div class="bg-white p-8 rounded-3xl border shadow-sm flex items-center justify-between group hover:shadow-xl transition-all">
-                        <div><p class="text-xs font-black text-slate-400 uppercase tracking-wider">Cursos Disponibles</p><p id="stat-courses" class="text-4xl font-black text-slate-800 mt-2">0</p></div>
-                        <div class="h-14 w-14 bg-green-50 rounded-2xl flex items-center justify-center text-green-600"><i data-lucide="book-open" class="w-7 h-7"></i></div>
+                    <div class="bg-white p-6 sm:p-8 rounded-3xl border shadow-sm flex items-center justify-between group hover:shadow-xl transition-all">
+                        <div><p class="text-xs font-black text-slate-400 uppercase tracking-wider">Cursos Disponibles</p><p id="stat-courses" class="text-3xl sm:text-4xl font-black text-slate-800 mt-2">0</p></div>
+                        <div class="h-12 w-12 sm:h-14 sm:w-14 bg-green-50 rounded-2xl flex items-center justify-center text-green-600"><i data-lucide="book-open" class="w-6 h-6 sm:w-7 sm:h-7"></i></div>
                     </div>
-                    <div class="bg-white p-8 rounded-3xl border shadow-sm flex items-center justify-between group hover:shadow-xl transition-all">
-                        <div><p class="text-xs font-black text-slate-400 uppercase tracking-wider">DC-3 Generados</p><p id="stat-dc3" class="text-4xl font-black text-slate-800 mt-2">0</p></div>
-                        <div class="h-14 w-14 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600"><i data-lucide="file-check" class="w-7 h-7"></i></div>
+                    <div class="bg-white p-6 sm:p-8 rounded-3xl border shadow-sm flex items-center justify-between group hover:shadow-xl transition-all">
+                        <div><p class="text-xs font-black text-slate-400 uppercase tracking-wider">DC-3 Generados</p><p id="stat-dc3" class="text-3xl sm:text-4xl font-black text-slate-800 mt-2">0</p></div>
+                        <div class="h-12 w-12 sm:h-14 sm:w-14 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600"><i data-lucide="file-check" class="w-6 h-6 sm:w-7 sm:h-7"></i></div>
                     </div>
                 </div>
 
                 <!-- Table view -->
                 <div id="view-content" class="hidden">
-                    <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center justify-between mb-6 gap-3 flex-wrap">
                         <input type="file" id="excel-input" accept=".xlsx,.xls" class="hidden" onchange="handleExcel(this)">
                         <button id="upload-btn" onclick="document.getElementById('excel-input').click()" class="hidden bg-slate-900 text-white px-5 py-2.5 rounded-xl font-bold text-sm flex items-center space-x-2"><i data-lucide="upload" class="w-4 h-4"></i><span>Cargar Excel</span></button>
                         <button id="add-btn" onclick="openModal()" class="hidden bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm flex items-center space-x-2 shadow-lg"><i data-lucide="plus" class="w-4 h-4"></i><span>Agregar</span></button>
                     </div>
                     <div class="bg-white rounded-2xl border shadow-sm overflow-hidden">
-                        <table class="w-full">
-                            <thead id="table-header" class="bg-slate-50 border-b"></thead>
-                            <tbody id="table-body"></tbody>
-                        </table>
+                        <div class="table-scroll">
+                            <table class="w-full" style="min-width: 600px;">
+                                <thead id="table-header" class="bg-slate-50 border-b"></thead>
+                                <tbody id="table-body"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -154,12 +174,12 @@
         <div class="modal-content" style="width: 600px;">
             <h3 class="text-xl font-bold mb-6 text-slate-800 uppercase italic tracking-tighter text-center">Configurar Formato DC-3</h3>
             <div id="dc3-fields" class="space-y-4">
-                <div><label class="text-xs font-black text-slate-400 uppercase mb-1">Trabajador</label><p id="dc3-worker-name" class="font-bold text-blue-600"></p></div>
-                <div class="grid grid-cols-2 gap-4">
+                <div><label class="text-xs font-black text-slate-400 uppercase mb-1 block">Trabajador</label><p id="dc3-worker-name" class="font-bold text-blue-600"></p></div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div><label class="text-xs font-black text-slate-400 uppercase">Empresa</label><select id="dc3-company" class="w-full p-3 bg-slate-50 rounded-xl text-sm font-bold outline-none"></select></div>
                     <div><label class="text-xs font-black text-slate-400 uppercase">Curso</label><select id="dc3-course" class="w-full p-3 bg-slate-50 rounded-xl text-sm font-bold outline-none"></select></div>
                 </div>
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div><label class="text-xs font-black text-slate-400 uppercase">Fecha Inicio</label><input type="date" id="dc3-start" class="w-full p-3 bg-slate-50 rounded-xl text-sm font-bold outline-none"></div>
                     <div><label class="text-xs font-black text-slate-400 uppercase">Fecha Fin</label><input type="date" id="dc3-end" class="w-full p-3 bg-slate-50 rounded-xl text-sm font-bold outline-none"></div>
                 </div>
@@ -175,6 +195,7 @@
         const SUPABASE_URL = "https://osgfwgedjdltrmvwycjd.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zZ2Z3Z2VkamRsdHJtdnd5Y2pkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyNDAxMzcsImV4cCI6MjA5OTgxNjEzN30.jeV98eAfhQzkXiGj88DUOLqLPLFr_IKPrcnTaefEgj0";
         const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const SIG_URL = "https://base44.app/api/apps/6a598f68ede9a4fd7c7f8cb7/files/mp/public/6a598f68ede9a4fd7c7f8cb7/c6b537496_agent_signature.png";
 
         const CATALOGS = {
             occupations: ["01 Cultivo, crianza y aprovechamiento","01.1 Agricultura y silvicultura","01.2 Ganadería","01.3 Pesca y acuacultura","02 Extracción y suministro","02.1 Exploración","02.2 Extracción","02.3 Refinación y beneficio","02.4 Provisión de energía","02.5 Provisión de agua","03 Construcción","03.1 Planeación y dirección de obras","03.2 Edificación y urbanización","03.3 Acabado","03.4 Instalación y mantenimiento","04 Tecnología","04.1 Mecánica","04.2 Electricidad","04.3 Electrónica","04.4 Informática","04.5 Telecomunicaciones","04.6 Procesos industriales","05 Procesamiento y fabricación","05.1 Minerales no metálicos","05.2 Metales","05.3 Alimentos y bebidas","05.4 Textiles y prendas de vestir","05.5 Materia orgánica","05.6 Productos químicos","05.7 Productos metálicos y de hule y plástico","05.8 Productos eléctricos y electrónicos","05.9 Productos impresos","06 Transporte","06.1 Ferroviario","06.2 Autotransporte","06.3 Aéreo","06.4 Marítimo y fluvial","06.5 Servicios de apoyo","07 Provisión de bienes y servicios","07.1 Comercio","07.2 Alimentación y hospedaje","07.3 Turismo","07.4 Deporte y esparcimiento","07.5 Servicios personales","07.6 Reparación de artículos de uso doméstico y personal","07.7 Limpieza","07.8 Servicio postal y mensajería","08 Gestión y soporte administrativo","08.1 Bolsa, banca y seguros","08.2 Administración","08.3 Servicios legales","09 Salud y protección social","09.1 Servicios médicos","09.2 Inspección sanitaria y del medio ambiente","09.3 Seguridad social","09.4 Protección de bienes y/o personas","10 Comunicación","10.1 Publicación","10.2 Radio, cine, televisión y teatro","10.3 Interpretación artística","10.4 Traducción e interpretación lingüística","10.5 Publicidad, propaganda y relaciones públicas","11 Desarrollo y extensión del conocimiento","11.1 Investigación","11.2 Enseñanza","11.3 Difusión cultural"]
@@ -185,7 +206,7 @@
             { name: "Cynthia Garza Lugo", email: "lugga.advisors@gmail.com", role: "USER",  password: "Cynthia123" }
         ];
 
-        let currentUser = null, currentView = 'dashboard', selectedWorker = null, allCompanies = [];
+        let currentUser = null, currentView = 'dashboard', selectedWorker = null, allCompanies = [], cachedCourses = [], cachedAgents = [];
 
         // ─── Toast ───────────────────────────────────────────────────
         function showToast(msg, ok = true) {
@@ -196,6 +217,14 @@
             t.style.opacity = '1';
             clearTimeout(t._timer);
             t._timer = setTimeout(() => { t.style.opacity = '0'; }, 3000);
+        }
+
+        // ─── Sidebar toggle (mobile) ──────────────────────────────────
+        function toggleSidebar() {
+            const sb = document.getElementById('sidebar');
+            const ov = document.getElementById('sidebar-overlay');
+            sb.classList.toggle('open');
+            ov.classList.toggle('show');
         }
 
         // ─── Init ─────────────────────────────────────────────────────
@@ -235,7 +264,7 @@
         // ─── Filtro por usuario ───────────────────────────────────────
         function getFilter() {
             const v = document.getElementById('user-filter').value;
-            if (currentUser.role === 'ADMIN' && v === 'ALL') return null;   // sin filtro → todos
+            if (currentUser.role === 'ADMIN' && v === 'ALL') return null;
             return v === 'ALL' ? currentUser.email : v;
         }
 
@@ -256,13 +285,13 @@
             document.getElementById('view-dashboard').classList.toggle('hidden', !isDash);
             document.getElementById('view-content').classList.toggle('hidden', isDash);
 
-            // Botón "Cargar Excel" — sólo en workers
             const uploadBtn = document.getElementById('upload-btn');
             if (uploadBtn) uploadBtn.classList.toggle('hidden', v !== 'workers');
-
-            // Botón "Agregar" — en workers, companies, courses, agents
             const addBtn = document.getElementById('add-btn');
             if (addBtn) addBtn.classList.toggle('hidden', !['workers','companies','courses','agents'].includes(v));
+
+            // Close sidebar on mobile after navigation
+            if (window.innerWidth <= 1024) toggleSidebar();
 
             await refreshCurrentView();
             lucide.createIcons();
@@ -316,10 +345,10 @@
                     data.length
                         ? data.map(x => `<tr class="border-b hover:bg-slate-50">
                             <td class="p-4 font-semibold text-slate-800">${x.name||''}</td>
-                            <td class="p-4 text-slate-600">${x.curp||''}</td>
-                            <td class="p-4 text-slate-600">${x.occupation||''}</td>
-                            <td class="p-4 text-slate-600">${x.position||''}</td>
-                            <td class="p-4 text-right space-x-3">
+                            <td class="p-4 text-slate-600 text-xs">${x.curp||''}</td>
+                            <td class="p-4 text-slate-600 text-xs">${x.occupation||''}</td>
+                            <td class="p-4 text-slate-600 text-xs">${x.position||''}</td>
+                            <td class="p-4 text-right space-x-3 whitespace-nowrap">
                               <button onclick='openDC3Modal(${JSON.stringify(x)})' class="text-blue-600 font-bold text-sm hover:underline">Generar DC-3</button>
                               <button onclick="deleteItem('workers','${x.id}')" class="text-red-400 font-bold text-sm hover:underline">Eliminar</button>
                             </td></tr>`).join('')
@@ -327,15 +356,15 @@
                 );
 
             } else if (currentView === 'companies') {
-                allCompanies = await sbSelect('companies', null);
+                const data = await sbSelect('companies', f);
                 setTable(
                     '<tr><th class="p-4 text-left text-xs font-black text-slate-500 uppercase">Empresa</th><th class="p-4 text-left text-xs font-black text-slate-500 uppercase">RFC</th><th class="p-4 text-right text-xs font-black text-slate-500 uppercase">Acciones</th></tr>',
-                    allCompanies.length
-                        ? allCompanies.map(c => `<tr class="border-b hover:bg-slate-50">
-                            <td class="p-4 font-semibold text-slate-800">${c.name||''}</td>
-                            <td class="p-4 text-slate-600">${c.rfc||''}</td>
+                    data.length
+                        ? data.map(x => `<tr class="border-b hover:bg-slate-50">
+                            <td class="p-4 font-semibold text-slate-800">${x.name||''}</td>
+                            <td class="p-4 text-slate-600">${x.rfc||''}</td>
                             <td class="p-4 text-right">
-                              <button onclick="deleteItem('companies','${c.id}')" class="text-red-400 font-bold text-sm hover:underline">Eliminar</button>
+                              <button onclick="deleteItem('companies','${x.id}')" class="text-red-400 font-bold text-sm hover:underline">Eliminar</button>
                             </td></tr>`).join('')
                         : noData(3, 'Sin empresas registradas')
                 );
@@ -375,22 +404,21 @@
                     data.length
                         ? data.map(d => `<tr class="border-b hover:bg-slate-50">
                             <td class="p-4 font-semibold text-slate-800">${d.worker_name||''}</td>
-                            <td class="p-4 text-slate-600">${d.worker_id||''}</td>
-                            <td class="p-4 text-slate-600">${d.course_name||''}</td>
-                            <td class="p-4 text-slate-600">${d.company_name||''}</td>
-                            <td class="p-4 text-slate-600">${d.start_date||''}</td>
-                            <td class="p-4 text-slate-600">${d.end_date||''}</td>
+                            <td class="p-4 text-slate-600 text-xs">${d.worker_id||''}</td>
+                            <td class="p-4 text-slate-600 text-xs">${d.course_name||''}</td>
+                            <td class="p-4 text-slate-600 text-xs">${d.company_name||''}</td>
+                            <td class="p-4 text-slate-600 text-xs">${d.start_date||''}</td>
+                            <td class="p-4 text-slate-600 text-xs">${d.end_date||''}</td>
                             </tr>`).join('')
                         : noData(6, 'Sin DC-3 generados')
                 );
 
             } else if (currentView === 'users') {
-                // Tabla de usuarios del sistema (hardcoded, no en Supabase)
                 setTable(
                     '<tr><th class="p-4 text-left text-xs font-black text-slate-500 uppercase">Nombre</th><th class="p-4 text-left text-xs font-black text-slate-500 uppercase">Email</th><th class="p-4 text-left text-xs font-black text-slate-500 uppercase">Rol</th></tr>',
                     USERS.map(u => `<tr class="border-b hover:bg-slate-50">
                         <td class="p-4 font-semibold text-slate-800">${u.name}</td>
-                        <td class="p-4 text-slate-600">${u.email}</td>
+                        <td class="p-4 text-slate-600 text-xs">${u.email}</td>
                         <td class="p-4"><span class="px-3 py-1 rounded-full text-xs font-bold ${u.role === 'ADMIN' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}">${u.role}</span></td>
                         </tr>`).join('')
                 );
@@ -476,15 +504,16 @@
                 doc   = { name, stps, creator_email: currentUser.email };
             }
 
-            if (!doc) { showToast('Vista no reconocida', false); return; }
-
-            const result = await sbInsert(table, doc);
-            if (result) {
-                showToast('✓ Guardado correctamente en Supabase');
-                closeModal();
-                await refreshCurrentView();
-            } else {
-                showToast('Error al guardar — revisa la consola', false);
+            if (doc) {
+                const result = await sbInsert(table, doc);
+                if (result !== null) {
+                    showToast('✓ Guardado correctamente');
+                    document.getElementById('modal').style.display = 'none';
+                    allCompanies = []; // refresh cache
+                    await refreshCurrentView();
+                } else {
+                    showToast('Error al guardar', false);
+                }
             }
         }
 
@@ -493,314 +522,315 @@
             selectedWorker = worker;
             document.getElementById('dc3-worker-name').innerText = worker.name;
 
+            // Pre-cargar datos necesarios
             if (allCompanies.length === 0) allCompanies = await sbSelect('companies', null);
-            const courses = await sbSelect('courses', getFilter());
+            cachedCourses = await sbSelect('courses', getFilter());
+            cachedAgents = await sbSelect('agents', null);
 
             document.getElementById('dc3-company').innerHTML = allCompanies.length
                 ? allCompanies.map(c => `<option value="${c.name}">${c.name}</option>`).join('')
                 : '<option value="">-- Sin empresas registradas --</option>';
 
-            document.getElementById('dc3-course').innerHTML = courses.length
-                ? courses.map(c => `<option value="${c.name}">${c.name}</option>`).join('')
+            document.getElementById('dc3-course').innerHTML = cachedCourses.length
+                ? cachedCourses.map(c => `<option value="${c.name}">${c.name}</option>`).join('')
                 : '<option value="">-- Sin cursos registrados --</option>';
 
             document.getElementById('dc3-modal').style.display = 'block';
         }
 
+        // ─── Draw table row helper (defined BEFORE use) ────────────────
+        function drawTableRow(doc, x, y, w1, t1, w2, t2, w3, t3, w4, t4, h) {
+            doc.rect(x, y, w1, h); doc.rect(x+w1, y, w2, h);
+            doc.rect(x+w1+w2, y, w3, h); doc.rect(x+w1+w2+w3, y, w4, h);
+            doc.text(t1||'', x+1, y+h-1.5);
+            doc.text(t2||'', x+w1+1, y+h-1.5);
+            doc.text(t3||'', x+w1+w2+1, y+h-1.5);
+            doc.text(t4||'', x+w1+w2+w3+1, y+h-1.5);
+        }
+
         async function generateSingleDC3() {
-            const companyName = document.getElementById('dc3-company').value;
-            const courseName  = document.getElementById('dc3-course').value;
-            const startDate   = document.getElementById('dc3-start').value;
-            const endDate     = document.getElementById('dc3-end').value;
+            try {
+                const companyName = document.getElementById('dc3-company').value;
+                const courseName  = document.getElementById('dc3-course').value;
+                const startDate   = document.getElementById('dc3-start').value;
+                const endDate     = document.getElementById('dc3-end').value;
 
-            if (!companyName || !courseName || !startDate || !endDate) {
-                showToast('Completa todos los campos del DC-3', false); return;
-            }
-
-            const doc = new jspdf.jsPDF();
-            const W = 210, M = 15; // A4 width, margin
-            let y = 15;
-
-            // ── Título ──
-            doc.setFont('helvetica','bold'); doc.setFontSize(13);
-            doc.text('FORMATO DC-3', 105, y, null, null, 'center');
-            y += 6;
-            doc.setFont('helvetica','normal'); doc.setFontSize(7);
-            doc.text('CONSTANCIA DE COMPETENCIAS O DE HABILIDADES LABORALES', 105, y, null, null, 'center');
-            y += 8;
-
-            // ── Sección 1: DATOS DEL TRABAJADOR ──
-            doc.setFillColor(235,235,235); doc.rect(M, y, W-2*M, 7, 'F');
-            doc.setFont('helvetica','bold'); doc.setFontSize(6.5);
-            doc.text('DATOS DEL TRABAJADOR', M+2, y+5);
-            y += 10;
-
-            // Nombre
-            doc.setFont('helvetica','normal'); doc.setFontSize(5);
-            doc.text('Nombre (Anotar apellido paterno, apellido materno y nombre(s))', M, y);
-            y += 4;
-            doc.setFont('helvetica','bold'); doc.setFontSize(8);
-            doc.text(selectedWorker.name || '', M, y);
-            doc.line(M, y+1.5, W-M, y+1.5);
-            y += 8;
-
-            // CURP grid (18 casillas)
-            const curp = (selectedWorker.curp||'').toUpperCase().padEnd(18).substring(0,18);
-            const boxW = 4.2, boxH = 5;
-            doc.setFont('helvetica','normal'); doc.setFontSize(4.5);
-            doc.text('Clave Única de Registro de Población', M, y);
-            for (let i=0; i<18; i++) {
-                const cx = M + i*boxW;
-                doc.rect(cx, y+1, boxW, boxH);
-                if (curp[i] && curp[i] !== ' ') {
-                    doc.setFont('helvetica','bold'); doc.setFontSize(6);
-                    doc.text(curp[i], cx+1.3, y+4.5);
+                if (!companyName || !courseName || !startDate || !endDate) {
+                    showToast('Completa todos los campos del DC-3', false); return;
                 }
-            }
 
-            // Ocupación al lado derecho del CURP
-            const occX = M + 18*boxW + 4;
-            doc.setFont('helvetica','normal'); doc.setFontSize(4);
-            doc.text('Ocupación específica (Catálogo Nacional de Ocupaciones)', occX, y);
-            doc.setFont('helvetica','bold'); doc.setFontSize(6);
-            doc.text(selectedWorker.occupation || '', occX, y+4);
-            doc.line(occX, y+5, W-M, y+5);
-            y += 12;
+                // Obtener datos antes de crear el PDF
+                const companyRfc = (allCompanies.find(c => c.name === companyName) || {}).rfc || '';
+                const courseData = cachedCourses.find(c => c.name === courseName) || {};
+                const durationHours = courseData.duration_hours || 8;
+                const ag = cachedAgents[0] || {};
 
-            // Puesto
-            doc.setFont('helvetica','normal'); doc.setFontSize(4.5);
-            doc.text('Puesto', M, y);
-            y += 4;
-            doc.setFont('helvetica','bold'); doc.setFontSize(7);
-            doc.text(selectedWorker.position || '', M, y);
-            doc.line(M, y+1.5, W-M, y+1.5);
-            y += 10;
+                const doc = new jspdf.jsPDF();
+                const W = 210, M = 15;
+                let y = 15;
 
-            // ── Sección 2: DATOS DE LA EMPRESA ──
-            doc.setFillColor(235,235,235); doc.rect(M, y, W-2*M, 7, 'F');
-            doc.setFont('helvetica','bold'); doc.setFontSize(6.5);
-            doc.text('DATOS DE LA EMPRESA', M+2, y+5);
-            y += 10;
+                // ── Título ──
+                doc.setFont('helvetica','bold'); doc.setFontSize(13);
+                doc.text('FORMATO DC-3', 105, y, null, null, 'center');
+                y += 6;
+                doc.setFont('helvetica','normal'); doc.setFontSize(7);
+                doc.text('CONSTANCIA DE COMPETENCIAS O DE HABILIDADES LABORALES', 105, y, null, null, 'center');
+                y += 8;
 
-            // Nombre o razón social
-            doc.setFont('helvetica','normal'); doc.setFontSize(5);
-            doc.text('Nombre o razón social (En caso de persona física, anotar apellido paterno, materno y nombre(s))', M, y);
-            y += 4;
-            doc.setFont('helvetica','bold'); doc.setFontSize(8);
-            doc.text(companyName, M, y);
-            doc.line(M, y+1.5, W-M, y+1.5);
-            y += 8;
+                // ── Sección 1: DATOS DEL TRABAJADOR ──
+                doc.setFillColor(235,235,235); doc.rect(M, y, W-2*M, 7, 'F');
+                doc.setFont('helvetica','bold'); doc.setFontSize(6.5);
+                doc.text('DATOS DEL TRABAJADOR', M+2, y+5);
+                y += 10;
 
-            // RFC grid (13 casillas con homoclave)
-            const rfc = (companyRfc||'').toUpperCase().padEnd(13).substring(0,13);
-            doc.setFont('helvetica','normal'); doc.setFontSize(4.5);
-            doc.text('Registro Federal de Contribuyentes con homoclave (SHCP)', M, y);
-            const rfcBoxW = 4.5, rfcBoxH = 5;
-            for (let i=0; i<13; i++) {
-                const cx = M + i*rfcBoxW;
-                doc.rect(cx, y+1, rfcBoxW, rfcBoxH);
-                if (rfc[i] && rfc[i] !== ' ') {
-                    doc.setFont('helvetica','bold'); doc.setFontSize(6);
-                    doc.text(rfc[i], cx+1.5, y+4.5);
+                doc.setFont('helvetica','normal'); doc.setFontSize(5);
+                doc.text('Nombre (Anotar apellido paterno, apellido materno y nombre(s))', M, y);
+                y += 4;
+                doc.setFont('helvetica','bold'); doc.setFontSize(8);
+                doc.text(selectedWorker.name || '', M, y);
+                doc.line(M, y+1.5, W-M, y+1.5);
+                y += 8;
+
+                // CURP grid (18 casillas)
+                const curp = (selectedWorker.curp||'').toUpperCase().padEnd(18).substring(0,18);
+                const boxW = 4.2, boxH = 5;
+                doc.setFont('helvetica','normal'); doc.setFontSize(4.5);
+                doc.text('Clave Única de Registro de Población', M, y);
+                for (let i=0; i<18; i++) {
+                    const cx = M + i*boxW;
+                    doc.rect(cx, y+1, boxW, boxH);
+                    if (curp[i] && curp[i] !== ' ') {
+                        doc.setFont('helvetica','bold'); doc.setFontSize(6);
+                        doc.text(curp[i], cx+1.3, y+4.5);
+                    }
                 }
+
+                const occX = M + 18*boxW + 4;
+                doc.setFont('helvetica','normal'); doc.setFontSize(4);
+                doc.text('Ocupación específica (Catálogo Nacional de Ocupaciones)', occX, y);
+                doc.setFont('helvetica','bold'); doc.setFontSize(6);
+                doc.text(selectedWorker.occupation || '', occX, y+4);
+                doc.line(occX, y+5, W-M, y+5);
+                y += 12;
+
+                doc.setFont('helvetica','normal'); doc.setFontSize(4.5);
+                doc.text('Puesto', M, y);
+                y += 4;
+                doc.setFont('helvetica','bold'); doc.setFontSize(7);
+                doc.text(selectedWorker.position || '', M, y);
+                doc.line(M, y+1.5, W-M, y+1.5);
+                y += 10;
+
+                // ── Sección 2: DATOS DE LA EMPRESA ──
+                doc.setFillColor(235,235,235); doc.rect(M, y, W-2*M, 7, 'F');
+                doc.setFont('helvetica','bold'); doc.setFontSize(6.5);
+                doc.text('DATOS DE LA EMPRESA', M+2, y+5);
+                y += 10;
+
+                doc.setFont('helvetica','normal'); doc.setFontSize(5);
+                doc.text('Nombre o razón social (En caso de persona física, anotar apellido paterno, materno y nombre(s))', M, y);
+                y += 4;
+                doc.setFont('helvetica','bold'); doc.setFontSize(8);
+                doc.text(companyName, M, y);
+                doc.line(M, y+1.5, W-M, y+1.5);
+                y += 8;
+
+                // RFC grid (13 casillas con homoclave)
+                const rfc = (companyRfc||'').toUpperCase().padEnd(13).substring(0,13);
+                doc.setFont('helvetica','normal'); doc.setFontSize(4.5);
+                doc.text('Registro Federal de Contribuyentes con homoclave (SHCP)', M, y);
+                const rfcBoxW = 4.5, rfcBoxH = 5;
+                for (let i=0; i<13; i++) {
+                    const cx = M + i*rfcBoxW;
+                    doc.rect(cx, y+1, rfcBoxW, rfcBoxH);
+                    if (rfc[i] && rfc[i] !== ' ') {
+                        doc.setFont('helvetica','bold'); doc.setFontSize(6);
+                        doc.text(rfc[i], cx+1.5, y+4.5);
+                    }
+                }
+                y += 12;
+
+                // ── Sección 3: DATOS DEL PROGRAMA DE CAPACITACIÓN ──
+                doc.setFillColor(235,235,235); doc.rect(M, y, W-2*M, 7, 'F');
+                doc.setFont('helvetica','bold'); doc.setFontSize(6.5);
+                doc.text('DATOS DEL PROGRAMA DE CAPACITACIÓN, ADIESTRAMIENTO Y PRODUCTIVIDAD', M+2, y+5);
+                y += 10;
+
+                doc.setFont('helvetica','normal'); doc.setFontSize(5);
+                doc.text('Nombre del curso', M, y);
+                y += 4;
+                doc.setFont('helvetica','bold'); doc.setFontSize(8);
+                doc.text(courseName, M, y);
+                doc.line(M, y+1.5, W-M, y+1.5);
+                y += 8;
+
+                doc.setFont('helvetica','normal'); doc.setFontSize(5);
+                doc.text('Duración en horas', M, y);
+                y += 4;
+                doc.setFont('helvetica','bold'); doc.setFontSize(7);
+                doc.text(durationHours + ' HORAS', M, y);
+                doc.line(M, y+1.5, M+30, y+1.5);
+                y += 8;
+
+                doc.setFont('helvetica','normal'); doc.setFontSize(5);
+                doc.text('Periodo de ejecución:', M, y);
+                doc.setFont('helvetica','bold'); doc.setFontSize(7);
+                doc.text('De: ' + startDate + '    a: ' + endDate, M+30, y);
+                doc.line(M+28, y+1.5, W-M, y+1.5);
+                y += 8;
+
+                doc.setFont('helvetica','normal'); doc.setFontSize(5);
+                doc.text('Área temática del curso', M, y);
+                y += 4;
+                doc.setFont('helvetica','bold'); doc.setFontSize(7);
+                doc.text('(6000) Seguridad', M, y);
+                doc.line(M, y+1.5, W-M, y+1.5);
+                y += 8;
+
+                doc.setFont('helvetica','normal'); doc.setFontSize(5);
+                doc.text('Nombre del agente capacitador o STPS', M, y);
+                y += 4;
+                doc.setFont('helvetica','bold'); doc.setFontSize(7);
+                doc.text((ag.name||'') + '    ' + (ag.stps||''), M, y);
+                doc.line(M, y+1.5, W-M, y+1.5);
+                y += 20;
+
+                // ── Firmas ──
+                const sigY = 250;
+                doc.setLineWidth(0.3);
+
+                // Firma digital del agente capacitador
+                try {
+                    const sigImg = new Image();
+                    sigImg.crossOrigin = 'anonymous';
+                    sigImg.src = SIG_URL;
+                    await new Promise((resolve) => {
+                        sigImg.onload = () => {
+                            try {
+                                const maxW = 40, maxH = 25;
+                                let w = maxW, h = maxW * (sigImg.height / sigImg.width);
+                                if (h > maxH) { h = maxH; w = maxH * (sigImg.width / sigImg.height); }
+                                doc.addImage(sigImg, 'PNG', 28, sigY - h - 2, w, h);
+                            } catch(e) { console.warn('Firma no agregada:', e); }
+                            resolve();
+                        };
+                        sigImg.onerror = () => resolve();
+                        if (sigImg.complete) { sigImg.onload(); }
+                    });
+                } catch(e) { console.warn('Error cargando firma:', e); }
+
+                doc.line(25, sigY, 70, sigY);
+                doc.setFont('helvetica','normal'); doc.setFontSize(6);
+                doc.text('Instructor o tutor', 38, sigY+5);
+                doc.setFont('helvetica','bold'); doc.setFontSize(5);
+                doc.text(ag.name||'', 28, sigY-2);
+
+                doc.line(80, sigY, 130, sigY);
+                doc.text('Patrón o representante legal', 85, sigY+5);
+
+                doc.line(140, sigY, 185, sigY);
+                doc.text('Representante de los trabajadores', 142, sigY+5);
+
+                doc.setFontSize(4.5);
+                doc.text('Serán sancionados aquellos que no se conduzcan con verdad.', M, sigY+15);
+
+                // ── PÁGINA 2: REVERSO (catálogos) ──
+                doc.addPage();
+                y = 15;
+                doc.setFont('helvetica','bold'); doc.setFontSize(8);
+                doc.text('CLAVES Y DENOMINACIONES DE ÁREAS Y SUBÁREAS DEL CATÁLOGO NACIONAL DE OCUPACIONES', M, y);
+                y += 8;
+
+                const occList = [
+                    ['01','Cultivo, crianza y aprovechamiento','06','Transporte'],
+                    ['01.1','Agricultura y silvicultura','06.1','Ferroviario'],
+                    ['01.2','Ganadería','06.2','Autotransporte'],
+                    ['01.3','Pesca y acuacultura','06.3','Aéreo'],
+                    ['02','Extracción y suministro','06.4','Marítimo y fluvial'],
+                    ['02.1','Exploración','06.5','Servicios de apoyo'],
+                    ['02.2','Extracción','07','Provisión de bienes y servicios'],
+                    ['02.3','Refinación y beneficio','07.1','Comercio'],
+                    ['02.4','Provisión de energía','07.2','Alimentación y hospedaje'],
+                    ['02.5','Provisión de agua','07.3','Turismo'],
+                    ['03','Construcción','07.4','Deporte y esparcimiento'],
+                    ['03.1','Planeación y dirección de obras','07.5','Servicios personales'],
+                    ['03.2','Edificación y urbanización','07.6','Reparación de artículos domésticos'],
+                    ['03.3','Acabado','07.7','Limpieza'],
+                    ['03.4','Instalación y mantenimiento','07.8','Servicio postal y mensajería'],
+                    ['04','Tecnología','08','Gestión y soporte administrativo'],
+                    ['04.1','Mecánica','08.1','Bolsa, banca y seguros'],
+                    ['04.2','Electricidad','08.2','Administración'],
+                    ['04.3','Electrónica','08.3','Servicios legales'],
+                    ['04.4','Informática','09','Salud y protección social'],
+                    ['04.5','Telecomunicaciones','09.1','Servicios médicos'],
+                    ['04.6','Procesos industriales','09.2','Inspección sanitaria y medio ambiente'],
+                    ['05','Procesamiento y fabricación','09.3','Seguridad social'],
+                    ['05.1','Minerales no metálicos','09.4','Protección de bienes y/o personas'],
+                    ['05.2','Metales','10','Comunicación'],
+                    ['05.3','Alimentos y bebidas','10.1','Publicación'],
+                    ['05.4','Textiles y prendas de vestir','10.2','Radio, cine, televisión y teatro'],
+                    ['05.5','Materia orgánica','10.3','Interpretación artística'],
+                    ['05.6','Productos químicos','10.4','Traducción e interpretación lingüística'],
+                    ['05.7','Productos metálicos y hule y plástico','10.5','Publicidad, propaganda y rel. públicas'],
+                    ['05.8','Productos eléctricos y electrónicos','11','Desarrollo y extensión del conocimiento'],
+                    ['05.9','Productos impresos','11.1','Investigación'],
+                    ['','','11.2','Enseñanza'],
+                    ['','','11.3','Difusión cultural']
+                ];
+
+                const col1W = 25, col2W = 75, col3W = 25, col4W = 75;
+                doc.setFontSize(5); doc.setFont('helvetica','bold');
+                drawTableRow(doc, M, y, col1W, 'CLAVE', col2W, 'DENOMINACIÓN', col3W, 'CLAVE', col4W, 'DENOMINACIÓN', 6);
+                y += 7;
+                doc.setFont('helvetica','normal'); doc.setFontSize(5);
+                occList.forEach(function(row) {
+                    drawTableRow(doc, M, y, col1W, row[0], col2W, row[1], col3W, row[2], col4W, row[3], 5.5);
+                    y += 5.5;
+                });
+
+                y += 6;
+                doc.setFont('helvetica','bold'); doc.setFontSize(7);
+                doc.text('CLAVES Y DENOMINACIONES DEL CATÁLOGO DE ÁREAS TEMÁTICAS DE LOS CURSOS', M, y);
+                y += 8;
+
+                const thematic = [
+                    ['1000','Producción general','6000','Seguridad'],
+                    ['2000','Servicios','7000','Desarrollo personal y familiar'],
+                    ['3000','Administración, contabilidad y economía','8000','Tecnologías de la información y comunicación'],
+                    ['4000','Comercialización','9000','Participación social'],
+                    ['5000','Mantenimiento y reparación','','']
+                ];
+                doc.setFontSize(5); doc.setFont('helvetica','bold');
+                drawTableRow(doc, M, y, col1W, 'CLAVE', col2W, 'DENOMINACIÓN', col3W, 'CLAVE', col4W, 'DENOMINACIÓN', 6);
+                y += 7;
+                doc.setFont('helvetica','normal'); doc.setFontSize(5);
+                thematic.forEach(function(row) {
+                    drawTableRow(doc, M, y, col1W, row[0], col2W, row[1], col3W, row[2], col4W, row[3], 5.5);
+                    y += 5.5;
+                });
+
+                // Guardar PDF
+                doc.save('DC3_' + (selectedWorker.curp || selectedWorker.name) + '.pdf');
+
+                // Registrar en Supabase
+                await sbInsert('dc3_records', {
+                    worker_id:    selectedWorker.curp || '',
+                    worker_name:  selectedWorker.name,
+                    course_name:  courseName,
+                    company_name: companyName,
+                    start_date:   startDate,
+                    end_date:     endDate,
+                    creator_email: currentUser.email
+                });
+
+                showToast('✓ PDF generado y DC-3 registrado');
+                document.getElementById('dc3-modal').style.display = 'none';
+                await refreshCurrentView();
+
+            } catch(err) {
+                console.error('generateSingleDC3 error:', err);
+                showToast('Error al generar PDF: ' + err.message, false);
             }
-            y += 12;
-
-            // ── Sección 3: DATOS DEL PROGRAMA DE CAPACITACIÓN ──
-            doc.setFillColor(235,235,235); doc.rect(M, y, W-2*M, 7, 'F');
-            doc.setFont('helvetica','bold'); doc.setFontSize(6.5);
-            doc.text('DATOS DEL PROGRAMA DE CAPACITACIÓN, ADIESTRAMIENTO Y PRODUCTIVIDAD', M+2, y+5);
-            y += 10;
-
-            // Nombre del curso
-            doc.setFont('helvetica','normal'); doc.setFontSize(5);
-            doc.text('Nombre del curso', M, y);
-            y += 4;
-            doc.setFont('helvetica','bold'); doc.setFontSize(8);
-            doc.text(courseName, M, y);
-            doc.line(M, y+1.5, W-M, y+1.5);
-            y += 8;
-
-            // Duración
-            doc.setFont('helvetica','normal'); doc.setFontSize(5);
-            doc.text('Duración en horas', M, y);
-            y += 4;
-            doc.setFont('helvetica','bold'); doc.setFontSize(7);
-            const dur = (courses.find(c=>c.name===courseName)||{}).duration_hours || 8;
-            doc.text(dur + ' HORAS', M, y);
-            doc.line(M, y+1.5, M+30, y+1.5);
-            y += 8;
-
-            // Periodo de ejecución
-            doc.setFont('helvetica','normal'); doc.setFontSize(5);
-            doc.text('Periodo de ejecución:', M, y);
-            doc.setFont('helvetica','bold'); doc.setFontSize(7);
-            doc.text('De: ' + startDate + '    a: ' + endDate, M+30, y);
-            doc.line(M+28, y+1.5, W-M, y+1.5);
-            y += 8;
-
-            // Área temática
-            doc.setFont('helvetica','normal'); doc.setFontSize(5);
-            doc.text('Área temática del curso', M, y);
-            y += 4;
-            doc.setFont('helvetica','bold'); doc.setFontSize(7);
-            doc.text('(6000) Seguridad', M, y);
-            doc.line(M, y+1.5, W-M, y+1.5);
-            y += 8;
-
-            // Nombre del agente capacitador o STPS
-            doc.setFont('helvetica','normal'); doc.setFontSize(5);
-            doc.text('Nombre del agente capacitador o STPS', M, y);
-            y += 4;
-            doc.setFont('helvetica','bold'); doc.setFontSize(7);
-            const [agents, courses] = await Promise.all([
-                sbSelect('agents', null),
-                sbSelect('courses', getFilter())
-            ]);
-            const ag = agents[0] || {};
-            doc.text((ag.name||'') + '    ' + (ag.stps||''), M, y);
-            doc.line(M, y+1.5, W-M, y+1.5);
-            y += 20;
-
-            // ── Firmas ──
-            const sigY = 250;
-            doc.setLineWidth(0.3);
-
-            // Instructor con firma digital del agente capacitador
-            const sigImg = new Image();
-            sigImg.src = 'https://base44.app/api/apps/6a598f68ede9a4fd7c7f8cb7/files/mp/public/6a598f68ede9a4fd7c7f8cb7/c6b537496_agent_signature.png';
-            await new Promise((resolve) => {
-                sigImg.onload = () => {
-                    // Calcular tamaño proporcional (max 40mm ancho)
-                    const maxW = 40, maxH = 25;
-                    let w = maxW, h = maxW * (sigImg.height / sigImg.width);
-                    if (h > maxH) { h = maxH; w = maxH * (sigImg.width / sigImg.height); }
-                    doc.addImage(sigImg, 'PNG', 28, sigY - h - 2, w, h);
-                    resolve();
-                };
-                sigImg.onerror = () => resolve();
-                if (sigImg.complete) { sigImg.onload(); }
-            });
-
-            doc.line(25, sigY, 70, sigY);
-            doc.setFont('helvetica','normal'); doc.setFontSize(6);
-            doc.text('Instructor o tutor', 38, sigY+5);
-            doc.setFont('helvetica','bold'); doc.setFontSize(5);
-            doc.text(ag.name||'', 28, sigY-2);
-
-            // Patrón
-            doc.line(80, sigY, 130, sigY);
-            doc.text('Patrón o representante legal', 85, sigY+5);
-
-            // Representante trabajadores
-            doc.line(140, sigY, 185, sigY);
-            doc.text('Representante de los trabajadores', 142, sigY+5);
-
-            // Aviso legal
-            doc.setFontSize(4.5);
-            doc.text('Serán sancionados aquellos que no se conduzcan con verdad.', M, sigY+15);
-
-            // ── PÁGINA 2: REVERSO (catálogos) ──
-            doc.addPage();
-            y = 15;
-            doc.setFont('helvetica','bold'); doc.setFontSize(8);
-            doc.text('CLAVES Y DENOMINACIONES DE ÁREAS Y SUBÁREAS DEL CATÁLOGO NACIONAL DE OCUPACIONES', M, y);
-            y += 8;
-
-            // Tabla ocupaciones
-            const occList = [
-                ['01','Cultivo, crianza y aprovechamiento','06','Transporte'],
-                ['01.1','Agricultura y silvicultura','06.1','Ferroviario'],
-                ['01.2','Ganadería','06.2','Autotransporte'],
-                ['01.3','Pesca y acuacultura','06.3','Aéreo'],
-                ['02','Extracción y suministro','06.4','Marítimo y fluvial'],
-                ['02.1','Exploración','06.5','Servicios de apoyo'],
-                ['02.2','Extracción','07','Provisión de bienes y servicios'],
-                ['02.3','Refinación y beneficio','07.1','Comercio'],
-                ['02.4','Provisión de energía','07.2','Alimentación y hospedaje'],
-                ['02.5','Provisión de agua','07.3','Turismo'],
-                ['03','Construcción','07.4','Deporte y esparcimiento'],
-                ['03.1','Planeación y dirección de obras','07.5','Servicios personales'],
-                ['03.2','Edificación y urbanización','07.6','Reparación de artículos domésticos'],
-                ['03.3','Acabado','07.7','Limpieza'],
-                ['03.4','Instalación y mantenimiento','07.8','Servicio postal y mensajería'],
-                ['04','Tecnología','08','Gestión y soporte administrativo'],
-                ['04.1','Mecánica','08.1','Bolsa, banca y seguros'],
-                ['04.2','Electricidad','08.2','Administración'],
-                ['04.3','Electrónica','08.3','Servicios legales'],
-                ['04.4','Informática','09','Salud y protección social'],
-                ['04.5','Telecomunicaciones','09.1','Servicios médicos'],
-                ['04.6','Procesos industriales','09.2','Inspección sanitaria y medio ambiente'],
-                ['05','Procesamiento y fabricación','09.3','Seguridad social'],
-                ['05.1','Minerales no metálicos','09.4','Protección de bienes y/o personas'],
-                ['05.2','Metales','10','Comunicación'],
-                ['05.3','Alimentos y bebidas','10.1','Publicación'],
-                ['05.4','Textiles y prendas de vestir','10.2','Radio, cine, televisión y teatro'],
-                ['05.5','Materia orgánica','10.3','Interpretación artística'],
-                ['05.6','Productos químicos','10.4','Traducción e interpretación lingüística'],
-                ['05.7','Productos metálicos y hule y plástico','10.5','Publicidad, propaganda y rel. públicas'],
-                ['05.8','Productos eléctricos y electrónicos','11','Desarrollo y extensión del conocimiento'],
-                ['05.9','Productos impresos','11.1','Investigación'],
-                ['','','11.2','Enseñanza'],
-                ['','','11.3','Difusión cultural']
-            ];
-
-            // Header tabla
-            const col1W = 25, col2W = 75, col3W = 25, col4W = 75;
-            doc.setFontSize(5); doc.setFont('helvetica','bold');
-            drawTableRow(doc, M, y, col1W, 'CLAVE', col2W, 'DENOMINACIÓN', col3W, 'CLAVE', col4W, 'DENOMINACIÓN', 6);
-            y += 7;
-            doc.setFont('helvetica','normal'); doc.setFontSize(5);
-            occList.forEach(row => {
-                drawTableRow(doc, M, y, col1W, row[0], col2W, row[1], col3W, row[2], col4W, row[3], 5.5);
-                y += 5.5;
-            });
-
-            y += 6;
-            doc.setFont('helvetica','bold'); doc.setFontSize(7);
-            doc.text('CLAVES Y DENOMINACIONES DEL CATÁLOGO DE ÁREAS TEMÁTICAS DE LOS CURSOS', M, y);
-            y += 8;
-
-            const thematic = [
-                ['1000','Producción general','6000','Seguridad'],
-                ['2000','Servicios','7000','Desarrollo personal y familiar'],
-                ['3000','Administración, contabilidad y economía','8000','Tecnologías de la información y comunicación'],
-                ['4000','Comercialización','9000','Participación social'],
-                ['5000','Mantenimiento y reparación','','']
-            ];
-            doc.setFontSize(5); doc.setFont('helvetica','bold');
-            drawTableRow(doc, M, y, col1W, 'CLAVE', col2W, 'DENOMINACIÓN', col3W, 'CLAVE', col4W, 'DENOMINACIÓN', 6);
-            y += 7;
-            doc.setFont('helvetica','normal'); doc.setFontSize(5);
-            thematic.forEach(row => {
-                drawTableRow(doc, M, y, col1W, row[0], col2W, row[1], col3W, row[2], col4W, row[3], 5.5);
-                y += 5.5;
-            });
-
-            function drawTableRow(doc, x, y, w1, t1, w2, t2, w3, t3, w4, t4, h) {
-                doc.rect(x, y, w1, h); doc.rect(x+w1, y, w2, h);
-                doc.rect(x+w1+w2, y, w3, h); doc.rect(x+w1+w2+w3, y, w4, h);
-                doc.text(t1||'', x+1, y+h-1.5);
-                doc.text(t2||'', x+w1+1, y+h-1.5);
-                doc.text(t3||'', x+w1+w2+1, y+h-1.5);
-                doc.text(t4||'', x+w1+w2+w3+1, y+h-1.5);
-            }
-
-            doc.save(`DC3_${selectedWorker.curp||selectedWorker.name}.pdf`);
-
-            await sbInsert('dc3_records', {
-                worker_id:    selectedWorker.curp || '',
-                worker_name:  selectedWorker.name,
-                course_name:  courseName,
-                company_name: companyName,
-                start_date:   startDate,
-                end_date:     endDate,
-                creator_email: currentUser.email
-            });
-
-            showToast('✓ PDF generado y DC-3 registrado');
-            document.getElementById('dc3-modal').style.display = 'none';
-            await refreshCurrentView();
         }
 
         // ─── Utils ────────────────────────────────────────────────────
@@ -831,7 +861,7 @@
                     })).filter(d => d.name);
                     if (!docs.length) { showToast('No se encontraron registros válidos', false); return; }
                     const ok = await sbInsertMany('workers', docs);
-                    if (ok) { showToast(`✓ ${docs.length} trabajadores importados`); await refreshCurrentView(); }
+                    if (ok) { showToast('✓ ' + docs.length + ' trabajadores importados'); await refreshCurrentView(); }
                     else showToast('Error al importar', false);
                 } catch (err) { showToast('Error al leer Excel: ' + err.message, false); }
             };
