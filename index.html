@@ -1133,7 +1133,7 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     // Logo LUBER (fondo) - Centrado en X=120
     const LOGO_H = 70, LOGO_W = 130;
     const LOGO_X = 120 - (LOGO_W / 2);
-    const LOGO_Y_FITZ = 462;
+    const LOGO_Y_FITZ = 455;
     try {
         const logoResp = await fetch('/signatures/logo_luber.png');
         if (logoResp.ok) {
@@ -1150,7 +1150,7 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     // Firma del instructor (encima del logo)
     const FIRMA_H = 65, FIRMA_W = 100;
     const FIRMA_X = 120 - (FIRMA_W / 2);
-    const FIRMA_Y_FITZ = 469;
+    const FIRMA_Y_FITZ = 458;
     try {
         const sigResp = await fetch('/signatures/firma_instructor.png');
         if (sigResp.ok) {
@@ -1166,29 +1166,31 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     // ── 14. Nombres bajo imágenes ───────────────────────────────────────────
     const CENTER_X_INS = 120;
     // Texto superior
-    T_Centered(CENTER_X_INS, 469, "Instructor o tutor", 7);
+    T_Centered(CENTER_X_INS, 452, "Instructor o tutor", 7);
 
     const insName = sp((agent.name||'').toUpperCase());
     const insLines = splitNameJS(insName, 26);
-    T_Centered(CENTER_X_INS, 509, insLines[0], 8);
-    if (insLines[1]) T_Centered(CENTER_X_INS, 520, insLines[1], 8);
+    T_Centered(CENTER_X_INS, 518, insLines[0], 8);
+    if (insLines[1]) T_Centered(CENTER_X_INS, 527, insLines[1], 8);
 
     // Patrón: columna 2
     const CENTER_X_PAT = 300;
     const patName = sp((compObj.patron || '').toUpperCase());
     const patLines = splitNameJS(patName, 28);
     if (patLines[0]) {
-        T_Centered(CENTER_X_PAT, 509, patLines[0], 8);
-        if (patLines[1]) T_Centered(CENTER_X_PAT, 520, patLines[1], 8);
+        T_Centered(CENTER_X_PAT, 452, "Patrón o representante legal 4/", 7);
+        T_Centered(CENTER_X_PAT, 518, patLines[0], 8);
+        if (patLines[1]) T_Centered(CENTER_X_PAT, 527, patLines[1], 8);
     }
 
     // Representante: columna 3
+    const CENTER_X_REP = 475;
+    T_Centered(CENTER_X_REP, 452, "Representante de los trabajadores 5/", 7);
     if (compObj.representante) {
-        const CENTER_X_REP = 475;
         const repName = sp(compObj.representante.toUpperCase());
         const repLines = splitNameJS(repName, 26);
-        T_Centered(CENTER_X_REP, 509, repLines[0], 8);
-        if (repLines[1]) T_Centered(CENTER_X_REP, 520, repLines[1], 8);
+        T_Centered(CENTER_X_REP, 518, repLines[0], 8);
+        if (repLines[1]) T_Centered(CENTER_X_REP, 527, repLines[1], 8);
     }
 
     // Guardar y descargar
