@@ -1080,18 +1080,15 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
 
     // ── 0. CABECERA (Logo y Slogan) ────────────────────────────────────────
     try {
-        // Usar fuente Cursiva integrada del PDF (Times-Italic) para máxima compatibilidad
         const sloganFont = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
-
-        // Logo de cabecera (Usamos logo_luber.png que es el oficial de color negro/gris)
-        const logoHeaderPath = '/signatures/logo_luber.png';
+        const logoHeaderPath = '/signatures/image3.png';
         const logoResp = await fetch(logoHeaderPath);
 
         if (logoResp.ok) {
             const logoBytes = await logoResp.arrayBuffer();
             const logoImg = await pdfDoc.embedPng(logoBytes);
 
-            // 1. Eslogan en cursiva (Mas arriba)
+            // Slogan
             const slogan = sp("Tu seguridad, nuestra mision");
             const sw = sloganFont.widthOfTextAtSize(slogan, 22);
             page.drawText(slogan, {
@@ -1099,27 +1096,14 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
                 size: 22, font: sloganFont, color: rgb(0.3, 0.3, 0.3)
             });
 
-            // 2. Logo negro centrado (Mas arriba)
+            // Logo
             const LH = 65, LW = 110;
             page.drawImage(logoImg, {
                 x: 300 - LW/2, y: PH - 125,
-                width: LW, height: LH,
-                opacity: 1.0
+                width: LW, height: LH
             });
-
-            // 3. Titulos oficiales (Restaurados tal cual la imagen)
-            const t1 = "FORMATO DC-3";
-            const t2 = sp("CONSTANCIA DE COMPETENCIAS O DE HABILIDADES LABORALES");
-
-            const w1 = fontB.widthOfTextAtSize(t1, 12);
-            const w2 = fontB.widthOfTextAtSize(t2, 13);
-
-            page.drawText(t1, { x: 300 - w1/2, y: PH - 142, size: 12, font: fontB });
-            page.drawText(t2, { x: 300 - w2/2, y: PH - 156, size: 13, font: fontB });
         }
-    } catch(e) {
-        console.error('Error critico en cabecera:', e);
-    }
+    } catch(e) { console.error('Error cabecera:', e); }
 
     // ── 1. Nombre trabajador ─────────────────────────────────────────────────
     T(30, 170, (worker.name||'').toUpperCase(), 9, true);
