@@ -518,22 +518,257 @@
             }
 
             const doc = new jspdf.jsPDF();
-            doc.setFont('helvetica','bold'); doc.setFontSize(14);
-            doc.text("FORMATO DC-3", 105, 20, null, null, "center");
-            doc.setFontSize(9);
-            doc.text("CONSTANCIA DE COMPETENCIAS O DE HABILIDADES LABORALES", 105, 28, null, null, "center");
-            doc.setFont('helvetica','normal'); doc.setFontSize(10);
-            doc.text(`Trabajador: ${selectedWorker.name}`,     20, 45);
-            doc.text(`CURP: ${selectedWorker.curp||''}`,       20, 52);
-            doc.text(`Puesto: ${selectedWorker.position||''}`, 20, 59);
-            doc.text(`Ocupación: ${selectedWorker.occupation||''}`, 20, 66);
-            doc.line(20, 70, 190, 70);
-            doc.text(`Empresa: ${companyName}`, 20, 78);
-            doc.line(20, 82, 190, 82);
-            doc.text(`Curso: ${courseName}`,              20, 90);
-            doc.text(`Periodo: ${startDate} al ${endDate}`, 20, 97);
-            doc.line(20, 250, 80, 250); doc.text("Instructor / Tutor",    30, 257);
-            doc.line(90, 250, 150, 250); doc.text("Patrón o Rep. Legal",  97, 257);
+            const W = 210, M = 15; // A4 width, margin
+            let y = 15;
+
+            // ── Título ──
+            doc.setFont('helvetica','bold'); doc.setFontSize(13);
+            doc.text('FORMATO DC-3', 105, y, null, null, 'center');
+            y += 6;
+            doc.setFont('helvetica','normal'); doc.setFontSize(7);
+            doc.text('CONSTANCIA DE COMPETENCIAS O DE HABILIDADES LABORALES', 105, y, null, null, 'center');
+            y += 8;
+
+            // ── Sección 1: DATOS DEL TRABAJADOR ──
+            doc.setFillColor(235,235,235); doc.rect(M, y, W-2*M, 7, 'F');
+            doc.setFont('helvetica','bold'); doc.setFontSize(6.5);
+            doc.text('DATOS DEL TRABAJADOR', M+2, y+5);
+            y += 10;
+
+            // Nombre
+            doc.setFont('helvetica','normal'); doc.setFontSize(5);
+            doc.text('Nombre (Anotar apellido paterno, apellido materno y nombre(s))', M, y);
+            y += 4;
+            doc.setFont('helvetica','bold'); doc.setFontSize(8);
+            doc.text(selectedWorker.name || '', M, y);
+            doc.line(M, y+1.5, W-M, y+1.5);
+            y += 8;
+
+            // CURP grid (18 casillas)
+            const curp = (selectedWorker.curp||'').toUpperCase().padEnd(18).substring(0,18);
+            const boxW = 4.2, boxH = 5;
+            doc.setFont('helvetica','normal'); doc.setFontSize(4.5);
+            doc.text('Clave Única de Registro de Población', M, y);
+            for (let i=0; i<18; i++) {
+                const cx = M + i*boxW;
+                doc.rect(cx, y+1, boxW, boxH);
+                if (curp[i] && curp[i] !== ' ') {
+                    doc.setFont('helvetica','bold'); doc.setFontSize(6);
+                    doc.text(curp[i], cx+1.3, y+4.5);
+                }
+            }
+
+            // Ocupación al lado derecho del CURP
+            const occX = M + 18*boxW + 4;
+            doc.setFont('helvetica','normal'); doc.setFontSize(4);
+            doc.text('Ocupación específica (Catálogo Nacional de Ocupaciones)', occX, y);
+            doc.setFont('helvetica','bold'); doc.setFontSize(6);
+            doc.text(selectedWorker.occupation || '', occX, y+4);
+            doc.line(occX, y+5, W-M, y+5);
+            y += 12;
+
+            // Puesto
+            doc.setFont('helvetica','normal'); doc.setFontSize(4.5);
+            doc.text('Puesto', M, y);
+            y += 4;
+            doc.setFont('helvetica','bold'); doc.setFontSize(7);
+            doc.text(selectedWorker.position || '', M, y);
+            doc.line(M, y+1.5, W-M, y+1.5);
+            y += 10;
+
+            // ── Sección 2: DATOS DE LA EMPRESA ──
+            doc.setFillColor(235,235,235); doc.rect(M, y, W-2*M, 7, 'F');
+            doc.setFont('helvetica','bold'); doc.setFontSize(6.5);
+            doc.text('DATOS DE LA EMPRESA', M+2, y+5);
+            y += 10;
+
+            // Nombre o razón social
+            doc.setFont('helvetica','normal'); doc.setFontSize(5);
+            doc.text('Nombre o razón social (En caso de persona física, anotar apellido paterno, materno y nombre(s))', M, y);
+            y += 4;
+            doc.setFont('helvetica','bold'); doc.setFontSize(8);
+            doc.text(companyName, M, y);
+            doc.line(M, y+1.5, W-M, y+1.5);
+            y += 8;
+
+            // RFC grid (13 casillas con homoclave)
+            const rfc = (companyRfc||'').toUpperCase().padEnd(13).substring(0,13);
+            doc.setFont('helvetica','normal'); doc.setFontSize(4.5);
+            doc.text('Registro Federal de Contribuyentes con homoclave (SHCP)', M, y);
+            const rfcBoxW = 4.5, rfcBoxH = 5;
+            for (let i=0; i<13; i++) {
+                const cx = M + i*rfcBoxW;
+                doc.rect(cx, y+1, rfcBoxW, rfcBoxH);
+                if (rfc[i] && rfc[i] !== ' ') {
+                    doc.setFont('helvetica','bold'); doc.setFontSize(6);
+                    doc.text(rfc[i], cx+1.5, y+4.5);
+                }
+            }
+            y += 12;
+
+            // ── Sección 3: DATOS DEL PROGRAMA DE CAPACITACIÓN ──
+            doc.setFillColor(235,235,235); doc.rect(M, y, W-2*M, 7, 'F');
+            doc.setFont('helvetica','bold'); doc.setFontSize(6.5);
+            doc.text('DATOS DEL PROGRAMA DE CAPACITACIÓN, ADIESTRAMIENTO Y PRODUCTIVIDAD', M+2, y+5);
+            y += 10;
+
+            // Nombre del curso
+            doc.setFont('helvetica','normal'); doc.setFontSize(5);
+            doc.text('Nombre del curso', M, y);
+            y += 4;
+            doc.setFont('helvetica','bold'); doc.setFontSize(8);
+            doc.text(courseName, M, y);
+            doc.line(M, y+1.5, W-M, y+1.5);
+            y += 8;
+
+            // Duración
+            doc.setFont('helvetica','normal'); doc.setFontSize(5);
+            doc.text('Duración en horas', M, y);
+            y += 4;
+            doc.setFont('helvetica','bold'); doc.setFontSize(7);
+            const dur = (courses.find(c=>c.name===courseName)||{}).duration_hours || 8;
+            doc.text(dur + ' HORAS', M, y);
+            doc.line(M, y+1.5, M+30, y+1.5);
+            y += 8;
+
+            // Periodo de ejecución
+            doc.setFont('helvetica','normal'); doc.setFontSize(5);
+            doc.text('Periodo de ejecución:', M, y);
+            doc.setFont('helvetica','bold'); doc.setFontSize(7);
+            doc.text('De: ' + startDate + '    a: ' + endDate, M+30, y);
+            doc.line(M+28, y+1.5, W-M, y+1.5);
+            y += 8;
+
+            // Área temática
+            doc.setFont('helvetica','normal'); doc.setFontSize(5);
+            doc.text('Área temática del curso', M, y);
+            y += 4;
+            doc.setFont('helvetica','bold'); doc.setFontSize(7);
+            doc.text('(6000) Seguridad', M, y);
+            doc.line(M, y+1.5, W-M, y+1.5);
+            y += 8;
+
+            // Nombre del agente capacitador o STPS
+            doc.setFont('helvetica','normal'); doc.setFontSize(5);
+            doc.text('Nombre del agente capacitador o STPS', M, y);
+            y += 4;
+            doc.setFont('helvetica','bold'); doc.setFontSize(7);
+            const [agents, courses] = await Promise.all([
+                sbSelect('agents', null),
+                sbSelect('courses', getFilter())
+            ]);
+            const ag = agents[0] || {};
+            doc.text((ag.name||'') + '    ' + (ag.stps||''), M, y);
+            doc.line(M, y+1.5, W-M, y+1.5);
+            y += 20;
+
+            // ── Firmas ──
+            const sigY = 250;
+            doc.setLineWidth(0.3);
+            // Instructor
+            doc.line(25, sigY, 70, sigY);
+            doc.setFont('helvetica','normal'); doc.setFontSize(6);
+            doc.text('Instructor o tutor', 38, sigY+5);
+            doc.text(ag.name||'', 30, sigY-2);
+
+            // Patrón
+            doc.line(80, sigY, 130, sigY);
+            doc.text('Patrón o representante legal', 85, sigY+5);
+
+            // Representante trabajadores
+            doc.line(140, sigY, 185, sigY);
+            doc.text('Representante de los trabajadores', 142, sigY+5);
+
+            // Aviso legal
+            doc.setFontSize(4.5);
+            doc.text('Serán sancionados aquellos que no se conduzcan con verdad.', M, sigY+15);
+
+            // ── PÁGINA 2: REVERSO (catálogos) ──
+            doc.addPage();
+            y = 15;
+            doc.setFont('helvetica','bold'); doc.setFontSize(8);
+            doc.text('CLAVES Y DENOMINACIONES DE ÁREAS Y SUBÁREAS DEL CATÁLOGO NACIONAL DE OCUPACIONES', M, y);
+            y += 8;
+
+            // Tabla ocupaciones
+            const occList = [
+                ['01','Cultivo, crianza y aprovechamiento','06','Transporte'],
+                ['01.1','Agricultura y silvicultura','06.1','Ferroviario'],
+                ['01.2','Ganadería','06.2','Autotransporte'],
+                ['01.3','Pesca y acuacultura','06.3','Aéreo'],
+                ['02','Extracción y suministro','06.4','Marítimo y fluvial'],
+                ['02.1','Exploración','06.5','Servicios de apoyo'],
+                ['02.2','Extracción','07','Provisión de bienes y servicios'],
+                ['02.3','Refinación y beneficio','07.1','Comercio'],
+                ['02.4','Provisión de energía','07.2','Alimentación y hospedaje'],
+                ['02.5','Provisión de agua','07.3','Turismo'],
+                ['03','Construcción','07.4','Deporte y esparcimiento'],
+                ['03.1','Planeación y dirección de obras','07.5','Servicios personales'],
+                ['03.2','Edificación y urbanización','07.6','Reparación de artículos domésticos'],
+                ['03.3','Acabado','07.7','Limpieza'],
+                ['03.4','Instalación y mantenimiento','07.8','Servicio postal y mensajería'],
+                ['04','Tecnología','08','Gestión y soporte administrativo'],
+                ['04.1','Mecánica','08.1','Bolsa, banca y seguros'],
+                ['04.2','Electricidad','08.2','Administración'],
+                ['04.3','Electrónica','08.3','Servicios legales'],
+                ['04.4','Informática','09','Salud y protección social'],
+                ['04.5','Telecomunicaciones','09.1','Servicios médicos'],
+                ['04.6','Procesos industriales','09.2','Inspección sanitaria y medio ambiente'],
+                ['05','Procesamiento y fabricación','09.3','Seguridad social'],
+                ['05.1','Minerales no metálicos','09.4','Protección de bienes y/o personas'],
+                ['05.2','Metales','10','Comunicación'],
+                ['05.3','Alimentos y bebidas','10.1','Publicación'],
+                ['05.4','Textiles y prendas de vestir','10.2','Radio, cine, televisión y teatro'],
+                ['05.5','Materia orgánica','10.3','Interpretación artística'],
+                ['05.6','Productos químicos','10.4','Traducción e interpretación lingüística'],
+                ['05.7','Productos metálicos y hule y plástico','10.5','Publicidad, propaganda y rel. públicas'],
+                ['05.8','Productos eléctricos y electrónicos','11','Desarrollo y extensión del conocimiento'],
+                ['05.9','Productos impresos','11.1','Investigación'],
+                ['','','11.2','Enseñanza'],
+                ['','','11.3','Difusión cultural']
+            ];
+
+            // Header tabla
+            const col1W = 25, col2W = 75, col3W = 25, col4W = 75;
+            doc.setFontSize(5); doc.setFont('helvetica','bold');
+            drawTableRow(doc, M, y, col1W, 'CLAVE', col2W, 'DENOMINACIÓN', col3W, 'CLAVE', col4W, 'DENOMINACIÓN', 6);
+            y += 7;
+            doc.setFont('helvetica','normal'); doc.setFontSize(5);
+            occList.forEach(row => {
+                drawTableRow(doc, M, y, col1W, row[0], col2W, row[1], col3W, row[2], col4W, row[3], 5.5);
+                y += 5.5;
+            });
+
+            y += 6;
+            doc.setFont('helvetica','bold'); doc.setFontSize(7);
+            doc.text('CLAVES Y DENOMINACIONES DEL CATÁLOGO DE ÁREAS TEMÁTICAS DE LOS CURSOS', M, y);
+            y += 8;
+
+            const thematic = [
+                ['1000','Producción general','6000','Seguridad'],
+                ['2000','Servicios','7000','Desarrollo personal y familiar'],
+                ['3000','Administración, contabilidad y economía','8000','Tecnologías de la información y comunicación'],
+                ['4000','Comercialización','9000','Participación social'],
+                ['5000','Mantenimiento y reparación','','']
+            ];
+            doc.setFontSize(5); doc.setFont('helvetica','bold');
+            drawTableRow(doc, M, y, col1W, 'CLAVE', col2W, 'DENOMINACIÓN', col3W, 'CLAVE', col4W, 'DENOMINACIÓN', 6);
+            y += 7;
+            doc.setFont('helvetica','normal'); doc.setFontSize(5);
+            thematic.forEach(row => {
+                drawTableRow(doc, M, y, col1W, row[0], col2W, row[1], col3W, row[2], col4W, row[3], 5.5);
+                y += 5.5;
+            });
+
+            function drawTableRow(doc, x, y, w1, t1, w2, t2, w3, t3, w4, t4, h) {
+                doc.rect(x, y, w1, h); doc.rect(x+w1, y, w2, h);
+                doc.rect(x+w1+w2, y, w3, h); doc.rect(x+w1+w2+w3, y, w4, h);
+                doc.text(t1||'', x+1, y+h-1.5);
+                doc.text(t2||'', x+w1+1, y+h-1.5);
+                doc.text(t3||'', x+w1+w2+1, y+h-1.5);
+                doc.text(t4||'', x+w1+w2+w3+1, y+h-1.5);
+            }
+
             doc.save(`DC3_${selectedWorker.curp||selectedWorker.name}.pdf`);
 
             await sbInsert('dc3_records', {
