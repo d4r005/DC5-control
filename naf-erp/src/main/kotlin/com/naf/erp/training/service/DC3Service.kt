@@ -58,4 +58,32 @@ class DC3Service(
             .uppercase()
         return "DC3-$year-$random"
     }
+
+    fun all(): List<DC3> = dc3Repository.findAll()
+
+    fun pdf(id: Long): java.io.File {
+        val dc3 = dc3Repository.findById(id)
+            .orElseThrow { RuntimeException("DC3 no encontrado") }
+        return java.io.File(dc3.pdf!!)
+    }
+
+    fun docx(id: Long): java.io.File {
+        val dc3 = dc3Repository.findById(id)
+            .orElseThrow { RuntimeException("DC3 no encontrado") }
+        return java.io.File(dc3.docx!!)
+    }
+
+    fun reprint(id: Long): DC3 {
+        return dc3Repository.findById(id)
+            .orElseThrow { RuntimeException("DC3 no encontrado") }
+    }
+
+    fun delete(id: Long) {
+        val dc3 = dc3Repository.findById(id)
+            .orElseThrow { RuntimeException("DC3 no encontrado") }
+
+        java.io.File(dc3.pdf!!).delete()
+        java.io.File(dc3.docx!!).delete()
+        dc3Repository.delete(dc3)
+    }
 }
