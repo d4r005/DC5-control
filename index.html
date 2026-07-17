@@ -973,9 +973,12 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     const AÑO_INI  = [275.6,291.8,308.0,326.5];
     const MES_INI  = [348.0,369.4];
     const DIA_INI  = [390.4,411.9];
-    const AÑO_FIN  = [452.1,471.7,491.2,511.5];
-    const MES_FIN  = [532.5,554.0];
-    const DIA_FIN  = [575.5, 597.0];
+    const AÑO_INI  = [277, 292, 307, 323];
+    const MES_INI  = [350, 371];
+    const DIA_INI  = [393, 414];
+    const AÑO_FIN  = [454, 473, 493, 513];
+    const MES_FIN  = [534, 556];
+    const DIA_FIN  = [578, 599];
     const FECHA_Y  = PH - 389;
 
     // Helper: dibuja texto
@@ -994,7 +997,7 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     function boxes(chars, xs, yFitz, size) {
         [...(chars||'')].forEach((c,i) => {
             if (i < xs.length) {
-                page.drawText(sp(c), { x: xs[i]-2.5, y: PH-yFitz, size: size||7, font, color: rgb(0,0,0) });
+                page.drawText(sp(c), { x: xs[i], y: PH-yFitz, size: size||8, font, color: rgb(0,0,0) });
             }
         });
     }
@@ -1028,8 +1031,8 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
 
     // ── 9. Periodo (dígitos individuales) ────────────────────────────────────
     const fi = parseFecha(start), ff = parseFecha(end);
-    boxes(fi.a, AÑO_INI, 389, 7); boxes(fi.m, MES_INI, 389, 7); boxes(fi.d, DIA_INI, 389, 7);
-    boxes(ff.a, AÑO_FIN, 389, 7); boxes(ff.m, MES_FIN, 389, 7); boxes(ff.d, DIA_FIN, 389, 7);
+    boxes(fi.a, AÑO_INI, 389, 8); boxes(fi.m, MES_INI, 389, 8); boxes(fi.d, DIA_INI, 389, 8);
+    boxes(ff.a, AÑO_FIN, 389, 8); boxes(ff.m, MES_FIN, 389, 8); boxes(ff.d, DIA_FIN, 389, 8);
 
     // ── 10. Área temática ────────────────────────────────────────────────────
     T(30, 416, (course.area||course.thematicArea||'').slice(0,80), 8);
@@ -1038,17 +1041,20 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     const agentLine = sp(((agent.name||'') + '  ' + (agent.stps||'')).toUpperCase().trim());
     T(30, 438, agentLine.slice(0,70), 8);
 
-    // ── 12. Firma Digital de Cynthia (Trazo Azul) ───────────────────────────
+    // ── 12. Firma Digital de Cynthia (Limpiar área y poner trazo azul) ───────
+    // Limpiar el logotipo de LUBER o cualquier cosa del PDF original
+    page.drawRectangle({ x: 30, y: PH - 520, width: 200, height: 60, color: rgb(1,1,1) });
+
     if (agent.name.toUpperCase().includes('CYNTHIA')) {
         try {
             const sigResp = await fetch('/signatures/cynthia_firma_oficial.png');
             if (sigResp.ok) {
                 const sigBytes = await sigResp.arrayBuffer();
                 const sigImg = await pdfDoc.embedPng(sigBytes);
-                const sigDims = sigImg.scale(0.35);
+                const sigDims = sigImg.scale(0.38);
                 page.drawImage(sigImg, {
-                    x: 75,
-                    y: PH - 510, // Posicionada exactamente sobre el nombre
+                    x: 60,
+                    y: PH - 515,
                     width: sigDims.width,
                     height: sigDims.height,
                 });
@@ -1058,8 +1064,8 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
 
     // ── 13. Nombres bajo líneas de firma ─────────────────────────────────────
     T(70,  530, (agent.name||'').toUpperCase(), 8);    // instructor / agente
-    // El Patrón o representante legal se deja en blanco según solicitud
-    // T(245, 530, (compObj.name||'').toUpperCase().slice(0,30), 8);
+    // Representante legal en blanco por solicitud
+    page.drawRectangle({ x: 210, y: PH - 535, width: 170, height: 15, color: rgb(1,1,1) });
 
     // Guardar y descargar
     const outBytes = await pdfDoc.save();
