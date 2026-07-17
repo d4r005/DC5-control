@@ -1080,13 +1080,8 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
 
     // ── 0. CABECERA (Logo y Slogan) ────────────────────────────────────────
     try {
-        // Cargar fuente cursiva (Dancing Script) para el eslogan
-        const fontUrl = 'https://cdn.jsdelivr.net/font-nosvg/1.0/DancingScript-Regular.ttf';
-        const sloganFontBytes = await fetch(fontUrl).then(res => res.arrayBuffer()).catch(() => null);
-        let sloganFont = font;
-        if (sloganFontBytes) {
-            sloganFont = await pdfDoc.embedFont(sloganFontBytes);
-        }
+        // Cargar fuente cursiva real (Dancing Script) desde CDN
+        const sloganFont = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
 
         // Logo de cabecera (image3.png es el logo dorado de fondo negro)
         const logoHeaderPath = '/signatures/image3.png';
@@ -1098,64 +1093,64 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
 
             // 1. Eslogan (Cursiva elegante)
             const slogan = sp("Tu seguridad, nuestra mision");
-            const sw = sloganFont.widthOfTextAtSize(slogan, 28);
+            const sw = sloganFont.widthOfTextAtSize(slogan, 22);
             page.drawText(slogan, {
-                x: 300 - sw/2, y: PH - 50,
-                size: 28, font: sloganFont, color: rgb(0.2, 0.2, 0.2)
+                x: 300 - sw/2, y: PH - 65,
+                size: 22, font: sloganFont, color: rgb(0.3, 0.3, 0.3)
             });
 
             // 2. Logo dorado centrado
-            const LH = 75, LW = 140;
+            const LH = 70, LW = 130;
             page.drawImage(logoImg, {
-                x: 300 - LW/2, y: PH - 135,
+                x: 300 - LW/2, y: PH - 145,
                 width: LW, height: LH
             });
         }
     } catch(e) { console.warn('Error en cabecera:', e); }
 
     // ── 1. Nombre trabajador ─────────────────────────────────────────────────
-    T(30, 185, (worker.name||'').toUpperCase(), 9, true);
+    T(30, 170, (worker.name||'').toUpperCase(), 9, true);
 
     // ── 2. CURP (carácter por celda centrado) ─────────────────────────────────
     drawInCells((worker.curp||'').toUpperCase().slice(0,18), CURP_SEPS,
-                [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17], 208, 7);
+                [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17], CURP_Y, 7);
 
     // ── 3. Ocupación (col derecha) ───────────────────────────────────────────
-    T(305, 208, (worker.occupation||worker.position||'').toUpperCase().slice(0,50), 7);
+    T(305, 193, (worker.occupation||worker.position||'').toUpperCase().slice(0,50), 7);
 
     // ── 4. Puesto (limpieza quirúrgica solo para el texto) ────────────────────
-    page.drawRectangle({ x:31, y: PH-242, width:538, height:15, color: rgb(1,1,1) });
-    T(30, 238, (worker.position||'').toUpperCase(), 9);
+    page.drawRectangle({ x:31, y: PH-229, width:538, height:13, color: rgb(1,1,1) });
+    T(30, 223, (worker.position||'').toUpperCase(), 9);
 
     // ── 5. Nombre empresa ────────────────────────────────────────────────────
     const compObj = (typeof company === 'object') ? company : { name: company, rfc: '' };
-    T(30, 297, (compObj.name||company||'').toUpperCase().slice(0,70), 9, true);
+    T(30, 282, (compObj.name||company||'').toUpperCase().slice(0,70), 9, true);
 
     // ── 6. RFC empresa (carácter por celda centrado) ──────────────────────────
     const rfcClean = (compObj.rfc||'').toUpperCase().replace(/\s/g,'').slice(0,15);
-    drawInCells(rfcClean, RFC_SEPS, [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14], 325, 7);
+    drawInCells(rfcClean, RFC_SEPS, [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14], RFC_Y, 7);
 
     // ── 7. Nombre del curso ──────────────────────────────────────────────────
-    T(30, 380, (course.name||'').toUpperCase().slice(0,80), 8, true);
+    T(30, 365, (course.name||'').toUpperCase().slice(0,80), 8, true);
 
     // ── 8. Duración ──────────────────────────────────────────────────────────
-    T(30, 406, String(course.duration||''), 8);
+    T(30, 391, String(course.duration||''), 8);
 
     // ── 9. Periodo (dígito por celda, centrado) ───────────────────────────────
     const fi = parseFecha(start), ff = parseFecha(end);
-    drawInCells(fi.a, FECHA_SEPS, AÑO_INI_IDX, 404, 7);
-    drawInCells(fi.m, FECHA_SEPS, MES_INI_IDX, 404, 7);
-    drawInCells(fi.d, FECHA_SEPS, DIA_INI_IDX, 404, 7);
-    drawInCells(ff.a, FECHA_SEPS, AÑO_FIN_IDX, 404, 7);
-    drawInCells(ff.m, FECHA_SEPS, MES_FIN_IDX, 404, 7);
-    drawInCells(ff.d, FECHA_SEPS, DIA_FIN_IDX, 404, 7);
+    drawInCells(fi.a, FECHA_SEPS, AÑO_INI_IDX, FECHA_Y, 7);
+    drawInCells(fi.m, FECHA_SEPS, MES_INI_IDX, FECHA_Y, 7);
+    drawInCells(fi.d, FECHA_SEPS, DIA_INI_IDX, FECHA_Y, 7);
+    drawInCells(ff.a, FECHA_SEPS, AÑO_FIN_IDX, FECHA_Y, 7);
+    drawInCells(ff.m, FECHA_SEPS, MES_FIN_IDX, FECHA_Y, 7);
+    drawInCells(ff.d, FECHA_SEPS, DIA_FIN_IDX, FECHA_Y, 7);
 
     // ── 10. Área temática ────────────────────────────────────────────────────
-    T(30, 431, (course.area||course.thematicArea||'').slice(0,80), 8);
+    T(30, 416, (course.area||course.thematicArea||'').slice(0,80), 8);
 
     // ── 11. Agente capacitador ────────────────────────────────────────────────
     const agentLine = sp(((agent.name||'') + '  ' + (agent.stps||'')).toUpperCase().trim());
-    T(30, 453, agentLine.slice(0,70), 8);
+    T(30, 438, agentLine.slice(0,70), 8);
 
     // ── 12. Limpiar etiquetas y firmas antiguas de forma quirúrgica (no borrar bordes) ──
     // Limpiamos los títulos (Instructor, Patron, Repr) con rectángulos muy precisos para no dejar rastro
