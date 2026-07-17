@@ -184,12 +184,33 @@ object PdfGenerator {
         // ── Firmas ──
         val sigY = 680f
         thin.strokeWidth = 1f
-        // Instructor
+
+        // Instructor con firma digital del agente capacitador
+        try {
+            // Cargar firma desde assets o URL remota
+            val sigUrl = java.net.URL("https://base44.app/api/apps/6a598f68ede9a4fd7c7f8cb7/files/mp/public/6a598f68ede9a4fd7c7f8cb7/c6b537496_agent_signature.png")
+            val sigBitmap = android.graphics.BitmapFactory.decodeStream(sigUrl.openStream())
+            if (sigBitmap != null) {
+                // Escalar la firma proporcionalmente (max 100px ancho)
+                val maxW = 100f
+                val maxH = 60f
+                var w = maxW
+                var h = maxW * (sigBitmap.height.toFloat() / sigBitmap.width)
+                if (h > maxH) { h = maxH; w = maxH * (sigBitmap.width.toFloat() / sigBitmap.height) }
+                val sigPaint = Paint().apply { isAntiAlias = true; alpha = 220 }
+                val rect = android.graphics.RectF(55f, sigY - h - 2f, 55f + w, sigY - 2f)
+                canvas.drawBitmap(sigBitmap, null, rect, sigPaint)
+                sigBitmap.recycle()
+            }
+        } catch (e: Exception) {
+            // Si no se puede cargar la firma, solo mostrar el nombre
+        }
+
         canvas.drawLine(50f, sigY, 180f, sigY, thin)
         labelPaint.textSize = 7f
         canvas.drawText("Instructor o tutor", 85f, sigY + 12f, labelPaint)
-        valuePaint.textSize = 7f
-        canvas.drawText(agent.name, 60f, sigY - 4f, valuePaint)
+        valuePaint.textSize = 6f
+        canvas.drawText(agent.name, 55f, sigY - 22f, valuePaint)
 
         // Patrón
         canvas.drawLine(210f, sigY, 380f, sigY, thin)

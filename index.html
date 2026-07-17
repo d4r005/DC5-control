@@ -665,11 +665,28 @@
             // ── Firmas ──
             const sigY = 250;
             doc.setLineWidth(0.3);
-            // Instructor
+
+            // Instructor con firma digital del agente capacitador
+            const sigImg = new Image();
+            sigImg.src = 'https://base44.app/api/apps/6a598f68ede9a4fd7c7f8cb7/files/mp/public/6a598f68ede9a4fd7c7f8cb7/c6b537496_agent_signature.png';
+            await new Promise((resolve) => {
+                sigImg.onload = () => {
+                    // Calcular tamaño proporcional (max 40mm ancho)
+                    const maxW = 40, maxH = 25;
+                    let w = maxW, h = maxW * (sigImg.height / sigImg.width);
+                    if (h > maxH) { h = maxH; w = maxH * (sigImg.width / sigImg.height); }
+                    doc.addImage(sigImg, 'PNG', 28, sigY - h - 2, w, h);
+                    resolve();
+                };
+                sigImg.onerror = () => resolve();
+                if (sigImg.complete) { sigImg.onload(); }
+            });
+
             doc.line(25, sigY, 70, sigY);
             doc.setFont('helvetica','normal'); doc.setFontSize(6);
             doc.text('Instructor o tutor', 38, sigY+5);
-            doc.text(ag.name||'', 30, sigY-2);
+            doc.setFont('helvetica','bold'); doc.setFontSize(5);
+            doc.text(ag.name||'', 28, sigY-2);
 
             // Patrón
             doc.line(80, sigY, 130, sigY);
