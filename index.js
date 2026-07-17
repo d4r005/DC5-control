@@ -1,9 +1,6 @@
 /**
  * DC5-control Cloudflare Worker
- * Backend API con Supabase
- * 
- * Aunque el index.html usa Supabase JS client directamente,
- * este Worker queda como API de respaldo para la app Android.
+ * Backend API con Supabase - Corregido para filtrado de datos
  */
 
 const SUPABASE_URL = "https://osgfwgedjdltrmvwycjd.supabase.co";
@@ -15,23 +12,20 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, apikey",
 };
 
-async function sbFetch(table, method, body) {
+async function sbFetch(table, method, body, queryParams = "") {
   const headers = {
     "apikey": SUPABASE_KEY,
     "Authorization": `Bearer ${SUPABASE_KEY}`,
     "Content-Type": "application/json",
   };
-  let url = `${SUPABASE_URL}/rest/v1/${table}`;
+
+  // Supabase usa ?select=* y filtros como &campo=eq.valor
+  let url = `${SUPABASE_URL}/rest/v1/${table}${queryParams}`;
 
   const opts = { method, headers };
-
-  if (method === "GET") {
-    opts.headers["Accept"] = "application/json";
-  } else if (method === "POST") {
+  if (method === "POST") {
     opts.headers["Prefer"] = "return=representation";
     opts.body = JSON.stringify(body);
-  } else if (method === "DELETE") {
-    url += `?id=eq.${body.id}`;
   }
 
   const res = await fetch(url, opts);
@@ -43,113 +37,45 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
     const method = request.method;
+    const params = url.searchParams;
 
-    console.log(`[Worker] ${method} request to ${path}`);
-
-    if (method === "OPTIONS") {
-      return new Response(null, { headers: corsHeaders });
-    }
+    if (method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
     try {
-      // ── Workers ─────────────────────────────────────────────
-      if (path === "/api/workers" && method === "GET") {
-        console.log("Fetching workers from Supabase...");
-        const data = await sbFetch("workers?select=*", "GET");
-        return new Response(JSON.stringify({ documents: data }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        });
-      }
-      if (path === "/api/workers" && method === "POST") {
-        const body = await request.json();
-        console.log("Inserting workers:", JSON.stringify(body));
-        const docs = body.documents || [body.document || body];
-        const data = await sbFetch("workers", "POST", docs);
-        return new Response(JSON.stringify({ inserted: data }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        });
-      }
+      const collection = path.split("/").pop();
+      let supabaseQuery = "?select=*";
 
-      // ── Companies ───────────────────────────────────────────
-      if (path === "/api/companies" && method === "GET") {
-        const data = await sbFetch("companies?select=*", "GET");
-        return new Response(JSON.stringify({ documents: data }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        });
-      }
-      if (path === "/api/companies" && method === "POST") {
-        const body = await request.json();
-        const doc = body.document || body;
-        const data = await sbFetch("companies", "POST", doc);
-        return new Response(JSON.stringify({ inserted: data }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        });
-      }
-
-      // ── Courses ──────────────────────────────────────────────
-      if (path === "/api/courses" && method === "GET") {
-        const data = await sbFetch("courses?select=*", "GET");
-        return new Response(JSON.stringify({ documents: data }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        });
-      }
-      if (path === "/api/courses" && method === "POST") {
-        const body = await request.json();
-        const doc = body.document || body;
-        const data = await sbFetch("courses", "POST", doc);
-        return new Response(JSON.stringify({ inserted: data }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        });
-      }
-
-      // ── Agents ───────────────────────────────────────────────
-      if (path === "/api/agents" && method === "GET") {
-        const data = await sbFetch("agents?select=*", "GET");
-        return new Response(JSON.stringify({ documents: data }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        });
-      }
-      if (path === "/api/agents" && method === "POST") {
-        const body = await request.json();
-        const doc = body.document || body;
-        const data = await sbFetch("agents", "POST", doc);
-        return new Response(JSON.stringify({ inserted: data }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        });
-      }
-
-      // ── DC-3 Records ─────────────────────────────────────────
-      if (path === "/api/dc3" && method === "GET") {
-        const data = await sbFetch("dc3_records?select=*", "GET");
-        return new Response(JSON.stringify({ documents: data }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        });
-      }
-      if (path === "/api/dc3" && method === "POST") {
-        const body = await request.json();
-        const doc = body.document || body;
-        const data = await sbFetch("dc3_records", "POST", doc);
-        return new Response(JSON.stringify({ inserted: data }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        });
-      }
-
-      // ── Health ───────────────────────────────────────────────
-      if (path === "/" || path === "/api") {
-        return new Response(JSON.stringify({
-          status: "OK",
-          backend: "Supabase",
-          url: SUPABASE_URL,
-          endpoints: ["/api/workers", "/api/companies", "/api/courses", "/api/agents", "/api/dc3"]
-        }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        });
-      }
-
-      return new Response(JSON.stringify({ error: "Not found", path }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      // Mapear parámetros de búsqueda a filtros de Supabase
+      // Si llega ?creatorEmail=valor -> &creatorEmail=eq.valor
+      params.forEach((val, key) => {
+        supabaseQuery += `&${key}=eq.${val}`;
       });
 
+      if (method === "GET") {
+        const data = await sbFetch(collection, "GET", null, supabaseQuery);
+        return new Response(JSON.stringify({ documents: data }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      if (method === "POST") {
+        const body = await request.json();
+        const doc = body.documents || body.document || body;
+        const data = await sbFetch(collection, "POST", doc);
+        return new Response(JSON.stringify({ inserted: data }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      if (method === "DELETE") {
+        const body = await request.json();
+        const data = await sbFetch(collection, "DELETE", null, `?id=eq.${body.id}`);
+        return new Response(JSON.stringify({ deleted: data }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      return new Response("Not Found", { status: 404 });
     } catch (e) {
       return new Response(JSON.stringify({ error: e.message }), {
         status: 500,
