@@ -823,419 +823,397 @@ function regenDC3(record) {
 // ─── PDF OFICIAL DC-3 STPS (ANVERSO + REVERSO) ──────────
 function buildDC3PDF({ worker, company, agent, course, start, end, result }) {
     const { jsPDF } = window.jspdf;
-    // Tamaño carta apaisado = 215.9 x 279.4 mm
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
 
+    // jsPDF con fuente helvetica soporta latin1 correctamente
+    // Convertir caracteres especiales espanol
+    function sp(s) {
+        if (!s) return '';
+        return String(s)
+            .replace(/\u00e1/g,'a').replace(/\u00e9/g,'e').replace(/\u00ed/g,'i')
+            .replace(/\u00f3/g,'o').replace(/\u00fa/g,'u')
+            .replace(/\u00c1/g,'A').replace(/\u00c9/g,'E').replace(/\u00cd/g,'I')
+            .replace(/\u00d3/g,'O').replace(/\u00da/g,'U')
+            .replace(/\u00f1/g,'n').replace(/\u00d1/g,'N')
+            .replace(/\u00fc/g,'u').replace(/\u00dc/g,'U');
+    }
+
     const PW = 215.9, PH = 279.4;
-    const ML = 12, MR = 12; // márgenes izquierdo/derecho
-    const CW = PW - ML - MR; // ancho de contenido
+    const ML = 10, MR = 10;
+    const CW = PW - ML - MR;
+
+    // ─── helpers ───────────────────────────────────────────────────
+    function sf(style, size) { doc.setFont('helvetica', style); doc.setFontSize(size); }
+    function tc(r,g,b) { doc.setTextColor(r,g,b); }
+    function dc(r,g,b) { doc.setDrawColor(r,g,b); }
+    function fc(r,g,b) { doc.setFillColor(r,g,b); }
+    function lw(w) { doc.setLineWidth(w); }
+    function T(txt,x,y,opts) { doc.text(sp(String(txt||'')),x,y,opts||{}); }
+    function R(x,y,w,h,s) { doc.rect(x,y,w,h,s||'S'); }
+
+    // Barra de seccion azul oscuro
+    function secBar(label, y, h) {
+        h = h || 6.5;
+        fc(0,51,102); dc(0,51,102); lw(0); R(ML,y,CW,h,'F');
+        sf('bold',8); tc(255,255,255);
+        T(label, ML+2.5, y+h-1.8);
+        tc(0,0,0);
+        return y+h;
+    }
+
+    // Linea horizontal gris
+    function hline(y, x1, x2) {
+        dc(180,180,180); lw(0.2);
+        doc.line(x1||ML, y, x2||(PW-MR), y);
+    }
+
+    // Label pequeno + valor en negrita
+    function fieldPair(label, value, x, y, maxW) {
+        sf('normal',6); tc(80,80,80); T(label, x, y);
+        sf('bold',8.5); tc(0,0,0); T(String(value||'–').toUpperCase(), x, y+4);
+        hline(y+5.5, x, x+(maxW||60));
+        return y+5.5;
+    }
+
+    // Caja para letra individual (CURP / RFC / periodo)
+    function letterBox(char, x, y, w, h) {
+        w = w||5; h = h||6;
+        dc(0,0,0); lw(0.3); R(x,y,w,h,'S');
+        if (char) { sf('bold',7.5); tc(0,0,0); T(char, x+w/2, y+h-1.2, {align:'center'}); }
+    }
+
+    // Fila de cajas con texto
+    function boxRow(str, x, y, boxW, boxH, maxBoxes) {
+        str = String(str||'');
+        maxBoxes = maxBoxes || str.length;
+        boxW = boxW||5.5; boxH = boxH||6.5;
+        for (let i=0; i<maxBoxes; i++) {
+            letterBox(str[i]||'', x + i*(boxW+0.6), y, boxW, boxH);
+        }
+        return x + maxBoxes*(boxW+0.6);
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // PAGINA 1 — ANVERSO
+    // ─────────────────────────────────────────────────────────────
     let y = 10;
 
-    // ── HELPERS ─────────────────────────────────────────────────────
-    const sf  = (s,sz) => { doc.setFont('helvetica', s); doc.setFontSize(sz); };
-    const tc  = (r,g,b) => doc.setTextColor(r,g,b);
-    const lc  = (r,g,b,w) => { doc.setDrawColor(r,g,b); doc.setLineWidth(w||0.3); };
-    const fc  = (r,g,b) => doc.setFillColor(r,g,b);
+    // ── ENCABEZADO ────────────────────────────────────────────────
+    fc(0,51,102); dc(0,51,102); lw(0);
+    R(ML, y, CW, 11, 'F');
+    sf('bold',12); tc(255,255,255);
+    T('SECRETARIA DEL TRABAJO Y PREVISION SOCIAL', PW/2, y+7.5, {align:'center'});
+    y += 11;
 
-    const txt = (t,x,yy,opts) => doc.text(String(t||''),x,yy,opts||{});
-    const ln  = (x1,y1,x2,y2) => doc.line(x1,y1,x2,y2);
-    const box = (x,yy,w,h,style) => doc.rect(x,yy,w,h,style||'S');
+    sf('normal',7.5); tc(50,50,130);
+    T('Direccion General de Capacitacion', PW/2, y+4, {align:'center'});
+    y += 7;
 
-    function fmtDate(d) {
-        if (!d) return '–';
-        const [yr,mo,dy] = d.split('-');
-        const m = ['','01','02','03','04','05','06','07','08','09','10','11','12'];
-        return `${dy} ${mo} ${yr}`;  // "16 07 2026"
-    }
-    function fmtDateLong(d) {
-        if (!d) return '–';
-        const [yr,mo,dy] = d.split('-');
-        const meses=['','enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-        return `${parseInt(dy)} de ${meses[parseInt(mo)]} de ${yr}`;
-    }
+    fc(210,225,255); dc(180,200,240); lw(0.3);
+    R(ML, y, CW, 11, 'FD');
+    sf('bold',10.5); tc(0,51,102);
+    T('CONSTANCIA DE COMPETENCIAS O DE HABILIDADES LABORALES', PW/2, y+7.5, {align:'center'});
+    y += 11;
 
-    // Parse CURP letter-by-letter boxes
-    function drawCurpBoxes(curp, x, yy) {
-        const bw = 5.2, bh = 6.5;
-        for (let i=0; i<18; i++) {
-            lc(0,0,0,0.3); box(x + i*(bw+0.5), yy, bw, bh);
-            if (curp && i < curp.length) {
-                sf('bold',7); tc(0,0,0);
-                txt(curp[i], x + i*(bw+0.5) + bw/2, yy + 4.8, {align:'center'});
-            }
-        }
-    }
-
-    // Draw RFC boxes (12 boxes)
-    function drawRfcBoxes(rfc, x, yy) {
-        const cleanRfc = (rfc||'').replace(/[\t\s-]/g,'').toUpperCase().substring(0,12);
-        const bw = 5.6, bh = 6.5;
-        for (let i=0; i<12; i++) {
-            lc(0,0,0,0.3); box(x + i*(bw+0.5), yy, bw, bh);
-            if (i < cleanRfc.length) {
-                sf('bold',7); tc(0,0,0);
-                txt(cleanRfc[i], x + i*(bw+0.5) + bw/2, yy + 4.8, {align:'center'});
-            }
-        }
-    }
-
-    // Draw period boxes (day/month/year twice: from and to)
-    function drawPeriodoBoxes(startD, endD, x, yy) {
-        // Format: De [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] A [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ]
-        // boxes: 2 day, 2 month, 4 year  (start) + same (end)
-        const bw = 5.0, bh = 6.0, gap = 0.4;
-        const groups = [2,2,4,2,2,4]; // day/month/year start, day/month/year end
-        const vals = [];
-        if (startD) { const [yr,mo,dy] = startD.split('-'); vals.push(...dy.split(''), ...mo.split(''), ...yr.split('')); }
-        else for(let i=0;i<8;i++) vals.push('');
-        if (endD) { const [yr,mo,dy] = endD.split('-'); vals.push(...dy.split(''), ...mo.split(''), ...yr.split('')); }
-        else for(let i=0;i<8;i++) vals.push('');
-
-        let cx = x, vi = 0;
-        // "De"
-        sf('normal',7); tc(80,80,80); txt('De', cx, yy+5, {}); cx += 6;
-
-        for (let g=0; g<3; g++) {
-            const cnt = groups[g];
-            for (let i=0; i<cnt; i++) {
-                lc(0,0,0,0.3); box(cx, yy, bw, bh);
-                if (vals[vi]) { sf('bold',7); tc(0,0,0); txt(vals[vi], cx+bw/2, yy+4.5, {align:'center'}); }
-                cx += bw+gap; vi++;
-            }
-            if (g<2) { sf('normal',6); tc(80,80,80); txt(['Año','Mes','Día'][2-g], cx-cnt*(bw+gap), yy-1, {}); }
-            cx += 1.5;
-        }
-        // "A"
-        sf('normal',7); tc(80,80,80); txt('A', cx, yy+5, {}); cx += 5;
-        for (let g=0; g<3; g++) {
-            const cnt = groups[3+g];
-            for (let i=0; i<cnt; i++) {
-                lc(0,0,0,0.3); box(cx, yy, bw, bh);
-                if (vals[vi]) { sf('bold',7); tc(0,0,0); txt(vals[vi], cx+bw/2, yy+4.5, {align:'center'}); }
-                cx += bw+gap; vi++;
-            }
-            cx += 1.5;
-        }
-        // column headers Año Mes Día above start
-        sf('normal',5.5); tc(80,80,80);
-        txt('Año', x+6+4*(5.0+0.4)+1.5, yy-1.5, {});
-        txt('Mes', x+6+(5.0+0.4)*2, yy-1.5, {});
-        txt('Día', x+6, yy-1.5, {});
-    }
-
-    // Sección header (franja azul oscuro con texto blanco)
-    function sectionBar(label, x, yy, w, h) {
-        h = h || 6;
-        fc(0,48,87); box(x, yy, w, h, 'F');
-        lc(0,48,87,0.1); box(x, yy, w, h, 'S');
-        sf('bold', 7.5); tc(255,255,255);
-        txt(label, x+2, yy+h-1.5);
-        tc(0,0,0);
-        return yy + h;
-    }
-
-    // Campo con label pequeño arriba y valor debajo con línea
-    function field(label, value, x, yy, w, fontSize) {
-        fontSize = fontSize || 8.5;
-        sf('normal', 6); tc(60,60,60); txt(label, x, yy);
-        yy += 3.5;
-        sf('bold', fontSize); tc(0,0,0); txt((value||'').toUpperCase(), x, yy);
-        lc(150,150,150,0.2); ln(x, yy+1.5, x+w, yy+1.5);
-        return yy;
-    }
-
-    // ════════════════════════════════════════════════════════════════
-    // PÁGINA 1 — ANVERSO
-    // ════════════════════════════════════════════════════════════════
-
-    // ── ENCABEZADO ──────────────────────────────────────────────────
-    fc(0,48,87); box(ML, y, CW, 10, 'F');
-    sf('bold',11); tc(255,255,255);
-    txt('SECRETARÍA DEL TRABAJO Y PREVISIÓN SOCIAL', PW/2, y+6, {align:'center'});
-    y += 10;
-
-    sf('normal',7); tc(60,60,130);
-    txt('Dirección General de Capacitación', PW/2, y+3.5, {align:'center'});
-    y += 6;
-
-    fc(220,232,255); box(ML, y, CW, 10, 'F');
-    sf('bold',10); tc(0,48,87);
-    txt('CONSTANCIA DE COMPETENCIAS O DE HABILIDADES LABORALES', PW/2, y+6, {align:'center'});
-    y += 10;
-
-    sf('normal',7); tc(60,60,130);
-    txt('FORMATO DC-3  ·  Artículo 153-A de la Ley Federal del Trabajo', PW/2, y+3.5, {align:'center'});
+    sf('normal',7); tc(70,70,140);
+    T('FORMATO DC-3      Articulo 153-A de la Ley Federal del Trabajo', PW/2, y+4, {align:'center'});
     y += 7;
 
     // ── DATOS DEL TRABAJADOR ─────────────────────────────────────
-    y = sectionBar('DATOS DEL TRABAJADOR', ML, y, CW);
-    y += 1;
+    y = secBar('DATOS DEL TRABAJADOR', y);
+    y += 2;
 
-    // Nombre y CURP
-    sf('normal',6.5); tc(60,60,60);
-    txt('Nombre (Anotar apellido paterno, apellido materno y nombre (s))', ML, y+3);
-    txt('Clave Única de Registro de Población', ML + CW*0.62, y+3);
+    // Nombre | CURP (derecha)
+    sf('normal',6); tc(80,80,80);
+    T('Nombre (Anotar apellido paterno, apellido materno y nombre (s))', ML, y);
+    T('Clave Unica de Registro de Poblacion', ML + CW*0.60 + 2, y);
 
-    sf('bold',9); tc(0,0,0);
-    y += 4;
-    txt((worker.name||'').toUpperCase(), ML, y+4);
+    sf('bold',9.5); tc(0,0,0);
+    T(String(worker.name||'').toUpperCase(), ML, y+5);
+    hline(y+6.5, ML, ML + CW*0.58);
 
-    // CURP en cuadros
-    drawCurpBoxes(worker.curp, ML + CW*0.62, y+1.5);
+    // CURP boxes — 18 letras
+    const curpStr = String(worker.curp||'').replace(/\s/g,'').toUpperCase().substring(0,18);
+    const curpX = ML + CW*0.60 + 2;
+    boxRow(curpStr.padEnd(18,' '), curpX, y-0.5, 4.9, 6.5, 18);
+    y += 9;
 
-    lc(150,150,150,0.2); ln(ML, y+6.5, ML+CW*0.60, y+6.5);
-    y += 11;
+    // Puesto | Ocupacion especifica
+    sf('normal',6); tc(80,80,80);
+    T('Puesto 2)', ML, y);
+    T('Ocupacion especifica (Catalogo Nacional de Ocupaciones) 2)', curpX, y);
 
-    // Ocupación Específica  con label arriba de los boxes
-    sf('normal',6.5); tc(60,60,60);
-    txt('Ocupación específica (Catálogo Nacional de Ocupaciones) ²⁾', ML + CW*0.62 - 0.5, y);
-    sf('normal',7.5); tc(0,0,0);
-    txt((worker.occupation||'–').toUpperCase(), ML + CW*0.62 - 0.5, y+4.5);
-    sf('normal',6.5); tc(60,60,60);
-    txt('Puesto ²⁾', ML, y);
     sf('bold',8.5); tc(0,0,0);
-    txt((worker.position||'–').toUpperCase(), ML, y+4.5);
-    lc(150,150,150,0.2); ln(ML, y+6, ML+CW*0.60, y+6);
+    T(String(worker.position||'–').toUpperCase(), ML, y+4.5);
+    hline(y+6, ML, ML + CW*0.58);
+
+    sf('normal',8); tc(0,0,0);
+    T(String(worker.occupation||'–').toUpperCase(), curpX, y+4.5);
+    hline(y+6, curpX, PW-MR);
     y += 9;
 
     // ── DATOS DE LA EMPRESA ──────────────────────────────────────
     y += 1;
-    y = sectionBar('DATOS DE LA EMPRESA', ML, y, CW);
-    y += 1;
+    y = secBar('DATOS DE LA EMPRESA', y);
+    y += 2;
 
-    sf('normal',6.5); tc(60,60,60);
-    txt('Nombre o razón social (En caso de persona física, anotar apellido paterno, apellido materno y nombre(s))', ML, y+3);
+    sf('normal',6); tc(80,80,80);
+    T('Nombre o razon social (En caso de persona fisica, anotar apellido paterno, apellido materno y nombre(s))', ML, y);
     sf('bold',9); tc(0,0,0);
-    txt((company||'').toUpperCase(), ML, y+7.5);
-    lc(150,150,150,0.2); ln(ML, y+9, ML+CW, y+9);
-    y += 11;
+    T(String(company||'').toUpperCase(), ML, y+4.5);
+    hline(y+6, ML, PW-MR);
+    y += 9;
 
-    sf('normal',6.5); tc(60,60,60);
-    txt('Registro Federal de Contribuyentes con homoclave (SHCP)', ML, y+3);
-    y += 4;
-    // RFC boxes
-    const rfcClean = (DATA.companies.find(c=>c.name===company)||{rfc:''}).rfc || company;
-    drawRfcBoxes(rfcClean.replace(/[\t\s-]/g,''), ML, y+1);
+    sf('normal',6); tc(80,80,80);
+    T('Registro Federal de Contribuyentes con homoclave (SHCP)', ML, y);
+    y += 3;
+
+    // RFC boxes — limpiar tabulaciones y espacios, 12 caracteres
+    const rfcRaw = String((DATA.companies||[]).find(c=>sp(c.name)===sp(company)||c.name===company)?.rfc || '');
+    const rfcClean = rfcRaw.replace(/[\t\s\-]/g,'').toUpperCase().substring(0,12);
+    boxRow(rfcClean.padEnd(12,' '), ML, y, 5.5, 6.5, 12);
     y += 10;
 
     // ── DATOS DEL PROGRAMA ───────────────────────────────────────
     y += 1;
-    y = sectionBar('DATOS DEL PROGRAMA DE CAPACITACIÓN, ADIESTRAMIENTO Y PRODUCTIVIDAD', ML, y, CW);
-    y += 1;
-
-    sf('normal',6.5); tc(60,60,60); txt('Nombre del curso', ML, y+3);
-    sf('bold',9); tc(0,0,0); txt((course.name||'').toUpperCase(), ML, y+7.5);
-    lc(150,150,150,0.2); ln(ML, y+9, ML+CW, y+9);
-    y += 11;
-
-    // Duración | Período de ejecución
-    sf('normal',6.5); tc(60,60,60);
-    txt('Duración en horas', ML, y+3);
-    txt('Período de ejecución:', ML + 35, y+3);
-    sf('bold',8.5); tc(0,0,0);
-    txt(String(course.durationHours||course.duration||'8'), ML, y+7.5);
-    // Period boxes
-    drawPeriodoBoxes(start, end, ML+40, y+1);
-    lc(150,150,150,0.2); ln(ML, y+9, ML+32, y+9);
-    y += 12;
-
-    // Área temática
-    sf('normal',6.5); tc(60,60,60); txt('Área temática del curso', ML, y+3);
-    sf('normal',8); tc(0,0,0);
-    const areaVal = course.thematicArea || course.area || '–';
-    txt('(' + areaVal + ')', ML, y+7.5);
-    lc(150,150,150,0.2); ln(ML, y+9, ML+CW, y+9);
-    y += 11;
-
-    // Nombre del agente
-    sf('normal',6.5); tc(60,60,60);
-    txt('Nombre del agente capacitador o STPS ³⁾', ML, y+3);
-    sf('bold',8.5); tc(0,0,0);
-    txt((agent.name||'–').toUpperCase() + '   ' + (agent.stps||''), ML, y+7.5);
-    lc(150,150,150,0.2); ln(ML, y+9, ML+CW, y+9);
-    y += 12;
-
-    // ── FIRMAS ───────────────────────────────────────────────────
+    y = secBar('DATOS DEL PROGRAMA DE CAPACITACION, ADIESTRAMIENTO Y PRODUCTIVIDAD', y);
     y += 2;
-    // Box con nota
-    lc(0,0,0,0.4); box(ML + CW*0.25, y, CW*0.5, 7, 'S');
-    sf('bold',7.5); tc(0,0,0);
-    txt('aquí que no se conduce con verdad.', PW/2, y+4.5, {align:'center'});
+
+    sf('normal',6); tc(80,80,80); T('Nombre del curso', ML, y);
+    sf('bold',9); tc(0,0,0);
+    T(String(course.name||'').toUpperCase(), ML, y+4.5);
+    hline(y+6, ML, PW-MR);
     y += 9;
 
+    // Duracion | Periodo de ejecucion
+    sf('normal',6); tc(80,80,80);
+    T('Duracion en horas', ML, y);
+    T('Periodo de ejecucion:', ML+30, y);
+    sf('bold',9); tc(0,0,0);
+    T(String(course.durationHours||course.duration_hours||'8'), ML, y+5);
+    hline(y+6.5, ML, ML+27);
+
+    // Periodo boxes: Dia/Mes/Año inicio y fin
+    // Parsear fechas
+    let startParts=['','',''], endParts=['','',''];
+    if (start) { const p=start.split('-'); startParts=[p[2]||'',p[1]||'',p[0]||'']; }
+    if (end)   { const p=end.split('-');   endParts  =[p[2]||'',p[1]||'',p[0]||'']; }
+    // [dia2, mes2, anio4]
+    const sd = startParts[0].padStart(2,'0'), sm = startParts[1].padStart(2,'0'), sy = startParts[2];
+    const ed = endParts[0].padStart(2,'0'),   em = endParts[1].padStart(2,'0'),   ey = endParts[2];
+
+    let px = ML+55;
+    const bw=5.4, bh=6.5, gap=0.5;
+
+    // Labels Dia/Mes/Ano arriba
+    sf('normal',5.5); tc(80,80,80);
+    T('Dia', px+1, y); T('Mes', px+2*(bw+gap)+5, y); T('Ano', px+4*(bw+gap)+10, y);
+    y += 1.5;
+    sf('normal',7); tc(80,80,80); T('De', px-5, y+5);
+
+    // Start boxes
+    letterBox(sd[0], px, y, bw, bh); letterBox(sd[1], px+bw+gap, y, bw, bh);
+    px += 2*(bw+gap)+2;
+    letterBox(sm[0], px, y, bw, bh); letterBox(sm[1], px+bw+gap, y, bw, bh);
+    px += 2*(bw+gap)+2;
+    letterBox(sy[0]||'', px, y, bw, bh); letterBox(sy[1]||'', px+bw+gap, y, bw, bh);
+    letterBox(sy[2]||'', px+2*(bw+gap), y, bw, bh); letterBox(sy[3]||'', px+3*(bw+gap), y, bw, bh);
+    px += 4*(bw+gap)+4;
+
+    sf('normal',7); tc(80,80,80); T('A', px, y+5); px+=5;
+
+    // Labels fin
+    sf('normal',5.5); tc(80,80,80);
+    T('Dia', px+1, y-1.5); T('Mes', px+2*(bw+gap)+5, y-1.5); T('Ano', px+4*(bw+gap)+10, y-1.5);
+
+    // End boxes
+    letterBox(ed[0], px, y, bw, bh); letterBox(ed[1], px+bw+gap, y, bw, bh);
+    px += 2*(bw+gap)+2;
+    letterBox(em[0], px, y, bw, bh); letterBox(em[1], px+bw+gap, y, bw, bh);
+    px += 2*(bw+gap)+2;
+    letterBox(ey[0]||'', px, y, bw, bh); letterBox(ey[1]||'', px+bw+gap, y, bw, bh);
+    letterBox(ey[2]||'', px+2*(bw+gap), y, bw, bh); letterBox(ey[3]||'', px+3*(bw+gap), y, bw, bh);
+
+    y += 9;
+
+    // Area tematica
+    sf('normal',6); tc(80,80,80); T('Area tematica del curso', ML, y);
+    const areaVal = sp(course.thematicArea || course.thematic_area || '');
+    sf('normal',8.5); tc(0,0,0);
+    T('(' + (areaVal||'–') + ')', ML, y+4.5);
+    hline(y+6, ML, PW-MR);
+    y += 9;
+
+    // Nombre del agente
+    sf('normal',6); tc(80,80,80);
+    T('Nombre del agente capacitador o STPS 3)', ML, y);
+    sf('bold',8.5); tc(0,0,0);
+    const agentLine = String(agent.name||'').toUpperCase() + '     ' + String(agent.stps||'');
+    T(sp(agentLine), ML, y+4.5);
+    hline(y+6, ML, PW-MR);
+    y += 9;
+
+    // ── FIRMAS ───────────────────────────────────────────────────
+    y += 3;
+    // Recuadro central con frase
+    dc(0,0,0); lw(0.4);
+    doc.rect(ML+CW*0.22, y, CW*0.56, 8, 'S');
+    sf('bold',8.5); tc(0,0,0);
+    T('aqui que no se conduce con verdad.', PW/2, y+5.2, {align:'center'});
+    y += 10;
+
     // 3 columnas de firma
-    const fw = CW/3 - 3;
-    const sigY = y;
-    const sigH = 24;
-
-    // Columna 1: Instructor/Tutor
-    lc(0,0,0,0.3); box(ML, sigY, fw, sigH, 'S');
-    sf('normal',6); tc(60,60,60);
-    txt('Instructor o tutor', ML+fw/2, sigY+3, {align:'center'});
-    // Firma name
-    sf('bold',7); tc(0,0,0);
-    const agLines = doc.splitTextToSize((agent.name||'').toUpperCase(), fw-4);
-    doc.text(agLines, ML+fw/2, sigY+sigH-9, {align:'center'});
-    sf('normal',6.5); tc(0,0,0);
-    txt('Nombre y firma', ML+fw/2, sigY+sigH-3, {align:'center'});
-
-    // Columna 2: Patrón
-    const c2x = ML + fw + 3;
-    lc(0,0,0,0.3); box(c2x, sigY, fw, sigH, 'S');
-    sf('normal',6); tc(60,60,60);
-    txt('Patrón o representante legal ⁴⁾', c2x+fw/2, sigY+3, {align:'center'});
-    sf('normal',6.5); tc(0,0,0);
-    txt('Nombre y firma', c2x+fw/2, sigY+sigH-3, {align:'center'});
-
-    // Columna 3: Representante trabajadores
-    const c3x = ML + (fw+3)*2;
-    lc(0,0,0,0.3); box(c3x, sigY, fw, sigH, 'S');
-    sf('normal',6); tc(60,60,60);
-    txt('Representante de los trabajadores ⁵⁾', c3x+fw/2, sigY+3, {align:'center'});
-    sf('normal',6.5); tc(0,0,0);
-    txt('Nombre y firma', c3x+fw/2, sigY+sigH-3, {align:'center'});
-
-    y = sigY + sigH + 5;
-
-    // ── INSTRUCCIONES ────────────────────────────────────────────
-    const instrucciones = [
-        '¹⁾ Llenar a máquina o con letra de molde.',
-        '²⁾ Deberá entregarse al trabajador dentro de los treinta días hábiles siguientes al término del curso de capacitación aprobado.',
-        '³⁾ Las áreas y subáreas ocupacionales del Catálogo Nacional de Ocupaciones se encuentran disponibles en el reverso de este formato y en la página www.stps.gob.mx.',
-        '    Las áreas temáticas de los cursos se encuentran disponibles en el reverso de este formato y en la página www.stps.gob.mx.',
-        '⁴⁾ El campo corresponde al área competente de la Secretaría del Trabajo y Previsión Social.',
-        '⁵⁾ Para empresas con menos de 50 trabajadores. Para empresas con más de 50 trabajadores firmará el representante del patrón ante la Comisión Mixta de capacitación, adiestramiento y productividad.',
-        '    Subsana empresas con más de 50 trabajadores.',
-        '    Dato no obligatorio.'
+    const fw = (CW-6)/3;
+    const sigH = 26;
+    const sigLabels = [
+        ['Instructor o tutor', '', String(agent.name||'').toUpperCase()],
+        ['Patron o representante legal 4)', '', ''],
+        ['Representante de los trabajadores 5)', '', '']
     ];
 
-    sf('bold',7); tc(0,0,0); txt('INSTRUCCIONES', ML, y);
-    y += 3.5;
-    sf('normal',6); tc(30,30,30);
-    instrucciones.forEach(line => {
-        const wrapped = doc.splitTextToSize(line, CW);
+    sigLabels.forEach(([top, mid, bottom], i) => {
+        const bx = ML + i*(fw+3);
+        dc(0,0,0); lw(0.3);
+        doc.rect(bx, y, fw, sigH, 'S');
+        sf('normal',6); tc(80,80,80);
+        const topLines = doc.splitTextToSize(sp(top), fw-4);
+        doc.text(topLines, bx+fw/2, y+3, {align:'center'});
+        if (bottom) {
+            sf('bold',7.5); tc(0,0,0);
+            const botLines = doc.splitTextToSize(sp(bottom), fw-4);
+            doc.text(botLines, bx+fw/2, y+sigH-7, {align:'center'});
+        }
+        // Linea de firma
+        dc(100,100,100); lw(0.2);
+        doc.line(bx+3, y+sigH-5, bx+fw-3, y+sigH-5);
+        sf('normal',6); tc(80,80,80);
+        T('Nombre y firma', bx+fw/2, y+sigH-2, {align:'center'});
+    });
+    y += sigH + 5;
+
+    // ── INSTRUCCIONES ────────────────────────────────────────────
+    const instrs = [
+        '1) Llenar a maquina o con letra de molde.',
+        '2) Debera entregarse al trabajador dentro de los treinta dias habiles siguientes al termino del curso de capacitacion aprobado.',
+        '3) Las areas y subáreas ocupacionales del Catalogo Nacional de Ocupaciones se encuentran disponibles en el reverso de este formato y en la pagina www.stps.gob.mx.',
+        '   Las areas tematicas de los cursos se encuentran disponibles en el reverso de este formato y en la pagina www.stps.gob.mx.',
+        '4) El campo corresponde al area competente de la Secretaria del Trabajo y Prevision Social.',
+        '5) Para empresas con menos de 50 trabajadores. Para empresas con mas de 50 trabajadores firmara el representante del patron ante la Comision Mixta.',
+        '   Dato no obligatorio.'
+    ];
+    sf('bold',7); tc(0,0,0); T('INSTRUCCIONES', ML, y); y += 4;
+    sf('normal',6); tc(20,20,20);
+    instrs.forEach(line => {
+        const wrapped = doc.splitTextToSize(sp(line), CW);
         doc.text(wrapped, ML, y);
         y += wrapped.length * 3.2;
     });
 
-    // Footer anverso
-    y = PH - 10;
-    sf('normal',7); tc(120,120,120);
-    txt('DC3 ANVERSO', PW - MR - 2, y, {align:'right'});
+    // Footer
+    sf('normal',6.5); tc(140,140,140);
+    T('DC3 ANVERSO', PW-MR, PH-7, {align:'right'});
 
-    // ════════════════════════════════════════════════════════════════
-    // PÁGINA 2 — REVERSO
-    // ════════════════════════════════════════════════════════════════
+    // ─────────────────────────────────────────────────────────────
+    // PAGINA 2 — REVERSO (catalogos)
+    // ─────────────────────────────────────────────────────────────
     doc.addPage();
     y = 12;
-
-    sf('bold',8.5); tc(0,0,0);
-    txt('CLAVES Y DENOMINACIONES DE ÁREAS Y SUBÁREAS DEL CATÁLOGO NACIONAL DE OCUPACIONES', PW/2, y, {align:'center'});
+    sf('bold',8); tc(0,0,0);
+    T('CLAVES Y DENOMINACIONES DE AREAS Y SUBÁREAS DEL CATALOGO NACIONAL DE OCUPACIONES', PW/2, y, {align:'center'});
     y += 5;
 
-    // Dos columnas de catálogo
-    const col1X = ML, col2X = PW/2 + 3;
-    const catW = CW/2 - 4;
-
+    // Dos columnas
+    const c1=ML, c2=PW/2+3, cw2=(CW/2)-5;
     sf('bold',6.5); tc(0,0,0);
-    txt('CLAVE DEL', col1X, y);
-    txt('CLAVE DEL', col2X, y);
-    y += 3;
-    txt('ÁREA/SUBÁREA', col1X, y);
-    txt('DENOMINACIÓN', col1X+20, y);
-    txt('ÁREA/SUBÁREA', col2X, y);
-    txt('DENOMINACIÓN', col2X+20, y);
-    y += 1;
-    lc(0,0,0,0.3); ln(ML, y, PW-MR, y);
-    y += 3;
+    T('CLAVE DEL', c1, y); T('DENOMINACION', c1+18, y);
+    T('CLAVE DEL', c2, y); T('DENOMINACION', c2+18, y);
+    y+=3; T('AREA/SUBAREA', c1, y); T('AREA/SUBAREA', c2, y);
+    y+=1; dc(0,0,0); lw(0.3); doc.line(ML,y,PW-MR,y); y+=3;
 
-    const ocupaciones = [
+    const ocups = [
         ['01','Cultivo, crianza y aprovechamiento','06','Transporte'],
         ['01.1','Agricultura y silvicultura','06.1','Ferroviario'],
-        ['01.2','Ganadería','06.2','Autotransporte'],
-        ['01.3','Pesca y acuacultura','06.3','Aéreo'],
-        ['02','Extracción y suministro','06.4','Marítimo y fluvial'],
-        ['02.1','Exploración','06.5','Servicios de apoyo'],
-        ['02.2','Extracción','07','Provisión de bienes y servicios'],
-        ['02.3','Refinación y beneficio','07.1','Comercio'],
-        ['02.4','Revisión de energía','07.2','Alimentación y hospedaje'],
-        ['02.5','Revisión de agua','07.3','Turismo'],
-        ['03','Construcción','07.4','Deporte y esparcimiento'],
-        ['03.1','Planeación y dirección de obras','07.5','Servicios personales'],
-        ['03.2','Edificación y urbanización','07.6','Reparación de artículos de uso doméstico y personal'],
+        ['01.2','Ganaderia','06.2','Autotransporte'],
+        ['01.3','Pesca y acuacultura','06.3','Aereo'],
+        ['02','Extraccion y suministro','06.4','Maritimo y fluvial'],
+        ['02.1','Exploracion','06.5','Servicios de apoyo'],
+        ['02.2','Extraccion','07','Provision de bienes y servicios'],
+        ['02.3','Refinacion y beneficio','07.1','Comercio'],
+        ['02.4','Revision de energia','07.2','Alimentacion y hospedaje'],
+        ['02.5','Revision de agua','07.3','Turismo'],
+        ['03','Construccion','07.4','Deporte y esparcimiento'],
+        ['03.1','Planeacion y direccion de obras','07.5','Servicios personales'],
+        ['03.2','Edificacion y urbanizacion','07.6','Reparacion de articulos de uso domestico y personal'],
         ['03.3','Acabado','07.7','Limpieza'],
-        ['03.4','Instalación y mantenimiento','07.8','Servicio postal y mensajería'],
-        ['04','Tecnología','08','Gestión y soporte administrativo'],
-        ['04.1','Mecánica','08.1','Bolsa, banca y seguros'],
-        ['04.2','Electricidad','08.2','Administración'],
-        ['04.3','Electrónica','08.3','Servicios legales'],
-        ['04.4','Informática','09','Salud y protección social'],
-        ['04.5','Telecomunicaciones','09.1','Servicios médicos'],
-        ['04.6','Procesos industriales','09.2','Inspección sanitaria y del medio ambiente'],
-        ['05','Procesamiento y fabricación','09.3','Seguridad social'],
-        ['05.1','Minerales no metálicos','09.4','Protección de bienes y personas'],
-        ['05.2','Metales','10','Comunicación'],
-        ['05.3','Alimentos y bebidas','10.1','Publicación'],
-        ['05.4','Textiles y prendas de vestir','10.2','Radio, cine, televisión y teatro'],
-        ['05.5','Materia orgánica','10.3','Interpretación artística'],
-        ['05.6','Productos químicos','10.4','Traducción e interpretación lingüística'],
-        ['05.7','Productos metálicos y de hule y plástico','10.5','Publicidad, propaganda y relaciones públicas'],
-        ['05.8','Productos eléctricos y electrónicos','11','Desarrollo y extensión del conocimiento'],
-        ['05.9','Productos impresos','11.1','Investigación'],
-        ['','','11.2','Enseñanza'],
-        ['','','11.3','Difusión cultural'],
+        ['03.4','Instalacion y mantenimiento','07.8','Servicio postal y mensajeria'],
+        ['04','Tecnologia','08','Gestion y soporte administrativo'],
+        ['04.1','Mecanica','08.1','Bolsa, banca y seguros'],
+        ['04.2','Electricidad','08.2','Administracion'],
+        ['04.3','Electronica','08.3','Servicios legales'],
+        ['04.4','Informatica','09','Salud y proteccion social'],
+        ['04.5','Telecomunicaciones','09.1','Servicios medicos'],
+        ['04.6','Procesos industriales','09.2','Inspeccion sanitaria y del medio ambiente'],
+        ['05','Procesamiento y fabricacion','09.3','Seguridad social'],
+        ['05.1','Minerales no metalicos','09.4','Proteccion de bienes y personas'],
+        ['05.2','Metales','10','Comunicacion'],
+        ['05.3','Alimentos y bebidas','10.1','Publicacion'],
+        ['05.4','Textiles y prendas de vestir','10.2','Radio, cine, television y teatro'],
+        ['05.5','Materia organica','10.3','Interpretacion artistica'],
+        ['05.6','Productos quimicos','10.4','Traduccion e interpretacion linguistica'],
+        ['05.7','Productos metalicos y de hule y plastico','10.5','Publicidad, propaganda y relaciones publicas'],
+        ['05.8','Productos electricos y electronicos','11','Desarrollo y extension del conocimiento'],
+        ['05.9','Productos impresos','11.1','Investigacion'],
+        ['','','11.2','Ensenanza'],
+        ['','','11.3','Difusion cultural'],
     ];
 
     sf('normal',6.5); tc(0,0,0);
-    ocupaciones.forEach(([c1,d1,c2,d2]) => {
-        const isBold1 = c1.length <= 2 && c1 !== '';
-        const isBold2 = c2.length <= 2 && c2 !== '';
-        sf(isBold1?'bold':'normal',6.5); txt(c1||'', col1X, y);
-        sf('normal',6.5); txt(d1||'', col1X+18, y);
-        sf(isBold2?'bold':'normal',6.5); txt(c2||'', col2X, y);
-        sf('normal',6.5); txt(d2||'', col2X+18, y);
-        y += 3.8;
+    ocups.forEach(([k1,d1,k2,d2]) => {
+        const b1 = !k1.includes('.') && k1!=='';
+        const b2 = !k2.includes('.') && k2!=='';
+        sf(b1?'bold':'normal',6.5); T(k1,c1,y);
+        sf('normal',6.5); T(d1,c1+18,y);
+        sf(b2?'bold':'normal',6.5); T(k2,c2,y);
+        sf('normal',6.5); T(d2,c2+18,y);
+        y+=3.8;
     });
 
-    y += 5;
-    lc(0,0,0,0.3); ln(ML, y, PW-MR, y);
-    y += 5;
+    y+=5; dc(0,0,0); lw(0.3); doc.line(ML,y,PW-MR,y); y+=5;
 
-    sf('bold',8.5); tc(0,0,0);
-    txt('CLAVES Y DENOMINACIONES DEL CATÁLOGO DE ÁREAS TEMÁTICAS DE LOS CURSOS', PW/2, y, {align:'center'});
-    y += 5;
+    sf('bold',8); tc(0,0,0);
+    T('CLAVES Y DENOMINACIONES DEL CATALOGO DE AREAS TEMATICAS DE LOS CURSOS', PW/2, y, {align:'center'});
+    y+=5;
 
     sf('bold',6.5);
-    txt('CLAVE DEL', col1X, y); txt('DENOMINACIÓN', col1X+15, y);
-    txt('CLAVE DEL', col2X, y); txt('DENOMINACIÓN', col2X+15, y);
-    y += 3; txt('ÁREA', col1X, y); txt('ÁREA', col2X, y);
-    y += 1; lc(0,0,0,0.3); ln(ML, y, PW-MR, y); y += 3;
+    T('CLAVE DEL',c1,y); T('DENOMINACION',c1+15,y);
+    T('CLAVE DEL',c2,y); T('DENOMINACION',c2+15,y);
+    y+=3; T('AREA',c1,y); T('AREA',c2,y);
+    y+=1; dc(0,0,0); lw(0.3); doc.line(ML,y,PW-MR,y); y+=4;
 
-    const tematicas = [
-        ['1000','Producción general','6000','Seguridad'],
+    const tems = [
+        ['1000','Produccion general','6000','Seguridad'],
         ['2000','Servicios','7000','Desarrollo personal y familiar'],
-        ['3000','Administración, contabilidad y economía','8000','Uso de tecnologías de la información y comunicación'],
-        ['4000','Comercialización','9000','Participación social'],
-        ['5000','Mantenimiento y reparación','',''],
+        ['3000','Administracion, contabilidad y economia','8000','Uso de tecnologias de la informacion y comunicacion'],
+        ['4000','Comercializacion','9000','Participacion social'],
+        ['5000','Mantenimiento y reparacion','',''],
     ];
-
     sf('normal',6.5); tc(0,0,0);
-    tematicas.forEach(([c1,d1,c2,d2]) => {
-        sf('bold',6.5); txt(c1, col1X, y);
-        sf('normal',6.5); txt(d1, col1X+15, y);
-        if(c2) { sf('bold',6.5); txt(c2, col2X, y); }
-        if(d2) { sf('normal',6.5); txt(d2, col2X+15, y); }
-        y += 4.2;
+    tems.forEach(([k1,d1,k2,d2]) => {
+        sf('bold',6.5); T(k1,c1,y);
+        sf('normal',6.5); T(d1,c1+15,y);
+        if(k2){sf('bold',6.5); T(k2,c2,y);}
+        if(d2){sf('normal',6.5); T(d2,c2+15,y);}
+        y+=4.2;
     });
 
-    // Footer reverso
-    y = PH - 10;
-    sf('normal',7); tc(120,120,120);
-    txt('DC3 REVERSO', PW - MR - 2, y, {align:'right'});
+    sf('normal',6.5); tc(140,140,140);
+    T('DC3 REVERSO', PW-MR, PH-7, {align:'right'});
 
     // Guardar
-    doc.save(`DC3_${(worker.curp||worker.name||'constancia').replace(/[\s\t]/g,'_')}.pdf`);
+    const filename = 'DC3_' + String(worker.curp||worker.name||'constancia').replace(/[\s\t]/g,'_') + '.pdf';
+    doc.save(filename);
 }
+
 
 // ─── EXCEL IMPORT ──────────────────────────────────────
 function handleExcel(input) {
