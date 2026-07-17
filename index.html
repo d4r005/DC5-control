@@ -1122,13 +1122,9 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     const agentLine = sp(((agent.name||'') + '  ' + (agent.stps||'')).toUpperCase().trim());
     T(30, 438, agentLine.slice(0,70), 8);
 
-    // ── 12. Limpiar área de firma del instructor ─────────────────────────────
-    // Columna instructor: X=61.6→200.5 (ancho=138.9), centro X=131
-    // Sección firmas: Y=443.4 (top) a Y=539.9 (línea "Nombre y firma")
-    // Espacio para imagen: Y=454 a Y=519 (65pts)
-    // Logo: ratio 1.777 → H=65, W=65*1.777=115 → centrado: x0=131-57.5=73.5≈74
-    // Firma: ratio 1.419 → H=60, W=60*1.419=85 → centrado: x0=131-42.5=88.5≈89
-    page.drawRectangle({ x: 25, y: PH - 541, width: 185, height: 88, color: rgb(1,1,1) });
+    // ── 12. Limpiar área de firmas completa para evitar duplicados y desalineación ──────
+    // Limpiamos todo el recuadro de las 3 firmas (X=25 a 575, Y=PH-555 a PH-445)
+    page.drawRectangle({ x: 25, y: PH - 555, width: 550, height: 112, color: rgb(1,1,1) });
 
     // Logo LUBER (fondo) - Centrado en X=120
     const LOGO_H = 70, LOGO_W = 130;
@@ -1163,46 +1159,65 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
         }
     } catch(e) { console.warn('Error cargando firma:', e); }
 
-    // ── 14. Nombres bajo imágenes ───────────────────────────────────────────
-    const CENTER_X_INS = 120;
+    // ── 14. Reconstrucción de los 3 bloques de firma perfectamente alineados ──────
+    const Y_TITULOS = 498;
+    const Y_LINEA   = 537;
+    const Y_NOMBRE_FIRMA = 548;
+    const Y_NOMBRE_1 = 518;
+    const Y_NOMBRE_2 = 527;
 
-    // Texto "Instructor o tutor" alineado con los otros (Y=498 exacto para nivelar)
-    T_Centered(CENTER_X_INS, 498, "Instructor o tutor", 7.5);
+    // --- COLUMNA 1: INSTRUCTOR ---
+    const CENTER_X_INS = 120;
+    T_Centered(CENTER_X_INS, Y_TITULOS, "Instructor o tutor", 7.5);
 
     const insName = sp((agent.name||'').toUpperCase());
     const insLines = splitNameJS(insName, 26);
-    T_Centered(CENTER_X_INS, 520, insLines[0], 8);
-    if (insLines[1]) T_Centered(CENTER_X_INS, 530, insLines[1], 8);
+    T_Centered(CENTER_X_INS, Y_NOMBRE_1, insLines[0], 8);
+    if (insLines[1]) T_Centered(CENTER_X_INS, Y_NOMBRE_2, insLines[1], 8);
 
-    // Dibujar línea (Ajustada a 535.5 para alinear exactamente con las preimpresas del PDF)
     page.drawLine({
-        start: { x: 35, y: PH - 535.5 },
-        end: { x: 205, y: PH - 535.5 },
-        thickness: 1,
+        start: { x: 35, y: PH - Y_LINEA },
+        end: { x: 205, y: PH - Y_LINEA },
+        thickness: 0.8,
         color: rgb(0,0,0)
     });
+    T_Centered(CENTER_X_INS, Y_NOMBRE_FIRMA, "Nombre y firma", 8);
 
-    // Patrón: columna 2
+    // --- COLUMNA 2: PATRÓN ---
     const CENTER_X_PAT = 300;
-    // Imprimir el título de nuevo para asegurar alineación perfecta con los otros 2
-    T_Centered(CENTER_X_PAT, 498, "Patrón o representante legal 4/", 7.5);
+    T_Centered(CENTER_X_PAT, Y_TITULOS, "Patrón o representante legal 4/", 7.5);
+
     const patName = sp((compObj.patron || '').toUpperCase());
     const patLines = splitNameJS(patName, 28);
-    if (patLines[0]) {
-        T_Centered(CENTER_X_PAT, 520, patLines[0], 8);
-        if (patLines[1]) T_Centered(CENTER_X_PAT, 530, patLines[1], 8);
-    }
+    T_Centered(CENTER_X_PAT, Y_NOMBRE_1, patLines[0], 8);
+    if (patLines[1]) T_Centered(CENTER_X_PAT, Y_NOMBRE_2, patLines[1], 8);
 
-    // Representante: columna 3
+    page.drawLine({
+        start: { x: 220, y: PH - Y_LINEA },
+        end: { x: 390, y: PH - Y_LINEA },
+        thickness: 0.8,
+        color: rgb(0,0,0)
+    });
+    T_Centered(CENTER_X_PAT, Y_NOMBRE_FIRMA, "Nombre y firma", 8);
+
+    // --- COLUMNA 3: REPRESENTANTE ---
     const CENTER_X_REP = 475;
-    // Imprimir el título de nuevo para asegurar alineación perfecta con los otros 2
-    T_Centered(CENTER_X_REP, 498, "Representante de los trabajadores 5/", 7.5);
+    T_Centered(CENTER_X_REP, Y_TITULOS, "Representante de los trabajadores 5/", 7.5);
+
     if (compObj.representante) {
         const repName = sp(compObj.representante.toUpperCase());
         const repLines = splitNameJS(repName, 26);
-        T_Centered(CENTER_X_REP, 520, repLines[0], 8);
-        if (repLines[1]) T_Centered(CENTER_X_REP, 530, repLines[1], 8);
+        T_Centered(CENTER_X_REP, Y_NOMBRE_1, repLines[0], 8);
+        if (repLines[1]) T_Centered(CENTER_X_REP, Y_NOMBRE_2, repLines[1], 8);
     }
+
+    page.drawLine({
+        start: { x: 405, y: PH - Y_LINEA },
+        end: { x: 575, y: PH - Y_LINEA },
+        thickness: 0.8,
+        color: rgb(0,0,0)
+    });
+    T_Centered(CENTER_X_REP, Y_NOMBRE_FIRMA, "Nombre y firma", 8);
 
     // Guardar y descargar
     const outBytes = await pdfDoc.save();
