@@ -1174,10 +1174,10 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     T_Centered(CENTER_X_INS, 520, insLines[0], 8);
     if (insLines[1]) T_Centered(CENTER_X_INS, 530, insLines[1], 8);
 
-    // Dibujar línea (Subida a 539 para alinear con las otras del PDF)
+    // Dibujar línea (Ajustada a 535.5 para alinear exactamente con las preimpresas del PDF)
     page.drawLine({
-        start: { x: 35, y: PH - 539 },
-        end: { x: 205, y: PH - 539 },
+        start: { x: 35, y: PH - 535.5 },
+        end: { x: 205, y: PH - 535.5 },
         thickness: 1,
         color: rgb(0,0,0)
     });
