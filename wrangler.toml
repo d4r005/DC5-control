@@ -1,4 +1,4 @@
-name = "dc5-control"
+name = "ace-control"
 main = "index.js"
 compatibility_date = "2024-04-03"
 
