@@ -69,13 +69,14 @@ object PdfGenerator {
     private const val RFC_Y = 308.0f
 
     // ── Coordenadas de FECHA (periodo de ejecución) ───────────────────────────
-    // Re-calibración para evitar pisar la "a" y que no se salga al final
-    private val AÑO_INI = floatArrayOf(270.0f, 285.5f, 301.0f, 316.5f)
-    private val MES_INI = floatArrayOf(343.0f, 362.0f)
-    private val DIA_INI = floatArrayOf(386.0f, 405.0f)
-    private val AÑO_FIN = floatArrayOf(446.5f, 462.0f, 477.5f, 493.0f)
-    private val MES_FIN = floatArrayOf(521.0f, 540.0f)
-    private val DIA_FIN = floatArrayOf(564.0f, 583.0f)
+    // Centros exactos de cada celda extraídos con pymupdf del PDF oficial STPS.
+    // El formulario ordena: Año (4 celdas) | Mes (2 celdas) | Día (2 celdas)
+    private val AÑO_INI = floatArrayOf(259.9f, 275.6f, 291.9f, 308.1f)
+    private val MES_INI = floatArrayOf(326.6f, 348.0f)
+    private val DIA_INI = floatArrayOf(369.4f, 390.4f)
+    private val AÑO_FIN = floatArrayOf(432.5f, 452.1f, 471.7f, 491.2f)
+    private val MES_FIN = floatArrayOf(511.6f, 532.5f)
+    private val DIA_FIN = floatArrayOf(554.0f, 575.5f)
     private const val FECHA_Y = 389.0f
 
     // ── Otros campos (Y en coords fitz; PDFBox Y = 792 - Y_fitz) ─────────────
@@ -90,8 +91,8 @@ object PdfGenerator {
     private const val Y_DURACION      = 391.0f
     private const val Y_AREA          = 416.0f
     private const val Y_AGENTE        = 438.0f
-    private const val Y_FIRMA_NOMBRE  = 530.0f
-    private const val X_FIRMA_INS     = 70.0f
+    private const val Y_FIRMA_NOMBRE  = 535.0f
+    private const val X_FIRMA_INS     = 60.0f
     private const val X_FIRMA_PAT     = 245.0f
     private const val X_FIRMA_REP     = 415.0f
 
@@ -116,15 +117,17 @@ object PdfGenerator {
                 fillPage(cs, data)
             }
             
-            // Insertar Logo (detrás de la firma, tamaño reducido y con transparencia si es posible)
+            // Insertar Logo (parte superior del área de firma del instructor)
+            // Columna instructor: X~25-180, centro X=102
+            // Sección de firmas: Y=443-540 (fitz). Logo arriba, antes del texto legal.
             data.logoBitmap?.let {
-                // Posición ajustada para no tapar el nombre del instructor
-                insertImage(doc, doc.getPage(0), it, x = 65f, y = 505f, w = 65f, h = 25f)
+                insertImage(doc, doc.getPage(0), it, x = 79.5f, y = 448f, w = 45f, h = 18f)
             }
             
-            // Insertar Firma (trazo azul)
+            // Insertar Firma (entre "Instructor o tutor" Y=497 y "Nombre y firma" Y=540)
+            // Centrada en la columna del instructor (centro X=102)
             data.signatureBitmap?.let {
-                insertImage(doc, doc.getPage(0), it, x = 55f, y = 495f, w = 110f, h = 35f)
+                insertImage(doc, doc.getPage(0), it, x = 59.5f, y = 505f, w = 85f, h = 27f)
             }
             
             val name = "DC3_${sanitize(data.curp.ifBlank { data.nombreTrabajador })}.pdf"
