@@ -3,453 +3,1246 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACE-Control | Gestión de Agente Capacitador Externo</title>
+    <title>ACE-Control | Generador de Constancias DC-3</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0b1329; }
-        .login-bg {
-            background-color: #0e2d35;
-            background-image:
-                radial-gradient(ellipse at 30% 50%, #1a4a55 0%, transparent 55%),
-                radial-gradient(ellipse at 70% 50%, #0e2030 0%, #0a1e28 100%);
-        }
-        .nav-btn.active { background-color: #2563eb; color: white; box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2); }
-        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
-        .modal-content { background: white; margin: 5% auto; padding: 30px; width: 500px; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        * { font-family: 'Inter', sans-serif; }
+        body { background: #f8f9ff; }
+
+        /* ── LOGIN ── */
+        .login-page { min-height: 100vh; background: linear-gradient(135deg,#eef2ff 0%,#f0f4ff 50%,#ede9fe 100%); }
+        .login-card { background: white; border-radius: 20px; box-shadow: 0 20px 60px rgba(99,102,241,.12); padding: 48px 40px; width: 420px; }
+        .login-logo { width: 48px; height: 48px; }
+        .btn-primary { background: #4f46e5; color: white; border-radius: 10px; padding: 12px 24px; font-weight: 600; font-size: 15px; border: none; cursor: pointer; width: 100%; transition: background .2s; }
+        .btn-primary:hover { background: #4338ca; }
+        .input-field { width: 100%; border: 1.5px solid #e5e7eb; border-radius: 10px; padding: 11px 14px; font-size: 14px; color: #111827; outline: none; transition: border-color .2s; box-sizing: border-box; }
+        .input-field:focus { border-color: #4f46e5; }
+
+        /* ── LAYOUT ── */
+        #view-app { display: none; }
+        .sidebar { width: 240px; min-height: 100vh; background: white; border-right: 1px solid #e5e7eb; position: fixed; top: 0; left: 0; padding: 24px 16px; }
+        .main-content { margin-left: 240px; min-height: 100vh; padding: 32px; }
+        .nav-link { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; font-size: 14px; font-weight: 500; color: #6b7280; cursor: pointer; transition: all .15s; margin-bottom: 2px; }
+        .nav-link:hover { background: #f3f4f6; color: #111827; }
+        .nav-link.active { background: #eef2ff; color: #4f46e5; font-weight: 600; }
+        .nav-link svg { width: 18px; height: 18px; }
+
+        /* ── CARDS ── */
+        .stat-card { background: white; border-radius: 14px; padding: 24px; border: 1px solid #e5e7eb; }
+        .card { background: white; border-radius: 14px; border: 1px solid #e5e7eb; }
+
+        /* ── TABLE ── */
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 12px 20px; font-size: 11px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid #f3f4f6; }
+        td { padding: 14px 20px; font-size: 14px; color: #374151; border-bottom: 1px solid #f9fafb; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #fafafa; }
+
+        /* ── MODAL ── */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); backdrop-filter: blur(4px); z-index: 100; align-items: center; justify-content: center; }
+        .modal-overlay.open { display: flex; }
+        .modal-box { background: white; border-radius: 20px; padding: 36px; width: 520px; max-width: 95vw; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 60px rgba(0,0,0,.2); }
+
+        /* ── BADGE ── */
+        .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+        .badge-admin { background:#eef2ff; color:#4f46e5; }
+        .badge-user { background:#f0fdf4; color:#16a34a; }
+
+        /* ── BTN VARIANTS ── */
+        .btn-sm { padding: 6px 14px; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all .15s; }
+        .btn-indigo { background: #4f46e5; color: white; }
+        .btn-indigo:hover { background: #4338ca; }
+        .btn-red { background: #fee2e2; color: #dc2626; }
+        .btn-red:hover { background: #fecaca; }
+        .btn-outline { background: white; color: #374151; border: 1.5px solid #e5e7eb; }
+        .btn-outline:hover { border-color: #4f46e5; color: #4f46e5; }
+
+        /* ── TOP BAR ── */
+        .topbar { background: white; border-bottom: 1px solid #e5e7eb; padding: 16px 32px; margin: -32px -32px 32px -32px; display: flex; align-items: center; justify-content: space-between; }
+
+        /* ── DC3 PDF PREVIEW overlay ── */
+        .dc3-preview { font-family: Arial, sans-serif; }
+
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 5px; }
     </style>
 </head>
-<body class="antialiased text-slate-200 h-screen overflow-hidden">
+<body>
 
-    <!-- Pantalla de Login -->
-    <div id="view-login" class="login-bg min-h-screen flex items-center justify-center px-4">
-        <div class="flex max-w-4xl w-full items-center justify-center lg:justify-between gap-8">
-
-            <!-- Lado Izquierdo: Ilustración -->
-            <div class="hidden lg:flex w-1/2 flex-col items-center justify-center relative select-none">
-                <!-- Glow de fondo -->
-                <div class="absolute w-80 h-80 rounded-full" style="background: radial-gradient(circle, rgba(0,200,200,0.12) 0%, transparent 70%);"></div>
-
-                <!-- SVG principal: hexágono + candado + llave + circuitos -->
-                <svg viewBox="0 0 300 320" class="w-80 h-80 relative z-10" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <!-- Líneas de circuito de fondo -->
-                    <g stroke="#22d3ee" stroke-width="0.6" opacity="0.25">
-                        <line x1="20" y1="60" x2="80" y2="60"/><line x1="80" y1="60" x2="80" y2="40"/><circle cx="80" cy="40" r="3" fill="#22d3ee"/>
-                        <line x1="220" y1="60" x2="280" y2="60"/><line x1="220" y1="60" x2="220" y2="40"/><circle cx="220" cy="40" r="3" fill="#22d3ee"/>
-                        <line x1="10" y1="160" x2="60" y2="160"/><circle cx="10" cy="160" r="3" fill="#22d3ee"/>
-                        <line x1="240" y1="160" x2="290" y2="160"/><circle cx="290" cy="160" r="3" fill="#22d3ee"/>
-                        <line x1="20" y1="260" x2="80" y2="260"/><line x1="80" y1="260" x2="80" y2="280"/><circle cx="80" cy="280" r="3" fill="#22d3ee"/>
-                        <line x1="220" y1="260" x2="280" y2="260"/><line x1="220" y1="260" x2="220" y2="280"/><circle cx="220" cy="280" r="3" fill="#22d3ee"/>
-                        <!-- Puntos de nodo scattered -->
-                        <circle cx="40" cy="100" r="2" fill="#22d3ee" opacity="0.5"/>
-                        <circle cx="260" cy="100" r="2" fill="#22d3ee" opacity="0.5"/>
-                        <circle cx="30" cy="220" r="2" fill="#22d3ee" opacity="0.5"/>
-                        <circle cx="270" cy="220" r="2" fill="#22d3ee" opacity="0.5"/>
-                    </g>
-
-                    <!-- Hexágono grande exterior -->
-                    <path d="M150 18 L255 75 L255 245 L150 302 L45 245 L45 75 Z"
-                          stroke="#22d3ee" stroke-width="1.5" opacity="0.5"/>
-                    <!-- Hexágono interior -->
-                    <path d="M150 50 L230 96 L230 224 L150 270 L70 224 L70 96 Z"
-                          stroke="#22d3ee" stroke-width="1" opacity="0.25"/>
-
-                    <!-- Candado cuerpo -->
-                    <rect x="110" y="155" width="80" height="70" rx="8"
-                          fill="none" stroke="#ff3b3b" stroke-width="4"/>
-                    <!-- Aro del candado -->
-                    <path d="M126 155 V132 C126 108 174 108 174 132 V155"
-                          fill="none" stroke="#ff3b3b" stroke-width="4" stroke-linecap="round"/>
-                    <!-- Agujero candado -->
-                    <circle cx="150" cy="192" r="8" fill="none" stroke="#ff3b3b" stroke-width="3"/>
-                    <line x1="150" y1="200" x2="150" y2="213" stroke="#ff3b3b" stroke-width="3" stroke-linecap="round"/>
-
-                    <!-- Llave (abajo-derecha) -->
-                    <g transform="translate(175, 210) rotate(-35)">
-                        <circle cx="0" cy="0" r="14" fill="none" stroke="#22d3ee" stroke-width="3"/>
-                        <circle cx="0" cy="0" r="6" fill="none" stroke="#22d3ee" stroke-width="2"/>
-                        <line x1="14" y1="0" x2="50" y2="0" stroke="#22d3ee" stroke-width="3" stroke-linecap="round"/>
-                        <line x1="38" y1="0" x2="38" y2="8" stroke="#22d3ee" stroke-width="2.5" stroke-linecap="round"/>
-                        <line x1="46" y1="0" x2="46" y2="6" stroke="#22d3ee" stroke-width="2.5" stroke-linecap="round"/>
-                    </g>
-
-                    <!-- Partículas flotantes -->
-                    <circle cx="95" cy="130" r="2.5" fill="#22d3ee" opacity="0.6"/>
-                    <circle cx="205" cy="130" r="2.5" fill="#22d3ee" opacity="0.6"/>
-                    <circle cx="85" cy="200" r="2" fill="#22d3ee" opacity="0.4"/>
-                    <circle cx="215" cy="200" r="2" fill="#22d3ee" opacity="0.4"/>
-                    <circle cx="130" cy="85" r="2" fill="#ff3b3b" opacity="0.5"/>
-                    <circle cx="170" cy="85" r="2" fill="#ff3b3b" opacity="0.5"/>
+<!-- ══════════════════════════════════════════════════════
+     LOGIN
+══════════════════════════════════════════════════════ -->
+<div id="view-login" class="login-page flex items-center justify-center px-4">
+    <div>
+        <!-- Logo & Brand -->
+        <div class="flex flex-col items-center mb-8">
+            <div class="flex items-center justify-center w-14 h-14 rounded-2xl mb-3" style="background:linear-gradient(135deg,#4f46e5,#7c3aed)">
+                <svg viewBox="0 0 24 24" fill="none" class="w-7 h-7 text-white" stroke="currentColor" stroke-width="2">
+                    <path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
                 </svg>
             </div>
-
-            <!-- Tarjeta Login -->
-            <div class="w-full max-w-[360px] bg-white rounded-2xl p-8 shadow-2xl">
-                <!-- Logo + Nombre -->
-                <div class="flex flex-col items-center mb-7">
-                    <!-- Logo hexagonal -->
-                    <div class="mb-3">
-                        <svg width="52" height="52" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M26 2 L48 14 L48 38 L26 50 L4 38 L4 14 Z" fill="#1e3a6e" stroke="#2563eb" stroke-width="1.5"/>
-                            <path d="M26 10 L40 18 L40 34 L26 42 L12 34 L12 18 Z" fill="none" stroke="#22d3ee" stroke-width="1" opacity="0.5"/>
-                            <text x="26" y="32" text-anchor="middle" font-family="Arial Black, sans-serif" font-weight="900" font-size="14" fill="white" letter-spacing="-1">AC</text>
-                        </svg>
-                    </div>
-                    <h2 class="text-xl font-black text-slate-800 tracking-widest uppercase">ACE-CONTROL</h2>
-                </div>
-
-                <form class="space-y-4" onsubmit="login(event)">
-                    <!-- Email -->
-                    <input id="email" type="email" required
-                        class="w-full border border-slate-200 bg-slate-50 rounded-lg px-4 py-3 text-sm text-slate-700 placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-400/30 focus:border-blue-400 transition-all"
-                        placeholder="Email">
-
-                    <!-- Password -->
-                    <div class="relative">
-                        <input id="password" type="password" required
-                            class="w-full border border-slate-200 bg-slate-50 rounded-lg px-4 py-3 pr-11 text-sm text-slate-700 placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-400/30 focus:border-blue-400 transition-all"
-                            placeholder="Password">
-                        <i class="fa-solid fa-lock absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 text-sm"></i>
-                    </div>
-
-                    <!-- Registrarse / Olvidó contraseña -->
-                    <div class="flex items-center justify-between text-xs text-slate-400 px-0.5">
-                        <span class="cursor-pointer hover:text-slate-600 transition-colors">Registrarse?</span>
-                        <a href="#" class="hover:text-slate-600 transition-colors">¿Olvidó su contraseña?</a>
-                    </div>
-
-                    <!-- Botón Entrar -->
-                    <button type="submit"
-                        class="w-full bg-[#3d6bb5] hover:bg-[#2f5aa0] active:scale-[0.98] text-white py-3 rounded-lg font-semibold text-sm transition-all shadow-md shadow-blue-900/20">
-                        Entrar
-                    </button>
-
-                    <!-- Acceder en modo seguro -->
-                    <div class="text-center pt-1">
-                        <a href="#" class="text-xs text-slate-500 hover:text-blue-600 transition-colors border border-slate-200 rounded-lg px-4 py-2 inline-block w-full text-center hover:border-blue-300">
-                            Acceder en modo seguro
-                        </a>
-                    </div>
-                </form>
-
-                <p id="login-error" class="text-red-500 text-[10px] text-center font-bold uppercase hidden mt-4">Acceso Denegado</p>
-            </div>
+            <h1 class="text-2xl font-black text-gray-900">ACE-Control</h1>
+            <p class="text-sm text-gray-400 mt-1">Sistema de Gestión DC-3 · STPS</p>
         </div>
-    </div>
 
-    <!-- App Container -->
-    <div id="app-container" class="hidden fixed inset-0 flex h-screen bg-slate-50 text-slate-800 overflow-hidden">
-        <aside class="w-72 bg-slate-900 text-slate-300 flex flex-col justify-between shrink-0">
-            <div>
-                <div class="h-20 flex items-center px-8 border-b border-slate-800 font-bold text-white uppercase italic tracking-widest text-lg">ACE-CONTROL</div>
-                <nav class="mt-8 px-6 space-y-2">
-                    <button onclick="switchView('dashboard')" id="btn-dashboard" class="nav-btn w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></button>
-                    <button onclick="switchView('workers')" id="btn-workers" class="nav-btn w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="file-text"></i><span>Personal (Excel)</span></button>
-                    <button onclick="switchView('companies')" id="btn-companies" class="nav-btn w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="building-2"></i><span>Empresas</span></button>
-                    <button onclick="switchView('courses')" id="btn-courses" class="nav-btn w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="book-open"></i><span>Cursos</span></button>
-                    <button onclick="switchView('agents')" id="btn-agents" class="nav-btn w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="award"></i><span>Agentes Cap.</span></button>
-                    <button onclick="switchView('dc3')" id="btn-dc3" class="nav-btn w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="file-check"></i><span>DC-3 Generados</span></button>
-                    <button onclick="switchView('users')" id="btn-users" class="nav-btn hidden w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-sm font-semibold transition-all"><i data-lucide="users"></i><span>Usuarios</span></button>
-                </nav>
-            </div>
-            <div class="p-6 border-t border-slate-800"><button onclick="logout()" class="w-full flex items-center justify-center space-x-3 px-5 py-3 text-red-400 hover:bg-red-500/10 rounded-xl transition-all font-bold text-sm"><i data-lucide="log-out"></i><span>Salir del Sistema</span></button></div>
-        </aside>
+        <div class="login-card">
+            <h2 class="text-xl font-bold text-gray-900 mb-1">Iniciar sesión</h2>
+            <p class="text-sm text-gray-400 mb-7">Ingresa tus credenciales para continuar</p>
 
-        <main class="flex-1 flex flex-col overflow-hidden">
-            <header class="h-20 bg-white border-b flex items-center justify-between px-10 shrink-0">
-                <div class="flex items-center space-x-6">
-                    <h1 id="page-title" class="text-2xl font-extrabold text-slate-800">Dashboard</h1>
-                    <select id="user-filter" onchange="refreshCurrentView()" class="text-sm font-bold border rounded-xl px-4 py-2 bg-slate-50 focus:outline-none">
-                        <option value="ALL">Ver Todo el Sistema</option>
-                        <option value="d4r005@gmail.com">Dario Robles</option>
-                        <option value="lugga.advisors@gmail.com">Cynthia Garza</option>
-                    </select>
-                </div>
-                <div class="flex items-center space-x-5">
-                    <div class="text-right leading-none">
-                        <p id="user-name-display" class="font-extrabold text-slate-900">Dario Robles</p>
-                        <p id="user-role-display" class="text-[10px] text-slate-500 uppercase font-black tracking-widest mt-1">Administrador ACE</p>
-                    </div>
-                    <div id="user-initials" class="h-12 w-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-bold text-lg uppercase shadow-lg shadow-blue-100">DR</div>
-                </div>
-            </header>
-
-            <div class="flex-1 overflow-y-auto p-10 space-y-10">
-                <div id="view-dashboard" class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <div class="bg-white p-8 rounded-3xl border shadow-sm flex items-center justify-between group hover:shadow-xl transition-all">
-                        <div><p class="text-xs font-black text-slate-400 uppercase mb-1">Personal</p><p id="stat-workers" class="text-4xl font-extrabold">0</p></div>
-                        <div class="p-4 bg-blue-50 text-blue-600 rounded-2xl"><i data-lucide="users-2" class="w-8 h-8"></i></div>
-                    </div>
-                    <div class="bg-white p-8 rounded-3xl border shadow-sm flex items-center justify-between group hover:shadow-xl transition-all">
-                        <div><p class="text-xs font-black text-slate-400 uppercase mb-1">Cursos</p><p id="stat-courses" class="text-4xl font-extrabold">0</p></div>
-                        <div class="p-4 bg-emerald-50 text-emerald-600 rounded-2xl"><i data-lucide="book-open" class="w-8 h-8"></i></div>
-                    </div>
-                    <div class="bg-white p-8 rounded-3xl border shadow-sm flex items-center justify-between group hover:shadow-xl transition-all">
-                        <div><p class="text-xs font-black text-slate-400 uppercase mb-1">DC-3 Emitidos</p><p id="stat-dc3" class="text-4xl font-extrabold">0</p></div>
-                        <div class="p-4 bg-violet-50 text-violet-600 rounded-2xl"><i data-lucide="file-check" class="w-8 h-8"></i></div>
-                    </div>
-                </div>
-
-                <div id="view-content" class="hidden space-y-6">
-                    <div class="flex justify-between items-center bg-white p-6 rounded-3xl border shadow-sm">
-                        <p id="view-description" class="text-slate-500 font-medium"></p>
-                        <div class="flex space-x-3">
-                            <input type="file" id="excel-input" class="hidden" accept=".xlsx, .xls" onchange="handleExcel(this)">
-                            <button id="upload-btn" onclick="document.getElementById('excel-input').click()" class="hidden bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-2xl text-sm font-bold shadow-lg shadow-emerald-100 flex items-center"><i data-lucide="file-spreadsheet" class="w-4 h-4 mr-2"></i>Cargar Personal (Excel)</button>
-                            <button id="add-btn" onclick="openModal()" class="hidden bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-2xl text-sm font-bold shadow-lg shadow-blue-200 flex items-center"><i data-lucide="plus" class="w-4 h-4 mr-2"></i>Agregar Registro</button>
-                        </div>
-                    </div>
-                    <div class="bg-white rounded-[2.5rem] border overflow-hidden shadow-sm">
-                        <table class="w-full text-left border-collapse">
-                            <thead id="table-header" class="bg-slate-50/50 text-[10px] uppercase text-slate-400 font-black tracking-widest border-b border-slate-100"></thead>
-                            <tbody id="table-body" class="divide-y divide-slate-100 text-sm font-medium text-slate-600"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <!-- Modal Dinámico -->
-    <div id="modal" class="modal"><div class="modal-content"><h3 id="modal-title" class="text-2xl font-black text-slate-800 mb-8 uppercase italic tracking-tighter">Acción</h3><div id="modal-fields" class="space-y-6"></div><div class="mt-10 flex justify-end space-x-4"><button onclick="closeModal()" class="px-6 py-3 text-sm font-bold text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-all">Cancelar</button><button onclick="saveItem()" class="bg-blue-600 text-white px-8 py-3 rounded-2xl text-sm font-black uppercase tracking-widest shadow-xl shadow-blue-200 hover:bg-blue-500 transition-all">Guardar</button></div></div></div>
-
-    <!-- Modal DC-3 Generación Individual -->
-    <div id="dc3-modal" class="modal">
-        <div class="modal-content" style="width: 600px;">
-            <h3 class="text-2xl font-black text-slate-800 mb-6 uppercase italic tracking-tighter text-center border-b pb-4">Configurar Formato DC-3</h3>
-            <div class="space-y-6">
+            <form onsubmit="login(event)" class="space-y-4">
                 <div>
-                    <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Trabajador Seleccionado</label>
-                    <p id="dc3-worker-name" class="text-lg font-extrabold text-blue-600"></p>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Correo electrónico</label>
+                    <input id="email" type="email" class="input-field" placeholder="usuario@correo.com" required>
                 </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Empresa</label>
-                        <select id="dc3-company" class="w-full bg-slate-50 border-none rounded-xl p-3 text-sm font-bold outline-none ring-1 ring-slate-200"></select>
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Curso</label>
-                        <select id="dc3-course" class="w-full bg-slate-50 border-none rounded-xl p-3 text-sm font-bold outline-none ring-1 ring-slate-200"></select>
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Fecha Inicio</label>
-                        <input type="date" id="dc3-start" class="w-full bg-slate-50 border-none rounded-xl p-3 text-sm font-bold outline-none ring-1 ring-slate-200">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Fecha Fin</label>
-                        <input type="date" id="dc3-end" class="w-full bg-slate-50 border-none rounded-xl p-3 text-sm font-bold outline-none ring-1 ring-slate-200">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Contraseña</label>
+                    <div class="relative">
+                        <input id="password" type="password" class="input-field pr-10" placeholder="••••••••" required>
+                        <button type="button" onclick="togglePassword()" class="absolute right-3 top-3 text-gray-400 hover:text-gray-600">
+                            <svg id="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5">
+                                <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                        </button>
                     </div>
                 </div>
-                <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100">
-                    <p class="text-[10px] font-black text-blue-400 uppercase mb-1">Nota de Generación</p>
-                    <p class="text-xs text-blue-700 font-semibold">Se generará el archivo PDF oficial con la firma digital registrada para el agente capacitador actual.</p>
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" id="remember-me" class="w-4 h-4 accent-indigo-600 rounded">
+                    <label for="remember-me" class="text-sm text-gray-600 cursor-pointer">Recordar usuario</label>
                 </div>
-            </div>
-            <div class="mt-8 flex justify-end space-x-3">
-                <button onclick="document.getElementById('dc3-modal').style.display='none'" class="px-6 py-3 text-sm font-bold text-slate-400 uppercase tracking-widest">Cerrar</button>
-                <button onclick="generateSingleDC3()" class="bg-slate-900 text-white px-8 py-3 rounded-2xl text-sm font-black uppercase tracking-widest shadow-xl shadow-slate-200 hover:bg-black transition-all">Generar y Descargar PDF</button>
+                <p id="login-error" class="text-red-500 text-sm font-medium hidden">Credenciales incorrectas. Intenta de nuevo.</p>
+                <button type="submit" class="btn-primary mt-2">Entrar al sistema</button>
+            </form>
+
+            <div class="mt-6 pt-5 border-t border-gray-100 text-center">
+                <span class="inline-flex items-center gap-1.5 text-xs text-gray-400">
+                    <svg class="w-3.5 h-3.5 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                    Cumple con la STPS · Art. 153-A LFT
+                </span>
             </div>
         </div>
     </div>
+</div>
 
-    <script>
-        const ATLAS_URL = "https://data.mongodb-api.com/app/data-jshze/endpoint/data/v1/action";
-        const API_KEY = "al-b14XHfG6V17yJMOy1lmUWm9vCbuLZG1-Ot7Mp0YAMhH";
-        const DB_CONFIG = { dataSource: "acecontrol", database: "DC3_Database" };
 
-        const DATA = {
-            users: [
-                { name: "Dario Robles", email: "d4r005@gmail.com", role: "ADMIN", password: "Branco2025" },
-                { name: "Cynthia Garza Lugo", email: "lugga.advisors@gmail.com", role: "USER", password: "Cynthia123" }
-            ],
-            courses: [
-                { name: "MANEJO SEGURO DE MONTACARGAS", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "TRABAJOS EN ALTURA (NOM-009)", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "SEGURIDAD EN SOLDADURA", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "FORMACION DE BRIGADAS", durationHours: 24, creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "ESPACIOS CONFINADOS", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "BLOQUEO Y ETIQUETADO LOTO", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "MATERIALES PELIGROSOS", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "MAQUINARIA PESADA", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "SIMULACROS", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "SUPERVISORES SSPA", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "CORTE Y BARBERIA", durationHours: 24, creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "MAQUILLAJE", durationHours: 24, creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "FORMACION INSTRUCTORES", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "CONSTRUCCIÓN (NOM-031)", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "MANLIFT", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "ENGANCHE 5 RUEDA", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "URGENCIAS MEDICAS", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "VEHICULOS PESADOS", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" },
-                { name: "INHALOTERAPIA", durationHours: 24, creatorEmail: "lugga.advisors@gmail.com" }
-            ],
-            agents: [{ name: "CYNTHIA YADIRA GARZA LUGO", stps: "STPS-GALC780523-MP3-005", creatorEmail: "lugga.advisors@gmail.com" }],
-            companies: [] // Se cargará de MongoDB Atlas
-        };
+<!-- ══════════════════════════════════════════════════════
+     APP
+══════════════════════════════════════════════════════ -->
+<div id="view-app">
 
-        let currentUser = null, currentView = 'dashboard', selectedWorker = null;
+    <!-- Sidebar -->
+    <aside class="sidebar flex flex-col">
+        <div class="flex items-center gap-2.5 mb-8 px-1">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style="background:linear-gradient(135deg,#4f46e5,#7c3aed)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" class="w-4 h-4">
+                    <path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+                </svg>
+            </div>
+            <span class="font-bold text-gray-900 text-sm">ACE-Control</span>
+        </div>
 
-        window.onload = function() {
-            lucide.createIcons();
-            const rememberedEmail = localStorage.getItem('rememberedEmail');
-            if (rememberedEmail) document.getElementById('email').value = rememberedEmail;
-        };
+        <nav class="flex-1">
+            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">Principal</p>
+            <div class="nav-link active" onclick="setView('dashboard')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                Dashboard
+            </div>
+            <div class="nav-link" onclick="setView('workers')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+                Personal
+            </div>
+            <div class="nav-link" onclick="setView('companies')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                Empresas
+            </div>
+            <div class="nav-link" onclick="setView('courses')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+                Cursos
+            </div>
+            <div class="nav-link" onclick="setView('dc3')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                Constancias DC-3
+            </div>
+            <div class="nav-link" id="btn-agents" onclick="setView('agents')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+                Agentes Cap.
+            </div>
+            <div class="nav-link hidden" id="btn-users" onclick="setView('users')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                Usuarios
+            </div>
+        </nav>
 
-        async function login(e) {
-            e.preventDefault();
-            const email = document.getElementById('email').value.trim();
-            const pass = document.getElementById('password').value.trim();
-            const user = DATA.users.find(u => u.email === email && u.password === pass);
-            if(user) {
-                const rm = document.getElementById('remember-me'); if(rm && rm.checked) localStorage.setItem('rememberedEmail', email);
-                currentUser = user; initApp();
-            } else { document.getElementById('login-error').classList.remove('hidden'); }
-        }
+        <div class="mt-auto pt-4 border-t border-gray-100">
+            <div class="flex items-center gap-3 px-2 mb-3">
+                <div id="user-avatar" class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 text-xs font-bold flex items-center justify-center flex-shrink-0">--</div>
+                <div class="min-w-0">
+                    <p id="user-name-display" class="text-sm font-semibold text-gray-800 truncate">–</p>
+                    <p id="user-role-display" class="text-xs text-gray-400">–</p>
+                </div>
+            </div>
+            <button onclick="logout()" class="nav-link w-full text-red-500 hover:bg-red-50 hover:text-red-600">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+                Cerrar sesión
+            </button>
+        </div>
+    </aside>
 
-        async function initApp() {
-            document.getElementById('view-login').classList.add('hidden');
-            document.getElementById('app-container').classList.remove('hidden');
-            document.getElementById('user-name-display').innerText = currentUser.name;
-            document.getElementById('user-initials').innerText = currentUser.name.substring(0,2);
-            if(currentUser.role === 'ADMIN') document.getElementById('btn-users').classList.remove('hidden');
+    <!-- Main -->
+    <main class="main-content">
+        <div class="topbar">
+            <div>
+                <h2 id="page-title" class="text-lg font-bold text-gray-900">Dashboard</h2>
+                <p id="page-subtitle" class="text-sm text-gray-400">Bienvenido al sistema</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <!-- Excel import -->
+                <label id="btn-excel" class="hidden btn-sm btn-outline cursor-pointer">
+                    <input type="file" accept=".xlsx,.xls" class="hidden" onchange="handleExcel(this)">
+                    ⬆ Importar Excel
+                </label>
+                <button id="btn-add" class="hidden btn-sm btn-indigo" onclick="openModal()">+ Agregar</button>
+            </div>
+        </div>
 
-            // Cargar Empresas de MongoDB
-            const comp = await atlasAction("find", "companies", { filter: {} });
-            DATA.companies = comp.documents || [];
+        <!-- Dashboard -->
+        <div id="section-dashboard">
+            <div class="grid grid-cols-3 gap-5 mb-6">
+                <div class="stat-card">
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Personal registrado</p>
+                    <p id="stat-workers" class="text-4xl font-black text-gray-900">–</p>
+                    <p class="text-xs text-gray-400 mt-1">Trabajadores</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Constancias DC-3</p>
+                    <p id="stat-dc3" class="text-4xl font-black text-indigo-600">–</p>
+                    <p class="text-xs text-gray-400 mt-1">Generadas</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Empresas</p>
+                    <p id="stat-companies" class="text-4xl font-black text-gray-900">–</p>
+                    <p class="text-xs text-gray-400 mt-1">Registradas</p>
+                </div>
+            </div>
+            <div class="card p-6">
+                <h3 class="font-bold text-gray-800 mb-1">Cómo funciona</h3>
+                <p class="text-sm text-gray-500 mb-5">Genera constancias DC-3 válidas ante la STPS en 3 pasos</p>
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="bg-indigo-50 rounded-xl p-4">
+                        <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-sm mb-3">1</div>
+                        <p class="font-semibold text-gray-800 text-sm">Registra el personal</p>
+                        <p class="text-xs text-gray-500 mt-1">Carga manual o importa desde Excel con nombre, CURP y puesto.</p>
+                    </div>
+                    <div class="bg-purple-50 rounded-xl p-4">
+                        <div class="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-sm mb-3">2</div>
+                        <p class="font-semibold text-gray-800 text-sm">Selecciona el curso</p>
+                        <p class="text-xs text-gray-500 mt-1">Elige empresa, agente capacitador, curso, fechas y duración.</p>
+                    </div>
+                    <div class="bg-green-50 rounded-xl p-4">
+                        <div class="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center text-white font-bold text-sm mb-3">3</div>
+                        <p class="font-semibold text-gray-800 text-sm">Genera el DC-3 PDF</p>
+                        <p class="text-xs text-gray-500 mt-1">Formato oficial STPS con todos los campos requeridos.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-            switchView('dashboard'); lucide.createIcons();
-        }
+        <!-- Workers -->
+        <div id="section-workers" class="hidden">
+            <div class="card overflow-hidden">
+                <table>
+                    <thead><tr id="th-workers">
+                        <th>Nombre</th><th>CURP</th><th>Ocupación</th><th>Puesto</th><th>Acciones</th>
+                    </tr></thead>
+                    <tbody id="tb-workers"><tr><td colspan="5" class="text-center py-12 text-gray-300">Cargando…</td></tr></tbody>
+                </table>
+            </div>
+        </div>
 
-        async function atlasAction(action, collection, payload = {}) {
-            try {
-                const r = await fetch(`${ATLAS_URL}/${action}`, { method: "POST", headers: { "Content-Type": "application/json", "api-key": API_KEY }, body: JSON.stringify({ ...DB_CONFIG, collection, ...payload }) });
-                return await r.json();
-            } catch (e) { return { documents: [] }; }
-        }
+        <!-- Companies -->
+        <div id="section-companies" class="hidden">
+            <div class="card overflow-hidden">
+                <table>
+                    <thead><tr><th>Razón Social</th><th>RFC</th><th>Acciones</th></tr></thead>
+                    <tbody id="tb-companies"><tr><td colspan="3" class="text-center py-12 text-gray-300">Cargando…</td></tr></tbody>
+                </table>
+            </div>
+        </div>
 
-        function getFilter() {
-            const v = document.getElementById('user-filter').value;
-            return (currentUser.role==='ADMIN' && v==='ALL') ? {} : { creatorEmail: v === 'ALL' ? currentUser.email : v };
-        }
+        <!-- Courses -->
+        <div id="section-courses" class="hidden">
+            <div class="card overflow-hidden">
+                <table>
+                    <thead><tr><th>Nombre del Curso</th><th>Duración</th><th>Área Temática</th></tr></thead>
+                    <tbody id="tb-courses"><tr><td colspan="3" class="text-center py-12 text-gray-300">Cargando…</td></tr></tbody>
+                </table>
+            </div>
+        </div>
 
-        async function switchView(v) {
-            currentView = v;
-            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            const btn = document.getElementById('btn-'+v); if(btn) btn.classList.add('active');
-            document.getElementById('view-dashboard').classList.toggle('hidden', v !== 'dashboard');
-            document.getElementById('view-content').classList.toggle('hidden', v === 'dashboard');
-            document.getElementById('upload-btn').classList.toggle('hidden', v !== 'workers');
-            document.getElementById('add-btn').classList.toggle('hidden', !['courses','agents','users','companies'].includes(v));
+        <!-- DC3 History -->
+        <div id="section-dc3" class="hidden">
+            <div class="card overflow-hidden">
+                <table>
+                    <thead><tr><th>Trabajador (CURP)</th><th>Curso</th><th>Empresa</th><th>Periodo</th><th>Acciones</th></tr></thead>
+                    <tbody id="tb-dc3"><tr><td colspan="5" class="text-center py-12 text-gray-300">Cargando…</td></tr></tbody>
+                </table>
+            </div>
+        </div>
 
-            const titleMap = { dashboard: "Dashboard", workers: "Personal", companies: "Empresas", courses: "Cursos", agents: "Agentes Cap.", dc3: "DC-3 Historial", users: "Usuarios" };
-            document.getElementById('page-title').innerText = titleMap[v];
-            refreshCurrentView(); lucide.createIcons();
-        }
+        <!-- Agents -->
+        <div id="section-agents" class="hidden">
+            <div class="card overflow-hidden">
+                <table>
+                    <thead><tr><th>Agente Capacitador</th><th>No. Registro STPS</th></tr></thead>
+                    <tbody id="tb-agents"></tbody>
+                </table>
+            </div>
+        </div>
 
-        async function refreshCurrentView() {
-            const f = getFilter();
-            const filterEmail = f.creatorEmail;
+        <!-- Users (admin only) -->
+        <div id="section-users" class="hidden">
+            <div class="card overflow-hidden">
+                <table>
+                    <thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th></tr></thead>
+                    <tbody id="tb-users"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</div>
 
-            if(currentView === 'dashboard') {
-                const filteredCourses = filterEmail ? DATA.courses.filter(c => c.creatorEmail === filterEmail) : DATA.courses;
-                document.getElementById('stat-courses').innerText = filteredCourses.length;
-                const w = await atlasAction("find", "workers", { filter: f });
-                const d = await atlasAction("find", "dc3_records", { filter: f });
-                document.getElementById('stat-workers').innerText = (w.documents || []).length;
-                document.getElementById('stat-dc3').innerText = (d.documents || []).length;
 
-            } else if(currentView === 'workers') {
-                const data = await atlasAction("find", "workers", { filter: f });
-                document.getElementById('table-header').innerHTML = `<tr><th class="px-10 py-6">Nombre</th><th class="px-10 py-6">CURP</th><th class="px-10 py-6 text-right">Acciones</th></tr>`;
-                document.getElementById('table-body').innerHTML = (data.documents || []).map(x => `<tr class="hover:bg-slate-50 transition-colors"><td class="px-10 py-5 font-bold">${x.name}</td><td class="px-10 py-5">${x.curp}</td><td class="px-10 py-5 text-right"><button onclick='openDC3Modal(${JSON.stringify(x)})' class="text-blue-600 font-bold hover:underline">Generar DC-3</button></td></tr>`).join('') || '<tr><td colspan="3" class="p-20 text-center text-slate-300 uppercase">Sin personal</td></tr>';
+<!-- ══════════════════════════════════════════════════════
+     MODAL AGREGAR
+══════════════════════════════════════════════════════ -->
+<div id="modal-add" class="modal-overlay">
+    <div class="modal-box">
+        <div class="flex items-center justify-between mb-6">
+            <h3 id="modal-title" class="text-xl font-bold text-gray-900">Agregar</h3>
+            <button onclick="closeModal('modal-add')" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div id="modal-fields" class="space-y-4"></div>
+        <div class="flex justify-end gap-3 mt-7">
+            <button onclick="closeModal('modal-add')" class="btn-sm btn-outline px-5">Cancelar</button>
+            <button onclick="saveItem()" class="btn-sm btn-indigo px-7">Guardar</button>
+        </div>
+    </div>
+</div>
 
-            } else if(currentView === 'companies') {
-                document.getElementById('table-header').innerHTML = `<tr><th class="px-10 py-6">Empresa</th><th class="px-10 py-6">RFC</th><th class="px-10 py-6 text-right">Acciones</th></tr>`;
-                document.getElementById('table-body').innerHTML = DATA.companies.map(c => `<tr><td class="px-10 py-5 font-bold">${c.name}</td><td class="px-10 py-5">${c.rfc}</td><td class="px-10 py-5 text-right"><button onclick="deleteItem('companies', '${c._id}')" class="text-red-500 font-bold">Borrar</button></td></tr>`).join('') || '<tr><td colspan="3" class="p-20 text-center text-slate-300 uppercase">Sin empresas</td></tr>';
 
-            } else if(currentView === 'courses') {
-                const list = filterEmail ? DATA.courses.filter(c => c.creatorEmail === filterEmail) : DATA.courses;
-                document.getElementById('table-header').innerHTML = `<tr><th class="px-10 py-6 text-left">Curso</th><th class="px-10 py-6 text-left">Horas</th></tr>`;
-                document.getElementById('table-body').innerHTML = list.map(c => `<tr class="hover:bg-slate-50 transition-colors"><td class="px-10 py-5 font-bold uppercase">${c.name}</td><td class="px-10 py-5 font-bold text-blue-600">${c.durationHours} H</td></tr>`).join('') || '<tr><td colspan="2" class="p-20 text-center text-slate-300 uppercase">Sin cursos</td></tr>';
+<!-- ══════════════════════════════════════════════════════
+     MODAL GENERAR DC-3
+══════════════════════════════════════════════════════ -->
+<div id="modal-dc3" class="modal-overlay">
+    <div class="modal-box" style="width:580px">
+        <div class="flex items-center justify-between mb-5">
+            <div>
+                <h3 class="text-xl font-bold text-gray-900">Generar Constancia DC-3</h3>
+                <p class="text-sm text-gray-400 mt-0.5">Formato oficial STPS · Art. 153-A LFT</p>
+            </div>
+            <button onclick="closeModal('modal-dc3')" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
 
-            } else if(currentView === 'agents') {
-                const list = filterEmail ? DATA.agents.filter(a => a.creatorEmail === filterEmail) : DATA.agents;
-                document.getElementById('table-header').innerHTML = `<tr><th class="px-10 py-6 text-left">Agente</th><th class="px-10 py-6 text-left">Registro STPS</th></tr>`;
-                document.getElementById('table-body').innerHTML = list.map(a => `<tr class="hover:bg-slate-50 transition-colors"><td class="px-10 py-5 font-bold uppercase">${a.name}</td><td class="px-10 py-5 font-mono text-blue-600 font-bold">${a.stps}</td></tr>`).join('') || '<tr><td colspan="2" class="p-20 text-center text-slate-300 uppercase">Sin agentes</td></tr>';
+        <!-- Worker info -->
+        <div class="bg-indigo-50 rounded-xl p-4 mb-5">
+            <p class="text-xs font-semibold text-indigo-400 uppercase tracking-wide mb-0.5">Trabajador</p>
+            <p id="dc3-worker-name" class="text-base font-bold text-indigo-700">–</p>
+            <p id="dc3-worker-curp" class="text-xs text-indigo-400 font-mono">–</p>
+        </div>
+
+        <div class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Empresa</label>
+                    <select id="dc3-company" class="input-field"></select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Agente Capacitador</label>
+                    <select id="dc3-agent" class="input-field"></select>
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Curso</label>
+                <select id="dc3-course" class="input-field"></select>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Fecha inicio</label>
+                    <input type="date" id="dc3-start" class="input-field">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Fecha término</label>
+                    <input type="date" id="dc3-end" class="input-field">
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Resultado de evaluación</label>
+                <select id="dc3-result" class="input-field">
+                    <option value="Aprobado">Aprobado</option>
+                    <option value="Competente">Competente</option>
+                    <option value="Acreditado">Acreditado</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="flex justify-end gap-3 mt-7">
+            <button onclick="closeModal('modal-dc3')" class="btn-sm btn-outline px-5">Cancelar</button>
+            <button onclick="generateDC3()" class="btn-sm btn-indigo px-7">
+                ⬇ Generar PDF DC-3
+            </button>
+        </div>
+    </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     SCRIPT
+══════════════════════════════════════════════════════ -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ─── CONFIG ───────────────────────────────────────────
+const SUPABASE_URL = "https://osgfwgedjdltrmvwycjd.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zZ2Z3Z2VkamRsdHJtdnd5Y2pkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyNDAxMzcsImV4cCI6MjA5OTgxNjEzN30.jeV98eAfhQzkXiGj88DUOLqLPLFr_IKPrcnTaefEgj0";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const CATALOGS = {
+    occupations: [
+        "01 Cultivo, crianza y aprovechamiento","01.1 Agricultura y silvicultura","01.2 Ganadería","01.3 Pesca y acuacultura",
+        "02 Extracción y suministro","02.1 Exploración","02.2 Extracción","02.3 Refinación y beneficio","02.4 Provisión de energía","02.5 Provisión de agua",
+        "03 Construcción","03.1 Planeación y dirección de obras","03.2 Edificación y urbanización","03.3 Acabado","03.4 Instalación y mantenimiento",
+        "04 Tecnología","04.1 Mecánica","04.2 Electricidad","04.3 Electrónica","04.4 Informática","04.5 Telecomunicaciones","04.6 Procesos industriales",
+        "05 Procesamiento y fabricación","05.1 Minerales no metálicos","05.2 Metales","05.3 Alimentos y bebidas","05.4 Textiles y prendas de vestir","05.5 Materia orgánica","05.6 Productos químicos","05.7 Productos metálicos y de hule y plástico","05.8 Productos eléctricos y electrónicos","05.9 Productos impresos",
+        "06 Transporte","06.1 Ferroviario","06.2 Autotransporte","06.3 Aéreo","06.4 Marítimo y fluvial","06.5 Servicios de apoyo",
+        "07 Provisión de bienes y servicios","07.1 Comercio","07.2 Alimentación y hospedaje","07.3 Turismo","07.4 Deporte y esparcimiento","07.5 Servicios personales","07.6 Reparación de artículos de uso doméstico","07.7 Limpieza","07.8 Servicio postal y mensajería",
+        "08 Gestión y soporte administrativo","08.1 Bolsa, banca y seguros","08.2 Administración","08.3 Servicios legales",
+        "09 Salud y protección social","09.1 Servicios médicos","09.2 Inspección sanitaria","09.3 Seguridad social","09.4 Protección de bienes y personas",
+        "10 Comunicación","10.1 Publicación","10.2 Radio, cine, televisión y teatro","10.3 Interpretación artística","10.4 Traducción e interpretación","10.5 Publicidad y relaciones públicas",
+        "11 Desarrollo y extensión del conocimiento","11.1 Investigación","11.2 Enseñanza","11.3 Difusión cultural"
+    ],
+    thematicAreas: [
+        "1000 Producción general","2000 Servicios","3000 Administración, contabilidad y economía",
+        "4000 Comercialización","5000 Mantenimiento y reparación","6000 Seguridad",
+        "7000 Desarrollo personal y familiar","8000 Uso de tecnologías de la información","9000 Participación social"
+    ]
+};
+
+const DATA = {
+    users: [
+        { name: "Dario Robles", email: "d4r005@gmail.com", role: "ADMIN", password: "Branco2025" },
+        { name: "Cynthia Garza Lugo", email: "lugga.advisors@gmail.com", role: "USER", password: "Cynthia123" }
+    ],
+    courses: [],   // Cargado desde Supabase
+    agents: [],     // Cargado desde Supabase
+    companies: []   // Cargado desde Supabase
+};
+
+// Cargar catálogos desde Supabase al iniciar
+async function loadCatalogs() {
+    const [coursesR, agentsR, companiesR] = await Promise.all([
+        api('find','courses',{ filter: {} }),
+        api('find','agents',{ filter: {} }),
+        api('find','companies',{ filter: {} })
+    ]);
+    DATA.courses   = coursesR.documents || [];
+    DATA.agents    = agentsR.documents  || [];
+    DATA.companies = companiesR.documents || [];
+}
+
+let currentUser = null, currentView = 'dashboard', selectedWorker = null;
+
+// ─── INIT ──────────────────────────────────────────────
+window.onload = () => {
+    const rem = localStorage.getItem('rememberedEmail');
+    if (rem) document.getElementById('email').value = rem;
+};
+
+// ─── API ──────────────────────────────────────────────
+// ─── SUPABASE API ──────────────────────────────────
+// Map frontend collection names to Supabase table names
+const TABLE_MAP = { workers:'workers', companies:'companies', courses:'courses', dc3_records:'dc3_records', agents:'agents' };
+
+// Map camelCase fields to snake_case for DB
+function toSnake(obj) {
+    const map = { creatorEmail:'creator_email', workerId:'worker_id', workerName:'worker_name', workerPos:'worker_pos',
+                  courseName:'course_name', companyName:'company_name', agentName:'agent_name', agentStps:'agent_stps',
+                  startDate:'start_date', endDate:'end_date', resultText:'result_text', durationHours:'duration_hours',
+                  thematicArea:'thematic_area' };
+    const out = {};
+    for (const [k,v] of Object.entries(obj)) out[map[k]||k] = v;
+    return out;
+}
+
+// Map snake_case back to camelCase for frontend
+function toCamel(obj) {
+    const map = { creator_email:'creatorEmail', worker_id:'workerId', worker_name:'workerName', worker_pos:'workerPos',
+                  course_name:'courseName', company_name:'companyName', agent_name:'agentName', agent_stps:'agentStps',
+                  start_date:'startDate', end_date:'endDate', result_text:'resultText', duration_hours:'durationHours',
+                  thematic_area:'thematicArea', created_at:'createdAt' };
+    const out = {};
+    for (const [k,v] of Object.entries(obj)) out[map[k]||k] = v;
+    return out;
+}
+
+async function api(action, collection, payload = {}) {
+    const table = TABLE_MAP[collection] || collection;
+    try {
+        if (action === 'find') {
+            let q = sb.from(table).select('*');
+            if (payload.filter) {
+                for (const [k,v] of Object.entries(toSnake(payload.filter))) {
+                    if (v && v !== '') q = q.eq(k, v);
+                }
             }
+            q = q.order('created_at', { ascending: false });
+            const { data, error } = await q;
+            if (error) { console.error('Supabase find error:', error); return { documents: [] }; }
+            return { documents: (data||[]).map(toCamel) };
         }
-
-        function openModal() {
-            const fields = document.getElementById('modal-fields');
-            document.getElementById('modal').style.display = 'block';
-            if(currentView === 'companies') {
-                document.getElementById('modal-title').innerText = "Nueva Empresa";
-                fields.innerHTML = `<input id="f1" placeholder="Nombre o Razón Social" class="w-full p-4 bg-slate-50 rounded-2xl outline-none"><input id="f2" placeholder="RFC" class="w-full p-4 bg-slate-50 rounded-2xl outline-none">`;
-            }
+        if (action === 'insertOne') {
+            const row = toSnake(payload.document);
+            const { data, error } = await sb.from(table).insert(row).select();
+            if (error) { console.error('Supabase insert error:', error); return { error: error.message }; }
+            return { insertedId: data?.[0]?.id };
         }
-
-        async function saveItem() {
-            if(currentView === 'companies') {
-                const doc = { name: document.getElementById('f1').value, rfc: document.getElementById('f2').value, creatorEmail: currentUser.email };
-                await atlasAction("insertOne", "companies", { document: doc });
-                const comp = await atlasAction("find", "companies", { filter: {} }); DATA.companies = comp.documents || [];
-            }
-            closeModal(); refreshCurrentView();
+        if (action === 'insertMany') {
+            const rows = (payload.documents||[]).map(toSnake);
+            const { data, error } = await sb.from(table).insert(rows).select();
+            if (error) { console.error('Supabase insertMany error:', error); return { error: error.message }; }
+            return { insertedCount: data?.length || 0 };
         }
-
-        function openDC3Modal(worker) {
-            selectedWorker = worker;
-            document.getElementById('dc3-worker-name').innerText = worker.name;
-            const compSelect = document.getElementById('dc3-company');
-            const courSelect = document.getElementById('dc3-course');
-            compSelect.innerHTML = DATA.companies.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
-            const list = currentUser.role === 'ADMIN' ? DATA.courses : DATA.courses.filter(c => c.creatorEmail === currentUser.email);
-            courSelect.innerHTML = list.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
-            document.getElementById('dc3-modal').style.display = 'block';
+        if (action === 'deleteOne') {
+            const id = payload.filter?.id || payload.id;
+            const { error } = await sb.from(table).delete().eq('id', id);
+            if (error) { console.error('Supabase delete error:', error); return { error: error.message }; }
+            return { deletedCount: 1 };
         }
+        return { error: 'Unknown action: ' + action };
+    } catch(e) { console.error('API error:', e); return { documents: [] }; }
+}
 
-        function generateSingleDC3() {
-            const company = document.getElementById('dc3-company').value;
-            const course = document.getElementById('dc3-course').value;
-            const start = document.getElementById('dc3-start').value;
-            const end = document.getElementById('dc3-end').value;
+// ─── LOGIN ─────────────────────────────────────────────
+async function login(e) {
+    e.preventDefault();
+    const email = document.getElementById('email').value.trim();
+    const pass = document.getElementById('password').value;
+    const user = DATA.users.find(u => u.email === email && u.password === pass);
+    if (!user) { document.getElementById('login-error').classList.remove('hidden'); return; }
+    if (document.getElementById('remember-me').checked) localStorage.setItem('rememberedEmail', email);
+    currentUser = user;
+    initApp();
+}
 
-            const doc = new jspdf.jsPDF();
-            doc.setFontSize(20); doc.text("FORMATO DC-3", 105, 20, null, null, "center");
-            doc.setFontSize(12); doc.text(`Trabajador: ${selectedWorker.name}`, 20, 40);
-            doc.text(`CURP: ${selectedWorker.curp}`, 20, 50);
-            doc.text(`Empresa: ${company}`, 20, 70);
-            doc.text(`Curso: ${course}`, 20, 90);
-            doc.text(`Periodo: de ${start} a ${end}`, 20, 100);
-            doc.save(`DC3_${selectedWorker.curp}.pdf`);
+async function initApp() {
+    document.getElementById('view-login').style.display = 'none';
+    document.getElementById('view-app').style.display = 'block';
+    document.getElementById('user-avatar').innerText = currentUser.name.substring(0,2).toUpperCase();
+    document.getElementById('user-name-display').innerText = currentUser.name;
+    document.getElementById('user-role-display').innerText = currentUser.role;
+    if (currentUser.role === 'ADMIN') {
+        document.getElementById('btn-users').classList.remove('hidden');
+    }
+    await loadCatalogs();
+    setView('dashboard');
+}
 
-            atlasAction("insertOne", "dc3_records", { document: { workerId: selectedWorker.curp, courseName: course, companyName: company, startDate: start, creatorEmail: currentUser.email } });
-            alert("¡DC-3 Generado y Guardado!");
-            document.getElementById('dc3-modal').style.display = 'none';
-            refreshCurrentView();
+function logout() {
+    currentUser = null;
+    document.getElementById('view-login').style.display = '';
+    document.getElementById('view-app').style.display = 'none';
+}
+
+// ─── NAVIGATION ────────────────────────────────────────
+const VIEWS = ['dashboard','workers','companies','courses','dc3','agents','users'];
+const TITLES = {
+    dashboard: ['Dashboard', 'Resumen del sistema'],
+    workers:   ['Personal', 'Trabajadores registrados con su CURP y puesto'],
+    companies: ['Empresas', 'Empresas cliente registradas en el sistema'],
+    courses:   ['Cursos', 'Catálogo de cursos disponibles por agente'],
+    dc3:       ['Constancias DC-3', 'Historial de constancias generadas'],
+    agents:    ['Agentes Capacitadores', 'Agentes Externos registrados ante la STPS'],
+    users:     ['Usuarios', 'Gestión de accesos al sistema'],
+};
+
+function setView(v) {
+    currentView = v;
+    VIEWS.forEach(x => {
+        document.getElementById(`section-${x}`).classList.toggle('hidden', x !== v);
+    });
+    document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+    const links = ['dashboard','workers','companies','courses','dc3','agents','users'];
+    const idx = links.indexOf(v);
+    if (idx >= 0) document.querySelectorAll('.nav-link')[idx].classList.add('active');
+    document.getElementById('page-title').innerText = TITLES[v][0];
+    document.getElementById('page-subtitle').innerText = TITLES[v][1];
+    const addable = ['workers','companies'].includes(v);
+    document.getElementById('btn-add').classList.toggle('hidden', !addable);
+    document.getElementById('btn-excel').classList.toggle('hidden', v !== 'workers');
+    loadSection(v);
+}
+
+// ─── LOAD SECTIONS ─────────────────────────────────────
+async function loadSection(v) {
+    const f = (currentUser.role === 'ADMIN') ? {} : { creatorEmail: currentUser.email };
+
+    if (v === 'dashboard') {
+        const [w, d, co] = await Promise.all([
+            api('find','workers',{ filter: f }),
+            api('find','dc3_records',{ filter: {} }),
+            api('find','companies',{ filter: {} })
+        ]);
+        document.getElementById('stat-workers').innerText = (w.documents||[]).length;
+        document.getElementById('stat-dc3').innerText = (d.documents||[]).length;
+        document.getElementById('stat-companies').innerText = (co.documents||[]).length;
+
+    } else if (v === 'workers') {
+        const r = await api('find','workers',{ filter: f });
+        const rows = (r.documents||[]);
+        document.getElementById('tb-workers').innerHTML = rows.length
+            ? rows.map(x => `<tr>
+                <td class="font-semibold">${x.name||''}</td>
+                <td class="font-mono text-xs text-gray-500">${x.curp||''}</td>
+                <td class="text-xs text-gray-500">${x.occupation||''}</td>
+                <td>${x.position||''}</td>
+                <td class="text-right">
+                    <button onclick='openDC3(${JSON.stringify(x)})' class="btn-sm btn-indigo mr-2">Generar DC-3</button>
+                    <button onclick="delItem('workers','${x.id}')" class="btn-sm btn-red">Eliminar</button>
+                </td>
+              </tr>`).join('')
+            : `<tr><td colspan="5" class="text-center py-12 text-gray-300 text-sm">Sin personal registrado</td></tr>`;
+
+    } else if (v === 'companies') {
+        const r = await api('find','companies',{ filter: {} });
+        const rows = (r.documents||[]);
+        DATA.companies = rows;
+        document.getElementById('tb-companies').innerHTML = rows.length
+            ? rows.map(x => `<tr>
+                <td class="font-semibold">${x.name||''}</td>
+                <td class="font-mono text-xs text-gray-500">${x.rfc||''}</td>
+                <td class="text-right"><button onclick="delItem('companies','${x.id}')" class="btn-sm btn-red">Eliminar</button></td>
+              </tr>`).join('')
+            : `<tr><td colspan="3" class="text-center py-12 text-gray-300 text-sm">Sin empresas registradas</td></tr>`;
+
+    } else if (v === 'courses') {
+        const list = currentUser.role === 'ADMIN' ? DATA.courses : DATA.courses.filter(c => c.creatorEmail === currentUser.email);
+        document.getElementById('tb-courses').innerHTML = list.length
+            ? list.map(c => `<tr>
+                <td class="font-semibold">${c.name}</td>
+                <td><span class="badge badge-admin">${c.durationHours} hrs</span></td>
+                <td class="text-xs text-gray-500">${c.thematicArea||'–'}</td>
+              </tr>`).join('')
+            : `<tr><td colspan="3" class="text-center py-12 text-gray-300 text-sm">Sin cursos</td></tr>`;
+
+    } else if (v === 'dc3') {
+        const r = await api('find','dc3_records',{ filter: {} });
+        const rows = (r.documents||[]);
+        document.getElementById('tb-dc3').innerHTML = rows.length
+            ? rows.map(x => `<tr>
+                <td>
+                    <p class="font-semibold text-sm">${x.workerName||'–'}</p>
+                    <p class="font-mono text-xs text-gray-400">${x.workerId||''}</p>
+                </td>
+                <td class="text-sm">${x.courseName||''}</td>
+                <td class="text-sm text-gray-500">${x.companyName||''}</td>
+                <td class="text-xs text-gray-400">${x.startDate||''} – ${x.endDate||''}</td>
+                <td class="text-right">
+                    <button onclick='regenDC3(${JSON.stringify(x)})' class="btn-sm btn-indigo">⬇ PDF</button>
+                </td>
+              </tr>`).join('')
+            : `<tr><td colspan="5" class="text-center py-12 text-gray-300 text-sm">Sin historial de constancias</td></tr>`;
+
+    } else if (v === 'agents') {
+        const list = currentUser.role === 'ADMIN' ? DATA.agents : DATA.agents.filter(a => a.creatorEmail === currentUser.email);
+        document.getElementById('tb-agents').innerHTML = list.length
+            ? list.map(a => `<tr>
+                <td class="font-semibold">${a.name}</td>
+                <td class="font-mono text-indigo-600">${a.stps}</td>
+              </tr>`).join('')
+            : `<tr><td colspan="2" class="text-center py-12 text-gray-300 text-sm">Sin agentes</td></tr>`;
+
+    } else if (v === 'users') {
+        document.getElementById('tb-users').innerHTML = DATA.users.map(u => `<tr>
+            <td class="font-semibold">${u.name}</td>
+            <td class="text-gray-500 text-sm">${u.email}</td>
+            <td><span class="badge ${u.role==='ADMIN'?'badge-admin':'badge-user'}">${u.role}</span></td>
+          </tr>`).join('');
+    }
+}
+
+// ─── MODAL AGREGAR ─────────────────────────────────────
+function openModal() {
+    document.getElementById('modal-add').classList.add('open');
+    const f = document.getElementById('modal-fields');
+    if (currentView === 'companies') {
+        document.getElementById('modal-title').innerText = 'Nueva Empresa';
+        f.innerHTML = `
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Razón Social</label>
+                <input id="f1" class="input-field" placeholder="Ej. Industriales del Norte SA de CV">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">RFC</label>
+                <input id="f2" class="input-field" placeholder="Ej. INA930512AB3" style="text-transform:uppercase">
+            </div>`;
+    } else if (currentView === 'workers') {
+        document.getElementById('modal-title').innerText = 'Nuevo Trabajador';
+        const opts = CATALOGS.occupations.map(o => `<option value="${o}">${o}</option>`).join('');
+        f.innerHTML = `
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nombre completo</label>
+                <input id="f1" class="input-field" placeholder="Apellido Paterno Apellido Materno Nombre(s)">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">CURP</label>
+                <input id="f2" class="input-field" placeholder="18 caracteres" style="text-transform:uppercase" maxlength="18">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Ocupación Específica</label>
+                <select id="f3" class="input-field"><option value="">Seleccionar…</option>${opts}</select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Puesto de trabajo</label>
+                <input id="f4" class="input-field" placeholder="Ej. Operador de Montacargas">
+            </div>`;
+    }
+}
+
+async function saveItem() {
+    if (currentView === 'companies') {
+        const name = document.getElementById('f1').value.trim();
+        const rfc = document.getElementById('f2').value.trim().toUpperCase();
+        if (!name || !rfc) { alert('Completa todos los campos'); return; }
+        await api('insertOne','companies',{ document: { name, rfc, creatorEmail: currentUser.email } });
+    } else if (currentView === 'workers') {
+        const name = document.getElementById('f1').value.trim();
+        const curp = document.getElementById('f2').value.trim().toUpperCase();
+        const occupation = document.getElementById('f3').value;
+        const position = document.getElementById('f4').value.trim();
+        if (!name || !curp) { alert('Nombre y CURP son requeridos'); return; }
+        await api('insertOne','workers',{ document: { name, curp, occupation, position, creatorEmail: currentUser.email } });
+    }
+    closeModal('modal-add');
+    loadSection(currentView);
+}
+
+function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+}
+
+// ─── DELETE ────────────────────────────────────────────
+async function delItem(coll, id) {
+    if (!confirm('¿Eliminar este registro?')) return;
+    await api('deleteOne', coll, { filter: { id } });
+    loadSection(currentView);
+}
+
+// ─── MODAL DC-3 ────────────────────────────────────────
+function openDC3(worker) {
+    selectedWorker = worker;
+    document.getElementById('dc3-worker-name').innerText = worker.name;
+    document.getElementById('dc3-worker-curp').innerText = 'CURP: ' + (worker.curp || '–');
+
+    // Companies
+    const compSel = document.getElementById('dc3-company');
+    compSel.innerHTML = DATA.companies.length
+        ? DATA.companies.map(c => `<option value="${c.name}">${c.name}</option>`).join('')
+        : '<option>Sin empresas registradas</option>';
+
+    // Agents
+    const agentSel = document.getElementById('dc3-agent');
+    agentSel.innerHTML = DATA.agents.map(a => `<option value="${a.name}|${a.stps}">${a.name}</option>`).join('');
+
+    // Courses
+    const list = currentUser.role === 'ADMIN' ? DATA.courses : DATA.courses.filter(c => c.creatorEmail === currentUser.email);
+    document.getElementById('dc3-course').innerHTML = list.map(c => `<option value="${c.name}|${c.durationHours}|${c.thematicArea}">${c.name}</option>`).join('');
+
+    document.getElementById('modal-dc3').classList.add('open');
+}
+
+async function generateDC3() {
+    const company   = document.getElementById('dc3-company').value;
+    const agentVal  = document.getElementById('dc3-agent').value;
+    const courseVal = document.getElementById('dc3-course').value;
+    const start     = document.getElementById('dc3-start').value;
+    const end       = document.getElementById('dc3-end').value;
+    const result    = document.getElementById('dc3-result').value;
+
+    if (!start || !end) { alert('Selecciona las fechas de inicio y término'); return; }
+
+    const [agentName, agentStps] = agentVal.split('|');
+    const [courseName, courseDuration, courseArea] = courseVal.split('|');
+
+    buildDC3PDF({
+        worker: selectedWorker,
+        company,
+        agent: { name: agentName, stps: agentStps },
+        course: { name: courseName, duration: courseDuration, area: courseArea },
+        start, end, result
+    });
+
+    // Save to DB
+    await api('insertOne','dc3_records',{ document: {
+        workerId:    selectedWorker.curp,
+        workerName:  selectedWorker.name,
+        workerPos:   selectedWorker.position,
+        courseName,
+        companyName: company,
+        agentName,
+        agentStps,
+        startDate:   start,
+        endDate:     end,
+        resultText:  result,
+        creatorEmail: currentUser.email
+    }});
+
+    closeModal('modal-dc3');
+    if (currentView === 'dc3') loadSection('dc3');
+    else { alert('DC-3 generado y guardado exitosamente.'); }
+}
+
+// Regenerar desde historial
+function regenDC3(record) {
+    const worker  = { name: record.workerName, curp: record.workerId, position: record.workerPos };
+    buildDC3PDF({
+        worker,
+        company: record.companyName,
+        agent:   { name: record.agentName || '–', stps: record.agentStps || '–' },
+        course:  { name: record.courseName, duration: '–', area: '–' },
+        start:   record.startDate,
+        end:     record.endDate,
+        result:  record.resultText || 'Aprobado'
+    });
+}
+
+// ─── PDF OFICIAL DC-3 STPS (ANVERSO + REVERSO) ──────────
+function buildDC3PDF({ worker, company, agent, course, start, end, result }) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
+
+    // jsPDF con fuente helvetica soporta latin1 correctamente
+    // Convertir caracteres especiales espanol
+    function sp(s) {
+        if (!s) return '';
+        return String(s)
+            .replace(/\u00e1/g,'a').replace(/\u00e9/g,'e').replace(/\u00ed/g,'i')
+            .replace(/\u00f3/g,'o').replace(/\u00fa/g,'u')
+            .replace(/\u00c1/g,'A').replace(/\u00c9/g,'E').replace(/\u00cd/g,'I')
+            .replace(/\u00d3/g,'O').replace(/\u00da/g,'U')
+            .replace(/\u00f1/g,'n').replace(/\u00d1/g,'N')
+            .replace(/\u00fc/g,'u').replace(/\u00dc/g,'U');
+    }
+
+    const PW = 215.9, PH = 279.4;
+    const ML = 10, MR = 10;
+    const CW = PW - ML - MR;
+
+    // ─── helpers ───────────────────────────────────────────────────
+    function sf(style, size) { doc.setFont('helvetica', style); doc.setFontSize(size); }
+    function tc(r,g,b) { doc.setTextColor(r,g,b); }
+    function dc(r,g,b) { doc.setDrawColor(r,g,b); }
+    function fc(r,g,b) { doc.setFillColor(r,g,b); }
+    function lw(w) { doc.setLineWidth(w); }
+    function T(txt,x,y,opts) { doc.text(sp(String(txt||'')),x,y,opts||{}); }
+    function R(x,y,w,h,s) { doc.rect(x,y,w,h,s||'S'); }
+
+    // Barra de seccion azul oscuro
+    function secBar(label, y, h) {
+        h = h || 6.5;
+        fc(0,51,102); dc(0,51,102); lw(0); R(ML,y,CW,h,'F');
+        sf('bold',8); tc(255,255,255);
+        T(label, ML+2.5, y+h-1.8);
+        tc(0,0,0);
+        return y+h;
+    }
+
+    // Linea horizontal gris
+    function hline(y, x1, x2) {
+        dc(180,180,180); lw(0.2);
+        doc.line(x1||ML, y, x2||(PW-MR), y);
+    }
+
+    // Label pequeno + valor en negrita
+    function fieldPair(label, value, x, y, maxW) {
+        sf('normal',6); tc(80,80,80); T(label, x, y);
+        sf('bold',8.5); tc(0,0,0); T(String(value||'–').toUpperCase(), x, y+4);
+        hline(y+5.5, x, x+(maxW||60));
+        return y+5.5;
+    }
+
+    // Caja para letra individual (CURP / RFC / periodo)
+    function letterBox(char, x, y, w, h) {
+        w = w||5; h = h||6;
+        dc(0,0,0); lw(0.3); R(x,y,w,h,'S');
+        if (char) { sf('bold',7.5); tc(0,0,0); T(char, x+w/2, y+h-1.2, {align:'center'}); }
+    }
+
+    // Fila de cajas con texto
+    function boxRow(str, x, y, boxW, boxH, maxBoxes) {
+        str = String(str||'');
+        maxBoxes = maxBoxes || str.length;
+        boxW = boxW||5.5; boxH = boxH||6.5;
+        for (let i=0; i<maxBoxes; i++) {
+            letterBox(str[i]||'', x + i*(boxW+0.6), y, boxW, boxH);
         }
+        return x + maxBoxes*(boxW+0.6);
+    }
 
-        function togglePassword() { const p = document.getElementById('password'); p.type = p.type === 'password' ? 'text' : 'password'; }
-        function logout() { location.reload(); }
-        function closeModal() { document.getElementById('modal').style.display='none'; }
-        async function deleteItem(coll, id) { if(confirm("Borrar?")) { await atlasAction("deleteOne", coll, { filter: { _id: { "$oid": id } } }); refreshCurrentView(); } }
-        async function handleExcel(input) {
-            const r = new FileReader(); r.onload = async (e) => {
-                const rows = XLSX.utils.sheet_to_json(XLSX.read(new Uint8Array(e.target.result), {type:'array'}).Sheets[XLSX.read(new Uint8Array(e.target.result), {type:'array'}).SheetNames[0]]);
-                const workers = rows.map(r => ({ name: r.Nombre || r.NOMBRE, curp: r.CURP, position: r.Puesto || r.PUESTO, creatorEmail: currentUser.email }));
-                await atlasAction("insertMany", "workers", { documents: workers });
-                alert("Excel cargado!"); refreshCurrentView();
-            };
-            r.readAsArrayBuffer(input.files[0]);
+    // ─────────────────────────────────────────────────────────────
+    // PAGINA 1 — ANVERSO
+    // ─────────────────────────────────────────────────────────────
+    let y = 10;
+
+    // ── ENCABEZADO ────────────────────────────────────────────────
+    fc(0,51,102); dc(0,51,102); lw(0);
+    R(ML, y, CW, 11, 'F');
+    sf('bold',12); tc(255,255,255);
+    T('SECRETARIA DEL TRABAJO Y PREVISION SOCIAL', PW/2, y+7.5, {align:'center'});
+    y += 11;
+
+    sf('normal',7.5); tc(50,50,130);
+    T('Direccion General de Capacitacion', PW/2, y+4, {align:'center'});
+    y += 7;
+
+    fc(210,225,255); dc(180,200,240); lw(0.3);
+    R(ML, y, CW, 11, 'FD');
+    sf('bold',10.5); tc(0,51,102);
+    T('CONSTANCIA DE COMPETENCIAS O DE HABILIDADES LABORALES', PW/2, y+7.5, {align:'center'});
+    y += 11;
+
+    sf('normal',7); tc(70,70,140);
+    T('FORMATO DC-3      Articulo 153-A de la Ley Federal del Trabajo', PW/2, y+4, {align:'center'});
+    y += 7;
+
+    // ── DATOS DEL TRABAJADOR ─────────────────────────────────────
+    y = secBar('DATOS DEL TRABAJADOR', y);
+    y += 2;
+
+    // Nombre | CURP (derecha)
+    sf('normal',6); tc(80,80,80);
+    T('Nombre (Anotar apellido paterno, apellido materno y nombre (s))', ML, y);
+    T('Clave Unica de Registro de Poblacion', ML + CW*0.60 + 2, y);
+
+    sf('bold',9.5); tc(0,0,0);
+    T(String(worker.name||'').toUpperCase(), ML, y+5);
+    hline(y+6.5, ML, ML + CW*0.58);
+
+    // CURP boxes — 18 letras
+    const curpStr = String(worker.curp||'').replace(/\s/g,'').toUpperCase().substring(0,18);
+    const curpX = ML + CW*0.60 + 2;
+    boxRow(curpStr.padEnd(18,' '), curpX, y-0.5, 4.9, 6.5, 18);
+    y += 9;
+
+    // Puesto | Ocupacion especifica
+    sf('normal',6); tc(80,80,80);
+    T('Puesto 2)', ML, y);
+    T('Ocupacion especifica (Catalogo Nacional de Ocupaciones) 2)', curpX, y);
+
+    sf('bold',8.5); tc(0,0,0);
+    T(String(worker.position||'–').toUpperCase(), ML, y+4.5);
+    hline(y+6, ML, ML + CW*0.58);
+
+    sf('normal',8); tc(0,0,0);
+    T(String(worker.occupation||'–').toUpperCase(), curpX, y+4.5);
+    hline(y+6, curpX, PW-MR);
+    y += 9;
+
+    // ── DATOS DE LA EMPRESA ──────────────────────────────────────
+    y += 1;
+    y = secBar('DATOS DE LA EMPRESA', y);
+    y += 2;
+
+    sf('normal',6); tc(80,80,80);
+    T('Nombre o razon social (En caso de persona fisica, anotar apellido paterno, apellido materno y nombre(s))', ML, y);
+    sf('bold',9); tc(0,0,0);
+    T(String(company||'').toUpperCase(), ML, y+4.5);
+    hline(y+6, ML, PW-MR);
+    y += 9;
+
+    sf('normal',6); tc(80,80,80);
+    T('Registro Federal de Contribuyentes con homoclave (SHCP)', ML, y);
+    y += 3;
+
+    // RFC boxes — limpiar tabulaciones y espacios, 12 caracteres
+    const rfcRaw = String((DATA.companies||[]).find(c=>sp(c.name)===sp(company)||c.name===company)?.rfc || '');
+    const rfcClean = rfcRaw.replace(/[\t\s\-]/g,'').toUpperCase().substring(0,12);
+    boxRow(rfcClean.padEnd(12,' '), ML, y, 5.5, 6.5, 12);
+    y += 10;
+
+    // ── DATOS DEL PROGRAMA ───────────────────────────────────────
+    y += 1;
+    y = secBar('DATOS DEL PROGRAMA DE CAPACITACION, ADIESTRAMIENTO Y PRODUCTIVIDAD', y);
+    y += 2;
+
+    sf('normal',6); tc(80,80,80); T('Nombre del curso', ML, y);
+    sf('bold',9); tc(0,0,0);
+    T(String(course.name||'').toUpperCase(), ML, y+4.5);
+    hline(y+6, ML, PW-MR);
+    y += 9;
+
+    // Duracion | Periodo de ejecucion
+    sf('normal',6); tc(80,80,80);
+    T('Duracion en horas', ML, y);
+    T('Periodo de ejecucion:', ML+30, y);
+    sf('bold',9); tc(0,0,0);
+    T(String(course.durationHours||course.duration_hours||'8'), ML, y+5);
+    hline(y+6.5, ML, ML+27);
+
+    // Periodo boxes: Dia/Mes/Año inicio y fin
+    // Parsear fechas
+    let startParts=['','',''], endParts=['','',''];
+    if (start) { const p=start.split('-'); startParts=[p[2]||'',p[1]||'',p[0]||'']; }
+    if (end)   { const p=end.split('-');   endParts  =[p[2]||'',p[1]||'',p[0]||'']; }
+    // [dia2, mes2, anio4]
+    const sd = startParts[0].padStart(2,'0'), sm = startParts[1].padStart(2,'0'), sy = startParts[2];
+    const ed = endParts[0].padStart(2,'0'),   em = endParts[1].padStart(2,'0'),   ey = endParts[2];
+
+    let px = ML+55;
+    const bw=5.4, bh=6.5, gap=0.5;
+
+    // Labels Dia/Mes/Ano arriba
+    sf('normal',5.5); tc(80,80,80);
+    T('Dia', px+1, y); T('Mes', px+2*(bw+gap)+5, y); T('Ano', px+4*(bw+gap)+10, y);
+    y += 1.5;
+    sf('normal',7); tc(80,80,80); T('De', px-5, y+5);
+
+    // Start boxes
+    letterBox(sd[0], px, y, bw, bh); letterBox(sd[1], px+bw+gap, y, bw, bh);
+    px += 2*(bw+gap)+2;
+    letterBox(sm[0], px, y, bw, bh); letterBox(sm[1], px+bw+gap, y, bw, bh);
+    px += 2*(bw+gap)+2;
+    letterBox(sy[0]||'', px, y, bw, bh); letterBox(sy[1]||'', px+bw+gap, y, bw, bh);
+    letterBox(sy[2]||'', px+2*(bw+gap), y, bw, bh); letterBox(sy[3]||'', px+3*(bw+gap), y, bw, bh);
+    px += 4*(bw+gap)+4;
+
+    sf('normal',7); tc(80,80,80); T('A', px, y+5); px+=5;
+
+    // Labels fin
+    sf('normal',5.5); tc(80,80,80);
+    T('Dia', px+1, y-1.5); T('Mes', px+2*(bw+gap)+5, y-1.5); T('Ano', px+4*(bw+gap)+10, y-1.5);
+
+    // End boxes
+    letterBox(ed[0], px, y, bw, bh); letterBox(ed[1], px+bw+gap, y, bw, bh);
+    px += 2*(bw+gap)+2;
+    letterBox(em[0], px, y, bw, bh); letterBox(em[1], px+bw+gap, y, bw, bh);
+    px += 2*(bw+gap)+2;
+    letterBox(ey[0]||'', px, y, bw, bh); letterBox(ey[1]||'', px+bw+gap, y, bw, bh);
+    letterBox(ey[2]||'', px+2*(bw+gap), y, bw, bh); letterBox(ey[3]||'', px+3*(bw+gap), y, bw, bh);
+
+    y += 9;
+
+    // Area tematica
+    sf('normal',6); tc(80,80,80); T('Area tematica del curso', ML, y);
+    const areaVal = sp(course.thematicArea || course.thematic_area || '');
+    sf('normal',8.5); tc(0,0,0);
+    T('(' + (areaVal||'–') + ')', ML, y+4.5);
+    hline(y+6, ML, PW-MR);
+    y += 9;
+
+    // Nombre del agente
+    sf('normal',6); tc(80,80,80);
+    T('Nombre del agente capacitador o STPS 3)', ML, y);
+    sf('bold',8.5); tc(0,0,0);
+    const agentLine = String(agent.name||'').toUpperCase() + '     ' + String(agent.stps||'');
+    T(sp(agentLine), ML, y+4.5);
+    hline(y+6, ML, PW-MR);
+    y += 9;
+
+    // ── FIRMAS ───────────────────────────────────────────────────
+    y += 3;
+    // Recuadro central con frase
+    dc(0,0,0); lw(0.4);
+    doc.rect(ML+CW*0.22, y, CW*0.56, 8, 'S');
+    sf('bold',8.5); tc(0,0,0);
+    T('aqui que no se conduce con verdad.', PW/2, y+5.2, {align:'center'});
+    y += 10;
+
+    // 3 columnas de firma
+    const fw = (CW-6)/3;
+    const sigH = 26;
+    const sigLabels = [
+        ['Instructor o tutor', '', String(agent.name||'').toUpperCase()],
+        ['Patron o representante legal 4)', '', ''],
+        ['Representante de los trabajadores 5)', '', '']
+    ];
+
+    sigLabels.forEach(([top, mid, bottom], i) => {
+        const bx = ML + i*(fw+3);
+        dc(0,0,0); lw(0.3);
+        doc.rect(bx, y, fw, sigH, 'S');
+        sf('normal',6); tc(80,80,80);
+        const topLines = doc.splitTextToSize(sp(top), fw-4);
+        doc.text(topLines, bx+fw/2, y+3, {align:'center'});
+        if (bottom) {
+            sf('bold',7.5); tc(0,0,0);
+            const botLines = doc.splitTextToSize(sp(bottom), fw-4);
+            doc.text(botLines, bx+fw/2, y+sigH-7, {align:'center'});
         }
-    </script>
+        // Linea de firma
+        dc(100,100,100); lw(0.2);
+        doc.line(bx+3, y+sigH-5, bx+fw-3, y+sigH-5);
+        sf('normal',6); tc(80,80,80);
+        T('Nombre y firma', bx+fw/2, y+sigH-2, {align:'center'});
+    });
+    y += sigH + 5;
+
+    // ── INSTRUCCIONES ────────────────────────────────────────────
+    const instrs = [
+        '1) Llenar a maquina o con letra de molde.',
+        '2) Debera entregarse al trabajador dentro de los treinta dias habiles siguientes al termino del curso de capacitacion aprobado.',
+        '3) Las areas y subáreas ocupacionales del Catalogo Nacional de Ocupaciones se encuentran disponibles en el reverso de este formato y en la pagina www.stps.gob.mx.',
+        '   Las areas tematicas de los cursos se encuentran disponibles en el reverso de este formato y en la pagina www.stps.gob.mx.',
+        '4) El campo corresponde al area competente de la Secretaria del Trabajo y Prevision Social.',
+        '5) Para empresas con menos de 50 trabajadores. Para empresas con mas de 50 trabajadores firmara el representante del patron ante la Comision Mixta.',
+        '   Dato no obligatorio.'
+    ];
+    sf('bold',7); tc(0,0,0); T('INSTRUCCIONES', ML, y); y += 4;
+    sf('normal',6); tc(20,20,20);
+    instrs.forEach(line => {
+        const wrapped = doc.splitTextToSize(sp(line), CW);
+        doc.text(wrapped, ML, y);
+        y += wrapped.length * 3.2;
+    });
+
+    // Footer
+    sf('normal',6.5); tc(140,140,140);
+    T('DC3 ANVERSO', PW-MR, PH-7, {align:'right'});
+
+    // ─────────────────────────────────────────────────────────────
+    // PAGINA 2 — REVERSO (catalogos)
+    // ─────────────────────────────────────────────────────────────
+    doc.addPage();
+    y = 12;
+    sf('bold',8); tc(0,0,0);
+    T('CLAVES Y DENOMINACIONES DE AREAS Y SUBÁREAS DEL CATALOGO NACIONAL DE OCUPACIONES', PW/2, y, {align:'center'});
+    y += 5;
+
+    // Dos columnas
+    const c1=ML, c2=PW/2+3, cw2=(CW/2)-5;
+    sf('bold',6.5); tc(0,0,0);
+    T('CLAVE DEL', c1, y); T('DENOMINACION', c1+18, y);
+    T('CLAVE DEL', c2, y); T('DENOMINACION', c2+18, y);
+    y+=3; T('AREA/SUBAREA', c1, y); T('AREA/SUBAREA', c2, y);
+    y+=1; dc(0,0,0); lw(0.3); doc.line(ML,y,PW-MR,y); y+=3;
+
+    const ocups = [
+        ['01','Cultivo, crianza y aprovechamiento','06','Transporte'],
+        ['01.1','Agricultura y silvicultura','06.1','Ferroviario'],
+        ['01.2','Ganaderia','06.2','Autotransporte'],
+        ['01.3','Pesca y acuacultura','06.3','Aereo'],
+        ['02','Extraccion y suministro','06.4','Maritimo y fluvial'],
+        ['02.1','Exploracion','06.5','Servicios de apoyo'],
+        ['02.2','Extraccion','07','Provision de bienes y servicios'],
+        ['02.3','Refinacion y beneficio','07.1','Comercio'],
+        ['02.4','Revision de energia','07.2','Alimentacion y hospedaje'],
+        ['02.5','Revision de agua','07.3','Turismo'],
+        ['03','Construccion','07.4','Deporte y esparcimiento'],
+        ['03.1','Planeacion y direccion de obras','07.5','Servicios personales'],
+        ['03.2','Edificacion y urbanizacion','07.6','Reparacion de articulos de uso domestico y personal'],
+        ['03.3','Acabado','07.7','Limpieza'],
+        ['03.4','Instalacion y mantenimiento','07.8','Servicio postal y mensajeria'],
+        ['04','Tecnologia','08','Gestion y soporte administrativo'],
+        ['04.1','Mecanica','08.1','Bolsa, banca y seguros'],
+        ['04.2','Electricidad','08.2','Administracion'],
+        ['04.3','Electronica','08.3','Servicios legales'],
+        ['04.4','Informatica','09','Salud y proteccion social'],
+        ['04.5','Telecomunicaciones','09.1','Servicios medicos'],
+        ['04.6','Procesos industriales','09.2','Inspeccion sanitaria y del medio ambiente'],
+        ['05','Procesamiento y fabricacion','09.3','Seguridad social'],
+        ['05.1','Minerales no metalicos','09.4','Proteccion de bienes y personas'],
+        ['05.2','Metales','10','Comunicacion'],
+        ['05.3','Alimentos y bebidas','10.1','Publicacion'],
+        ['05.4','Textiles y prendas de vestir','10.2','Radio, cine, television y teatro'],
+        ['05.5','Materia organica','10.3','Interpretacion artistica'],
+        ['05.6','Productos quimicos','10.4','Traduccion e interpretacion linguistica'],
+        ['05.7','Productos metalicos y de hule y plastico','10.5','Publicidad, propaganda y relaciones publicas'],
+        ['05.8','Productos electricos y electronicos','11','Desarrollo y extension del conocimiento'],
+        ['05.9','Productos impresos','11.1','Investigacion'],
+        ['','','11.2','Ensenanza'],
+        ['','','11.3','Difusion cultural'],
+    ];
+
+    sf('normal',6.5); tc(0,0,0);
+    ocups.forEach(([k1,d1,k2,d2]) => {
+        const b1 = !k1.includes('.') && k1!=='';
+        const b2 = !k2.includes('.') && k2!=='';
+        sf(b1?'bold':'normal',6.5); T(k1,c1,y);
+        sf('normal',6.5); T(d1,c1+18,y);
+        sf(b2?'bold':'normal',6.5); T(k2,c2,y);
+        sf('normal',6.5); T(d2,c2+18,y);
+        y+=3.8;
+    });
+
+    y+=5; dc(0,0,0); lw(0.3); doc.line(ML,y,PW-MR,y); y+=5;
+
+    sf('bold',8); tc(0,0,0);
+    T('CLAVES Y DENOMINACIONES DEL CATALOGO DE AREAS TEMATICAS DE LOS CURSOS', PW/2, y, {align:'center'});
+    y+=5;
+
+    sf('bold',6.5);
+    T('CLAVE DEL',c1,y); T('DENOMINACION',c1+15,y);
+    T('CLAVE DEL',c2,y); T('DENOMINACION',c2+15,y);
+    y+=3; T('AREA',c1,y); T('AREA',c2,y);
+    y+=1; dc(0,0,0); lw(0.3); doc.line(ML,y,PW-MR,y); y+=4;
+
+    const tems = [
+        ['1000','Produccion general','6000','Seguridad'],
+        ['2000','Servicios','7000','Desarrollo personal y familiar'],
+        ['3000','Administracion, contabilidad y economia','8000','Uso de tecnologias de la informacion y comunicacion'],
+        ['4000','Comercializacion','9000','Participacion social'],
+        ['5000','Mantenimiento y reparacion','',''],
+    ];
+    sf('normal',6.5); tc(0,0,0);
+    tems.forEach(([k1,d1,k2,d2]) => {
+        sf('bold',6.5); T(k1,c1,y);
+        sf('normal',6.5); T(d1,c1+15,y);
+        if(k2){sf('bold',6.5); T(k2,c2,y);}
+        if(d2){sf('normal',6.5); T(d2,c2+15,y);}
+        y+=4.2;
+    });
+
+    sf('normal',6.5); tc(140,140,140);
+    T('DC3 REVERSO', PW-MR, PH-7, {align:'right'});
+
+    // Guardar
+    const filename = 'DC3_' + String(worker.curp||worker.name||'constancia').replace(/[\s\t]/g,'_') + '.pdf';
+    doc.save(filename);
+}
+
+
+// ─── EXCEL IMPORT ──────────────────────────────────────
+function handleExcel(input) {
+    const r = new FileReader();
+    r.onload = async (e) => {
+        const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+        if (!rows.length) { alert('El archivo está vacío'); return; }
+        const workers = rows.map(row => ({
+            name:       (row.Nombre || row.NOMBRE || row.nombre || '').trim(),
+            curp:       (row.CURP   || row.curp   || '').trim().toUpperCase(),
+            position:   (row.Puesto || row.PUESTO  || row.puesto || '').trim(),
+            occupation: (row.Ocupacion || row.OCUPACION || '').trim(),
+            creatorEmail: currentUser.email
+        })).filter(w => w.name && w.curp);
+        if (!workers.length) { alert('No se encontraron filas válidas (requiere columnas: Nombre, CURP, Puesto)'); return; }
+        await api('insertMany','workers',{ documents: workers });
+        alert(`${workers.length} trabajadores importados correctamente.`);
+        loadSection('workers');
+    };
+    r.readAsArrayBuffer(input.files[0]);
+    input.value = '';
+}
+
+// ─── UTILITIES ─────────────────────────────────────────
+function togglePassword() {
+    const p = document.getElementById('password');
+    p.type = p.type === 'password' ? 'text' : 'password';
+}
+</script>
 </body>
 </html>
