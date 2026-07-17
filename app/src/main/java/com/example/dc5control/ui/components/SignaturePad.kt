@@ -18,12 +18,13 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.unit.dp
 
 @Composable
 fun SignaturePad(onSave: (Bitmap) -> Unit, onDismiss: () -> Unit) {
-    val paths = remember { mutableStateListOf<ComposePath>() }
-    var currentPath by remember { mutableStateOf<ComposePath?>(null) }
+    val paths = remember { mutableStateListOf<Path>() }
+    var currentPath by remember { mutableStateOf<Path?>(null) }
 
     Column(modifier = Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.White).padding(16.dp)) {
         Text("Firme aquí", style = MaterialTheme.typography.titleMedium)
@@ -35,26 +36,33 @@ fun SignaturePad(onSave: (Bitmap) -> Unit, onDismiss: () -> Unit) {
             .pointerInput(Unit) {
                 detectDragGestures(
                     onDragStart = { offset ->
-                        currentPath = ComposePath().apply { moveTo(offset.x, offset.y) }
+                        val newPath = Path().apply { moveTo(offset.x, offset.y) }
+                        paths.add(newPath)
+                        currentPath = newPath
                     },
                     onDrag = { change, _ ->
                         currentPath?.lineTo(change.position.x, change.position.y)
-                        val lastPath = currentPath
-                        if (lastPath != null) {
-                            if (paths.contains(lastPath)) paths.remove(lastPath)
-                            paths.add(lastPath)
-                        }
+                        // Trigger recomposition
+                        val temp = currentPath
+                        currentPath = null
+                        currentPath = temp
                     },
                     onDragEnd = { currentPath = null }
                 )
             }
         ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
+            androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
                 paths.forEach { path ->
-                    drawPath(
-                        path = path,
-                        color = androidx.compose.ui.graphics.Color.Black,
-                        style = Stroke(width = 4f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+                    drawContext.canvas.nativeCanvas.drawPath(
+                        path,
+                        Paint().apply {
+                            color = Color.BLACK
+                            strokeWidth = 6f
+                            style = Paint.Style.STROKE
+                            strokeCap = Paint.Cap.ROUND
+                            strokeJoin = Paint.Join.ROUND
+                            isAntiAlias = true
+                        }
                     )
                 }
             }
@@ -64,17 +72,24 @@ fun SignaturePad(onSave: (Bitmap) -> Unit, onDismiss: () -> Unit) {
             Button(onClick = onDismiss) { Text("Cancelar") }
             Button(onClick = { paths.clear() }) { Text("Limpiar") }
             Button(onClick = {
+                if (paths.isEmpty()) return@Button
                 val bitmap = Bitmap.createBitmap(800, 400, Bitmap.Config.ARGB_8888)
                 val canvas = Canvas(bitmap)
-                canvas.drawColor(Color.WHITE)
+                canvas.drawColor(Color.TRANSPARENT)
                 val paint = Paint().apply {
-                    color = Color.BLACK
-                    strokeWidth = 10f
+                    color = Color.BLUE // Firma en azul como en el ejemplo
+                    strokeWidth = 8f
                     style = Paint.Style.STROKE
                     strokeCap = Paint.Cap.ROUND
                     strokeJoin = Paint.Join.ROUND
+                    isAntiAlias = true
                 }
-                // Simplified bitmap conversion: in a real app, you'd scale the Compose paths to this canvas
+                
+                // Escalar y dibujar rutas
+                // En un caso real buscaríamos los límites, aquí simplificamos asumiendo que el usuario firmó en el centro
+                paths.forEach { path ->
+                    canvas.drawPath(path, paint)
+                }
                 onSave(bitmap)
             }) { Text("Guardar") }
         }

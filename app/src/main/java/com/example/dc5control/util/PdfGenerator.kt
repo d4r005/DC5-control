@@ -41,7 +41,8 @@ data class DC3FormData(
     val instructor: String,
     val patron: String,
     val representante: String? = null,
-    val signatureBitmap: Bitmap? = null
+    val signatureBitmap: Bitmap? = null,
+    val logoBitmap: Bitmap? = null
 )
 
 object PdfGenerator {
@@ -69,12 +70,12 @@ object PdfGenerator {
 
     // ── Coordenadas de FECHA (periodo de ejecución) ───────────────────────────
     // Fila de dígitos y ≈ 389 (PDFBox, Y desde abajo = 792 - 389 = 403)
-    private val AÑO_INI = floatArrayOf(275.6f, 291.8f, 308.0f, 326.5f)
+    private val AÑO_INI = floatArrayOf(275.6f, 291.8f, 308.0f, 324.5f)
     private val MES_INI = floatArrayOf(348.0f, 369.4f)
     private val DIA_INI = floatArrayOf(390.4f, 411.9f)
-    private val AÑO_FIN = floatArrayOf(452.1f, 471.7f, 491.2f, 511.5f)
+    private val AÑO_FIN = floatArrayOf(452.1f, 468.3f, 484.5f, 501.0f)
     private val MES_FIN = floatArrayOf(532.5f, 554.0f)
-    private val DIA_FIN = floatArrayOf(575.5f)
+    private val DIA_FIN = floatArrayOf(575.5f, 597.0f)
     private const val FECHA_Y = 389.0f  // Y baseline dígitos de fecha
 
     // ── Otros campos (Y en coords fitz; PDFBox Y = 792 - Y_fitz) ─────────────
@@ -114,9 +115,17 @@ object PdfGenerator {
             PDPageContentStream(doc, page, AppendMode.APPEND, true, true).use { cs ->
                 fillPage(cs, data)
             }
-            if (data.signatureBitmap != null) {
-                insertSignature(doc, doc.getPage(0), data.signatureBitmap)
+            
+            // Insertar Logo (detrás/debajo de la firma, más pequeño)
+            data.logoBitmap?.let {
+                insertImage(doc, doc.getPage(0), it, x = 75f, y = 505f, w = 80f, h = 30f)
             }
+            
+            // Insertar Firma
+            data.signatureBitmap?.let {
+                insertImage(doc, doc.getPage(0), it, x = 50f, y = 490f, w = 130f, h = 40f)
+            }
+            
             val name = "DC3_${sanitize(data.curp.ifBlank { data.nombreTrabajador })}.pdf"
             val out = File(context.getExternalFilesDir(null), name)
             doc.save(out)
@@ -124,6 +133,42 @@ object PdfGenerator {
         } finally {
             doc.close()
         }
+    }
+
+    /**
+     * Versión simplificada para generar DC-3 desde modelos de datos (Employee, Course, Instructor).
+     */
+    fun generateDC3(
+        context: Context,
+        employee: com.example.dc5control.data.model.Employee,
+        course: com.example.dc5control.data.model.Course,
+        instructor: com.example.dc5control.data.model.Instructor,
+        companyName: String,
+        companyRfc: String,
+        startDate: String,
+        endDate: String,
+        signatureBitmap: Bitmap? = null,
+        logoBitmap: Bitmap? = null
+    ): File {
+        val data = DC3FormData(
+            nombreTrabajador = "${employee.lastName} ${employee.firstName} ${employee.middleName ?: ""}".trim(),
+            curp = employee.curp,
+            ocupacion = employee.position,
+            puesto = employee.position,
+            razonSocial = companyName,
+            rfc = companyRfc,
+            nombreCurso = course.name,
+            duracionHoras = "${course.duration} HORAS",
+            fechaInicio = startDate,
+            fechaFin = endDate,
+            areaTematica = course.thematicArea,
+            agenteCapacitador = instructor.company ?: instructor.fullName,
+            instructor = instructor.fullName,
+            patron = companyName,
+            signatureBitmap = signatureBitmap,
+            logoBitmap = logoBitmap
+        )
+        return generate(context, data)
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -225,14 +270,13 @@ object PdfGenerator {
         return Loader.loadPDF(bytes)
     }
 
-    private fun insertSignature(doc: PDDocument, page: org.apache.pdfbox.pdmodel.PDPage, bmp: Bitmap) {
+    private fun insertImage(doc: PDDocument, page: org.apache.pdfbox.pdmodel.PDPage, bmp: Bitmap, x: Float, y: Float, w: Float, h: Float) {
         val baos = ByteArrayOutputStream()
         bmp.compress(Bitmap.CompressFormat.PNG, 90, baos)
-        val img = PDImageXObject.createFromByteArray(doc, baos.toByteArray(), "sig")
+        val img = PDImageXObject.createFromByteArray(doc, baos.toByteArray(), "img_${System.currentTimeMillis()}")
         val PH = 792f
         PDPageContentStream(doc, page, AppendMode.APPEND, true, true).use { cs ->
-            // Área del instructor ≈ x=50, y=490–530 (fitz) → pdfbox y= 792-530..792-490
-            cs.drawImage(img, 50f, PH - 530f, 130f, 40f)
+            cs.drawImage(img, x, PH - y, w, h)
         }
     }
 

@@ -55,6 +55,13 @@ fun DC3GenerationScreen(onBack: () -> Unit) {
                 scope.launch {
                     isGenerating = true
                     withContext(Dispatchers.IO) {
+                        // Cargar logo si existe en assets (opcional)
+                        val logoBitmap = try {
+                            context.assets.open("logo_luber.png").use { 
+                                android.graphics.BitmapFactory.decodeStream(it)
+                            }
+                        } catch (e: Exception) { null }
+
                         // Generar DC-3 con PDFBox para cada empleado activo
                         employees.filter { it.active }.forEach { employee ->
                             PdfGenerator.generateDC3(
@@ -66,7 +73,8 @@ fun DC3GenerationScreen(onBack: () -> Unit) {
                                 companyRfc = companyRfc,
                                 startDate = startDate,
                                 endDate = endDate,
-                                signatureBitmap = bitmap
+                                signatureBitmap = bitmap,
+                                logoBitmap = logoBitmap
                             )
 
                             // Guardar registro del DC-3 generado
