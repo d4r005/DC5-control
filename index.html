@@ -309,7 +309,7 @@
             const pass = document.getElementById('password').value.trim();
             const user = DATA.users.find(u => u.email === email && u.password === pass);
             if(user) {
-                if(document.getElementById('remember-me').checked) localStorage.setItem('rememberedEmail', email);
+                const rm = document.getElementById('remember-me'); if(rm && rm.checked) localStorage.setItem('rememberedEmail', email);
                 currentUser = user; initApp();
             } else { document.getElementById('login-error').classList.remove('hidden'); }
         }
