@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generador DC-3</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<style>
+  :root {
+    --azul: #1a3a5c;
+    --azul-claro: #2c5b8a;
+    --gris-fondo: #f4f5f7;
+    --gris-borde: #d0d5dc;
+    --texto: #1c1f24;
+    --texto-suave: #5a6472;
+    --exito: #1f7a4d;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--gris-fondo);
+    color: var(--texto);
+  }
+  header {
+    background: var(--azul);
+    color: white;
+    padding: 20px 24px;
+  }
+  header h1 { margin: 0; font-size: 20px; letter-spacing: 0.3px; }
+  header p { margin: 4px 0 0; font-size: 13px; color: #cddcec; }
+
+  main {
+    max-width: 760px;
+    margin: 24px auto 60px;
+    padding: 0 16px;
+  }
+
+  .card {
+    background: white;
+    border: 1px solid var(--gris-borde);
+    border-radius: 8px;
+    padding: 20px 24px 24px;
+    margin-bottom: 18px;
+  }
+  .card h2 {
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--azul);
+    margin: 0 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--azul);
+  }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
+  .grid .full { grid-column: 1 / -1; }
+  @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+
+  label {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--texto-suave);
+    margin-bottom: 5px;
+  }
+  input, select {
+    width: 100%;
+    padding: 9px 10px;
+    border: 1px solid var(--gris-borde);
+    border-radius: 5px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--texto);
+    background: white;
+  }
+  input:focus, select:focus {
+    outline: none;
+    border-color: var(--azul-claro);
+    box-shadow: 0 0 0 3px rgba(44,91,138,0.15);
+  }
+
+  .field { margin-bottom: 0; }
+
+  button#generar {
+    width: 100%;
+    padding: 14px;
+    background: var(--azul);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.3px;
+  }
+  button#generar:hover { background: var(--azul-claro); }
+  button#generar:disabled { background: #9aa7b4; cursor: not-allowed; }
+
+  #estado {
+    margin-top: 12px;
+    font-size: 13.5px;
+    text-align: center;
+    min-height: 18px;
+  }
+  #estado.ok { color: var(--exito); }
+  #estado.error { color: #b3261e; }
+
+  .nota {
+    font-size: 12px;
+    color: var(--texto-suave);
+    margin-top: -8px;
+    margin-bottom: 14px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Generador de Formato DC-3</h1>
+  <p>Constancia de Competencias o de Habilidades Laborales — STPS</p>
+</header>
+
+<main>
+  <form id="dc3-form">
+
+    <div class="card">
+      <h2>Datos del trabajador</h2>
+      <div class="grid">
+        <div class="field full">
+          <label for="nombreTrabajador">Nombre (apellido paterno, materno, nombre(s))</label>
+          <input id="nombreTrabajador" required>
+        </div>
+        <div class="field">
+          <label for="curp">CURP</label>
+          <input id="curp" maxlength="18" required>
+        </div>
+        <div class="field">
+          <label for="puesto">Puesto</label>
+          <input id="puesto" required>
+        </div>
+        <div class="field full">
+          <label for="ocupacion">Ocupación específica (Catálogo Nacional de Ocupaciones)</label>
+          <input id="ocupacion">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Datos de la empresa</h2>
+      <div class="grid">
+        <div class="field full">
+          <label for="razonSocial">Nombre o razón social</label>
+          <input id="razonSocial" required>
+        </div>
+        <div class="field">
+          <label for="rfc">RFC (con homoclave)</label>
+          <input id="rfc" maxlength="13" required>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Programa de capacitación</h2>
+      <div class="grid">
+        <div class="field full">
+          <label for="nombreCurso">Nombre del curso</label>
+          <input id="nombreCurso" required>
+        </div>
+        <div class="field">
+          <label for="duracion">Duración en horas</label>
+          <input id="duracion" type="number" min="1" required>
+        </div>
+        <div class="field">
+          <label for="areaTematica">Área temática del curso</label>
+          <select id="areaTematica" required>
+            <option value="">Selecciona una opción</option>
+            <option value="1000 Producción general">1000 — Producción general</option>
+            <option value="2000 Servicios">2000 — Servicios</option>
+            <option value="3000 Administración, contabilidad y economía">3000 — Administración, contabilidad y economía</option>
+            <option value="4000 Comercialización">4000 — Comercialización</option>
+            <option value="5000 Mantenimiento y reparación">5000 — Mantenimiento y reparación</option>
+            <option value="6000 Seguridad">6000 — Seguridad</option>
+            <option value="7000 Desarrollo personal y familiar">7000 — Desarrollo personal y familiar</option>
+            <option value="8000 Uso de tecnologías de la información y comunicación">8000 — Uso de TIC</option>
+            <option value="9000 Participación social">9000 — Participación social</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="periodoInicio">Periodo de ejecución — Inicio</label>
+          <input id="periodoInicio" type="date" required>
+        </div>
+        <div class="field">
+          <label for="periodoFin">Periodo de ejecución — Fin</label>
+          <input id="periodoFin" type="date" required>
+        </div>
+        <div class="field full">
+          <label for="agenteCapacitador">Nombre del agente capacitador o STPS</label>
+          <input id="agenteCapacitador" required>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Firmas</h2>
+      <div class="grid">
+        <div class="field">
+          <label for="instructor">Instructor o tutor</label>
+          <input id="instructor" required>
+        </div>
+        <div class="field">
+          <label for="patron">Patrón o representante legal</label>
+          <input id="patron" required>
+        </div>
+        <div class="field full">
+          <label for="representante">Representante de los trabajadores (solo empresas &gt;50 trabajadores)</label>
+          <input id="representante">
+        </div>
+      </div>
+      <p class="nota">El representante de los trabajadores solo aplica para empresas con más de 50 empleados.</p>
+    </div>
+
+    <button type="submit" id="generar">Generar PDF del DC-3</button>
+    <div id="estado"></div>
+  </form>
+</main>
+
+<script>
+const { PDFDocument, StandardFonts, rgb } = PDFLib;
+
+function formatearFecha(iso) {
+  if (!iso) return '';
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+async function generarDC3PDF(data) {
+  const pdfDoc = await PDFDocument.create();
+  const page = pdfDoc.addPage([612, 792]); // carta
+  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+  const marginX = 40;
+  const pageWidth = 612;
+  let y = 742;
+  const black = rgb(0, 0, 0);
+  const gray = rgb(0.35, 0.35, 0.35);
+  const white = rgb(1, 1, 1);
+  const darkGray = rgb(0.25, 0.28, 0.32);
+
+  const centerText = (text, yPos, size, useFont) => {
+    const width = useFont.widthOfTextAtSize(text, size);
+    page.drawText(text, { x: (pageWidth - width) / 2, y: yPos, size, font: useFont, color: black });
+  };
+
+  centerText('FORMATO DC-3', y, 16, fontBold);
+  y -= 20;
+  centerText('CONSTANCIA DE COMPETENCIAS O DE HABILIDADES LABORALES', y, 11, fontBold);
+  y -= 30;
+
+  const dibujarSeccion = (titulo) => {
+    page.drawRectangle({ x: marginX, y: y - 4, width: pageWidth - 2 * marginX, height: 18, color: darkGray });
+    page.drawText(titulo, { x: marginX + 5, y: y, size: 10, font: fontBold, color: white });
+    y -= 30;
+  };
+
+  const dibujarCampo = (label, valor) => {
+    page.drawText(label, { x: marginX, y: y, size: 8, font: font, color: gray });
+    page.drawText(valor || '', { x: marginX, y: y - 16, size: 11, font: font, color: black });
+    page.drawLine({
+      start: { x: marginX, y: y - 20 }, end: { x: pageWidth - marginX, y: y - 20 },
+      thickness: 1, color: black
+    });
+    y -= 34;
+  };
+
+  dibujarSeccion('DATOS DEL TRABAJADOR');
+  dibujarCampo('Nombre (apellido paterno, apellido materno, nombre(s))', data.nombreTrabajador);
+  dibujarCampo('Clave Única de Registro de Población (CURP)', data.curp);
+  dibujarCampo('Ocupación específica (Catálogo Nacional de Ocupaciones)', data.ocupacion);
+  dibujarCampo('Puesto', data.puesto);
+  y -= 10;
+
+  dibujarSeccion('DATOS DE LA EMPRESA');
+  dibujarCampo('Nombre o razón social', data.razonSocial);
+  dibujarCampo('Registro Federal de Contribuyentes (RFC)', data.rfc);
+  y -= 10;
+
+  dibujarSeccion('DATOS DEL PROGRAMA DE CAPACITACIÓN, ADIESTRAMIENTO Y PRODUCTIVIDAD');
+  dibujarCampo('Nombre del curso', data.nombreCurso);
+  dibujarCampo('Duración en horas', data.duracion);
+  dibujarCampo('Periodo de ejecución', `Del ${formatearFecha(data.periodoInicio)} al ${formatearFecha(data.periodoFin)}`);
+  dibujarCampo('Área temática del curso', data.areaTematica);
+  dibujarCampo('Nombre del agente capacitador o STPS', data.agenteCapacitador);
+  y -= 20;
+
+  // Firmas
+  const colWidth = (pageWidth - 2 * marginX) / 3;
+  const lineY = y - 40;
+
+  const drawFirma = (nombre, label, colIndex) => {
+    const xStart = marginX + colIndex * colWidth;
+    const xEnd = xStart + colWidth - (colIndex < 2 ? 10 : 0);
+    page.drawLine({ start: { x: xStart, y: lineY }, end: { x: xEnd, y: lineY }, thickness: 1, color: black });
+
+    const nombreWidth = font.widthOfTextAtSize(nombre || '', 9);
+    page.drawText(nombre || '', {
+      x: xStart + (xEnd - xStart - nombreWidth) / 2, y: lineY + 4, size: 9, font: font, color: black
+    });
+
+    const labelWidth = font.widthOfTextAtSize(label, 7);
+    page.drawText(label, {
+      x: xStart + (xEnd - xStart - labelWidth) / 2, y: lineY - 12, size: 7, font: font, color: gray
+    });
+  };
+
+  drawFirma(data.instructor, 'Instructor o tutor', 0);
+  drawFirma(data.patron, 'Patrón o representante legal', 1);
+  drawFirma(data.representante, 'Representante de los trabajadores', 2);
+
+  page.drawText(
+    'Deberá entregarse al trabajador dentro de los veinte días hábiles siguientes al término del curso.',
+    { x: marginX, y: 40, size: 7, font: font, color: gray }
+  );
+
+  return await pdfDoc.save();
+}
+
+document.getElementById('dc3-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const boton = document.getElementById('generar');
+  const estado = document.getElementById('estado');
+  estado.className = '';
+  boton.disabled = true;
+  estado.textContent = 'Generando PDF…';
+
+  try {
+    const data = {
+      nombreTrabajador: document.getElementById('nombreTrabajador').value.trim(),
+      curp: document.getElementById('curp').value.trim().toUpperCase(),
+      ocupacion: document.getElementById('ocupacion').value.trim(),
+      puesto: document.getElementById('puesto').value.trim(),
+      razonSocial: document.getElementById('razonSocial').value.trim(),
+      rfc: document.getElementById('rfc').value.trim().toUpperCase(),
+      nombreCurso: document.getElementById('nombreCurso').value.trim(),
+      duracion: document.getElementById('duracion').value.trim(),
+      periodoInicio: document.getElementById('periodoInicio').value,
+      periodoFin: document.getElementById('periodoFin').value,
+      areaTematica: document.getElementById('areaTematica').value,
+      agenteCapacitador: document.getElementById('agenteCapacitador').value.trim(),
+      instructor: document.getElementById('instructor').value.trim(),
+      patron: document.getElementById('patron').value.trim(),
+      representante: document.getElementById('representante').value.trim(),
+    };
+
+    const pdfBytes = await generarDC3PDF(data);
+    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `DC3_${data.curp || 'documento'}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+
+    estado.textContent = 'PDF generado y descargado correctamente.';
+    estado.className = 'ok';
+  } catch (err) {
+    console.error(err);
+    estado.textContent = 'Ocurrió un error al generar el PDF: ' + err.message;
+    estado.className = 'error';
+  } finally {
+    boton.disabled = false;
+  }
+});
+</script>
+
+</body>
+</html>

@@ -1,10 +1,7 @@
 /**
  * DC5-control Cloudflare Worker
- * Backend API con Supabase - Corregido para filtrado de datos
+ * Backend API con Supabase
  */
-
-const SUPABASE_URL = "https://osgfwgedjdltrmvwycjd.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zZ2Z3Z2VkamRsdHJtdnd5Y2pkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyNDAxMzcsImV4cCI6MjA5OTgxNjEzN30.jeV98eAfhQzkXiGj88DUOLqLPLFr_IKPrcnTaefEgj0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,15 +9,17 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, apikey",
 };
 
-async function sbFetch(table, method, body, queryParams = "") {
+async function sbFetch(table, method, body, queryParams, env) {
+  const supabaseUrl = env.SUPABASE_URL;
+  const supabaseKey = env.SUPABASE_SERVICE_ROLE_KEY;
+
   const headers = {
-    "apikey": SUPABASE_KEY,
-    "Authorization": `Bearer ${SUPABASE_KEY}`,
+    "apikey": supabaseKey,
+    "Authorization": `Bearer ${supabaseKey}`,
     "Content-Type": "application/json",
   };
 
-  // Supabase usa ?select=* y filtros como &campo=eq.valor
-  let url = `${SUPABASE_URL}/rest/v1/${table}${queryParams}`;
+  let url = `${supabaseUrl}/rest/v1/${table}${queryParams}`;
 
   const opts = { method, headers };
   if (method === "POST") {
@@ -46,13 +45,12 @@ export default {
       let supabaseQuery = "?select=*";
 
       // Mapear parámetros de búsqueda a filtros de Supabase
-      // Si llega ?creatorEmail=valor -> &creatorEmail=eq.valor
       params.forEach((val, key) => {
         supabaseQuery += `&${key}=eq.${val}`;
       });
 
       if (method === "GET") {
-        const data = await sbFetch(collection, "GET", null, supabaseQuery);
+        const data = await sbFetch(collection, "GET", null, supabaseQuery, env);
         return new Response(JSON.stringify({ documents: data }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
@@ -61,7 +59,7 @@ export default {
       if (method === "POST") {
         const body = await request.json();
         const doc = body.documents || body.document || body;
-        const data = await sbFetch(collection, "POST", doc);
+        const data = await sbFetch(collection, "POST", doc, "", env);
         return new Response(JSON.stringify({ inserted: data }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
@@ -69,7 +67,7 @@ export default {
 
       if (method === "DELETE") {
         const body = await request.json();
-        const data = await sbFetch(collection, "DELETE", null, `?id=eq.${body.id}`);
+        const data = await sbFetch(collection, "DELETE", null, `?id=eq.${body.id}`, env);
         return new Response(JSON.stringify({ deleted: data }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
