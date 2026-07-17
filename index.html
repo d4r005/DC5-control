@@ -997,6 +997,17 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
 
     // Helper: dibuja texto centrado
     function T_Centered(xCenter, yFitz, text, size, useBold) {
+    // Helper: dibuja texto en coordenada (x, yFitz desde arriba)
+    function T(x, yFitz, text, size, useBold) {
+        const s = sp(String(text||''));
+        if (!s) return;
+        const sz = size || 9;
+        const f = useBold ? fontB : font;
+        page.drawText(s, { x, y: PH - yFitz, size: sz, font: f, color: rgb(0,0,0) });
+    }
+
+    // Helper: dibuja texto centrado en una coordenada X
+    function T_Centered(xCenter, yFitz, text, size, useBold) {
         const s = sp(String(text||''));
         if (!s) return;
         const sz = size || 9;
@@ -1126,28 +1137,25 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     T_Centered(CENTER_X_INS, 495, insLines[0], 8);
     if (insLines[1]) T_Centered(CENTER_X_INS, 506, insLines[1], 8);
 
-    // Patrón
-    if (compObj.patron) {
-        const CENTER_X_PAT = 300;
-        const patName = sp(compObj.patron.toUpperCase());
-        const patLines = splitNameJS(patName, 28);
+    // Patrón: columna 2
+    const CENTER_X_PAT = 300;
+    const patName = sp((compObj.patron || '').toUpperCase());
+    const patLines = splitNameJS(patName, 28);
+    if (patLines[0]) {
         T_Centered(CENTER_X_PAT, 495, patLines[0], 8);
         if (patLines[1]) T_Centered(CENTER_X_PAT, 506, patLines[1], 8);
     }
 
-    // Patrón: columna 2 — línea Y=539.9 empieza en X=216.3
-    if (compObj.patron) {
-        const patName = sp(compObj.patron.toUpperCase());
-        const patLines = splitNameJS(patName, 28);
-        T(220, 521, patLines[0], 7.5);
-        if (patLines[1]) T(220, 530, patLines[1], 7.5);
-    }
-
-    // Representante: columna 3 — línea Y=539.9 empieza en X=386.8
+    // Representante: columna 3
     if (compObj.representante) {
+        const CENTER_X_REP = 475;
         const repName = sp(compObj.representante.toUpperCase());
         const repLines = splitNameJS(repName, 26);
-        T(390, 521, repLines[0], 7.5);
+        T_Centered(CENTER_X_REP, 495, repLines[0], 8);
+        if (repLines[1]) T_Centered(CENTER_X_REP, 506, repLines[1], 8);
+    }
+
+    // Guardar y descargar
         if (repLines[1]) T(390, 530, repLines[1], 7.5);
     }
 
