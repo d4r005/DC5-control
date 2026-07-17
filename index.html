@@ -1066,18 +1066,18 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     const agentLine = sp(((agent.name||'') + '  ' + (agent.stps||'')).toUpperCase().trim());
     T(30, 438, agentLine.slice(0,70), 8);
 
-    // ── 12. Logo LUBER (fondo, columna instructor) ────────────────────────────
-    // Columna instructor: X=24 a ~215, centro X≈120
-    // Sección firmas: Y=443.4 a Y=539.9
-    // Logo: ratio 1.777 → W=120, H=120/1.777=67.5
-    // X = 120-60 = 60, Y_fitz = 449 (centro vertical ≈ 449+33.7=482.7)
-    const LOGO_W = 120, LOGO_H = 67.5;
-    const LOGO_X = 60;
-    const LOGO_Y_FITZ = 449;
+    // ── 12. Limpiar área de firma del instructor ─────────────────────────────
+    // Columna instructor: X=61.6→200.5 (ancho=138.9), centro X=131
+    // Sección firmas: Y=443.4 (top) a Y=539.9 (línea "Nombre y firma")
+    // Espacio para imagen: Y=454 a Y=519 (65pts)
+    // Logo: ratio 1.777 → H=65, W=65*1.777=115 → centrado: x0=131-57.5=73.5≈74
+    // Firma: ratio 1.419 → H=60, W=60*1.419=85 → centrado: x0=131-42.5=88.5≈89
+    page.drawRectangle({ x: 25, y: PH - 541, width: 185, height: 88, color: rgb(1,1,1) });
 
-    // Borrar área previa (texto de ejemplo de la plantilla en columna instructor)
-    page.drawRectangle({ x: LOGO_X, y: PH - (LOGO_Y_FITZ + LOGO_H + 5), width: LOGO_W, height: LOGO_H + 5, color: rgb(1,1,1) });
-
+    // Logo LUBER (fondo)
+    const LOGO_H = 65, LOGO_W = Math.round(65 * 1.777);  // 115
+    const LOGO_X = Math.round(131 - LOGO_W / 2);          // 58
+    const LOGO_Y_FITZ = 454;
     try {
         const logoResp = await fetch('/signatures/logo_luber.png');
         if (logoResp.ok) {
@@ -1086,18 +1086,15 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
             page.drawImage(logoImg, {
                 x: LOGO_X, y: PH - (LOGO_Y_FITZ + LOGO_H),
                 width: LOGO_W, height: LOGO_H,
-                opacity: 0.85
+                opacity: 1.0
             });
         }
     } catch(e) { console.warn('Error cargando logo:', e); }
 
     // ── 13. Firma del instructor (encima del logo) ────────────────────────────
-    // Firma: ratio 1.419 → W=100, H=100/1.419=70.5
-    // Centrada en columna instructor
-    const FIRMA_W = 100, FIRMA_H = 70.5;
-    const FIRMA_X = 70;  // 120 - 50 = 70
-    const FIRMA_Y_FITZ = 452;
-
+    const FIRMA_H = 60, FIRMA_W = Math.round(60 * 1.419);  // 85
+    const FIRMA_X = Math.round(131 - FIRMA_W / 2);          // 88
+    const FIRMA_Y_FITZ = 457;
     try {
         const sigResp = await fetch('/signatures/firma_instructor.png');
         if (sigResp.ok) {
@@ -1110,27 +1107,28 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
         }
     } catch(e) { console.warn('Error cargando firma:', e); }
 
-    // ── 14. Nombres bajo líneas de firma ─────────────────────────────────────
-    // Instructor: columna 1 (X≈26)
+    // ── 14. Nombres bajo imágenes, antes de la línea Y=539.9 ─────────────────
+    // Línea 1 en Y=521, Línea 2 en Y=530
     const insName = sp((agent.name||'').toUpperCase());
-    const insLines = splitNameJS(insName, 24);
-    T(26, 527, insLines[0], 7);
-    if (insLines[1]) T(26, 535, insLines[1], 7);
+    const insLines = splitNameJS(insName, 26);
+    T(28, 521, insLines[0], 7.5);
+    if (insLines[1]) T(28, 530, insLines[1], 7.5);
+    else T(28, 530, '', 7.5);  // línea vacía si no hay segunda línea
 
-    // Patrón: columna 2 (X≈222)
+    // Patrón: columna 2 — línea Y=539.9 empieza en X=216.3
     if (compObj.patron) {
         const patName = sp(compObj.patron.toUpperCase());
-        const patLines = splitNameJS(patName, 26);
-        T(222, 527, patLines[0], 7);
-        if (patLines[1]) T(222, 535, patLines[1], 7);
+        const patLines = splitNameJS(patName, 28);
+        T(220, 521, patLines[0], 7.5);
+        if (patLines[1]) T(220, 530, patLines[1], 7.5);
     }
 
-    // Representante: columna 3 (X≈385)
+    // Representante: columna 3 — línea Y=539.9 empieza en X=386.8
     if (compObj.representante) {
         const repName = sp(compObj.representante.toUpperCase());
-        const repLines = splitNameJS(repName, 24);
-        T(385, 527, repLines[0], 7);
-        if (repLines[1]) T(385, 535, repLines[1], 7);
+        const repLines = splitNameJS(repName, 26);
+        T(390, 521, repLines[0], 7.5);
+        if (repLines[1]) T(390, 530, repLines[1], 7.5);
     }
 
     // Guardar y descargar
