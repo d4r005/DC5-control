@@ -120,20 +120,23 @@ object PdfGenerator {
     private const val Y_AREA        = 414.0f
     private const val Y_AGENTE      = 437.0f
 
-    // Sección de firmas - Movida hacia arriba para no chocar con "Nombre y firma"
+    // Sección de firmas - Centrado total
     private const val SIG_Y1 = 443.4f
     private const val SIG_Y2 = 539.9f
-    private const val LOGO_X = 61f;   private const val LOGO_Y = 440f
-    private const val LOGO_W = 140f;  private const val LOGO_H = 75f
-    private const val FIRMA_X = 76f;  private const val FIRMA_Y = 442f
-    private const val FIRMA_W = 110f; private const val FIRMA_H = 70f
+    private const val CENTER_X_INS = 120f // Centro de la primera columna
+    
+    // Logo y Firma centrados en CENTER_X_INS
+    private const val LOGO_W = 130f;  private const val LOGO_H = 70f
+    private const val LOGO_X = CENTER_X_INS - (LOGO_W / 2f)
+    private const val LOGO_Y = 448f
+    
+    private const val FIRMA_W = 100f; private const val FIRMA_H = 65f
+    private const val FIRMA_X = CENTER_X_INS - (FIRMA_W / 2f)
+    private const val FIRMA_Y = 455f
 
-    // Nombre instructor bajo firma - Subido para dar aire
-    private const val X_INS = 30f
-    private const val X_PAT = 222f
-    private const val X_REP = 385f
-    private const val Y_NAME_L1 = 515f
-    private const val Y_NAME_L2 = 524f
+    // Nombre instructor centrado
+    private const val Y_NAME_L1 = 495f
+    private const val Y_NAME_L2 = 506f
 
     // ─────────────────────────────────────────────────────────────────────────
     //  API PÚBLICA
@@ -322,21 +325,27 @@ object PdfGenerator {
         }
 
         // ── Nombres en área de firmas ─────────────────────────────────────────
+        val pCenter = paintText(8f).apply { textAlign = Paint.Align.CENTER }
+        
+        // Texto superior "Instructor o tutor"
+        canvas.drawText("Instructor o tutor", CENTER_X_INS * SCALE, 455f * SCALE, pCenter)
+
         val insLines = splitName(d.instructor.uppercase(), 24)
         if (insLines.size > 1) {
-            text(pBox, X_INS, Y_NAME_L1, insLines[0])
-            text(pBox, X_INS, Y_NAME_L2, insLines[1])
+            canvas.drawText(insLines[0], CENTER_X_INS * SCALE, Y_NAME_L1 * SCALE, pCenter)
+            canvas.drawText(insLines[1], CENTER_X_INS * SCALE, Y_NAME_L2 * SCALE, pCenter)
         } else {
-            text(pBox, X_INS, Y_NAME_L2, insLines[0])
+            canvas.drawText(insLines[0], CENTER_X_INS * SCALE, Y_NAME_L2 * SCALE, pCenter)
         }
 
         if (d.patron.isNotBlank()) {
+            val X_PAT_CENTER = 300f
             val patLines = splitName(d.patron.uppercase(), 26)
             if (patLines.size > 1) {
-                text(pBox, X_PAT, Y_NAME_L1, patLines[0])
-                text(pBox, X_PAT, Y_NAME_L2, patLines[1])
+                canvas.drawText(patLines[0], X_PAT_CENTER * SCALE, Y_NAME_L1 * SCALE, pCenter)
+                canvas.drawText(patLines[1], X_PAT_CENTER * SCALE, Y_NAME_L2 * SCALE, pCenter)
             } else {
-                text(pBox, X_PAT, Y_NAME_L2, patLines[0])
+                canvas.drawText(patLines[0], X_PAT_CENTER * SCALE, Y_NAME_L2 * SCALE, pCenter)
             }
         }
 

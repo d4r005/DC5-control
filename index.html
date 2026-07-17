@@ -995,11 +995,20 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     const RFC_Y   = (300.3 + 315.2)/2 + 2.5;  // 310.25
     const FECHA_Y = (380.3 + 394.0)/2 + 2.5;  // 389.65
 
-    // Helper: dibuja texto en coordenada (x, yFitz desde arriba)
-    function T(x, yFitz, text, size, useBold) {
+    // Helper: dibuja texto centrado
+    function T_Centered(xCenter, yFitz, text, size, useBold) {
         const s = sp(String(text||''));
         if (!s) return;
-        page.drawText(s, { x, y: PH - yFitz, size: size||9, font: useBold ? fontB : font, color: rgb(0,0,0) });
+        const sz = size || 9;
+        const f = useBold ? fontB : font;
+        const width = f.widthOfTextAtSize(s, sz);
+        page.drawText(s, {
+            x: xCenter - (width / 2),
+            y: PH - yFitz,
+            size: sz,
+            font: f,
+            color: rgb(0,0,0)
+        });
     }
 
     // Helper: dibuja un caracter CENTRADO en una celda definida por x0..x1
@@ -1074,10 +1083,10 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     // Firma: ratio 1.419 → H=60, W=60*1.419=85 → centrado: x0=131-42.5=88.5≈89
     page.drawRectangle({ x: 25, y: PH - 541, width: 185, height: 88, color: rgb(1,1,1) });
 
-    // Logo LUBER (fondo) - Centrado en X=131
-    const LOGO_H = 75, LOGO_W = 140;
-    const LOGO_X = 61;
-    const LOGO_Y_FITZ = 440;
+    // Logo LUBER (fondo) - Centrado en X=120
+    const LOGO_H = 70, LOGO_W = 130;
+    const LOGO_X = 120 - (LOGO_W / 2);
+    const LOGO_Y_FITZ = 448;
     try {
         const logoResp = await fetch('/signatures/logo_luber.png');
         if (logoResp.ok) {
@@ -1086,15 +1095,15 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
             page.drawImage(logoImg, {
                 x: LOGO_X, y: PH - (LOGO_Y_FITZ + LOGO_H),
                 width: LOGO_W, height: LOGO_H,
-                opacity: 0.8
+                opacity: 0.6
             });
         }
     } catch(e) { console.warn('Error cargando logo:', e); }
 
     // Firma del instructor (encima del logo)
-    const FIRMA_H = 70, FIRMA_W = 110;
-    const FIRMA_X = 76;
-    const FIRMA_Y_FITZ = 442;
+    const FIRMA_H = 65, FIRMA_W = 100;
+    const FIRMA_X = 120 - (FIRMA_W / 2);
+    const FIRMA_Y_FITZ = 455;
     try {
         const sigResp = await fetch('/signatures/firma_instructor.png');
         if (sigResp.ok) {
@@ -1107,12 +1116,24 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
         }
     } catch(e) { console.warn('Error cargando firma:', e); }
 
-    // ── 14. Nombres bajo imágenes, antes de la línea Y=539.9 ─────────────────
+    // ── 14. Nombres bajo imágenes ───────────────────────────────────────────
+    const CENTER_X_INS = 120;
+    // Texto superior
+    T_Centered(CENTER_X_INS, 455, "Instructor o tutor", 7);
+
     const insName = sp((agent.name||'').toUpperCase());
     const insLines = splitNameJS(insName, 26);
-    T(30, 515, insLines[0], 7.5);
-    if (insLines[1]) T(30, 524, insLines[1], 7.5);
-    else T(30, 524, '', 7.5);
+    T_Centered(CENTER_X_INS, 495, insLines[0], 8);
+    if (insLines[1]) T_Centered(CENTER_X_INS, 506, insLines[1], 8);
+
+    // Patrón
+    if (compObj.patron) {
+        const CENTER_X_PAT = 300;
+        const patName = sp(compObj.patron.toUpperCase());
+        const patLines = splitNameJS(patName, 28);
+        T_Centered(CENTER_X_PAT, 495, patLines[0], 8);
+        if (patLines[1]) T_Centered(CENTER_X_PAT, 506, patLines[1], 8);
+    }
 
     // Patrón: columna 2 — línea Y=539.9 empieza en X=216.3
     if (compObj.patron) {
