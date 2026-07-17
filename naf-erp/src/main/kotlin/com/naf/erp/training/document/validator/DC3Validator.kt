@@ -21,15 +21,11 @@ class DC3Validator : DocumentValidator<DC3> {
             result.errors.add("Área temática requerida")
         }
 
-        if (data.training.instructor.stpsNumber.isNullOrBlank()) {
+        if (data.training.instructor.stpsNumber.isBlank()) {
             result.errors.add("Registro STPS requerido")
         }
 
-        return if (result.errors.isNotEmpty()) {
-            result.copy(valid = false)
-        } else {
-            result
-        }
+        return result
     }
 
 }

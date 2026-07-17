@@ -11,15 +11,22 @@ class DocxEngine(
     private val contentControlEngine: ContentControlEngine
 ) : DocumentEngine {
 
-    override fun render(template: DocumentTemplate): ByteArray {
-        val word = WordprocessingMLPackage.load(File(template.file))
+    override fun render(
+        template: DocumentTemplate
+    ): ByteArray {
+        val word =
+            WordprocessingMLPackage.load(
+                File(template.file)
+            )
 
         contentControlEngine.fill(
             word,
             template.fields
         )
 
-        val out = ByteArrayOutputStream()
+        val out =
+            ByteArrayOutputStream()
+
         word.save(out)
 
         return out.toByteArray()

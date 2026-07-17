@@ -14,12 +14,7 @@ class LocalStorage(
         fileName: String,
         bytes: ByteArray
     ): String {
-        val directory = File(folder)
-        if (!directory.exists()) {
-            directory.mkdirs()
-        }
-        
-        val file = File(directory, fileName)
+        val file = File(folder, fileName)
         file.writeBytes(bytes)
         return file.absolutePath
     }
