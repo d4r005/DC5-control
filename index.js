@@ -44,6 +44,8 @@ export default {
     const path = url.pathname;
     const method = request.method;
 
+    console.log(`[Worker] ${method} request to ${path}`);
+
     if (method === "OPTIONS") {
       return new Response(null, { headers: corsHeaders });
     }
@@ -51,6 +53,7 @@ export default {
     try {
       // ── Workers ─────────────────────────────────────────────
       if (path === "/api/workers" && method === "GET") {
+        console.log("Fetching workers from Supabase...");
         const data = await sbFetch("workers?select=*", "GET");
         return new Response(JSON.stringify({ documents: data }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" }
@@ -58,6 +61,7 @@ export default {
       }
       if (path === "/api/workers" && method === "POST") {
         const body = await request.json();
+        console.log("Inserting workers:", JSON.stringify(body));
         const docs = body.documents || [body.document || body];
         const data = await sbFetch("workers", "POST", docs);
         return new Response(JSON.stringify({ inserted: data }), {

@@ -194,8 +194,52 @@
     <script>
         const SUPABASE_URL = "https://osgfwgedjdltrmvwycjd.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zZ2Z3Z2VkamRsdHJtdnd5Y2pkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyNDAxMzcsImV4cCI6MjA5OTgxNjEzN30.jeV98eAfhQzkXiGj88DUOLqLPLFr_IKPrcnTaefEgj0";
-        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        const SIG_URL = "https://base44.app/api/apps/6a598f68ede9a4fd7c7f8cb7/files/mp/public/6a598f68ede9a4fd7c7f8cb7/c6b537496_agent_signature.png";
+        const WORKER_URL = "https://dc5-control.d4r005.workers.dev/api";
+
+        // ─── Cloudflare Worker helpers (Proxy to Supabase) ───────────
+        async function sbSelect(table, filterEmail) {
+            let url = `${WORKER_URL}/${table}`;
+            if (filterEmail) url += `?creatorEmail=${filterEmail}`;
+            try {
+                const r = await fetch(url);
+                const data = await r.json();
+                return data.documents || [];
+            } catch (e) { console.error(e); return []; }
+        }
+
+        async function sbInsert(table, doc) {
+            try {
+                const r = await fetch(`${WORKER_URL}/${table}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ document: doc })
+                });
+                const data = await r.json();
+                return data.inserted;
+            } catch (e) { console.error(e); return null; }
+        }
+
+        async function sbInsertMany(table, docs) {
+            try {
+                const r = await fetch(`${WORKER_URL}/${table}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ documents: docs })
+                });
+                return r.ok;
+            } catch (e) { console.error(e); return false; }
+        }
+
+        async function sbDelete(table, id) {
+            try {
+                const r = await fetch(`${WORKER_URL}/${table}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: id })
+                });
+                return r.ok;
+            } catch (e) { console.error(e); return false; }
+        }
 
         const CATALOGS = {
             occupations: ["01 Cultivo, crianza y aprovechamiento","01.1 Agricultura y silvicultura","01.2 Ganadería","01.3 Pesca y acuacultura","02 Extracción y suministro","02.1 Exploración","02.2 Extracción","02.3 Refinación y beneficio","02.4 Provisión de energía","02.5 Provisión de agua","03 Construcción","03.1 Planeación y dirección de obras","03.2 Edificación y urbanización","03.3 Acabado","03.4 Instalación y mantenimiento","04 Tecnología","04.1 Mecánica","04.2 Electricidad","04.3 Electrónica","04.4 Informática","04.5 Telecomunicaciones","04.6 Procesos industriales","05 Procesamiento y fabricación","05.1 Minerales no metálicos","05.2 Metales","05.3 Alimentos y bebidas","05.4 Textiles y prendas de vestir","05.5 Materia orgánica","05.6 Productos químicos","05.7 Productos metálicos y de hule y plástico","05.8 Productos eléctricos y electrónicos","05.9 Productos impresos","06 Transporte","06.1 Ferroviario","06.2 Autotransporte","06.3 Aéreo","06.4 Marítimo y fluvial","06.5 Servicios de apoyo","07 Provisión de bienes y servicios","07.1 Comercio","07.2 Alimentación y hospedaje","07.3 Turismo","07.4 Deporte y esparcimiento","07.5 Servicios personales","07.6 Reparación de artículos de uso doméstico y personal","07.7 Limpieza","07.8 Servicio postal y mensajería","08 Gestión y soporte administrativo","08.1 Bolsa, banca y seguros","08.2 Administración","08.3 Servicios legales","09 Salud y protección social","09.1 Servicios médicos","09.2 Inspección sanitaria y del medio ambiente","09.3 Seguridad social","09.4 Protección de bienes y/o personas","10 Comunicación","10.1 Publicación","10.2 Radio, cine, televisión y teatro","10.3 Interpretación artística","10.4 Traducción e interpretación lingüística","10.5 Publicidad, propaganda y relaciones públicas","11 Desarrollo y extensión del conocimiento","11.1 Investigación","11.2 Enseñanza","11.3 Difusión cultural"]
