@@ -8,6 +8,7 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
@@ -21,6 +22,7 @@
         .modal-content { background: white; margin: 5% auto; padding: 30px; width: 500px; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        #toast { position: fixed; bottom: 32px; right: 32px; z-index: 9999; padding: 14px 24px; border-radius: 16px; font-weight: 700; font-size: 14px; box-shadow: 0 8px 30px rgba(0,0,0,0.15); transition: opacity .4s; opacity: 0; pointer-events: none; }
     </style>
 </head>
 <body class="antialiased text-slate-200 h-screen overflow-hidden">
@@ -63,11 +65,9 @@
                         <i class="fa-solid fa-lock absolute right-5 top-1/2 -translate-y-1/2 text-slate-300"></i>
                     </div>
                     <div class="flex items-center justify-between text-[11px] font-bold text-slate-400 px-1 uppercase tracking-tighter">
-                        <label class="flex items-center cursor-pointer"><input type="checkbox" id="remember-me" class="mr-2 w-4 h-4"> Registrarse?</label>
-                        <a href="#">¿Olvidó su contraseña?</a>
+                        <label class="flex items-center cursor-pointer"><input type="checkbox" id="remember-me" class="mr-2 w-4 h-4"> Recordar usuario</label>
                     </div>
                     <button type="submit" class="w-full bg-[#4262a0] hover:bg-[#36518a] text-white py-4 rounded-2xl font-bold text-sm transition-all shadow-lg shadow-blue-900/10 active:scale-[0.98]">Entrar</button>
-                    <div class="text-center mt-6"><a href="#" class="text-[11px] font-bold text-blue-700 hover:underline uppercase tracking-wide">Acceder en modo seguro</a></div>
                 </form>
                 <p id="login-error" class="text-red-500 text-[10px] text-center font-bold uppercase hidden mt-4">Acceso Denegado</p>
             </div>
@@ -112,33 +112,33 @@
             </header>
 
             <div class="flex-1 overflow-y-auto p-10 space-y-8 text-slate-600">
+                <!-- Dashboard -->
                 <div id="view-dashboard" class="grid grid-cols-1 md:grid-cols-3 gap-8">
                     <div class="bg-white p-8 rounded-3xl border shadow-sm flex items-center justify-between group hover:shadow-xl transition-all">
-                        <div><p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Personal</p><p id="stat-workers" class="text-3xl font-extrabold text-slate-900">0</p></div>
-                        <div class="p-3 bg-blue-50 text-blue-600 rounded-xl"><i data-lucide="users-2"></i></div>
+                        <div><p class="text-xs font-black text-slate-400 uppercase tracking-wider">Personal Registrado</p><p id="stat-workers" class="text-4xl font-black text-slate-800 mt-2">0</p></div>
+                        <div class="h-14 w-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600"><i data-lucide="users" class="w-7 h-7"></i></div>
                     </div>
                     <div class="bg-white p-8 rounded-3xl border shadow-sm flex items-center justify-between group hover:shadow-xl transition-all">
-                        <div><p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Cursos</p><p id="stat-courses" class="text-3xl font-extrabold text-slate-900">0</p></div>
-                        <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl"><i data-lucide="book-open"></i></div>
+                        <div><p class="text-xs font-black text-slate-400 uppercase tracking-wider">Cursos Disponibles</p><p id="stat-courses" class="text-4xl font-black text-slate-800 mt-2">0</p></div>
+                        <div class="h-14 w-14 bg-green-50 rounded-2xl flex items-center justify-center text-green-600"><i data-lucide="book-open" class="w-7 h-7"></i></div>
                     </div>
                     <div class="bg-white p-8 rounded-3xl border shadow-sm flex items-center justify-between group hover:shadow-xl transition-all">
-                        <div><p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">DC-3</p><p id="stat-dc3" class="text-3xl font-extrabold text-slate-900">0</p></div>
-                        <div class="p-3 bg-violet-50 text-violet-600 rounded-xl"><i data-lucide="file-check"></i></div>
+                        <div><p class="text-xs font-black text-slate-400 uppercase tracking-wider">DC-3 Generados</p><p id="stat-dc3" class="text-4xl font-black text-slate-800 mt-2">0</p></div>
+                        <div class="h-14 w-14 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600"><i data-lucide="file-check" class="w-7 h-7"></i></div>
                     </div>
                 </div>
-                <div id="view-content" class="hidden space-y-6">
-                    <div class="flex justify-between items-center bg-white p-6 rounded-2xl border shadow-sm">
-                        <p id="view-description" class="text-slate-500 font-medium"></p>
-                        <div class="flex space-x-2">
-                            <input type="file" id="excel-input" class="hidden" accept=".xlsx, .xls" onchange="handleExcel(this)">
-                            <button id="upload-btn" onclick="document.getElementById('excel-input').click()" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl text-sm font-bold shadow-md transition-all flex items-center"><i data-lucide="file-spreadsheet" class="w-4 h-4 mr-2"></i>Cargar Excel</button>
-                            <button id="add-btn" onclick="openModal()" class="hidden bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl text-sm font-bold shadow-md transition-all flex items-center"><i data-lucide="plus" class="w-4 h-4 mr-2"></i>Nuevo Registro</button>
-                        </div>
+
+                <!-- Table view -->
+                <div id="view-content" class="hidden">
+                    <div class="flex items-center justify-between mb-6">
+                        <input type="file" id="upload-btn" accept=".xlsx,.xls" class="hidden" onchange="handleExcel(this)">
+                        <button onclick="document.getElementById('upload-btn').click()" class="hidden bg-slate-900 text-white px-5 py-2.5 rounded-xl font-bold text-sm flex items-center space-x-2"><i data-lucide="upload" class="w-4 h-4"></i><span>Cargar Excel</span></button>
+                        <button id="add-btn" onclick="openModal()" class="hidden bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm flex items-center space-x-2 shadow-lg"><i data-lucide="plus" class="w-4 h-4"></i><span>Agregar</span></button>
                     </div>
-                    <div class="bg-white rounded-[2rem] border overflow-hidden shadow-sm">
-                        <table class="w-full text-left border-collapse">
-                            <thead id="table-header" class="bg-slate-50 text-[10px] uppercase text-slate-400 font-black border-b"></thead>
-                            <tbody id="table-body" class="divide-y text-sm font-medium"></tbody>
+                    <div class="bg-white rounded-2xl border shadow-sm overflow-hidden">
+                        <table class="w-full">
+                            <thead id="table-header" class="bg-slate-50 border-b"></thead>
+                            <tbody id="table-body"></tbody>
                         </table>
                     </div>
                 </div>
@@ -146,9 +146,10 @@
         </main>
     </div>
 
-    <!-- Modales -->
-    <div id="modal" class="modal"><div class="modal-content"><h3 id="modal-title" class="text-xl font-bold mb-6 text-slate-800 uppercase italic tracking-tighter">Acción</h3><div id="modal-fields" class="space-y-4"></div><div class="mt-8 flex justify-end space-x-3"><button onclick="closeModal()" class="text-slate-400 font-bold">Cancelar</button><button onclick="saveItem()" class="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold shadow-lg">Guardar</button></div></div></div>
+    <!-- Modal genérico -->
+    <div id="modal" class="modal"><div class="modal-content"><h3 id="modal-title" class="text-xl font-bold mb-6 text-slate-800 uppercase italic tracking-tighter">Acción</h3><div id="modal-fields" class="space-y-4"></div><div class="mt-8 flex justify-end space-x-3"><button onclick="closeModal()" class="text-slate-400 font-bold px-4 py-2">Cancelar</button><button onclick="saveItem()" class="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition-all">Guardar</button></div></div></div>
 
+    <!-- Modal DC-3 -->
     <div id="dc3-modal" class="modal">
         <div class="modal-content" style="width: 600px;">
             <h3 class="text-xl font-bold mb-6 text-slate-800 uppercase italic tracking-tighter text-center">Configurar Formato DC-3</h3>
@@ -163,132 +164,369 @@
                     <div><label class="text-xs font-black text-slate-400 uppercase">Fecha Fin</label><input type="date" id="dc3-end" class="w-full p-3 bg-slate-50 rounded-xl text-sm font-bold outline-none"></div>
                 </div>
             </div>
-            <div class="mt-8 flex justify-end space-x-3"><button onclick="document.getElementById('dc3-modal').style.display='none'">Cerrar</button><button onclick="generateSingleDC3()" class="bg-slate-900 text-white px-6 py-2 rounded-xl font-bold">Generar PDF</button></div>
+            <div class="mt-8 flex justify-end space-x-3"><button onclick="document.getElementById('dc3-modal').style.display='none'" class="text-slate-400 font-bold px-4 py-2">Cancelar</button><button onclick="generateSingleDC3()" class="bg-slate-900 text-white px-6 py-2 rounded-xl font-bold hover:bg-slate-800 transition-all">Generar PDF</button></div>
         </div>
     </div>
 
+    <!-- Toast -->
+    <div id="toast"></div>
+
     <script>
-        const API_URL = "https://data.mongodb-api.com/app/data-jshze/endpoint/data/v1/action";
-        const API_KEY = "al-b14XHfG6V17yJMOy1lmUWm9vCbuLZG1-Ot7Mp0YAMhH";
-        const DB_CONFIG = { dataSource: "acecontrol", database: "ace-control" };
+        // =============================================
+        // SUPABASE CONFIG
+        // =============================================
+        const SUPABASE_URL = "https://osgfwgedjdltrmvwycjd.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zZ2Z3Z2VkamRsdHJtdnd5Y2pkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyNDAxMzcsImV4cCI6MjA5OTgxNjEzN30.jeV98eAfhQzkXiGj88DUOLqLPLFr_IKPrcnTaefEgj0";
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         const CATALOGS = {
             occupations: ["01 Cultivo, crianza y aprovechamiento", "01.1 Agricultura y silvicultura", "01.2 Ganadería", "01.3 Pesca y acuacultura", "02 Extracción y suministro", "02.1 Exploración", "02.2 Extracción", "02.3 Refinación y beneficio", "02.4 Provisión de energía", "02.5 Provisión de agua", "03 Construcción", "03.1 Planeación y dirección de obras", "03.2 Edificación y urbanización", "03.3 Acabado", "03.4 Instalación y mantenimiento", "04 Tecnología", "04.1 Mecánica", "04.2 Electricidad", "04.3 Electrónica", "04.4 Informática", "04.5 Telecomunicaciones", "04.6 Procesos industriales", "05 Procesamiento y fabricación", "05.1 Minerales no metálicos", "05.2 Metales", "05.3 Alimentos y bebidas", "05.4 Textiles y prendas de vestir", "05.5 Materia orgánica", "05.6 Productos químicos", "05.7 Productos metálicos y de hule y plástico", "05.8 Productos eléctricos y electrónicos", "05.9 Productos impresos", "06 Transporte", "06.1 Ferroviario", "06.2 Autotransporte", "06.3 Aéreo", "06.4 Marítimo y fluvial", "06.5 Servicios de apoyo", "07 Provisión de bienes y servicios", "07.1 Comercio", "07.2 Alimentación y hospedaje", "07.3 Turismo", "07.4 Deporte y esparcimiento", "07.5 Servicios personales", "07.6 Reparación de artículos de uso doméstico y personal", "07.7 Limpieza", "07.8 Servicio postal y mensajería", "08 Gestión y soporte administrativo", "08.1 Bolsa, banca y seguros", "08.2 Administración", "08.3 Servicios legales", "09 Salud y protección social", "09.1 Servicios médicos", "09.2 Inspección sanitaria y del medio ambiente", "09.3 Seguridad social", "09.4 Protección de bienes y/o personas", "10 Comunicación", "10.1 Publicación", "10.2 Radio, cine, televisión y teatro", "10.3 Interpretación artística", "10.4 Traducción e interpretación lingüística", "10.5 Publicidad, propaganda y relaciones públicas", "11 Desarrollo y extensión del conocimiento", "11.1 Investigación", "11.2 Enseñanza", "11.3 Difusión cultural"],
             thematicAreas: ["1000 Producción general", "2000 Servicios", "3000 Administración, contabilidad y economía", "4000 Comercialización", "5000 Mantenimiento y reparación", "6000 Seguridad", "7000 Desarrollo personal y familiar", "8000 Uso de tecnologías de la información y comunicación", "9000 Participación social"]
         };
 
-        const DATA = {
-            users: [{ name: "Dario Robles", email: "d4r005@gmail.com", role: "ADMIN", password: "Branco2025" }, { name: "Cynthia Garza Lugo", email: "lugga.advisors@gmail.com", role: "USER", password: "Cynthia123" }],
-            courses: [{ name: "MANEJO SEGURO DE MONTACARGAS", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" }, { name: "TRABAJOS EN ALTURA (NOM-009)", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" }, { name: "SEGURIDAD EN SOLDADURA", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" }, { name: "FORMACION DE BRIGADAS", durationHours: 24, creatorEmail: "lugga.advisors@gmail.com" }, { name: "ESPACIOS CONFINADOS", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" }, { name: "BLOQUEO Y ETIQUETADO LOTO", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" }, { name: "MATERIALES PELIGROSOS", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" }, { name: "MAQUINARIA PESADA", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" }, { name: "SIMULACROS", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" }, { name: "SUPERVISORES SSPA", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" }, { name: "CORTE Y BARBERIA", durationHours: 24, creatorEmail: "lugga.advisors@gmail.com" }, { name: "MAQUILLAJE", durationHours: 24, creatorEmail: "lugga.advisors@gmail.com" }, { name: "FORMACION INSTRUCTORES", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" }, { name: "CONSTRUCCIÓN (NOM-031)", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" }, { name: "MANLIFT", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" }, { name: "ENGANCHE 5 RUEDA", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" }, { name: "URGENCIAS MEDICAS", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" }, { name: "VEHICULOS PESADOS", durationHours: 8, creatorEmail: "lugga.advisors@gmail.com" }, { name: "INHALOTERAPIA", durationHours: 24, creatorEmail: "lugga.advisors@gmail.com" }],
-            agents: [{ name: "CYNTHIA YADIRA GARZA LUGO", stps: "STPS-GALC780523-MP3-005", creatorEmail: "lugga.advisors@gmail.com" }],
-            companies: []
+        const USERS = [
+            { name: "Dario Robles", email: "d4r005@gmail.com", role: "ADMIN", password: "Branco2025" },
+            { name: "Cynthia Garza Lugo", email: "lugga.advisors@gmail.com", role: "USER", password: "Cynthia123" }
+        ];
+
+        let currentUser = null, currentView = 'dashboard', selectedWorker = null, allCompanies = [];
+
+        // --- Toast ---
+        function showToast(msg, ok = true) {
+            const t = document.getElementById('toast');
+            t.style.background = ok ? '#16a34a' : '#dc2626';
+            t.style.color = '#fff';
+            t.innerText = msg;
+            t.style.opacity = '1';
+            clearTimeout(t._timer);
+            t._timer = setTimeout(() => { t.style.opacity = '0'; }, 3000);
+        }
+
+        // --- Init ---
+        window.onload = function() {
+            lucide.createIcons();
+            if (localStorage.getItem('rememberedEmail'))
+                document.getElementById('email').value = localStorage.getItem('rememberedEmail');
         };
 
-        let currentUser = null, currentView = 'dashboard', selectedWorker = null;
-
-        window.onload = function() { lucide.createIcons(); if (localStorage.getItem('rememberedEmail')) document.getElementById('email').value = localStorage.getItem('rememberedEmail'); };
-
-        async function login(e) {
+        function login(e) {
             e.preventDefault();
             const email = document.getElementById('email').value.trim();
             const pass = document.getElementById('password').value.trim();
-            const user = DATA.users.find(u => u.email === email && u.password === pass);
-            if(user) { if(document.getElementById('remember-me').checked) localStorage.setItem('rememberedEmail', email); currentUser = user; initApp(); } else alert("Acceso denegado");
+            const user = USERS.find(u => u.email === email && u.password === pass);
+            if (user) {
+                if (document.getElementById('remember-me').checked)
+                    localStorage.setItem('rememberedEmail', email);
+                currentUser = user;
+                initApp();
+            } else {
+                document.getElementById('login-error').classList.remove('hidden');
+            }
         }
 
-        async function initApp() {
+        function initApp() {
             document.getElementById('view-login').classList.add('hidden');
             document.getElementById('app-container').classList.remove('hidden');
             document.getElementById('user-name-display').innerText = currentUser.name;
-            if(currentUser.role === 'ADMIN') document.getElementById('btn-users').classList.remove('hidden');
-            const comp = await atlasAction("find", "companies", { filter: {} }); DATA.companies = comp.documents || [];
-            switchView('dashboard'); lucide.createIcons();
+            const initials = currentUser.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+            document.getElementById('user-initials').innerText = initials;
+            document.getElementById('login-error').classList.add('hidden');
+            if (currentUser.role === 'ADMIN')
+                document.getElementById('btn-users').classList.remove('hidden');
+            switchView('dashboard');
+            lucide.createIcons();
         }
 
-        async function atlasAction(action, collection, payload = {}) {
-            const r = await fetch(API_URL+"/"+action, { method: "POST", headers: { "Content-Type": "application/json", "api-key": API_KEY }, body: JSON.stringify({ ...DB_CONFIG, collection, ...payload }) });
-            return await r.json();
+        function getFilter() {
+            const v = document.getElementById('user-filter').value;
+            if (currentUser.role === 'ADMIN' && v === 'ALL') return null;
+            return v === 'ALL' ? currentUser.email : v;
         }
-
-        function getFilter() { const v = document.getElementById('user-filter').value; return (currentUser.role==='ADMIN' && v==='ALL') ? {} : { creatorEmail: v === 'ALL' ? currentUser.email : v }; }
 
         async function switchView(v) {
             currentView = v;
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            const btn = document.getElementById('btn-'+v); if(btn) btn.classList.add('active');
+            const btn = document.getElementById('btn-' + v);
+            if (btn) btn.classList.add('active');
+            const titles = { dashboard:'Dashboard', workers:'Personal', companies:'Empresas', courses:'Cursos', agents:'Agentes Capacitadores', dc3:'DC-3 Generados', users:'Usuarios' };
+            document.getElementById('page-title').innerText = titles[v] || v;
             document.getElementById('view-dashboard').classList.toggle('hidden', v !== 'dashboard');
             document.getElementById('view-content').classList.toggle('hidden', v === 'dashboard');
             document.getElementById('upload-btn').classList.toggle('hidden', v !== 'workers');
-            document.getElementById('add-btn').classList.toggle('hidden', !['courses','agents','users','companies','workers'].includes(v));
-            refreshCurrentView(); lucide.createIcons();
+            document.getElementById('add-btn').classList.toggle('hidden', !['courses','agents','companies','workers'].includes(v));
+            await refreshCurrentView();
+            lucide.createIcons();
         }
+
+        // =============================================
+        // SUPABASE DATA FUNCTIONS
+        // =============================================
+
+        async function sbSelect(table, filter) {
+            let q = sb.from(table).select('*');
+            if (filter) q = q.eq('creator_email', filter);
+            const { data, error } = await q.order('created_at', { ascending: false });
+            if (error) { console.error('sbSelect error:', error); return []; }
+            return data || [];
+        }
+
+        async function sbInsert(table, doc) {
+            const { data, error } = await sb.from(table).insert(doc).select();
+            if (error) { console.error('sbInsert error:', error); return null; }
+            return data;
+        }
+
+        async function sbDelete(table, id) {
+            const { error } = await sb.from(table).delete().eq('id', id);
+            if (error) console.error('sbDelete error:', error);
+            return !error;
+        }
+
+        async function sbInsertMany(table, docs) {
+            const { data, error } = await sb.from(table).insert(docs);
+            if (error) { console.error('sbInsertMany error:', error); return false; }
+            return true;
+        }
+
+        // =============================================
+        // REFRESH VIEWS
+        // =============================================
 
         async function refreshCurrentView() {
             const f = getFilter();
-            if(currentView === 'dashboard') {
-                const w = await atlasAction("find", "workers", { filter: f });
-                const d = await atlasAction("find", "dc3_records", { filter: f });
-                document.getElementById('stat-workers').innerText = (w.documents || []).length;
-                document.getElementById('stat-dc3').innerText = (d.documents || []).length;
-                document.getElementById('stat-courses').innerText = f.creatorEmail ? DATA.courses.filter(c => c.creatorEmail === f.creatorEmail).length : DATA.courses.length;
-            } else if(currentView === 'workers') {
-                const data = await atlasAction("find", "workers", { filter: f });
-                document.getElementById('table-header').innerHTML = `<tr><th class="p-6">Nombre</th><th class="p-6">CURP</th><th class="p-6">Puesto</th><th class="p-6 text-right">Acciones</th></tr>`;
-                document.getElementById('table-body').innerHTML = (data.documents || []).map(x => `<tr class="hover:bg-slate-50"><td class="p-5 font-bold">${x.name}</td><td class="p-5">${x.curp}</td><td class="p-5">${x.position}</td><td class="p-5 text-right"><button onclick='openDC3Modal(${JSON.stringify(x)})' class="text-blue-600 font-bold hover:underline">Generar DC-3</button></td></tr>`).join('') || '<tr><td colspan="4" class="p-10 text-center">Sin personal</td></tr>';
-            } else if(currentView === 'companies') {
-                const data = await atlasAction("find", "companies", { filter: {} }); DATA.companies = data.documents || [];
-                document.getElementById('table-header').innerHTML = `<tr><th class="p-6">Empresa</th><th class="p-6">RFC</th><th class="p-6 text-right">Acciones</th></tr>`;
-                document.getElementById('table-body').innerHTML = DATA.companies.map(c => `<tr class="hover:bg-slate-50"><td class="p-5 font-bold">${c.name}</td><td class="p-5">${c.rfc}</td><td class="p-5 text-right"><button onclick="deleteItem('companies', '${c._id}')" class="text-red-500 font-bold">Eliminar</button></td></tr>`).join('') || '<tr><td colspan="3" class="p-10 text-center">Sin empresas</td></tr>';
-            } else if(currentView === 'courses') {
-                const list = f.creatorEmail ? DATA.courses.filter(c => c.creatorEmail === f.creatorEmail) : DATA.courses;
-                document.getElementById('table-header').innerHTML = `<tr><th class="p-6">Curso</th><th class="p-6">Horas</th></tr>`;
-                document.getElementById('table-body').innerHTML = list.map(c => `<tr class="hover:bg-slate-50"><td class="p-5 font-bold uppercase">${c.name}</td><td class="p-5 font-bold text-blue-600">${c.durationHours} H</td></tr>`).join('');
-            } else if(currentView === 'agents') {
-                const list = f.creatorEmail ? DATA.agents.filter(a => a.creatorEmail === f.creatorEmail) : DATA.agents;
-                document.getElementById('table-header').innerHTML = `<tr><th class="p-6">Agente</th><th class="p-6">STPS</th></tr>`;
-                document.getElementById('table-body').innerHTML = list.map(a => `<tr class="hover:bg-slate-50"><td class="p-5 font-bold uppercase">${a.name}</td><td class="p-5 font-bold">${a.stps}</td></tr>`).join('');
+
+            if (currentView === 'dashboard') {
+                const [workers, dc3recs, courses] = await Promise.all([
+                    sbSelect('workers', f),
+                    sbSelect('dc3_records', f),
+                    sbSelect('courses', f)
+                ]);
+                document.getElementById('stat-workers').innerText = workers.length;
+                document.getElementById('stat-dc3').innerText = dc3recs.length;
+                document.getElementById('stat-courses').innerText = courses.length;
+
+            } else if (currentView === 'workers') {
+                const data = await sbSelect('workers', f);
+                document.getElementById('table-header').innerHTML = '<tr><th class="p-6 text-left">Nombre</th><th class="p-6 text-left">CURP</th><th class="p-6 text-left">Puesto</th><th class="p-6 text-right">Acciones</th></tr>';
+                document.getElementById('table-body').innerHTML = data.length
+                    ? data.map(x => `<tr class="hover:bg-slate-50 border-b"><td class="p-5 font-bold">${x.name}</td><td class="p-5">${x.curp || ''}</td><td class="p-5">${x.position || ''}</td><td class="p-5 text-right space-x-3"><button onclick='openDC3Modal(${JSON.stringify(x)})' class="text-blue-600 font-bold hover:underline">Generar DC-3</button><button onclick="deleteItem('workers','${x.id}')" class="text-red-400 font-bold hover:underline">Eliminar</button></td></tr>`).join('')
+                    : '<tr><td colspan="4" class="p-10 text-center text-slate-400">Sin personal registrado</td></tr>';
+
+            } else if (currentView === 'companies') {
+                allCompanies = await sbSelect('companies', null);
+                document.getElementById('table-header').innerHTML = '<tr><th class="p-6 text-left">Empresa</th><th class="p-6 text-left">RFC</th><th class="p-6 text-right">Acciones</th></tr>';
+                document.getElementById('table-body').innerHTML = allCompanies.length
+                    ? allCompanies.map(c => `<tr class="hover:bg-slate-50 border-b"><td class="p-5 font-bold">${c.name}</td><td class="p-5">${c.rfc || ''}</td><td class="p-5 text-right"><button onclick="deleteItem('companies','${c.id}')" class="text-red-400 font-bold hover:underline">Eliminar</button></td></tr>`).join('')
+                    : '<tr><td colspan="3" class="p-10 text-center text-slate-400">Sin empresas registradas</td></tr>';
+
+            } else if (currentView === 'courses') {
+                const data = await sbSelect('courses', f);
+                document.getElementById('table-header').innerHTML = '<tr><th class="p-6 text-left">Curso</th><th class="p-6 text-left">Horas</th><th class="p-6 text-right">Acciones</th></tr>';
+                document.getElementById('table-body').innerHTML = data.length
+                    ? data.map(c => `<tr class="hover:bg-slate-50 border-b"><td class="p-5 font-bold uppercase">${c.name}</td><td class="p-5 font-bold text-blue-600">${c.duration_hours} H</td><td class="p-5 text-right"><button onclick="deleteItem('courses','${c.id}')" class="text-red-400 font-bold hover:underline">Eliminar</button></td></tr>`).join('')
+                    : '<tr><td colspan="3" class="p-10 text-center text-slate-400">Sin cursos</td></tr>';
+
+            } else if (currentView === 'agents') {
+                const data = await sbSelect('agents', f);
+                document.getElementById('table-header').innerHTML = '<tr><th class="p-6 text-left">Agente</th><th class="p-6 text-left">Registro STPS</th><th class="p-6 text-right">Acciones</th></tr>';
+                document.getElementById('table-body').innerHTML = data.length
+                    ? data.map(a => `<tr class="hover:bg-slate-50 border-b"><td class="p-5 font-bold uppercase">${a.name}</td><td class="p-5 font-bold">${a.stps || ''}</td><td class="p-5 text-right"><button onclick="deleteItem('agents','${a.id}')" class="text-red-400 font-bold hover:underline">Eliminar</button></td></tr>`).join('')
+                    : '<tr><td colspan="3" class="p-10 text-center text-slate-400">Sin agentes</td></tr>';
+
+            } else if (currentView === 'dc3') {
+                const data = await sbSelect('dc3_records', f);
+                document.getElementById('table-header').innerHTML = '<tr><th class="p-6 text-left">Trabajador</th><th class="p-6 text-left">Curso</th><th class="p-6 text-left">Empresa</th><th class="p-6 text-left">Fecha Inicio</th></tr>';
+                document.getElementById('table-body').innerHTML = data.length
+                    ? data.map(d => `<tr class="hover:bg-slate-50 border-b"><td class="p-5 font-bold">${d.worker_name || d.worker_id || ''}</td><td class="p-5">${d.course_name || ''}</td><td class="p-5">${d.company_name || ''}</td><td class="p-5">${d.start_date || ''}</td></tr>`).join('')
+                    : '<tr><td colspan="4" class="p-10 text-center text-slate-400">Sin DC-3 generados</td></tr>';
             }
         }
 
+        // =============================================
+        // MODAL / SAVE
+        // =============================================
+
         function openModal() {
-            const fields = document.getElementById('modal-fields'); document.getElementById('modal').style.display = 'block';
-            if(currentView === 'companies') { document.getElementById('modal-title').innerText = "Nueva Empresa"; fields.innerHTML = `<input id="f1" placeholder="Nombre" class="w-full p-4 bg-slate-50 rounded-xl text-slate-900 font-bold outline-none"><input id="f2" placeholder="RFC" class="w-full p-4 bg-slate-50 rounded-xl text-slate-900 font-bold outline-none">`; }
-            else if(currentView === 'workers') { document.getElementById('modal-title').innerText = "Nuevo Trabajador"; let occ = CATALOGS.occupations.map(o => `<option value="${o}">${o}</option>`).join(''); fields.innerHTML = `<input id="f1" placeholder="Nombre" class="w-full p-4 bg-slate-50 rounded-xl text-slate-900 font-bold outline-none"><input id="f2" placeholder="CURP" class="w-full p-4 bg-slate-50 rounded-xl text-slate-900 font-bold outline-none"><select id="f3" class="w-full p-4 bg-slate-50 rounded-xl text-slate-900 font-bold outline-none"><option value="">Ocupación</option>${occ}</select><input id="f4" placeholder="Puesto" class="w-full p-4 bg-slate-50 rounded-xl text-slate-900 font-bold outline-none">`; }
+            const fields = document.getElementById('modal-fields');
+            document.getElementById('modal').style.display = 'block';
+
+            if (currentView === 'companies') {
+                document.getElementById('modal-title').innerText = "Nueva Empresa";
+                fields.innerHTML = `<input id="f1" placeholder="Nombre de la empresa" class="w-full p-4 bg-slate-50 rounded-xl text-slate-900 font-bold outline-none border border-transparent focus:border-blue-400"><input id="f2" placeholder="RFC" class="w-full p-4 bg-slate-50 rounded-xl text-slate-900 font-bold outline-none border border-transparent focus:border-blue-400">`;
+            } else if (currentView === 'workers') {
+                document.getElementById('modal-title').innerText = "Nuevo Trabajador";
+                const occ = CATALOGS.occupations.map(o => `<option value="${o}">${o}</option>`).join('');
+                fields.innerHTML = `<input id="f1" placeholder="Nombre completo" class="w-full p-4 bg-slate-50 rounded-xl text-slate-900 font-bold outline-none border border-transparent focus:border-blue-400"><input id="f2" placeholder="CURP" maxlength="18" class="w-full p-4 bg-slate-50 rounded-xl text-slate-900 font-bold outline-none border border-transparent focus:border-blue-400"><select id="f3" class="w-full p-4 bg-slate-50 rounded-xl text-slate-900 font-bold outline-none border border-transparent focus:border-blue-400"><option value="">-- Seleccionar Ocupación --</option>${occ}</select><input id="f4" placeholder="Puesto" class="w-full p-4 bg-slate-50 rounded-xl text-slate-900 font-bold outline-none border border-transparent focus:border-blue-400">`;
+            } else if (currentView === 'courses') {
+                document.getElementById('modal-title').innerText = "Nuevo Curso";
+                fields.innerHTML = `<input id="f1" placeholder="Nombre del curso" class="w-full p-4 bg-slate-50 rounded-xl text-slate-900 font-bold outline-none border border-transparent focus:border-blue-400"><input id="f2" type="number" min="1" value="8" placeholder="Duración en horas" class="w-full p-4 bg-slate-50 rounded-xl text-slate-900 font-bold outline-none border border-transparent focus:border-blue-400">`;
+            } else if (currentView === 'agents') {
+                document.getElementById('modal-title').innerText = "Nuevo Agente Capacitador";
+                fields.innerHTML = `<input id="f1" placeholder="Nombre del agente" class="w-full p-4 bg-slate-50 rounded-xl text-slate-900 font-bold outline-none border border-transparent focus:border-blue-400"><input id="f2" placeholder="Registro STPS" class="w-full p-4 bg-slate-50 rounded-xl text-slate-900 font-bold outline-none border border-transparent focus:border-blue-400">`;
+            }
+            setTimeout(() => { const f1 = document.getElementById('f1'); if (f1) f1.focus(); }, 100);
         }
 
         async function saveItem() {
-            let doc = {}, coll = "";
-            if(currentView === 'companies') { coll = "companies"; doc = { name: document.getElementById('f1').value, rfc: document.getElementById('f2').value, creatorEmail: currentUser.email }; }
-            else if(currentView === 'workers') { coll = "workers"; doc = { name: document.getElementById('f1').value, curp: document.getElementById('f2').value, occupation: document.getElementById('f3').value, position: document.getElementById('f4').value, creatorEmail: currentUser.email }; }
-            const res = await atlasAction("insertOne", coll, { document: doc });
-            if(res.insertedId) { alert("¡Guardado!"); closeModal(); refreshCurrentView(); } else alert("Error al guardar");
+            let doc = {}, table = "";
+
+            if (currentView === 'companies') {
+                const name = document.getElementById('f1').value.trim();
+                const rfc = document.getElementById('f2').value.trim();
+                if (!name || !rfc) { showToast("Completa todos los campos", false); return; }
+                table = 'companies'; doc = { name, rfc, creator_email: currentUser.email };
+
+            } else if (currentView === 'workers') {
+                const name = document.getElementById('f1').value.trim();
+                const curp = document.getElementById('f2').value.trim().toUpperCase();
+                const occ = document.getElementById('f3').value;
+                const pos = document.getElementById('f4').value.trim();
+                if (!name || !curp || !occ || !pos) { showToast("Completa todos los campos", false); return; }
+                table = 'workers'; doc = { name, curp, occupation: occ, position: pos, creator_email: currentUser.email };
+
+            } else if (currentView === 'courses') {
+                const name = document.getElementById('f1').value.trim();
+                const hours = parseInt(document.getElementById('f2').value) || 0;
+                if (!name || hours < 1) { showToast("Ingresa nombre y horas válidas", false); return; }
+                table = 'courses'; doc = { name: name.toUpperCase(), duration_hours: hours, creator_email: currentUser.email };
+
+            } else if (currentView === 'agents') {
+                const name = document.getElementById('f1').value.trim();
+                const stps = document.getElementById('f2').value.trim();
+                if (!name || !stps) { showToast("Completa todos los campos", false); return; }
+                table = 'agents'; doc = { name: name.toUpperCase(), stps, creator_email: currentUser.email };
+            }
+
+            if (!table) { showToast("Vista no reconocida", false); return; }
+
+            const result = await sbInsert(table, doc);
+            if (result) {
+                showToast("✓ Guardado correctamente");
+                closeModal();
+                await refreshCurrentView();
+            } else {
+                showToast("Error al guardar en Supabase", false);
+            }
         }
 
-        function openDC3Modal(worker) {
-            selectedWorker = worker; document.getElementById('dc3-worker-name').innerText = worker.name;
-            document.getElementById('dc3-company').innerHTML = DATA.companies.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
-            const list = currentUser.role === 'ADMIN' ? DATA.courses : DATA.courses.filter(c => c.creatorEmail === currentUser.email);
-            document.getElementById('dc3-course').innerHTML = list.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+        // =============================================
+        // DC-3
+        // =============================================
+
+        async function openDC3Modal(worker) {
+            selectedWorker = worker;
+            document.getElementById('dc3-worker-name').innerText = worker.name;
+
+            // Cargar empresas y cursos
+            if (allCompanies.length === 0)
+                allCompanies = await sbSelect('companies', null);
+            const courses = await sbSelect('courses', getFilter());
+
+            document.getElementById('dc3-company').innerHTML = allCompanies.length
+                ? allCompanies.map(c => `<option value="${c.name}">${c.name}</option>`).join('')
+                : '<option value="">-- Sin empresas --</option>';
+            document.getElementById('dc3-course').innerHTML = courses.length
+                ? courses.map(c => `<option value="${c.name}">${c.name}</option>`).join('')
+                : '<option value="">-- Sin cursos --</option>';
             document.getElementById('dc3-modal').style.display = 'block';
         }
 
-        function generateSingleDC3() {
-            const doc = new jspdf.jsPDF(); doc.text("FORMATO DC-3", 105, 20, null, null, "center"); doc.text(`Trabajador: ${selectedWorker.name}`, 20, 40); doc.save(`DC3_${selectedWorker.curp}.pdf`);
-            atlasAction("insertOne", "dc3_records", { document: { workerId: selectedWorker.curp, courseName: document.getElementById('dc3-course').value, companyName: document.getElementById('dc3-company').value, startDate: document.getElementById('dc3-start').value, creatorEmail: currentUser.email } });
-            alert("¡PDF Generado!"); document.getElementById('dc3-modal').style.display = 'none'; refreshCurrentView();
+        async function generateSingleDC3() {
+            const companyName = document.getElementById('dc3-company').value;
+            const courseName = document.getElementById('dc3-course').value;
+            const startDate = document.getElementById('dc3-start').value;
+            const endDate = document.getElementById('dc3-end').value;
+
+            if (!companyName || !courseName || !startDate || !endDate) {
+                showToast("Completa todos los campos del DC-3", false);
+                return;
+            }
+
+            // Generar PDF
+            const doc = new jspdf.jsPDF();
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(14);
+            doc.text("FORMATO DC-3", 105, 20, null, null, "center");
+            doc.setFontSize(9);
+            doc.text("CONSTANCIA DE COMPETENCIAS O DE HABILIDADES LABORALES", 105, 28, null, null, "center");
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10);
+            doc.text(`Trabajador: ${selectedWorker.name}`, 20, 45);
+            doc.text(`CURP: ${selectedWorker.curp || ''}`, 20, 52);
+            doc.text(`Puesto: ${selectedWorker.position || ''}`, 20, 59);
+            doc.text(`Ocupacion: ${selectedWorker.occupation || ''}`, 20, 66);
+            doc.line(20, 70, 190, 70);
+            doc.text(`Empresa: ${companyName}`, 20, 78);
+            doc.line(20, 82, 190, 82);
+            doc.text(`Curso: ${courseName}`, 20, 90);
+            doc.text(`Periodo: ${startDate} al ${endDate}`, 20, 97);
+            doc.line(20, 250, 80, 250);
+            doc.text("Instructor / Tutor", 30, 257);
+            doc.line(90, 250, 150, 250);
+            doc.text("Patron o Rep. Legal", 97, 257);
+            doc.save(`DC3_${selectedWorker.curp || selectedWorker.name}.pdf`);
+
+            // Guardar registro en Supabase
+            await sbInsert('dc3_records', {
+                worker_id: selectedWorker.curp || '',
+                worker_name: selectedWorker.name,
+                course_name: courseName,
+                company_name: companyName,
+                start_date: startDate,
+                end_date: endDate,
+                creator_email: currentUser.email
+            });
+
+            showToast("✓ PDF generado y registrado en Supabase");
+            document.getElementById('dc3-modal').style.display = 'none';
+            await refreshCurrentView();
         }
 
-        function togglePassword() { const p = document.getElementById('password'); p.type = p.type === 'password' ? 'text' : 'password'; }
-        function logout() { location.reload(); }
-        function closeModal() { document.getElementById('modal').style.display='none'; }
-        async function deleteItem(coll, id) { if(confirm("Borrar?")) { await atlasAction("deleteOne", coll, { filter: { _id: { "$oid": id } } }); refreshCurrentView(); } }
+        // =============================================
+        // UTILS
+        // =============================================
+
+        function logout() { currentUser = null; location.reload(); }
+        function closeModal() { document.getElementById('modal').style.display = 'none'; }
+
+        async function deleteItem(table, id) {
+            if (!confirm("¿Seguro que deseas eliminar este registro?")) return;
+            const ok = await sbDelete(table, id);
+            if (ok) { showToast("Eliminado correctamente"); await refreshCurrentView(); }
+            else showToast("Error al eliminar", false);
+        }
+
         async function handleExcel(input) {
-            const r = new FileReader(); r.onload = async (e) => {
-                const rows = XLSX.utils.sheet_to_json(XLSX.read(new Uint8Array(e.target.result), {type:'array'}).Sheets[XLSX.read(new Uint8Array(e.target.result), {type:'array'}).SheetNames[0]]);
-                await atlasAction("insertMany", "workers", { documents: rows.map(r => ({ name: r.Nombre || r.NOMBRE, curp: r.CURP, position: r.Puesto || r.PUESTO, creatorEmail: currentUser.email })) });
-                alert("Excel cargado!"); refreshCurrentView();
+            if (!input.files[0]) return;
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+                    if (!rows.length) { showToast("El archivo está vacío", false); return; }
+
+                    const docs = rows.map(r => ({
+                        name: r.Nombre || r.NOMBRE || r.nombre || '',
+                        curp: r.CURP || r.curp || '',
+                        position: r.Puesto || r.PUESTO || r.puesto || '',
+                        occupation: r.Ocupacion || r.OCUPACION || r.ocupacion || '',
+                        creator_email: currentUser.email
+                    })).filter(d => d.name);
+
+                    if (!docs.length) { showToast("No se encontraron datos válidos", false); return; }
+
+                    const ok = await sbInsertMany('workers', docs);
+                    if (ok) {
+                        showToast(`✓ ${docs.length} trabajadores importados a Supabase`);
+                        await refreshCurrentView();
+                    } else {
+                        showToast("Error al importar a Supabase", false);
+                    }
+                } catch (err) {
+                    showToast("Error al leer Excel: " + err.message, false);
+                }
             };
-            r.readAsArrayBuffer(input.files[0]);
+            reader.readAsArrayBuffer(input.files[0]);
         }
     </script>
 </body>
