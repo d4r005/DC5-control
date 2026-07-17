@@ -1122,9 +1122,9 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     const agentLine = sp(((agent.name||'') + '  ' + (agent.stps||'')).toUpperCase().trim());
     T(30, 438, agentLine.slice(0,70), 8);
 
-    // ── 12. Limpiar área de firmas completa para evitar duplicados y desalineación ──────
-    // Limpiamos todo el recuadro de las 3 firmas (X=25 a 575, Y=PH-555 a PH-445)
-    page.drawRectangle({ x: 25, y: PH - 555, width: 550, height: 112, color: rgb(1,1,1) });
+    // ── 12. Limpiar área de firmas completa de forma precisa ──────
+    // Reducimos el ancho y alto de limpieza para no borrar los bordes del recuadro
+    page.drawRectangle({ x: 30, y: PH - 553, width: 540, height: 108, color: rgb(1,1,1) });
 
     // Logo LUBER (fondo) - Centrado en X=120
     const LOGO_H = 70, LOGO_W = 130;
