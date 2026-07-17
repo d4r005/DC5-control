@@ -266,7 +266,7 @@
         <div id="section-companies" class="hidden">
             <div class="card overflow-hidden">
                 <table>
-                    <thead><tr><th>Razón Social</th><th>RFC</th><th>Acciones</th></tr></thead>
+                    <thead><tr><th>Razón Social</th><th>RFC</th><th>Patrón</th><th>Acciones</th></tr></thead>
                     <tbody id="tb-companies"><tr><td colspan="3" class="text-center py-12 text-gray-300">Cargando…</td></tr></tbody>
                 </table>
             </div>
@@ -667,9 +667,10 @@ async function loadSection(v) {
             ? rows.map(x => `<tr>
                 <td class="font-semibold">${x.name||''}</td>
                 <td class="font-mono text-xs text-gray-500">${x.rfc||''}</td>
+                <td class="text-xs text-gray-500">${x.patron||'–'}</td>
                 <td class="text-right"><button onclick="delItem('companies','${x.id}')" class="btn-sm btn-red">Eliminar</button></td>
               </tr>`).join('')
-            : `<tr><td colspan="3" class="text-center py-12 text-gray-300 text-sm">Sin empresas registradas</td></tr>`;
+            : `<tr><td colspan="4" class="text-center py-12 text-gray-300 text-sm">Sin empresas registradas</td></tr>`;
 
     } else if (v === 'courses') {
         const list = currentUser.role === 'ADMIN' ? DATA.courses : DATA.courses.filter(c => c.creatorEmail === currentUser.email);
@@ -735,6 +736,14 @@ function openModal() {
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">RFC</label>
                 <input id="f2" class="input-field" placeholder="Ej. INA930512AB3" style="text-transform:uppercase">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Patrón o Representante Legal</label>
+                <input id="f3" class="input-field" placeholder="Nombre completo del patrón">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Representante de los Trabajadores</label>
+                <input id="f4" class="input-field" placeholder="Obligatorio para empresas con +50 trabajadores">
             </div>`;
     } else if (currentView === 'workers') {
         document.getElementById('modal-title').innerText = 'Nuevo Trabajador';
@@ -763,8 +772,11 @@ async function saveItem() {
     if (currentView === 'companies') {
         const name = document.getElementById('f1').value.trim();
         const rfc = document.getElementById('f2').value.trim().toUpperCase();
-        if (!name || !rfc) { alert('Completa todos los campos'); return; }
-        await api('insertOne','companies',{ document: { name, rfc, creatorEmail: currentUser.email } });
+        const patron = document.getElementById('f3').value.trim();
+        const representante = document.getElementById('f4').value.trim();
+        if (!name || !rfc) { alert('Completa razón social y RFC'); return; }
+        if (!patron) { alert('El patrón o representante legal es obligatorio'); return; }
+        await api('insertOne','companies',{ document: { name, rfc, patron, representante: representante || null, creatorEmail: currentUser.email } });
     } else if (currentView === 'workers') {
         const name = document.getElementById('f1').value.trim();
         const curp = document.getElementById('f2').value.trim().toUpperCase();
@@ -853,8 +865,8 @@ async function generateDC3() {
 
     if (!start || !end) { alert('Selecciona las fechas de inicio y término'); return; }
 
-    // Buscar el objeto empresa completo para obtener el RFC
-    const company = DATA.companies.find(c => c.name === companyName) || { name: companyName, rfc: '' };
+    // Buscar el objeto empresa completo para obtener RFC, patron y representante
+    const company = DATA.companies.find(c => c.name === companyName) || { name: companyName, rfc: '', patron: '', representante: null };
 
     const [agentName, agentStps] = agentVal.split('|');
     const [courseName, courseDuration, courseArea] = courseVal.split('|');
@@ -890,9 +902,10 @@ async function generateDC3() {
 // Regenerar desde historial
 async function regenDC3(record) {
     const worker  = { name: record.workerName, curp: record.workerId, position: record.workerPos };
+    const regenCompany = DATA.companies.find(c => c.name === record.companyName) || { name: record.companyName, rfc: '', patron: '', representante: null };
     await buildDC3PDF({
         worker,
-        company: record.companyName,
+        company: regenCompany,
         agent:   { name: record.agentName || '–', stps: record.agentStps || '–' },
         course:  { name: record.courseName, duration: record.durationHours, area: record.thematicArea },
         start:   record.startDate,
@@ -932,11 +945,9 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
         if (!f) return { a:'    ', m:'  ', d:'  ' };
         let parts;
         if (f.includes('-')) {
-            // yyyy-mm-dd
             parts = f.split('-');
             return { a: parts[0].padStart(4,'0'), m: parts[1].padStart(2,'0'), d: parts[2].padStart(2,'0') };
         } else {
-            // dd/mm/yyyy
             parts = f.split('/');
             return { a: (parts[2]||'    ').padStart(4,'0'), m: (parts[1]||'  ').padStart(2,'0'), d: (parts[0]||'  ').padStart(2,'0') };
         }
@@ -957,44 +968,56 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     const font   = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const fontB  = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
     const page   = pdfDoc.getPage(0);
-    const PH     = 792; // altura página Letter en pts
+    const PH     = 792;
 
-    // Coordenadas extraídas con pymupdf del PDF oficial STPS
-    // pdf-lib usa Y desde abajo: y_pdflib = PH - y_fitz
+    // ── Separadores exactos del PDF oficial (extraídos con PyMuPDF) ──────────
+    const FECHA_SEPS = [24.2,180.6,252.1,267.7,283.6,300.1,316.0,
+                        337.1,358.9,379.8,401.0,422.8,442.2,462.0,
+                        481.4,501.1,522.0,543.1,564.9,586.1];
 
-    const CURP_XS  = [31.9,47.3,62.8,78.3,93.5,108.9,124.4,139.7,155.1,
-                      170.5,185.8,201.2,216.6,231.9,247.3,262.7,278.0,293.4];
-    const CURP_Y   = PH - 195;
+    // Índices de celdas dentro de FECHA_SEPS
+    const AÑO_INI_IDX = [2,3,4,5];
+    const MES_INI_IDX = [6,7];
+    const DIA_INI_IDX = [8,9];
+    const AÑO_FIN_IDX = [11,12,13,14];
+    const MES_FIN_IDX = [15,16];
+    const DIA_FIN_IDX = [17,18];
 
-    const RFC_XS   = [34.8,52.2,66.1,80.8,95.6,109.8,124.1,138.4,152.7,
-                      167.0,181.3,195.6,209.8,227.5,245.0];
-    const RFC_Y    = PH - 308;
+    // CURP: separadores exactos
+    const CURP_SEPS = [24.2,39.6,55.0,70.6,85.9,101.1,116.7,132.1,147.4,
+                       162.8,178.1,193.5,208.9,224.3,239.6,255.0,270.3,285.7,301.1];
+    // RFC: separadores exactos
+    const RFC_SEPS  = [24.2,45.4,59.1,73.2,88.3,102.8,116.9,131.3,
+                       145.5,159.9,174.1,188.5,202.6,217.1,237.9,252.1];
 
-    const AÑO_INI  = [269, 284, 299, 315];
-    const MES_INI  = [342, 363];
-    const DIA_INI  = [385, 406];
-    const AÑO_FIN  = [446, 465, 485, 505];
-    const MES_FIN  = [526, 548];
-    const DIA_FIN  = [570, 591];
-    const FECHA_Y  = PH - 389;
+    // Baseline Y para cada fila (centro vertical de la celda + ajuste)
+    const CURP_Y  = (185.8 + 201.2)/2 + 2.5;  // 193.5
+    const RFC_Y   = (300.3 + 315.2)/2 + 2.5;  // 310.25
+    const FECHA_Y = (380.3 + 394.0)/2 + 2.5;  // 389.65
 
-    // Helper: dibuja texto
+    // Helper: dibuja texto en coordenada (x, yFitz desde arriba)
     function T(x, yFitz, text, size, useBold) {
         const s = sp(String(text||''));
         if (!s) return;
-        page.drawText(s, {
-            x, y: PH - yFitz,
-            size: size || 9,
-            font: useBold ? fontB : font,
-            color: rgb(0,0,0)
-        });
+        page.drawText(s, { x, y: PH - yFitz, size: size||9, font: useBold ? fontB : font, color: rgb(0,0,0) });
     }
 
-    // Helper: dibuja caracteres individuales en array de centros X
-    function boxes(chars, xs, yFitz, size) {
-        [...(chars||'')].forEach((c,i) => {
-            if (i < xs.length) {
-                page.drawText(sp(c), { x: xs[i], y: PH-yFitz, size: size||8, font, color: rgb(0,0,0) });
+    // Helper: dibuja un caracter CENTRADO en una celda definida por x0..x1
+    function charInCell(x0, x1, yFitz, ch, size) {
+        const s = sp(String(ch||''));
+        if (!s) return;
+        const sz = size || 7;
+        const cw = font.widthOfTextAtSize(s, sz);
+        const cx = (x0 + x1) / 2 - cw / 2;  // centro exacto
+        page.drawText(s, { x: cx, y: PH - yFitz, size: sz, font, color: rgb(0,0,0) });
+    }
+
+    // Helper: dibuja string carácter por celda usando array de separadores
+    function drawInCells(str, seps, idxArr, yFitz, size) {
+        [...(str||'')].forEach((c, i) => {
+            if (i < idxArr.length) {
+                const si = idxArr[i];
+                charInCell(seps[si], seps[si+1], yFitz, c, size);
             }
         });
     }
@@ -1002,13 +1025,14 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     // ── 1. Nombre trabajador ─────────────────────────────────────────────────
     T(30, 170, (worker.name||'').toUpperCase(), 9, true);
 
-    // ── 2. CURP ──────────────────────────────────────────────────────────────
-    boxes((worker.curp||'').toUpperCase().slice(0,18), CURP_XS, 195, 7);
+    // ── 2. CURP (carácter por celda centrado) ─────────────────────────────────
+    drawInCells((worker.curp||'').toUpperCase().slice(0,18), CURP_SEPS,
+                [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17], CURP_Y, 7);
 
     // ── 3. Ocupación (col derecha) ───────────────────────────────────────────
     T(305, 193, (worker.occupation||worker.position||'').toUpperCase().slice(0,50), 7);
 
-    // ── 4. Puesto (borrar ejemplo "AUXILIAR DE RECURSOS HUMANOS" y escribir real)
+    // ── 4. Puesto (borrar ejemplo y escribir) ───────────────────────────────
     page.drawRectangle({ x:25, y: PH-231, width:560, height:18, color: rgb(1,1,1) });
     T(30, 223, (worker.position||'').toUpperCase(), 9);
 
@@ -1016,9 +1040,9 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     const compObj = (typeof company === 'object') ? company : { name: company, rfc: '' };
     T(30, 282, (compObj.name||company||'').toUpperCase().slice(0,70), 9, true);
 
-    // ── 6. RFC empresa ───────────────────────────────────────────────────────
+    // ── 6. RFC empresa (carácter por celda centrado) ──────────────────────────
     const rfcClean = (compObj.rfc||'').toUpperCase().replace(/[-\s]/g,'').slice(0,15);
-    boxes(rfcClean, RFC_XS, 308, 7);
+    drawInCells(rfcClean, RFC_SEPS, [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14], RFC_Y, 7);
 
     // ── 7. Nombre del curso ──────────────────────────────────────────────────
     T(30, 365, (course.name||'').toUpperCase().slice(0,80), 8, true);
@@ -1026,55 +1050,88 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     // ── 8. Duración ──────────────────────────────────────────────────────────
     T(30, 391, String(course.duration||''), 8);
 
-    // ── 9. Periodo (dígitos individuales) ────────────────────────────────────
+    // ── 9. Periodo (dígito por celda, centrado) ───────────────────────────────
     const fi = parseFecha(start), ff = parseFecha(end);
-    boxes(fi.a, AÑO_INI, 389, 8); boxes(fi.m, MES_INI, 389, 8); boxes(fi.d, DIA_INI, 389, 8);
-    boxes(ff.a, AÑO_FIN, 389, 8); boxes(ff.m, MES_FIN, 389, 8); boxes(ff.d, DIA_FIN, 389, 8);
+    drawInCells(fi.a, FECHA_SEPS, AÑO_INI_IDX, FECHA_Y, 7);
+    drawInCells(fi.m, FECHA_SEPS, MES_INI_IDX, FECHA_Y, 7);
+    drawInCells(fi.d, FECHA_SEPS, DIA_INI_IDX, FECHA_Y, 7);
+    drawInCells(ff.a, FECHA_SEPS, AÑO_FIN_IDX, FECHA_Y, 7);
+    drawInCells(ff.m, FECHA_SEPS, MES_FIN_IDX, FECHA_Y, 7);
+    drawInCells(ff.d, FECHA_SEPS, DIA_FIN_IDX, FECHA_Y, 7);
 
     // ── 10. Área temática ────────────────────────────────────────────────────
     T(30, 416, (course.area||course.thematicArea||'').slice(0,80), 8);
 
-    // ── 11. Agente capacitador ───────────────────────────────────────────────
+    // ── 11. Agente capacitador ────────────────────────────────────────────────
     const agentLine = sp(((agent.name||'') + '  ' + (agent.stps||'')).toUpperCase().trim());
     T(30, 438, agentLine.slice(0,70), 8);
 
-    // ── 12. Firma Digital de Cynthia (Personalizada con Logo LUBER) ──────────
-    // Limpiamos el área original de la plantilla
-    page.drawRectangle({ x: 35, y: PH - 525, width: 215, height: 75, color: rgb(1,1,1) });
+    // ── 12. Logo LUBER (fondo, columna instructor) ────────────────────────────
+    // Columna instructor: X=24 a ~215, centro X≈120
+    // Sección firmas: Y=443.4 a Y=539.9
+    // Logo: ratio 1.777 → W=120, H=120/1.777=67.5
+    // X = 120-60 = 60, Y_fitz = 449 (centro vertical ≈ 449+33.7=482.7)
+    const LOGO_W = 120, LOGO_H = 67.5;
+    const LOGO_X = 60;
+    const LOGO_Y_FITZ = 449;
 
-    if (agent.name.toUpperCase().includes('CYNTHIA')) {
-        try {
-            // 1. Logo LUBER (Fondo)
-            const luberResp = await fetch('/signatures/image4.png');
-            if (luberResp.ok) {
-                const luberBytes = await luberResp.arrayBuffer();
-                const luberImg = await pdfDoc.embedPng(luberBytes);
-                const luberDims = luberImg.scale(0.22);
-                page.drawImage(luberImg, {
-                    x: 60, y: PH - 505,
-                    width: luberDims.width, height: luberDims.height,
-                    opacity: 0.4
-                });
-            }
+    // Borrar área previa (texto de ejemplo de la plantilla en columna instructor)
+    page.drawRectangle({ x: LOGO_X, y: PH - (LOGO_Y_FITZ + LOGO_H + 5), width: LOGO_W, height: LOGO_H + 5, color: rgb(1,1,1) });
 
-            // 2. Firma Azul (Sobre el logo)
-            const sigResp = await fetch('/signatures/cynthia_firma_oficial.png');
-            if (sigResp.ok) {
-                const sigBytes = await sigResp.arrayBuffer();
-                const sigImg = await pdfDoc.embedPng(sigBytes);
-                const sigDims = sigImg.scale(0.42);
-                page.drawImage(sigImg, {
-                    x: 65, y: PH - 515,
-                    width: sigDims.width, height: sigDims.height,
-                });
-            }
-        } catch (e) { console.warn('Error en firma personalizada:', e); }
+    try {
+        const logoResp = await fetch('/signatures/logo_luber.png');
+        if (logoResp.ok) {
+            const logoBytes = await logoResp.arrayBuffer();
+            const logoImg = await pdfDoc.embedPng(logoBytes);
+            page.drawImage(logoImg, {
+                x: LOGO_X, y: PH - (LOGO_Y_FITZ + LOGO_H),
+                width: LOGO_W, height: LOGO_H,
+                opacity: 0.85
+            });
+        }
+    } catch(e) { console.warn('Error cargando logo:', e); }
+
+    // ── 13. Firma del instructor (encima del logo) ────────────────────────────
+    // Firma: ratio 1.419 → W=100, H=100/1.419=70.5
+    // Centrada en columna instructor
+    const FIRMA_W = 100, FIRMA_H = 70.5;
+    const FIRMA_X = 70;  // 120 - 50 = 70
+    const FIRMA_Y_FITZ = 452;
+
+    try {
+        const sigResp = await fetch('/signatures/firma_instructor.png');
+        if (sigResp.ok) {
+            const sigBytes = await sigResp.arrayBuffer();
+            const sigImg = await pdfDoc.embedPng(sigBytes);
+            page.drawImage(sigImg, {
+                x: FIRMA_X, y: PH - (FIRMA_Y_FITZ + FIRMA_H),
+                width: FIRMA_W, height: FIRMA_H,
+            });
+        }
+    } catch(e) { console.warn('Error cargando firma:', e); }
+
+    // ── 14. Nombres bajo líneas de firma ─────────────────────────────────────
+    // Instructor: columna 1 (X≈26)
+    const insName = sp((agent.name||'').toUpperCase());
+    const insLines = splitNameJS(insName, 24);
+    T(26, 527, insLines[0], 7);
+    if (insLines[1]) T(26, 535, insLines[1], 7);
+
+    // Patrón: columna 2 (X≈222)
+    if (compObj.patron) {
+        const patName = sp(compObj.patron.toUpperCase());
+        const patLines = splitNameJS(patName, 26);
+        T(222, 527, patLines[0], 7);
+        if (patLines[1]) T(222, 535, patLines[1], 7);
     }
 
-    // ── 13. Nombres bajo líneas de firma ─────────────────────────────────────
-    T(70,  530, (agent.name||'').toUpperCase(), 8);    // instructor / agente
-    // Limpieza total del área de patrón para dejar en blanco
-    page.drawRectangle({ x: 260, y: PH - 535, width: 220, height: 85, color: rgb(1,1,1) });
+    // Representante: columna 3 (X≈385)
+    if (compObj.representante) {
+        const repName = sp(compObj.representante.toUpperCase());
+        const repLines = splitNameJS(repName, 24);
+        T(385, 527, repLines[0], 7);
+        if (repLines[1]) T(385, 535, repLines[1], 7);
+    }
 
     // Guardar y descargar
     const outBytes = await pdfDoc.save();
@@ -1085,6 +1142,13 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     a.download = 'DC3_' + sp((worker.curp||worker.name||'constancia').replace(/\s/g,'_')) + '.pdf';
     document.body.appendChild(a); a.click(); a.remove();
     URL.revokeObjectURL(url);
+}
+
+function splitNameJS(name, maxChars) {
+    if (!name || name.length <= maxChars) return [name || ''];
+    const mid = name.lastIndexOf(' ', maxChars);
+    if (mid > 0) return [name.substring(0, mid), name.substring(mid + 1)];
+    return [name.substring(0, maxChars), name.substring(maxChars)];
 }
 
 // ─── EXCEL IMPORT ──────────────────────────────────────
