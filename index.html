@@ -131,8 +131,8 @@
                 <!-- Table view -->
                 <div id="view-content" class="hidden">
                     <div class="flex items-center justify-between mb-6">
-                        <input type="file" id="upload-btn" accept=".xlsx,.xls" class="hidden" onchange="handleExcel(this)">
-                        <button onclick="document.getElementById('upload-btn').click()" class="hidden bg-slate-900 text-white px-5 py-2.5 rounded-xl font-bold text-sm flex items-center space-x-2"><i data-lucide="upload" class="w-4 h-4"></i><span>Cargar Excel</span></button>
+                        <input type="file" id="excel-input" accept=".xlsx,.xls" class="hidden" onchange="handleExcel(this)">
+                        <button id="upload-btn" onclick="document.getElementById('excel-input').click()" class="hidden bg-slate-900 text-white px-5 py-2.5 rounded-xl font-bold text-sm flex items-center space-x-2"><i data-lucide="upload" class="w-4 h-4"></i><span>Cargar Excel</span></button>
                         <button id="add-btn" onclick="openModal()" class="hidden bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm flex items-center space-x-2 shadow-lg"><i data-lucide="plus" class="w-4 h-4"></i><span>Agregar</span></button>
                     </div>
                     <div class="bg-white rounded-2xl border shadow-sm overflow-hidden">
@@ -172,26 +172,22 @@
     <div id="toast"></div>
 
     <script>
-        // =============================================
-        // SUPABASE CONFIG
-        // =============================================
         const SUPABASE_URL = "https://osgfwgedjdltrmvwycjd.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zZ2Z3Z2VkamRsdHJtdnd5Y2pkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyNDAxMzcsImV4cCI6MjA5OTgxNjEzN30.jeV98eAfhQzkXiGj88DUOLqLPLFr_IKPrcnTaefEgj0";
         const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         const CATALOGS = {
-            occupations: ["01 Cultivo, crianza y aprovechamiento", "01.1 Agricultura y silvicultura", "01.2 Ganadería", "01.3 Pesca y acuacultura", "02 Extracción y suministro", "02.1 Exploración", "02.2 Extracción", "02.3 Refinación y beneficio", "02.4 Provisión de energía", "02.5 Provisión de agua", "03 Construcción", "03.1 Planeación y dirección de obras", "03.2 Edificación y urbanización", "03.3 Acabado", "03.4 Instalación y mantenimiento", "04 Tecnología", "04.1 Mecánica", "04.2 Electricidad", "04.3 Electrónica", "04.4 Informática", "04.5 Telecomunicaciones", "04.6 Procesos industriales", "05 Procesamiento y fabricación", "05.1 Minerales no metálicos", "05.2 Metales", "05.3 Alimentos y bebidas", "05.4 Textiles y prendas de vestir", "05.5 Materia orgánica", "05.6 Productos químicos", "05.7 Productos metálicos y de hule y plástico", "05.8 Productos eléctricos y electrónicos", "05.9 Productos impresos", "06 Transporte", "06.1 Ferroviario", "06.2 Autotransporte", "06.3 Aéreo", "06.4 Marítimo y fluvial", "06.5 Servicios de apoyo", "07 Provisión de bienes y servicios", "07.1 Comercio", "07.2 Alimentación y hospedaje", "07.3 Turismo", "07.4 Deporte y esparcimiento", "07.5 Servicios personales", "07.6 Reparación de artículos de uso doméstico y personal", "07.7 Limpieza", "07.8 Servicio postal y mensajería", "08 Gestión y soporte administrativo", "08.1 Bolsa, banca y seguros", "08.2 Administración", "08.3 Servicios legales", "09 Salud y protección social", "09.1 Servicios médicos", "09.2 Inspección sanitaria y del medio ambiente", "09.3 Seguridad social", "09.4 Protección de bienes y/o personas", "10 Comunicación", "10.1 Publicación", "10.2 Radio, cine, televisión y teatro", "10.3 Interpretación artística", "10.4 Traducción e interpretación lingüística", "10.5 Publicidad, propaganda y relaciones públicas", "11 Desarrollo y extensión del conocimiento", "11.1 Investigación", "11.2 Enseñanza", "11.3 Difusión cultural"],
-            thematicAreas: ["1000 Producción general", "2000 Servicios", "3000 Administración, contabilidad y economía", "4000 Comercialización", "5000 Mantenimiento y reparación", "6000 Seguridad", "7000 Desarrollo personal y familiar", "8000 Uso de tecnologías de la información y comunicación", "9000 Participación social"]
+            occupations: ["01 Cultivo, crianza y aprovechamiento","01.1 Agricultura y silvicultura","01.2 Ganadería","01.3 Pesca y acuacultura","02 Extracción y suministro","02.1 Exploración","02.2 Extracción","02.3 Refinación y beneficio","02.4 Provisión de energía","02.5 Provisión de agua","03 Construcción","03.1 Planeación y dirección de obras","03.2 Edificación y urbanización","03.3 Acabado","03.4 Instalación y mantenimiento","04 Tecnología","04.1 Mecánica","04.2 Electricidad","04.3 Electrónica","04.4 Informática","04.5 Telecomunicaciones","04.6 Procesos industriales","05 Procesamiento y fabricación","05.1 Minerales no metálicos","05.2 Metales","05.3 Alimentos y bebidas","05.4 Textiles y prendas de vestir","05.5 Materia orgánica","05.6 Productos químicos","05.7 Productos metálicos y de hule y plástico","05.8 Productos eléctricos y electrónicos","05.9 Productos impresos","06 Transporte","06.1 Ferroviario","06.2 Autotransporte","06.3 Aéreo","06.4 Marítimo y fluvial","06.5 Servicios de apoyo","07 Provisión de bienes y servicios","07.1 Comercio","07.2 Alimentación y hospedaje","07.3 Turismo","07.4 Deporte y esparcimiento","07.5 Servicios personales","07.6 Reparación de artículos de uso doméstico y personal","07.7 Limpieza","07.8 Servicio postal y mensajería","08 Gestión y soporte administrativo","08.1 Bolsa, banca y seguros","08.2 Administración","08.3 Servicios legales","09 Salud y protección social","09.1 Servicios médicos","09.2 Inspección sanitaria y del medio ambiente","09.3 Seguridad social","09.4 Protección de bienes y/o personas","10 Comunicación","10.1 Publicación","10.2 Radio, cine, televisión y teatro","10.3 Interpretación artística","10.4 Traducción e interpretación lingüística","10.5 Publicidad, propaganda y relaciones públicas","11 Desarrollo y extensión del conocimiento","11.1 Investigación","11.2 Enseñanza","11.3 Difusión cultural"]
         };
 
         const USERS = [
-            { name: "Dario Robles", email: "d4r005@gmail.com", role: "ADMIN", password: "Branco2025" },
-            { name: "Cynthia Garza Lugo", email: "lugga.advisors@gmail.com", role: "USER", password: "Cynthia123" }
+            { name: "Dario Robles",       email: "d4r005@gmail.com",         role: "ADMIN", password: "Branco2025" },
+            { name: "Cynthia Garza Lugo", email: "lugga.advisors@gmail.com", role: "USER",  password: "Cynthia123" }
         ];
 
         let currentUser = null, currentView = 'dashboard', selectedWorker = null, allCompanies = [];
 
-        // --- Toast ---
+        // ─── Toast ───────────────────────────────────────────────────
         function showToast(msg, ok = true) {
             const t = document.getElementById('toast');
             t.style.background = ok ? '#16a34a' : '#dc2626';
@@ -202,18 +198,18 @@
             t._timer = setTimeout(() => { t.style.opacity = '0'; }, 3000);
         }
 
-        // --- Init ---
-        window.onload = function() {
+        // ─── Init ─────────────────────────────────────────────────────
+        window.onload = function () {
             lucide.createIcons();
-            if (localStorage.getItem('rememberedEmail'))
-                document.getElementById('email').value = localStorage.getItem('rememberedEmail');
+            const saved = localStorage.getItem('rememberedEmail');
+            if (saved) document.getElementById('email').value = saved;
         };
 
         function login(e) {
             e.preventDefault();
             const email = document.getElementById('email').value.trim();
-            const pass = document.getElementById('password').value.trim();
-            const user = USERS.find(u => u.email === email && u.password === pass);
+            const pass  = document.getElementById('password').value.trim();
+            const user  = USERS.find(u => u.email === email && u.password === pass);
             if (user) {
                 if (document.getElementById('remember-me').checked)
                     localStorage.setItem('rememberedEmail', email);
@@ -227,71 +223,79 @@
         function initApp() {
             document.getElementById('view-login').classList.add('hidden');
             document.getElementById('app-container').classList.remove('hidden');
-            document.getElementById('user-name-display').innerText = currentUser.name;
-            const initials = currentUser.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-            document.getElementById('user-initials').innerText = initials;
             document.getElementById('login-error').classList.add('hidden');
+            document.getElementById('user-name-display').innerText = currentUser.name;
+            document.getElementById('user-initials').innerText =
+                currentUser.name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
             if (currentUser.role === 'ADMIN')
                 document.getElementById('btn-users').classList.remove('hidden');
             switchView('dashboard');
-            lucide.createIcons();
         }
 
+        // ─── Filtro por usuario ───────────────────────────────────────
         function getFilter() {
             const v = document.getElementById('user-filter').value;
-            if (currentUser.role === 'ADMIN' && v === 'ALL') return null;
+            if (currentUser.role === 'ADMIN' && v === 'ALL') return null;   // sin filtro → todos
             return v === 'ALL' ? currentUser.email : v;
         }
 
+        // ─── Navegación ───────────────────────────────────────────────
         async function switchView(v) {
             currentView = v;
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             const btn = document.getElementById('btn-' + v);
             if (btn) btn.classList.add('active');
-            const titles = { dashboard:'Dashboard', workers:'Personal', companies:'Empresas', courses:'Cursos', agents:'Agentes Capacitadores', dc3:'DC-3 Generados', users:'Usuarios' };
+
+            const titles = {
+                dashboard: 'Dashboard', workers: 'Personal', companies: 'Empresas',
+                courses: 'Cursos', agents: 'Agentes Cap.', dc3: 'DC-3 Generados', users: 'Usuarios'
+            };
             document.getElementById('page-title').innerText = titles[v] || v;
-            document.getElementById('view-dashboard').classList.toggle('hidden', v !== 'dashboard');
-            document.getElementById('view-content').classList.toggle('hidden', v === 'dashboard');
-            document.getElementById('upload-btn').classList.toggle('hidden', v !== 'workers');
-            document.getElementById('add-btn').classList.toggle('hidden', !['courses','agents','companies','workers'].includes(v));
+
+            const isDash = v === 'dashboard';
+            document.getElementById('view-dashboard').classList.toggle('hidden', !isDash);
+            document.getElementById('view-content').classList.toggle('hidden', isDash);
+
+            // Botón "Cargar Excel" — sólo en workers
+            const uploadBtn = document.getElementById('upload-btn');
+            if (uploadBtn) uploadBtn.classList.toggle('hidden', v !== 'workers');
+
+            // Botón "Agregar" — en workers, companies, courses, agents
+            const addBtn = document.getElementById('add-btn');
+            if (addBtn) addBtn.classList.toggle('hidden', !['workers','companies','courses','agents'].includes(v));
+
             await refreshCurrentView();
             lucide.createIcons();
         }
 
-        // =============================================
-        // SUPABASE DATA FUNCTIONS
-        // =============================================
-
-        async function sbSelect(table, filter) {
+        // ─── Supabase helpers ─────────────────────────────────────────
+        async function sbSelect(table, filterEmail) {
             let q = sb.from(table).select('*');
-            if (filter) q = q.eq('creator_email', filter);
+            if (filterEmail) q = q.eq('creator_email', filterEmail);
             const { data, error } = await q.order('created_at', { ascending: false });
-            if (error) { console.error('sbSelect error:', error); return []; }
+            if (error) { console.error('sbSelect', table, error.message); return []; }
             return data || [];
         }
 
         async function sbInsert(table, doc) {
-            const { data, error } = await sb.from(table).insert(doc).select();
-            if (error) { console.error('sbInsert error:', error); return null; }
+            const { data, error } = await sb.from(table).insert([doc]).select();
+            if (error) { console.error('sbInsert', table, error.message); return null; }
             return data;
+        }
+
+        async function sbInsertMany(table, docs) {
+            const { error } = await sb.from(table).insert(docs);
+            if (error) { console.error('sbInsertMany', table, error.message); return false; }
+            return true;
         }
 
         async function sbDelete(table, id) {
             const { error } = await sb.from(table).delete().eq('id', id);
-            if (error) console.error('sbDelete error:', error);
-            return !error;
-        }
-
-        async function sbInsertMany(table, docs) {
-            const { data, error } = await sb.from(table).insert(docs);
-            if (error) { console.error('sbInsertMany error:', error); return false; }
+            if (error) { console.error('sbDelete', table, error.message); return false; }
             return true;
         }
 
-        // =============================================
-        // REFRESH VIEWS
-        // =============================================
-
+        // ─── Render de tablas ─────────────────────────────────────────
         async function refreshCurrentView() {
             const f = getFilter();
 
@@ -302,198 +306,260 @@
                     sbSelect('courses', f)
                 ]);
                 document.getElementById('stat-workers').innerText = workers.length;
-                document.getElementById('stat-dc3').innerText = dc3recs.length;
-                document.getElementById('stat-courses').innerText = courses.length;
+                document.getElementById('stat-dc3').innerText     = dc3recs.length;
+                document.getElementById('stat-courses').innerText  = courses.length;
 
             } else if (currentView === 'workers') {
                 const data = await sbSelect('workers', f);
-                document.getElementById('table-header').innerHTML = '<tr><th class="p-6 text-left">Nombre</th><th class="p-6 text-left">CURP</th><th class="p-6 text-left">Puesto</th><th class="p-6 text-right">Acciones</th></tr>';
-                document.getElementById('table-body').innerHTML = data.length
-                    ? data.map(x => `<tr class="hover:bg-slate-50 border-b"><td class="p-5 font-bold">${x.name}</td><td class="p-5">${x.curp || ''}</td><td class="p-5">${x.position || ''}</td><td class="p-5 text-right space-x-3"><button onclick='openDC3Modal(${JSON.stringify(x)})' class="text-blue-600 font-bold hover:underline">Generar DC-3</button><button onclick="deleteItem('workers','${x.id}')" class="text-red-400 font-bold hover:underline">Eliminar</button></td></tr>`).join('')
-                    : '<tr><td colspan="4" class="p-10 text-center text-slate-400">Sin personal registrado</td></tr>';
+                setTable(
+                    '<tr><th class="p-4 text-left text-xs font-black text-slate-500 uppercase">Nombre</th><th class="p-4 text-left text-xs font-black text-slate-500 uppercase">CURP</th><th class="p-4 text-left text-xs font-black text-slate-500 uppercase">Ocupación</th><th class="p-4 text-left text-xs font-black text-slate-500 uppercase">Puesto</th><th class="p-4 text-right text-xs font-black text-slate-500 uppercase">Acciones</th></tr>',
+                    data.length
+                        ? data.map(x => `<tr class="border-b hover:bg-slate-50">
+                            <td class="p-4 font-semibold text-slate-800">${x.name||''}</td>
+                            <td class="p-4 text-slate-600">${x.curp||''}</td>
+                            <td class="p-4 text-slate-600">${x.occupation||''}</td>
+                            <td class="p-4 text-slate-600">${x.position||''}</td>
+                            <td class="p-4 text-right space-x-3">
+                              <button onclick='openDC3Modal(${JSON.stringify(x)})' class="text-blue-600 font-bold text-sm hover:underline">Generar DC-3</button>
+                              <button onclick="deleteItem('workers','${x.id}')" class="text-red-400 font-bold text-sm hover:underline">Eliminar</button>
+                            </td></tr>`).join('')
+                        : noData(5, 'Sin personal registrado')
+                );
 
             } else if (currentView === 'companies') {
                 allCompanies = await sbSelect('companies', null);
-                document.getElementById('table-header').innerHTML = '<tr><th class="p-6 text-left">Empresa</th><th class="p-6 text-left">RFC</th><th class="p-6 text-right">Acciones</th></tr>';
-                document.getElementById('table-body').innerHTML = allCompanies.length
-                    ? allCompanies.map(c => `<tr class="hover:bg-slate-50 border-b"><td class="p-5 font-bold">${c.name}</td><td class="p-5">${c.rfc || ''}</td><td class="p-5 text-right"><button onclick="deleteItem('companies','${c.id}')" class="text-red-400 font-bold hover:underline">Eliminar</button></td></tr>`).join('')
-                    : '<tr><td colspan="3" class="p-10 text-center text-slate-400">Sin empresas registradas</td></tr>';
+                setTable(
+                    '<tr><th class="p-4 text-left text-xs font-black text-slate-500 uppercase">Empresa</th><th class="p-4 text-left text-xs font-black text-slate-500 uppercase">RFC</th><th class="p-4 text-right text-xs font-black text-slate-500 uppercase">Acciones</th></tr>',
+                    allCompanies.length
+                        ? allCompanies.map(c => `<tr class="border-b hover:bg-slate-50">
+                            <td class="p-4 font-semibold text-slate-800">${c.name||''}</td>
+                            <td class="p-4 text-slate-600">${c.rfc||''}</td>
+                            <td class="p-4 text-right">
+                              <button onclick="deleteItem('companies','${c.id}')" class="text-red-400 font-bold text-sm hover:underline">Eliminar</button>
+                            </td></tr>`).join('')
+                        : noData(3, 'Sin empresas registradas')
+                );
 
             } else if (currentView === 'courses') {
                 const data = await sbSelect('courses', f);
-                document.getElementById('table-header').innerHTML = '<tr><th class="p-6 text-left">Curso</th><th class="p-6 text-left">Horas</th><th class="p-6 text-right">Acciones</th></tr>';
-                document.getElementById('table-body').innerHTML = data.length
-                    ? data.map(c => `<tr class="hover:bg-slate-50 border-b"><td class="p-5 font-bold uppercase">${c.name}</td><td class="p-5 font-bold text-blue-600">${c.duration_hours} H</td><td class="p-5 text-right"><button onclick="deleteItem('courses','${c.id}')" class="text-red-400 font-bold hover:underline">Eliminar</button></td></tr>`).join('')
-                    : '<tr><td colspan="3" class="p-10 text-center text-slate-400">Sin cursos</td></tr>';
+                setTable(
+                    '<tr><th class="p-4 text-left text-xs font-black text-slate-500 uppercase">Curso</th><th class="p-4 text-left text-xs font-black text-slate-500 uppercase">Horas</th><th class="p-4 text-right text-xs font-black text-slate-500 uppercase">Acciones</th></tr>',
+                    data.length
+                        ? data.map(c => `<tr class="border-b hover:bg-slate-50">
+                            <td class="p-4 font-semibold text-slate-800 uppercase">${c.name||''}</td>
+                            <td class="p-4 font-bold text-blue-600">${c.duration_hours||0} H</td>
+                            <td class="p-4 text-right">
+                              <button onclick="deleteItem('courses','${c.id}')" class="text-red-400 font-bold text-sm hover:underline">Eliminar</button>
+                            </td></tr>`).join('')
+                        : noData(3, 'Sin cursos')
+                );
 
             } else if (currentView === 'agents') {
                 const data = await sbSelect('agents', f);
-                document.getElementById('table-header').innerHTML = '<tr><th class="p-6 text-left">Agente</th><th class="p-6 text-left">Registro STPS</th><th class="p-6 text-right">Acciones</th></tr>';
-                document.getElementById('table-body').innerHTML = data.length
-                    ? data.map(a => `<tr class="hover:bg-slate-50 border-b"><td class="p-5 font-bold uppercase">${a.name}</td><td class="p-5 font-bold">${a.stps || ''}</td><td class="p-5 text-right"><button onclick="deleteItem('agents','${a.id}')" class="text-red-400 font-bold hover:underline">Eliminar</button></td></tr>`).join('')
-                    : '<tr><td colspan="3" class="p-10 text-center text-slate-400">Sin agentes</td></tr>';
+                setTable(
+                    '<tr><th class="p-4 text-left text-xs font-black text-slate-500 uppercase">Agente</th><th class="p-4 text-left text-xs font-black text-slate-500 uppercase">Registro STPS</th><th class="p-4 text-right text-xs font-black text-slate-500 uppercase">Acciones</th></tr>',
+                    data.length
+                        ? data.map(a => `<tr class="border-b hover:bg-slate-50">
+                            <td class="p-4 font-semibold text-slate-800 uppercase">${a.name||''}</td>
+                            <td class="p-4 text-slate-600">${a.stps||''}</td>
+                            <td class="p-4 text-right">
+                              <button onclick="deleteItem('agents','${a.id}')" class="text-red-400 font-bold text-sm hover:underline">Eliminar</button>
+                            </td></tr>`).join('')
+                        : noData(3, 'Sin agentes capacitadores')
+                );
 
             } else if (currentView === 'dc3') {
                 const data = await sbSelect('dc3_records', f);
-                document.getElementById('table-header').innerHTML = '<tr><th class="p-6 text-left">Trabajador</th><th class="p-6 text-left">Curso</th><th class="p-6 text-left">Empresa</th><th class="p-6 text-left">Fecha Inicio</th></tr>';
-                document.getElementById('table-body').innerHTML = data.length
-                    ? data.map(d => `<tr class="hover:bg-slate-50 border-b"><td class="p-5 font-bold">${d.worker_name || d.worker_id || ''}</td><td class="p-5">${d.course_name || ''}</td><td class="p-5">${d.company_name || ''}</td><td class="p-5">${d.start_date || ''}</td></tr>`).join('')
-                    : '<tr><td colspan="4" class="p-10 text-center text-slate-400">Sin DC-3 generados</td></tr>';
+                setTable(
+                    '<tr><th class="p-4 text-left text-xs font-black text-slate-500 uppercase">Trabajador</th><th class="p-4 text-left text-xs font-black text-slate-500 uppercase">CURP</th><th class="p-4 text-left text-xs font-black text-slate-500 uppercase">Curso</th><th class="p-4 text-left text-xs font-black text-slate-500 uppercase">Empresa</th><th class="p-4 text-left text-xs font-black text-slate-500 uppercase">Inicio</th><th class="p-4 text-left text-xs font-black text-slate-500 uppercase">Fin</th></tr>',
+                    data.length
+                        ? data.map(d => `<tr class="border-b hover:bg-slate-50">
+                            <td class="p-4 font-semibold text-slate-800">${d.worker_name||''}</td>
+                            <td class="p-4 text-slate-600">${d.worker_id||''}</td>
+                            <td class="p-4 text-slate-600">${d.course_name||''}</td>
+                            <td class="p-4 text-slate-600">${d.company_name||''}</td>
+                            <td class="p-4 text-slate-600">${d.start_date||''}</td>
+                            <td class="p-4 text-slate-600">${d.end_date||''}</td>
+                            </tr>`).join('')
+                        : noData(6, 'Sin DC-3 generados')
+                );
+
+            } else if (currentView === 'users') {
+                // Tabla de usuarios del sistema (hardcoded, no en Supabase)
+                setTable(
+                    '<tr><th class="p-4 text-left text-xs font-black text-slate-500 uppercase">Nombre</th><th class="p-4 text-left text-xs font-black text-slate-500 uppercase">Email</th><th class="p-4 text-left text-xs font-black text-slate-500 uppercase">Rol</th></tr>',
+                    USERS.map(u => `<tr class="border-b hover:bg-slate-50">
+                        <td class="p-4 font-semibold text-slate-800">${u.name}</td>
+                        <td class="p-4 text-slate-600">${u.email}</td>
+                        <td class="p-4"><span class="px-3 py-1 rounded-full text-xs font-bold ${u.role === 'ADMIN' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}">${u.role}</span></td>
+                        </tr>`).join('')
+                );
             }
         }
 
-        // =============================================
-        // MODAL / SAVE
-        // =============================================
+        function setTable(header, body) {
+            document.getElementById('table-header').innerHTML = header;
+            document.getElementById('table-body').innerHTML  = body;
+        }
+        function noData(cols, msg) {
+            return `<tr><td colspan="${cols}" class="p-10 text-center text-slate-400 font-medium">${msg}</td></tr>`;
+        }
 
+        // ─── Modal ────────────────────────────────────────────────────
         function openModal() {
             const fields = document.getElementById('modal-fields');
             document.getElementById('modal').style.display = 'block';
 
-            if (currentView === 'companies') {
-                document.getElementById('modal-title').innerText = "Nueva Empresa";
-                fields.innerHTML = `<input id="f1" placeholder="Nombre de la empresa" class="w-full p-4 bg-slate-50 rounded-xl text-slate-900 font-bold outline-none border border-transparent focus:border-blue-400"><input id="f2" placeholder="RFC" class="w-full p-4 bg-slate-50 rounded-xl text-slate-900 font-bold outline-none border border-transparent focus:border-blue-400">`;
-            } else if (currentView === 'workers') {
-                document.getElementById('modal-title').innerText = "Nuevo Trabajador";
+            if (currentView === 'workers') {
+                document.getElementById('modal-title').innerText = 'Nuevo Trabajador';
                 const occ = CATALOGS.occupations.map(o => `<option value="${o}">${o}</option>`).join('');
-                fields.innerHTML = `<input id="f1" placeholder="Nombre completo" class="w-full p-4 bg-slate-50 rounded-xl text-slate-900 font-bold outline-none border border-transparent focus:border-blue-400"><input id="f2" placeholder="CURP" maxlength="18" class="w-full p-4 bg-slate-50 rounded-xl text-slate-900 font-bold outline-none border border-transparent focus:border-blue-400"><select id="f3" class="w-full p-4 bg-slate-50 rounded-xl text-slate-900 font-bold outline-none border border-transparent focus:border-blue-400"><option value="">-- Seleccionar Ocupación --</option>${occ}</select><input id="f4" placeholder="Puesto" class="w-full p-4 bg-slate-50 rounded-xl text-slate-900 font-bold outline-none border border-transparent focus:border-blue-400">`;
+                fields.innerHTML = `
+                    <input id="f1" placeholder="Nombre completo" class="w-full p-4 bg-slate-50 rounded-xl text-slate-900 font-bold outline-none border border-slate-200 focus:border-blue-400">
+                    <input id="f2" placeholder="CURP" maxlength="18" style="text-transform:uppercase" class="w-full p-4 bg-slate-50 rounded-xl text-slate-900 font-bold outline-none border border-slate-200 focus:border-blue-400">
+                    <select id="f3" class="w-full p-4 bg-slate-50 rounded-xl text-slate-900 font-bold outline-none border border-slate-200 focus:border-blue-400">
+                        <option value="">-- Seleccionar Ocupación --</option>${occ}
+                    </select>
+                    <input id="f4" placeholder="Puesto" class="w-full p-4 bg-slate-50 rounded-xl text-slate-900 font-bold outline-none border border-slate-200 focus:border-blue-400">`;
+
+            } else if (currentView === 'companies') {
+                document.getElementById('modal-title').innerText = 'Nueva Empresa';
+                fields.innerHTML = `
+                    <input id="f1" placeholder="Nombre o razón social" class="w-full p-4 bg-slate-50 rounded-xl text-slate-900 font-bold outline-none border border-slate-200 focus:border-blue-400">
+                    <input id="f2" placeholder="RFC (con homoclave)" class="w-full p-4 bg-slate-50 rounded-xl text-slate-900 font-bold outline-none border border-slate-200 focus:border-blue-400">`;
+
             } else if (currentView === 'courses') {
-                document.getElementById('modal-title').innerText = "Nuevo Curso";
-                fields.innerHTML = `<input id="f1" placeholder="Nombre del curso" class="w-full p-4 bg-slate-50 rounded-xl text-slate-900 font-bold outline-none border border-transparent focus:border-blue-400"><input id="f2" type="number" min="1" value="8" placeholder="Duración en horas" class="w-full p-4 bg-slate-50 rounded-xl text-slate-900 font-bold outline-none border border-transparent focus:border-blue-400">`;
+                document.getElementById('modal-title').innerText = 'Nuevo Curso';
+                fields.innerHTML = `
+                    <input id="f1" placeholder="Nombre del curso" class="w-full p-4 bg-slate-50 rounded-xl text-slate-900 font-bold outline-none border border-slate-200 focus:border-blue-400">
+                    <input id="f2" type="number" min="1" value="8" placeholder="Duración en horas" class="w-full p-4 bg-slate-50 rounded-xl text-slate-900 font-bold outline-none border border-slate-200 focus:border-blue-400">`;
+
             } else if (currentView === 'agents') {
-                document.getElementById('modal-title').innerText = "Nuevo Agente Capacitador";
-                fields.innerHTML = `<input id="f1" placeholder="Nombre del agente" class="w-full p-4 bg-slate-50 rounded-xl text-slate-900 font-bold outline-none border border-transparent focus:border-blue-400"><input id="f2" placeholder="Registro STPS" class="w-full p-4 bg-slate-50 rounded-xl text-slate-900 font-bold outline-none border border-transparent focus:border-blue-400">`;
+                document.getElementById('modal-title').innerText = 'Nuevo Agente Capacitador';
+                fields.innerHTML = `
+                    <input id="f1" placeholder="Nombre completo del agente" class="w-full p-4 bg-slate-50 rounded-xl text-slate-900 font-bold outline-none border border-slate-200 focus:border-blue-400">
+                    <input id="f2" placeholder="Registro STPS" class="w-full p-4 bg-slate-50 rounded-xl text-slate-900 font-bold outline-none border border-slate-200 focus:border-blue-400">`;
             }
-            setTimeout(() => { const f1 = document.getElementById('f1'); if (f1) f1.focus(); }, 100);
+            setTimeout(() => { const f1 = document.getElementById('f1'); if(f1) f1.focus(); }, 80);
         }
 
         async function saveItem() {
-            let doc = {}, table = "";
+            let doc = null, table = '';
 
-            if (currentView === 'companies') {
-                const name = document.getElementById('f1').value.trim();
-                const rfc = document.getElementById('f2').value.trim();
-                if (!name || !rfc) { showToast("Completa todos los campos", false); return; }
-                table = 'companies'; doc = { name, rfc, creator_email: currentUser.email };
+            if (currentView === 'workers') {
+                const name = (document.getElementById('f1').value || '').trim();
+                const curp = (document.getElementById('f2').value || '').trim().toUpperCase();
+                const occ  = document.getElementById('f3').value;
+                const pos  = (document.getElementById('f4').value || '').trim();
+                if (!name || !curp || !occ || !pos) { showToast('Completa todos los campos', false); return; }
+                table = 'workers';
+                doc   = { name, curp, occupation: occ, position: pos, creator_email: currentUser.email };
 
-            } else if (currentView === 'workers') {
-                const name = document.getElementById('f1').value.trim();
-                const curp = document.getElementById('f2').value.trim().toUpperCase();
-                const occ = document.getElementById('f3').value;
-                const pos = document.getElementById('f4').value.trim();
-                if (!name || !curp || !occ || !pos) { showToast("Completa todos los campos", false); return; }
-                table = 'workers'; doc = { name, curp, occupation: occ, position: pos, creator_email: currentUser.email };
+            } else if (currentView === 'companies') {
+                const name = (document.getElementById('f1').value || '').trim();
+                const rfc  = (document.getElementById('f2').value || '').trim().toUpperCase();
+                if (!name || !rfc) { showToast('Completa todos los campos', false); return; }
+                table = 'companies';
+                doc   = { name, rfc, creator_email: currentUser.email };
 
             } else if (currentView === 'courses') {
-                const name = document.getElementById('f1').value.trim();
+                const name  = (document.getElementById('f1').value || '').trim().toUpperCase();
                 const hours = parseInt(document.getElementById('f2').value) || 0;
-                if (!name || hours < 1) { showToast("Ingresa nombre y horas válidas", false); return; }
-                table = 'courses'; doc = { name: name.toUpperCase(), duration_hours: hours, creator_email: currentUser.email };
+                if (!name || hours < 1) { showToast('Ingresa nombre y horas válidas', false); return; }
+                table = 'courses';
+                doc   = { name, duration_hours: hours, creator_email: currentUser.email };
 
             } else if (currentView === 'agents') {
-                const name = document.getElementById('f1').value.trim();
-                const stps = document.getElementById('f2').value.trim();
-                if (!name || !stps) { showToast("Completa todos los campos", false); return; }
-                table = 'agents'; doc = { name: name.toUpperCase(), stps, creator_email: currentUser.email };
+                const name = (document.getElementById('f1').value || '').trim().toUpperCase();
+                const stps = (document.getElementById('f2').value || '').trim();
+                if (!name || !stps) { showToast('Completa todos los campos', false); return; }
+                table = 'agents';
+                doc   = { name, stps, creator_email: currentUser.email };
             }
 
-            if (!table) { showToast("Vista no reconocida", false); return; }
+            if (!doc) { showToast('Vista no reconocida', false); return; }
 
             const result = await sbInsert(table, doc);
             if (result) {
-                showToast("✓ Guardado correctamente");
+                showToast('✓ Guardado correctamente en Supabase');
                 closeModal();
                 await refreshCurrentView();
             } else {
-                showToast("Error al guardar en Supabase", false);
+                showToast('Error al guardar — revisa la consola', false);
             }
         }
 
-        // =============================================
-        // DC-3
-        // =============================================
-
+        // ─── DC-3 modal ───────────────────────────────────────────────
         async function openDC3Modal(worker) {
             selectedWorker = worker;
             document.getElementById('dc3-worker-name').innerText = worker.name;
 
-            // Cargar empresas y cursos
-            if (allCompanies.length === 0)
-                allCompanies = await sbSelect('companies', null);
+            if (allCompanies.length === 0) allCompanies = await sbSelect('companies', null);
             const courses = await sbSelect('courses', getFilter());
 
             document.getElementById('dc3-company').innerHTML = allCompanies.length
                 ? allCompanies.map(c => `<option value="${c.name}">${c.name}</option>`).join('')
-                : '<option value="">-- Sin empresas --</option>';
+                : '<option value="">-- Sin empresas registradas --</option>';
+
             document.getElementById('dc3-course').innerHTML = courses.length
                 ? courses.map(c => `<option value="${c.name}">${c.name}</option>`).join('')
-                : '<option value="">-- Sin cursos --</option>';
+                : '<option value="">-- Sin cursos registrados --</option>';
+
             document.getElementById('dc3-modal').style.display = 'block';
         }
 
         async function generateSingleDC3() {
             const companyName = document.getElementById('dc3-company').value;
-            const courseName = document.getElementById('dc3-course').value;
-            const startDate = document.getElementById('dc3-start').value;
-            const endDate = document.getElementById('dc3-end').value;
+            const courseName  = document.getElementById('dc3-course').value;
+            const startDate   = document.getElementById('dc3-start').value;
+            const endDate     = document.getElementById('dc3-end').value;
 
             if (!companyName || !courseName || !startDate || !endDate) {
-                showToast("Completa todos los campos del DC-3", false);
-                return;
+                showToast('Completa todos los campos del DC-3', false); return;
             }
 
-            // Generar PDF
             const doc = new jspdf.jsPDF();
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(14);
+            doc.setFont('helvetica','bold'); doc.setFontSize(14);
             doc.text("FORMATO DC-3", 105, 20, null, null, "center");
             doc.setFontSize(9);
             doc.text("CONSTANCIA DE COMPETENCIAS O DE HABILIDADES LABORALES", 105, 28, null, null, "center");
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(10);
-            doc.text(`Trabajador: ${selectedWorker.name}`, 20, 45);
-            doc.text(`CURP: ${selectedWorker.curp || ''}`, 20, 52);
-            doc.text(`Puesto: ${selectedWorker.position || ''}`, 20, 59);
-            doc.text(`Ocupacion: ${selectedWorker.occupation || ''}`, 20, 66);
+            doc.setFont('helvetica','normal'); doc.setFontSize(10);
+            doc.text(`Trabajador: ${selectedWorker.name}`,     20, 45);
+            doc.text(`CURP: ${selectedWorker.curp||''}`,       20, 52);
+            doc.text(`Puesto: ${selectedWorker.position||''}`, 20, 59);
+            doc.text(`Ocupación: ${selectedWorker.occupation||''}`, 20, 66);
             doc.line(20, 70, 190, 70);
             doc.text(`Empresa: ${companyName}`, 20, 78);
             doc.line(20, 82, 190, 82);
-            doc.text(`Curso: ${courseName}`, 20, 90);
+            doc.text(`Curso: ${courseName}`,              20, 90);
             doc.text(`Periodo: ${startDate} al ${endDate}`, 20, 97);
-            doc.line(20, 250, 80, 250);
-            doc.text("Instructor / Tutor", 30, 257);
-            doc.line(90, 250, 150, 250);
-            doc.text("Patron o Rep. Legal", 97, 257);
-            doc.save(`DC3_${selectedWorker.curp || selectedWorker.name}.pdf`);
+            doc.line(20, 250, 80, 250); doc.text("Instructor / Tutor",    30, 257);
+            doc.line(90, 250, 150, 250); doc.text("Patrón o Rep. Legal",  97, 257);
+            doc.save(`DC3_${selectedWorker.curp||selectedWorker.name}.pdf`);
 
-            // Guardar registro en Supabase
             await sbInsert('dc3_records', {
-                worker_id: selectedWorker.curp || '',
-                worker_name: selectedWorker.name,
-                course_name: courseName,
+                worker_id:    selectedWorker.curp || '',
+                worker_name:  selectedWorker.name,
+                course_name:  courseName,
                 company_name: companyName,
-                start_date: startDate,
-                end_date: endDate,
+                start_date:   startDate,
+                end_date:     endDate,
                 creator_email: currentUser.email
             });
 
-            showToast("✓ PDF generado y registrado en Supabase");
+            showToast('✓ PDF generado y DC-3 registrado');
             document.getElementById('dc3-modal').style.display = 'none';
             await refreshCurrentView();
         }
 
-        // =============================================
-        // UTILS
-        // =============================================
-
-        function logout() { currentUser = null; location.reload(); }
+        // ─── Utils ────────────────────────────────────────────────────
+        function logout()     { currentUser = null; location.reload(); }
         function closeModal() { document.getElementById('modal').style.display = 'none'; }
 
         async function deleteItem(table, id) {
-            if (!confirm("¿Seguro que deseas eliminar este registro?")) return;
+            if (!confirm('¿Seguro que deseas eliminar este registro?')) return;
             const ok = await sbDelete(table, id);
-            if (ok) { showToast("Eliminado correctamente"); await refreshCurrentView(); }
-            else showToast("Error al eliminar", false);
+            if (ok) { showToast('Eliminado correctamente'); await refreshCurrentView(); }
+            else showToast('Error al eliminar', false);
         }
 
         async function handleExcel(input) {
@@ -501,32 +567,24 @@
             const reader = new FileReader();
             reader.onload = async (e) => {
                 try {
-                    const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                    const wb   = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
                     const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-                    if (!rows.length) { showToast("El archivo está vacío", false); return; }
-
+                    if (!rows.length) { showToast('El archivo está vacío', false); return; }
                     const docs = rows.map(r => ({
-                        name: r.Nombre || r.NOMBRE || r.nombre || '',
-                        curp: r.CURP || r.curp || '',
-                        position: r.Puesto || r.PUESTO || r.puesto || '',
-                        occupation: r.Ocupacion || r.OCUPACION || r.ocupacion || '',
+                        name:      (r.Nombre   || r.NOMBRE   || r.nombre   || '').toString().trim(),
+                        curp:      (r.CURP     || r.curp     || '').toString().trim().toUpperCase(),
+                        position:  (r.Puesto   || r.PUESTO   || r.puesto   || '').toString().trim(),
+                        occupation:(r.Ocupacion|| r.OCUPACION|| r.ocupacion|| '').toString().trim(),
                         creator_email: currentUser.email
                     })).filter(d => d.name);
-
-                    if (!docs.length) { showToast("No se encontraron datos válidos", false); return; }
-
+                    if (!docs.length) { showToast('No se encontraron registros válidos', false); return; }
                     const ok = await sbInsertMany('workers', docs);
-                    if (ok) {
-                        showToast(`✓ ${docs.length} trabajadores importados a Supabase`);
-                        await refreshCurrentView();
-                    } else {
-                        showToast("Error al importar a Supabase", false);
-                    }
-                } catch (err) {
-                    showToast("Error al leer Excel: " + err.message, false);
-                }
+                    if (ok) { showToast(`✓ ${docs.length} trabajadores importados`); await refreshCurrentView(); }
+                    else showToast('Error al importar', false);
+                } catch (err) { showToast('Error al leer Excel: ' + err.message, false); }
             };
             reader.readAsArrayBuffer(input.files[0]);
+            input.value = '';
         }
     </script>
 </body>
