@@ -1142,7 +1142,7 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
             page.drawImage(logoImg, {
                 x: LOGO_X, y: PH - (LOGO_Y_FITZ + LOGO_H),
                 width: LOGO_W, height: LOGO_H,
-                opacity: 0.9
+                opacity: 1.0
             });
         }
     } catch(e) { console.warn('Error cargando logo:', e); }
@@ -1166,22 +1166,21 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     // ── 14. Nombres bajo imágenes ───────────────────────────────────────────
     const CENTER_X_INS = 120;
 
-    // Texto "Instructor o tutor" al mismo nivel que los otros (Y=472 aprox)
-    T_Centered(CENTER_X_INS, 472, "Instructor o tutor", 9, true);
+    // Texto "Instructor o tutor" alineado con los otros (Y=483 aprox para que baje)
+    T_Centered(CENTER_X_INS, 483, "Instructor o tutor", 9, true);
 
     const insName = sp((agent.name||'').toUpperCase());
     const insLines = splitNameJS(insName, 26);
     T_Centered(CENTER_X_INS, 520, insLines[0], 8);
     if (insLines[1]) T_Centered(CENTER_X_INS, 530, insLines[1], 8);
 
-    // Dibujar línea y texto "Nombre y firma" que faltan en esta columna
+    // Dibujar línea (sin el texto "Nombre y firma" para evitar duplicados)
     page.drawLine({
         start: { x: 35, y: PH - 536 },
         end: { x: 205, y: PH - 536 },
         thickness: 1,
         color: rgb(0,0,0)
     });
-    T_Centered(CENTER_X_INS, 548, "Nombre y firma", 8);
 
     // Patrón: columna 2
     const CENTER_X_PAT = 300;
