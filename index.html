@@ -970,12 +970,12 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
                       167.0,181.3,195.6,209.8,227.5,245.0];
     const RFC_Y    = PH - 308;
 
-    const AÑO_INI  = [277, 292, 307, 323];
-    const MES_INI  = [350, 371];
-    const DIA_INI  = [393, 414];
-    const AÑO_FIN  = [454, 473, 493, 513];
-    const MES_FIN  = [534, 556];
-    const DIA_FIN  = [578, 599];
+    const AÑO_INI  = [269, 284, 299, 315];
+    const MES_INI  = [342, 363];
+    const DIA_INI  = [385, 406];
+    const AÑO_FIN  = [446, 465, 485, 505];
+    const MES_FIN  = [526, 548];
+    const DIA_FIN  = [570, 591];
     const FECHA_Y  = PH - 389;
 
     // Helper: dibuja texto
@@ -1038,9 +1038,9 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     const agentLine = sp(((agent.name||'') + '  ' + (agent.stps||'')).toUpperCase().trim());
     T(30, 438, agentLine.slice(0,70), 8);
 
-    // ── 12. Firma Digital de Cynthia (Limpiar área y poner trazo azul) ───────
-    // Limpiar el logotipo de LUBER o cualquier cosa del PDF original
-    page.drawRectangle({ x: 30, y: PH - 520, width: 200, height: 60, color: rgb(1,1,1) });
+    // ── 12. Firma Digital de Cynthia (Limpieza total de logos previos) ───────
+    // Limpiamos un área grande para eliminar el logotipo de LUBER
+    page.drawRectangle({ x: 30, y: PH - 525, width: 220, height: 80, color: rgb(1,1,1) });
 
     if (agent.name.toUpperCase().includes('CYNTHIA')) {
         try {
@@ -1061,8 +1061,8 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
 
     // ── 13. Nombres bajo líneas de firma ─────────────────────────────────────
     T(70,  530, (agent.name||'').toUpperCase(), 8);    // instructor / agente
-    // Representante legal en blanco por solicitud
-    page.drawRectangle({ x: 210, y: PH - 535, width: 170, height: 15, color: rgb(1,1,1) });
+    // Limpieza total del área de patrón para dejar en blanco
+    page.drawRectangle({ x: 260, y: PH - 535, width: 220, height: 85, color: rgb(1,1,1) });
 
     // Guardar y descargar
     const outBytes = await pdfDoc.save();
