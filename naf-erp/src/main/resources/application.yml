@@ -14,7 +14,21 @@ spring:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+
 server:
   port: 8080
   servlet:
     context-path: /api/v1
+
+dc3:
+  template: templates/DC3_Oficial.docx
+  output: C:/NAF/DC3/
+  company:
+    name: NORTH AMERICA FLOORING SA DE CV
+    rfc: NAF000000XXX
+    representative: JINSONG ZHAO
+    workersRepresentative: LILIANA ROSALES
