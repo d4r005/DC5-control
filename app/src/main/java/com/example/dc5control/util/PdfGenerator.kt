@@ -78,8 +78,8 @@ object PdfGenerator {
 
     // RFC: 16 celdas (x0 de cada separador)
     private val RFC_XS = floatArrayOf(
-        24.2f,45.4f,59.1f,73.2f,88.3f,102.8f,116.9f,131.3f,
-        145.5f,159.9f,174.1f,188.5f,202.6f,217.1f,237.9f,252.1f
+        24.2f,38.8f,53.4f,68.0f,82.6f,97.2f,111.8f,126.4f,
+        141.0f,155.6f,170.2f,184.8f,199.4f,214.0f,228.6f,243.2f
     )
     private const val RFC_Y1 = 300.3f
     private const val RFC_Y2 = 315.2f
@@ -123,19 +123,19 @@ object PdfGenerator {
     // Sección de firmas
     private const val SIG_Y1 = 443.4f
     private const val SIG_Y2 = 539.9f
-    // Columna instructor: X=24 a ~215 → logo centrado en X=131
-    private const val LOGO_X = 74f;  private const val LOGO_Y = 454f
-    private const val LOGO_W = 115f; private const val LOGO_H = 65f   // ratio 1.77:1
-    // Firma encima del logo
-    private const val FIRMA_X = 89f; private const val FIRMA_Y = 457f
-    private const val FIRMA_W = 85f; private const val FIRMA_H = 60f  // ratio 1.42:1
+    // Columna instructor: X=24 a ~215 → centro en X=120
+    private const val LOGO_X = 45f;   private const val LOGO_Y = 450f
+    private const val LOGO_W = 150f;  private const val LOGO_H = 80f
+    // Firma encima del logo, centrada
+    private const val FIRMA_X = 60f;  private const val FIRMA_Y = 455f
+    private const val FIRMA_W = 120f; private const val FIRMA_H = 75f
 
     // Nombre instructor bajo firma
-    private const val X_INS = 28f
+    private const val X_INS = 30f
     private const val X_PAT = 222f
     private const val X_REP = 385f
-    private const val Y_NAME_L1 = 527f
-    private const val Y_NAME_L2 = 535f
+    private const val Y_NAME_L1 = 525f
+    private const val Y_NAME_L2 = 534f
 
     // ─────────────────────────────────────────────────────────────────────────
     //  API PÚBLICA
@@ -263,6 +263,10 @@ object PdfGenerator {
         val erasePaint = Paint().apply { color = Color.WHITE; style = Paint.Style.FILL }
         canvas.drawRect(25f * SCALE, 209f * SCALE, 586f * SCALE, 228f * SCALE, erasePaint)
         text(pNormal, 30f, Y_PUESTO, d.puesto.uppercase())
+
+        // Corregir espacio en "DATOS DELAEMPRESA"
+        val pWhite = Paint().apply { color = Color.WHITE; textSize = 10f * SCALE; isAntiAlias = true; typeface = Typeface.DEFAULT_BOLD }
+        canvas.drawText("DATOS DE LA EMPRESA", 258f * SCALE, 260f * SCALE, pWhite)
 
         // ── Empresa ───────────────────────────────────────────────────────────
         text(pBold, 30f, Y_EMPRESA, d.razonSocial.uppercase().take(70))
