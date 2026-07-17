@@ -8,13 +8,13 @@ import java.io.File
 
 object CloudflareHelper {
     private val client = OkHttpClient()
-    // Worker de Cloudflare actualizado con Supabase
-    private const val WORKER_URL = "https://dc5-control.d4r005.workers.dev"
+    // Endpoint de Cloudflare Pages (ace-control.pages.dev)
+    private const val PAGES_URL = "https://ace-control.pages.dev"
 
     fun uploadPdf(file: File, onSuccess: () -> Unit, onError: (String) -> Unit) {
         val requestBody = file.asRequestBody("application/pdf".toMediaType())
         val request = Request.Builder()
-            .url("$WORKER_URL/api/dc3?name=${file.name}")
+            .url("$PAGES_URL/api/upload?name=${file.name}")
             .post(requestBody)
             .build()
 

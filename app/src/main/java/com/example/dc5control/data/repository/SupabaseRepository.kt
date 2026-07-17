@@ -15,8 +15,8 @@ object SupabaseRepository {
     private val client = OkHttpClient()
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
-    // URL del Worker de Cloudflare
-    private const val BASE_URL = "https://dc5-control.d4r005.workers.dev/api"
+    // URL de Cloudflare Pages (ace-control.pages.dev) como base para la API
+    private const val BASE_URL = "https://ace-control.pages.dev/api"
 
     // ─── FETCH (SELECT) ───────────────────────────────────────────
     fun <T> fetchData(table: String, serializer: kotlinx.serialization.KSerializer<T>, onResult: (List<T>) -> Unit) {
