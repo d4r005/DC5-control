@@ -1166,8 +1166,8 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     // ── 14. Nombres bajo imágenes ───────────────────────────────────────────
     const CENTER_X_INS = 120;
 
-    // Texto "Instructor o tutor" alineado con los otros (Y=508 para bajarlo exacto y tipo Helvetica normal)
-    T_Centered(CENTER_X_INS, 508, "Instructor o tutor", 7.5);
+    // Texto "Instructor o tutor" alineado con los otros (Y=498 exacto para nivelar)
+    T_Centered(CENTER_X_INS, 498, "Instructor o tutor", 7.5);
 
     const insName = sp((agent.name||'').toUpperCase());
     const insLines = splitNameJS(insName, 26);
@@ -1184,6 +1184,8 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
 
     // Patrón: columna 2
     const CENTER_X_PAT = 300;
+    // Imprimir el título de nuevo para asegurar alineación perfecta con los otros 2
+    T_Centered(CENTER_X_PAT, 498, "Patrón o representante legal 4/", 7.5);
     const patName = sp((compObj.patron || '').toUpperCase());
     const patLines = splitNameJS(patName, 28);
     if (patLines[0]) {
@@ -1193,6 +1195,8 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
 
     // Representante: columna 3
     const CENTER_X_REP = 475;
+    // Imprimir el título de nuevo para asegurar alineación perfecta con los otros 2
+    T_Centered(CENTER_X_REP, 498, "Representante de los trabajadores 5/", 7.5);
     if (compObj.representante) {
         const repName = sp(compObj.representante.toUpperCase());
         const repLines = splitNameJS(repName, 26);
