@@ -91,32 +91,6 @@ export default {
       }
 
 
-      // ── Schema migration endpoint ─────────────────────────────────────────────
-      if (collection === 'migrate' && method === 'POST') {
-        const supabaseUrl = env.SUPABASE_URL;
-        const supabaseKey = env.SUPABASE_SERVICE_ROLE_KEY;
-        const migrations = [
-          "ALTER TABLE agent_designs ADD COLUMN IF NOT EXISTS slogan_font TEXT DEFAULT 'Helvetica'",
-          "ALTER TABLE agent_designs ADD COLUMN IF NOT EXISTS header_slogan_font TEXT DEFAULT 'Times-Italic'"
-        ];
-        const results = [];
-        for (const sql of migrations) {
-          const r = await fetch(`${supabaseUrl}/rest/v1/rpc/exec_sql`, {
-            method: 'POST',
-            headers: {
-              'apikey': supabaseKey,
-              'Authorization': `Bearer ${supabaseKey}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ sql })
-          });
-          results.push({ sql, ok: r.ok, status: r.status });
-        }
-        return new Response(JSON.stringify({ migrations: results }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-
       let supabaseQuery = "?select=*";
       params.forEach((val, key) => {
         supabaseQuery += `&${key}=eq.${val}`;

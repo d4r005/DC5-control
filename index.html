@@ -1805,12 +1805,12 @@ async function saveDesign() {
             slogan_y: p.sloganY,
             slogan_size: p.sloganSize,
             agent_name: p.agentName,
-            slogan_font: p.sloganFont || 'Helvetica',
-            header_slogan_font: p.headerSloganFont || 'Times-Italic',
             updated_at: new Date().toISOString()
         };
 
-        localStorage.setItem('dc3_design', JSON.stringify(payload));
+        // Save fonts to localStorage (not in DB - no those columns)
+        const localPayload = { ...payload, slogan_font: p.sloganFont || 'Helvetica', header_slogan_font: p.headerSloganFont || 'Times-Italic' };
+        localStorage.setItem('dc3_design', JSON.stringify(localPayload));
 
         const existing = await api('find','agent_designs', { filter: { creatorEmail: p.creatorEmail } });
         if (existing.documents?.length > 0) {
