@@ -1,1 +1,35 @@
+# Android/IntelliJ
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+/.idea/deploymentTargetDropDown.xml
+/.idea/deploymentTargetSelector.xml
+/.idea/deviceStreaming.xml
+.idea/compiler.xml
+.idea/gradle.xml
+.idea/misc.xml
+/captures
+.externalNativeBuild
+.cxx
+/build
+
+# Cloudflare Wrangler
 wrangler-account.json
+.wrangler/
+
+# Logs
+*.log
+
+# Keystores
+*.jks
+*.keystore
+
+# System files
+.DS_Store
+Thumbs.db
