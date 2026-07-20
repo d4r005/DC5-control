@@ -1454,9 +1454,9 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     } catch(e) { console.warn('Error cabecera:', e); }
 
     // ══════════════════════════════════════════════════════════════════════
-    // 1. NOMBRE DEL TRABAJADOR  (y=149.8 → escribir en y=155)
+    // 1. NOMBRE DEL TRABAJADOR  (Mover hacia abajo para evitar traslape con etiqueta)
     // ══════════════════════════════════════════════════════════════════════
-    T(30, 160, (worker.name||'').toUpperCase(), 9, true);
+    T(30, 175, (worker.name||'').toUpperCase(), 9, true);
 
     // ══════════════════════════════════════════════════════════════════════
     // 2. CURP — 18 celdas, y_top=185.8 y_bot=201.3 → texto en y=196
@@ -1523,16 +1523,19 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     //    Mes fin:     centros 532.5, 553.9
     //    Día fin:     centros 575.3, 595.9
     // ══════════════════════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════════════════════
+    // 9. FECHAS — recalibrado milimétrico para centrar en cuadros
+    // ══════════════════════════════════════════════════════════════════════
     const fStart = parseFecha(start);
     const fEnd   = parseFecha(end);
-    const FY     = 388; // y de escritura para fechas
+    const FY     = 388;
 
-    const AÑO_INI = [255.5, 271.4, 287.4, 303.7];
-    const MES_INI = [343.2, 364.7];
-    const DIA_INI = [385.7, 407.1];
-    const AÑO_FIN = [447.4, 466.9, 486.4, 506.7];
-    const MES_FIN = [527.8, 549.2];
-    const DIA_FIN = [570.6, 591.2];
+    const AÑO_INI = [253.5, 269.4, 285.4, 301.7];
+    const MES_INI = [341.2, 362.7];
+    const DIA_INI = [383.7, 405.1];
+    const AÑO_FIN = [445.4, 464.9, 484.4, 504.7];
+    const MES_FIN = [525.8, 547.2];
+    const DIA_FIN = [568.6, 589.2];
 
     for (let i=0; i<4; i++) {
         const ch = fStart.a[i]||'';
@@ -1579,27 +1582,27 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     // Limpiar toda el área de firmas de la plantilla original (para quitar etiquetas fijas)
     page.drawRectangle({ x:31, y: PH-560, width:540, height:108, color: rgb(1,1,1) });
 
-    // ── Logo LUBER (Fondo Instructor) ──────────────────────────────────
+    // ── Logo LUBER (Fondo Instructor - Más pequeño y centrado) ─────────
     try {
         const logoPath = agentDesign?.logoBase64 || '/signatures/logo_luber.png';
         const lb = await fetch(logoPath).then(r=>r.arrayBuffer());
         const lImg = await pdfDoc.embedPng(lb);
-        const lw = agentDesign?.logoW || 100;
-        const lh = agentDesign?.logoH || 60;
+        const lw = agentDesign?.logoW || 90;
+        const lh = agentDesign?.logoH || 55;
         const lx = agentDesign?.logoX || (SIG_INS_X - lw/2);
-        const ly = agentDesign?.logoY || SIG_IMG_Y;
-        page.drawImage(lImg, { x:lx, y:PH-(ly+lh), width:lw, height:lh, opacity:1.0 });
+        const ly = agentDesign?.logoY || (SIG_IMG_Y + 5);
+        page.drawImage(lImg, { x:lx, y:PH-(ly+lh), width:lw, height:lh, opacity:0.8 });
     } catch(e) {}
 
-    // ── Firma Instructor (Sobrepuesta) ──────────────────────────────────
+    // ── Firma Instructor (Sobrepuesta - Ajustada) ──────────────────────
     try {
         const firmaPath = agentDesign?.firmaBase64 || '/signatures/cynthia_firma_oficial.png';
         const fb = await fetch(firmaPath).then(r=>r.arrayBuffer());
         const fImg = await pdfDoc.embedPng(fb);
-        const fw = agentDesign?.firmaW || 95;
-        const fh = agentDesign?.firmaH || 65;
+        const fw = agentDesign?.firmaW || 100;
+        const fh = agentDesign?.firmaH || 70;
         const fx = agentDesign?.firmaX || (SIG_INS_X - fw/2);
-        const fy = agentDesign?.firmaY || (SIG_IMG_Y + 2);
+        const fy = agentDesign?.firmaY || (SIG_IMG_Y - 5);
         page.drawImage(fImg, { x:fx, y:PH-(fy+fh), width:fw, height:fh });
     } catch(e) {}
 
