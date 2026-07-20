@@ -1298,12 +1298,14 @@ async function generateDC3() {
     URL.revokeObjectURL(url);
 
     // Save to DB
-    await api('insertOne','dc3_records',{ document: {
+    const res = await api('insertOne','dc3_records',{ document: {
         workerId:    selectedWorker.curp,
         workerName:  selectedWorker.name,
         workerPos:   selectedWorker.position,
         courseName,
         companyName: companyName,
+        representanteLegal: company.representanteLegal,
+        representanteTrabajadores: company.representanteTrabajadores,
         agentName,
         agentStps,
         startDate:   start,
@@ -1311,6 +1313,11 @@ async function generateDC3() {
         resultText:  'Acreditado',
         creatorEmail: currentUser.email
     }});
+
+    if (res.error) {
+        console.error("Error al guardar DC-3 en historial:", res.error);
+        alert("Atención: El PDF se generó pero no se pudo guardar en el historial: " + res.error);
+    }
 
     closeModal('modal-dc3');
     if (currentView === 'dc3') loadSection('dc3');
@@ -1454,9 +1461,9 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     } catch(e) { console.warn('Error cabecera:', e); }
 
     // ══════════════════════════════════════════════════════════════════════
-    // 1. NOMBRE DEL TRABAJADOR  (Mover hacia abajo para evitar traslape con etiqueta)
+    // 1. NOMBRE DEL TRABAJADOR  (Bajar más para evitar traslape)
     // ══════════════════════════════════════════════════════════════════════
-    T(30, 175, (worker.name||'').toUpperCase(), 9, true);
+    T(30, 182, (worker.name||'').toUpperCase(), 9, true);
 
     // ══════════════════════════════════════════════════════════════════════
     // 2. CURP — 18 celdas, y_top=185.8 y_bot=201.3 → texto en y=196
@@ -1524,18 +1531,18 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     //    Día fin:     centros 575.3, 595.9
     // ══════════════════════════════════════════════════════════════════════
     // ══════════════════════════════════════════════════════════════════════
-    // 9. FECHAS — recalibrado milimétrico para centrar en cuadros
+    // 9. FECHAS — recalibrado milimétrico para centrar en cuadros (v1.0.8)
     // ══════════════════════════════════════════════════════════════════════
     const fStart = parseFecha(start);
     const fEnd   = parseFecha(end);
     const FY     = 388;
 
-    const AÑO_INI = [253.5, 269.4, 285.4, 301.7];
-    const MES_INI = [341.2, 362.7];
-    const DIA_INI = [383.7, 405.1];
-    const AÑO_FIN = [445.4, 464.9, 484.4, 504.7];
-    const MES_FIN = [525.8, 547.2];
-    const DIA_FIN = [568.6, 589.2];
+    const AÑO_INI = [260.5, 276.4, 292.4, 308.7];
+    const MES_INI = [348.2, 369.7];
+    const DIA_INI = [390.7, 412.1];
+    const AÑO_FIN = [452.4, 471.9, 491.4, 511.7];
+    const MES_FIN = [532.8, 554.2];
+    const DIA_FIN = [575.6, 596.2];
 
     for (let i=0; i<4; i++) {
         const ch = fStart.a[i]||'';
