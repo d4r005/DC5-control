@@ -1421,9 +1421,10 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
         agentDesign = (dr.documents && dr.documents.length > 0) ? dr.documents[0] : null;
     } catch(e) { console.warn('No se pudo cargar diseño del agente:', e); }
 
-    // ── Buscar objeto empresa completo ────────────────────────────────────
-    const compObj = DATA.companies.find(c => c.name === company)
-        || { name: company, rfc: '', representanteLegal: '', representanteTrabajadores: '' };
+    // ── Asegurar que compObj sea un objeto válido ──────────────────────────
+    const compObj = (typeof company === 'object' && company !== null) ? company : { name: String(company || ''), rfc: '', representanteLegal: '', representanteTrabajadores: '' };
+
+    const companyNameFinal = String(compObj.name || company || '').toUpperCase();
 
     // ══════════════════════════════════════════════════════════════════════
     // 0. CABECERA: logo y slogan del agente (encima del formulario oficial)
@@ -1486,7 +1487,7 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     // 5. NOMBRE EMPRESA (y=255..289, texto en y=272)
     // ══════════════════════════════════════════════════════════════════════
     page.drawRectangle({ x:26, y: PH-288, width:558, height:28, color: rgb(1,1,1) });
-    T(30, 272, (compObj.name||company||'').toUpperCase().slice(0,80), 9, true);
+    T(30, 272, companyNameFinal.slice(0,80), 9, true);
 
     // ══════════════════════════════════════════════════════════════════════
     // 6. RFC — 15 celdas, y_top=300.3 y_bot=315.3 → texto en y=311
@@ -1506,7 +1507,7 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     // 7. NOMBRE DEL CURSO (y=344..368, texto en y=360)
     // ══════════════════════════════════════════════════════════════════════
     page.drawRectangle({ x:26, y: PH-367, width:558, height:19, color: rgb(1,1,1) });
-    T(30, 362, (course.name||course||'').toUpperCase().slice(0,80), 9);
+    T(30, 362, (String(course.name||course||'')).toUpperCase().slice(0,80), 9);
 
     // ══════════════════════════════════════════════════════════════════════
     // 8. DURACIÓN (y=369..380, texto en y=378)
