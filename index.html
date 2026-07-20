@@ -447,7 +447,7 @@
                         <p class="text-xs font-bold text-gray-500 uppercase">Vista previa — DC-3 (arrastra los elementos)</p>
                         <span id="design-drag-hint" class="text-xs text-indigo-500"></span>
                     </div>
-                    <div id="design-preview-wrap" style="position:relative;overflow-y:auto;overflow-x:hidden;flex:1;min-height:0;border-radius:8px;background:#f3f4f6;cursor:crosshair;">
+                    <div id="design-preview-wrap" style="position:relative;overflow-y:auto;overflow-x:hidden;flex:1;min-height:0;border-radius:8px;background:#f3f4f6;">
                         <canvas id="design-preview-canvas" style="display:block;width:100%;"></canvas>
                         <!-- Overlay SVG para handles de arrastre -->
                         <svg id="design-drag-overlay" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;"></svg>
@@ -1896,11 +1896,11 @@ function _updateDragHandles(p) {
     const cy = (pdfY, h) => (PDF_H - pdfY - h) * sc;
 
     const items = [
-        { key:'logo',       x:p.logoX,         y:cy(p.logoY, p.logoH),           w:p.logoW*sc,   h:p.logoH*sc,   label:'LOGO',       color:'#6366f1', xId:'design-logo-x', yId:'design-logo-y' },
-        { key:'firma',      x:p.firmaX*sc,      y:cy(p.firmaY, p.firmaH),         w:p.firmaW*sc,  h:p.firmaH*sc,  label:'FIRMA',      color:'#0891b2', xId:'design-firma-x', yId:'design-firma-y' },
-        { key:'headerLogo', x:p.headerLogoX*sc, y:cy(p.headerLogoY, p.headerLogoH), w:p.headerLogoW*sc, h:p.headerLogoH*sc, label:'CAB.LOGO', color:'#7c3aed', xId:'design-header-logo-x', yId:'design-header-logo-y' },
-        { key:'hslogan',    x:p.headerSloganX*sc, y:(PDF_H - p.headerSloganY - p.headerSloganSize)*sc, w:120*sc, h:p.headerSloganSize*sc+4, label:'CAB.SLOGAN', color:'#0d9488', xId:'design-header-slogan-x', yId:'design-header-slogan-y', isText:true },
-        { key:'slogan',     x:p.sloganX*sc,     y:(PDF_H - p.sloganY - p.sloganSize)*sc,   w:160*sc, h:p.sloganSize*sc+4, label:'SLOGAN', color:'#ea580c', xId:'design-slogan-x', yId:'design-slogan-y', isText:true },
+        { key:'logo',       x:p.logoX*sc,        y:cy(p.logoY, p.logoH),              w:p.logoW*sc,        h:p.logoH*sc,        label:'LOGO',       color:'#6366f1', xId:'design-logo-x', yId:'design-logo-y' },
+        { key:'firma',      x:p.firmaX*sc,        y:cy(p.firmaY, p.firmaH),            w:p.firmaW*sc,       h:p.firmaH*sc,       label:'FIRMA',      color:'#0891b2', xId:'design-firma-x', yId:'design-firma-y' },
+        { key:'headerLogo', x:p.headerLogoX*sc,   y:cy(p.headerLogoY, p.headerLogoH),  w:p.headerLogoW*sc,  h:p.headerLogoH*sc,  label:'CAB.LOGO',   color:'#7c3aed', xId:'design-header-logo-x', yId:'design-header-logo-y' },
+        { key:'hslogan',    x:p.headerSloganX*sc, y:cy(p.headerSloganY, p.headerSloganSize), w:Math.max(80,p.headerSloganSize*p.headerSlogan.length*0.55)*sc, h:(p.headerSloganSize+4)*sc, label:'CAB.SLOGAN', color:'#0d9488', xId:'design-header-slogan-x', yId:'design-header-slogan-y', isText:true },
+        { key:'slogan',     x:p.sloganX*sc,       y:cy(p.sloganY, p.sloganSize),       w:Math.max(60,p.sloganSize*p.slogan.length*0.55)*sc, h:(p.sloganSize+4)*sc, label:'SLOGAN', color:'#ea580c', xId:'design-slogan-x', yId:'design-slogan-y', isText:true },
     ];
 
     items.forEach(item => {
@@ -1954,18 +1954,23 @@ function _updateDragHandles(p) {
                 startPdfY: gv(item.yId),
                 sc: designState._scale
             };
+            e.stopPropagation();
             document.getElementById('design-drag-hint').textContent = '⟢ Arrastrando: ' + item.label;
 
             const onMove = (ev) => {
                 if (!_dragState) return;
-                const dx = (ev.clientX - _dragState.startMouseX) / _dragState.sc;
-                const dy = (ev.clientY - _dragState.startMouseY) / _dragState.sc;
-                const newX = Math.round(_dragState.startPdfX + dx);
-                const newY = Math.round(_dragState.startPdfY + dy);
+                // sc_css: ratio entre tamaño CSS del canvas y su resolución interna
+                const canvasEl = document.getElementById('design-preview-canvas');
+                const cssW = canvasEl.getBoundingClientRect().width;
+                const sc_total = cssW / canvasEl.width;  // px-pantalla / px-canvas-interno
+                // Convertir dx pantalla → dx PDF
+                const dxPdf = (ev.clientX - _dragState.startMouseX) / (sc_total * _dragState.sc);
+                // PDF Y-axis is bottom-up: drag down → clientY increases → PDF Y decreases
+                const dyPdf = -(ev.clientY - _dragState.startMouseY) / (sc_total * _dragState.sc);
                 const elX = document.getElementById(item.xId);
                 const elY = document.getElementById(item.yId);
-                if (elX) elX.value = Math.max(0, newX);
-                if (elY) elY.value = Math.max(0, newY);
+                if (elX) elX.value = Math.max(0, Math.round(_dragState.startPdfX + dxPdf));
+                if (elY) elY.value = Math.max(0, Math.round(_dragState.startPdfY + dyPdf));
                 schedulePreview();
             };
             const onUp = () => {
@@ -1988,12 +1993,15 @@ function _updateDragHandles(p) {
             if (!_dragState) return;
             e.preventDefault();
             const t = e.touches[0];
-            const dx = (t.clientX - _dragState.startMouseX) / _dragState.sc;
-            const dy = (t.clientY - _dragState.startMouseY) / _dragState.sc;
+            const canvasEl = document.getElementById('design-preview-canvas');
+            const cssW = canvasEl.getBoundingClientRect().width;
+            const sc_total = cssW / canvasEl.width;
+            const dxPdf = (t.clientX - _dragState.startMouseX) / (sc_total * _dragState.sc);
+            const dyPdf = -(t.clientY - _dragState.startMouseY) / (sc_total * _dragState.sc);
             const elX = document.getElementById(item.xId);
             const elY = document.getElementById(item.yId);
-            if (elX) elX.value = Math.max(0, Math.round(_dragState.startPdfX + dx));
-            if (elY) elY.value = Math.max(0, Math.round(_dragState.startPdfY + dy));
+            if (elX) elX.value = Math.max(0, Math.round(_dragState.startPdfX + dxPdf));
+            if (elY) elY.value = Math.max(0, Math.round(_dragState.startPdfY + dyPdf));
             schedulePreview();
         }, { passive:false });
         g.addEventListener('touchend', () => { _dragState = null; });
