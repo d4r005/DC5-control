@@ -524,7 +524,7 @@ function toSnake(obj) {
     const map = { creatorEmail:'creator_email', workerId:'worker_id', workerName:'worker_name', workerPos:'worker_pos',
                   courseName:'course_name', companyName:'company_name', agentName:'agent_name', agentStps:'agent_stps',
                   startDate:'start_date', endDate:'end_date', resultText:'result_text', durationHours:'duration_hours',
-                  thematicArea:'thematic_area' };
+                  thematicArea:'thematic_area', representanteLegal:'patron', representanteTrabajadores:'representante' };
     const out = {};
     for (const [k,v] of Object.entries(obj)) out[map[k]||k] = v;
     return out;
@@ -535,7 +535,7 @@ function toCamel(obj) {
     const map = { creator_email:'creatorEmail', worker_id:'workerId', worker_name:'workerName', worker_pos:'workerPos',
                   course_name:'courseName', company_name:'companyName', agent_name:'agentName', agent_stps:'agentStps',
                   start_date:'startDate', end_date:'endDate', result_text:'resultText', duration_hours:'durationHours',
-                  thematic_area:'thematicArea', created_at:'createdAt' };
+                  thematic_area:'thematicArea', created_at:'createdAt', patron:'representanteLegal', representante:'representanteTrabajadores' };
     const out = {};
     for (const [k,v] of Object.entries(obj)) out[map[k]||k] = v;
     return out;
@@ -714,7 +714,10 @@ async function loadSection(v) {
             ? rows.map(x => `<tr>
                 <td class="font-semibold">${x.name||''}</td>
                 <td class="font-mono text-xs text-gray-500">${x.rfc||''}</td>
-                <td class="text-xs text-gray-500">${x.patron||'–'}</td>
+                <td class="text-xs text-gray-500">
+                    <p class="font-medium">Legal: ${x.representanteLegal||'–'}</p>
+                    <p class="text-[10px] text-gray-400">Trabajadores: ${x.representanteTrabajadores||'–'}</p>
+                </td>
                 <td class="text-right">
                     <div class="flex justify-end gap-2">
                         <button onclick='openModal(${JSON.stringify(x)})' class="btn-sm btn-outline">✎</button>
@@ -811,11 +814,11 @@ function openModal(item = null) {
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Patrón o Representante Legal</label>
-                <input id="f3" class="input-field" value="${item ? item.patron : ''}" placeholder="Nombre completo del patrón">
+                <input id="f3" class="input-field" value="${item ? (item.representanteLegal || '') : ''}" placeholder="Nombre completo del patrón">
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Representante de los Trabajadores</label>
-                <input id="f4" class="input-field" value="${item ? (item.representante || '') : ''}" placeholder="Obligatorio para empresas con +50 trabajadores">
+                <input id="f4" class="input-field" value="${item ? (item.representanteTrabajadores || '') : ''}" placeholder="Obligatorio para empresas con +50 trabajadores">
             </div>`;
     } else if (currentView === 'workers') {
         document.getElementById('modal-title').innerText = item ? 'Editar Trabajador' : 'Nuevo Trabajador';
@@ -874,10 +877,10 @@ async function saveItem() {
     if (currentView === 'companies') {
         const name = document.getElementById('f1').value.trim();
         const rfc = document.getElementById('f2').value.trim().toUpperCase();
-        const patron = document.getElementById('f3').value.trim();
-        const representante = document.getElementById('f4').value.trim();
-        if (!name || !rfc || !patron) { alert('Completa los campos obligatorios'); return; }
-        payload.document = { name, rfc, patron, representante: representante || null, creatorEmail: currentUser.email };
+        const representanteLegal = document.getElementById('f3').value.trim();
+        const representanteTrabajadores = document.getElementById('f4').value.trim();
+        if (!name || !rfc || !representanteLegal) { alert('Completa los campos obligatorios'); return; }
+        payload.document = { name, rfc, representanteLegal, representanteTrabajadores: representanteTrabajadores || null, creatorEmail: currentUser.email };
     } else if (currentView === 'workers') {
         const name = document.getElementById('f1').value.trim();
         const curp = document.getElementById('f2').value.trim().toUpperCase();
@@ -995,7 +998,7 @@ async function generateDC3() {
     if (!start || !end) { alert('Selecciona las fechas de inicio y término'); return; }
 
     // Buscar el objeto empresa completo para obtener RFC, patron y representante
-    const company = DATA.companies.find(c => c.name === companyName) || { name: companyName, rfc: '', patron: '', representante: null };
+    const company = DATA.companies.find(c => c.name === companyName) || { name: companyName, rfc: '', representanteLegal: '', representanteTrabajadores: null };
 
     const [agentName, agentStps] = agentVal.split('|');
     const [courseName, courseDuration, courseArea] = courseVal.split('|');
@@ -1031,7 +1034,7 @@ async function generateDC3() {
 // Regenerar desde historial
 async function regenDC3(record) {
     const worker  = { name: record.workerName, curp: record.workerId, position: record.workerPos };
-    const regenCompany = DATA.companies.find(c => c.name === record.companyName) || { name: record.companyName, rfc: '', patron: '', representante: null };
+    const regenCompany = DATA.companies.find(c => c.name === record.companyName) || { name: record.companyName, rfc: '', representanteLegal: '', representanteTrabajadores: null };
     await buildDC3PDF({
         worker,
         company: regenCompany,
@@ -1310,7 +1313,7 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     const CENTER_X_PAT = 300;
     T_Centered(CENTER_X_PAT, Y_TITULOS, "Patrón o representante legal 4/", 7.5);
 
-    const patName = sp((compObj.patron || '').toUpperCase());
+    const patName = sp((compObj.representanteLegal || '').toUpperCase());
     const patLines = splitNameJS(patName, 28);
     T_Centered(CENTER_X_PAT, Y_NOMBRE_1, patLines[0], 8);
     if (patLines[1]) T_Centered(CENTER_X_PAT, Y_NOMBRE_2, patLines[1], 8);
@@ -1327,8 +1330,8 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     const CENTER_X_REP = 475;
     T_Centered(CENTER_X_REP, Y_TITULOS, "Representante de los trabajadores 5/", 7.5);
 
-    if (compObj.representante) {
-        const repName = sp(compObj.representante.toUpperCase());
+    if (compObj.representanteTrabajadores) {
+        const repName = sp(compObj.representanteTrabajadores.toUpperCase());
         const repLines = splitNameJS(repName, 26);
         T_Centered(CENTER_X_REP, Y_NOMBRE_1, repLines[0], 8);
         if (repLines[1]) T_Centered(CENTER_X_REP, Y_NOMBRE_2, repLines[1], 8);
