@@ -1629,10 +1629,11 @@ const FONT_MAP = {
     'Helvetica-BoldOblique':'HelveticaBoldOblique',
     'Times-Roman':          'TimesRoman',
     'Times-Bold':           'TimesBold',
-    'Times-Italic':         'TimesItalic',
-    'Times-BoldItalic':     'TimesBoldItalic',
+    'Times-Italic':         'TimesRomanItalic',
+    'Times-BoldItalic':     'TimesRomanBoldItalic',
     'Courier':              'Courier',
     'Courier-Bold':         'CourierBold',
+    'Courier-Oblique':      'CourierOblique',
 };
 
 function fileToDataUrl(file) {
@@ -1687,7 +1688,7 @@ async function loadDesign() {
         setV('design-header-slogan-x', d.headerSloganX ?? 160);
         setV('design-header-slogan-y', d.headerSloganY ?? 18);
         setV('design-header-slogan-size', d.headerSloganSize ?? 9);
-        setV('design-header-slogan-font', d.headerSloganFont ?? 'Helvetica-Bold');
+        setV('design-header-slogan-font', d.headerSloganFont ?? 'Times-Italic');
         setV('design-header-logo-w', d.headerLogoW ?? 120);
         setV('design-header-logo-h', d.headerLogoH ?? 55);
         setV('design-header-logo-x', d.headerLogoX ?? 30);
@@ -1743,7 +1744,7 @@ function getDesignParams() {
         headerSlogan: gs('design-header-slogan'),
         headerSloganX: gv('design-header-slogan-x',160), headerSloganY: gv('design-header-slogan-y',18),
         headerSloganSize: gv('design-header-slogan-size',9),
-        headerSloganFont: gs('design-header-slogan-font','Helvetica-Bold'),
+        headerSloganFont: gs('design-header-slogan-font','Times-Italic'),
         slogan: gs('design-slogan'),
         sloganX: gv('design-slogan-x',30), sloganY: gv('design-slogan-y',445),
         sloganSize: gv('design-slogan-size',7),
