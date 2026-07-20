@@ -486,6 +486,9 @@ async function loadCatalogs() {
     // Combinar cursos pre-cargados con los de la base de datos
     const dbCourses = coursesR.documents || [];
     dbCourses.forEach(dbc => {
+        // Filtrar cursos sin área temática
+        if (!dbc.thematicArea || dbc.thematicArea === '' || dbc.thematicArea === '–' || dbc.thematicArea === '-') return;
+
         const exists = DATA.courses.find(c => c.name === dbc.name && c.creatorEmail === dbc.creatorEmail);
         if (!exists) DATA.courses.push(dbc);
     });
@@ -711,7 +714,9 @@ async function loadSection(v) {
             : `<tr><td colspan="4" class="text-center py-12 text-gray-300 text-sm">Sin empresas registradas</td></tr>`;
 
     } else if (v === 'courses') {
-        const list = currentUser.role === 'ADMIN' ? DATA.courses : DATA.courses.filter(c => c.creatorEmail === currentUser.email);
+        const list = (currentUser.role === 'ADMIN' ? DATA.courses : DATA.courses.filter(c => c.creatorEmail === currentUser.email))
+            .filter(c => c.thematicArea && c.thematicArea !== '' && c.thematicArea !== '–' && c.thematicArea !== '-');
+
         document.getElementById('tb-courses').innerHTML = list.length
             ? list.map(c => `<tr>
                 <td class="font-semibold">${c.name}</td>
@@ -856,7 +861,8 @@ function openDC3(worker) {
     agentSel.innerHTML = DATA.agents.map(a => `<option value="${a.name}|${a.stps}">${a.name}</option>`).join('');
 
     // Courses
-    const list = currentUser.role === 'ADMIN' ? DATA.courses : DATA.courses.filter(c => c.creatorEmail === currentUser.email);
+    const list = (currentUser.role === 'ADMIN' ? DATA.courses : DATA.courses.filter(c => c.creatorEmail === currentUser.email))
+        .filter(c => c.thematicArea && c.thematicArea !== '' && c.thematicArea !== '–' && c.thematicArea !== '-');
     document.getElementById('dc3-course').innerHTML = list.map(c => `<option value="${c.name}|${c.durationHours}|${c.thematicArea}">${c.name}</option>`).join('');
 
     document.getElementById('modal-dc3').classList.add('open');
@@ -881,7 +887,8 @@ function prepareEditDC3(record) {
     if (agentOption) agentSel.value = agentOption.value;
 
     const courSel = document.getElementById('dc3-course');
-    const list = currentUser.role === 'ADMIN' ? DATA.courses : DATA.courses.filter(c => c.creatorEmail === currentUser.email);
+    const list = (currentUser.role === 'ADMIN' ? DATA.courses : DATA.courses.filter(c => c.creatorEmail === currentUser.email))
+        .filter(c => c.thematicArea && c.thematicArea !== '' && c.thematicArea !== '–' && c.thematicArea !== '-');
     courSel.innerHTML = list.map(c => `<option value="${c.name}|${c.durationHours}|${c.thematicArea}">${c.name}</option>`).join('');
     const courseOption = [...courSel.options].find(opt => opt.value.startsWith(record.courseName));
     if (courseOption) courSel.value = courseOption.value;
