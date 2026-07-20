@@ -6,29 +6,44 @@
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, apikey",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, apikey, x-api-key",
 };
 
-async function sbFetch(table, method, body, queryParams, env) {
+async function sbFetch(table, method, body, queryParams, env, isStorage = false) {
   const supabaseUrl = env.SUPABASE_URL;
   const supabaseKey = env.SUPABASE_SERVICE_ROLE_KEY;
 
   const headers = {
     "apikey": supabaseKey,
     "Authorization": `Bearer ${supabaseKey}`,
-    "Content-Type": "application/json",
   };
 
-  let url = `${supabaseUrl}/rest/v1/${table}${queryParams}`;
+  if (!isStorage) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  let url = isStorage
+    ? `${supabaseUrl}/storage/v1/object/${table}`
+    : `${supabaseUrl}/rest/v1/${table}${queryParams}`;
 
   const opts = { method, headers };
-  if (method === "POST") {
-    opts.headers["Prefer"] = "return=representation";
-    opts.body = JSON.stringify(body);
+
+  if (method === "POST" || method === "PUT") {
+    if (!isStorage) {
+      opts.headers["Prefer"] = "return=representation";
+      opts.body = JSON.stringify(body);
+    } else {
+      opts.body = body; // Binary body
+    }
   }
 
   const res = await fetch(url, opts);
-  return await res.json();
+  if (res.ok) {
+    return await res.json();
+  } else {
+    const error = await res.text();
+    throw new Error(error);
+  }
 }
 
 export default {
@@ -40,11 +55,30 @@ export default {
 
     if (method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-    try {
-      const collection = path.split("/").pop();
-      let supabaseQuery = "?select=*";
+    // Seguridad básica (opcional, configurar API_KEY en Cloudflare)
+    if (env.API_KEY && request.headers.get("x-api-key") !== env.API_KEY) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: corsHeaders
+      });
+    }
 
-      // Mapear parámetros de búsqueda a filtros de Supabase
+    try {
+      const segments = path.split("/").filter(Boolean);
+      const collection = segments.pop();
+
+      // Manejo especial para subida de archivos
+      if (collection === "upload" && method === "POST") {
+        const fileName = params.get("name") || `file_${Date.now()}.pdf`;
+        const blob = await request.arrayBuffer();
+        // Subir a bucket 'dc3' (ajustar según sea necesario)
+        const data = await sbFetch(`dc3/${fileName}`, "POST", blob, "", env, true);
+        return new Response(JSON.stringify({ uploaded: data }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      let supabaseQuery = "?select=*";
       params.forEach((val, key) => {
         supabaseQuery += `&${key}=eq.${val}`;
       });
@@ -56,11 +90,11 @@ export default {
         });
       }
 
-      if (method === "POST") {
+      if (method === "POST" || method === "PUT") {
         const body = await request.json();
         const doc = body.documents || body.document || body;
-        const data = await sbFetch(collection, "POST", doc, "", env);
-        return new Response(JSON.stringify({ inserted: data }), {
+        const data = await sbFetch(collection, method, doc, method === "PUT" ? `?id=eq.${doc.id}` : "", env);
+        return new Response(JSON.stringify({ result: data }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
       }

@@ -28,18 +28,20 @@ object SupabaseRepository {
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) { onResult(emptyList()) }
             override fun onResponse(call: Call, response: Response) {
-                if (response.isSuccessful) {
-                    try {
-                        val bodyString = response.body?.string() ?: "{}"
-                        val root = json.parseToJsonElement(bodyString).jsonObject
-                        val arr = root["documents"]?.jsonArray ?: jsonArrayOf()
-                        val items = arr.map { json.decodeFromJsonElement(serializer, it) }
-                        onResult(items)
-                    } catch (e: Exception) {
+                response.use {
+                    if (it.isSuccessful) {
+                        try {
+                            val bodyString = it.body?.string() ?: "{}"
+                            val root = json.parseToJsonElement(bodyString).jsonObject
+                            val arr = root["documents"]?.jsonArray ?: jsonArrayOf()
+                            val items = arr.map { item -> json.decodeFromJsonElement(serializer, item) }
+                            onResult(items)
+                        } catch (e: Exception) {
+                            onResult(emptyList())
+                        }
+                    } else {
                         onResult(emptyList())
                     }
-                } else {
-                    onResult(emptyList())
                 }
             }
         })
@@ -57,7 +59,9 @@ object SupabaseRepository {
 
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) { onResult(false) }
-            override fun onResponse(call: Call, response: Response) { onResult(response.isSuccessful) }
+            override fun onResponse(call: Call, response: Response) {
+                response.use { onResult(it.isSuccessful) }
+            }
         })
     }
 
@@ -73,7 +77,9 @@ object SupabaseRepository {
 
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) { onResult(false) }
-            override fun onResponse(call: Call, response: Response) { onResult(response.isSuccessful) }
+            override fun onResponse(call: Call, response: Response) {
+                response.use { onResult(it.isSuccessful) }
+            }
         })
     }
 
@@ -87,7 +93,9 @@ object SupabaseRepository {
 
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) { onResult(false) }
-            override fun onResponse(call: Call, response: Response) { onResult(response.isSuccessful) }
+            override fun onResponse(call: Call, response: Response) {
+                response.use { onResult(it.isSuccessful) }
+            }
         })
     }
 }

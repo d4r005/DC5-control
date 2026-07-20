@@ -3,10 +3,12 @@ package com.naf.erp.training.config
 import com.naf.erp.training.entity.*
 import com.naf.erp.training.repository.*
 import org.springframework.boot.CommandLineRunner
+import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Component
 import java.time.LocalDate
 
 @Component
+@Profile("dev")
 class DataLoader(
     private val employeeRepository: EmployeeRepository,
     private val instructorRepository: InstructorRepository,

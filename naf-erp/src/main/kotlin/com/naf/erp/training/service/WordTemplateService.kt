@@ -1,7 +1,9 @@
 package com.naf.erp.training.service
 
+import com.naf.erp.training.document.ContentControlEngine
 import com.naf.erp.training.entity.DC3
 import com.naf.erp.training.model.DC3Fields
+import org.docx4j.openpackaging.packages.WordprocessingMLPackage
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.io.File
@@ -9,13 +11,13 @@ import java.time.format.DateTimeFormatter
 
 @Service
 class WordTemplateService(
-    @Value("${dc3.template}")
+    @Value("\${dc3.template}")
     private val templatePath: String,
 
-    @Value("${dc3.output}")
+    @Value("\${dc3.output}")
     private val outputPath: String,
 
-    private val contentControlService: ContentControlService
+    private val contentControlEngine: ContentControlEngine
 ) {
 
     fun generate(dc3: DC3): String {
@@ -45,15 +47,20 @@ class WordTemplateService(
 
         // 2. Definir archivos
         val fileName = "DC3_${employee.employeeNumber}_${System.currentTimeMillis()}.docx"
-        val templateFile = File(templatePath)
-        val outputFile = File(outputPath, fileName)
+        val word = WordprocessingMLPackage.load(File(templatePath))
+        val outputDir = File(outputPath)
+        if (!outputDir.exists()) {
+            outputDir.mkdirs()
+        }
+        val outputFile = File(outputDir, fileName)
 
         // 3. Ejecutar motor de ContentControls
-        contentControlService.fillTemplate(
-            templateFile,
-            outputFile,
+        contentControlEngine.fill(
+            word,
             data.toMap()
         )
+
+        word.save(outputFile)
 
         return outputFile.absolutePath
     }

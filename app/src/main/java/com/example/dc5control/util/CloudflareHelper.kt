@@ -24,10 +24,12 @@ object CloudflareHelper {
             }
 
             override fun onResponse(call: okhttp3.Call, response: okhttp3.Response) {
-                if (response.isSuccessful) {
-                    onSuccess()
-                } else {
-                    onError("Error del servidor: ${response.code}")
+                response.use {
+                    if (it.isSuccessful) {
+                        onSuccess()
+                    } else {
+                        onError("Error del servidor: ${it.code}")
+                    }
                 }
             }
         })

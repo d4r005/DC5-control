@@ -98,8 +98,14 @@ class DC3Service(
         val dc3 = dc3Repository.findById(id)
             .orElseThrow { RuntimeException("DC3 no encontrado") }
 
-        java.io.File(dc3.pdf!!).delete()
-        java.io.File(dc3.docx!!).delete()
+        dc3.pdf?.let { path ->
+            val file = java.io.File(path)
+            if (file.exists()) file.delete()
+        }
+        dc3.docx?.let { path ->
+            val file = java.io.File(path)
+            if (file.exists()) file.delete()
+        }
         dc3Repository.delete(dc3)
     }
 }
