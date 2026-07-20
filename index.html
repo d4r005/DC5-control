@@ -1460,16 +1460,10 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
         }
     } catch(e) { console.warn('Error cabecera:', e); }
 
-    // ══════════════════════════════════════════════════════════════════════
-    // 1. NOMBRE DEL TRABAJADOR  (Bajar más para evitar traslape)
-    // ══════════════════════════════════════════════════════════════════════
-    T(30, 182, (worker.name||'').toUpperCase(), 9, true);
+    // ── 1. NOMBRE DEL TRABAJADOR ───────────────────────────────────────────
+    T(30, 178, (worker.name||'').toUpperCase(), 9, true);
 
-    // ══════════════════════════════════════════════════════════════════════
-    // 2. CURP — 18 celdas, y_top=185.8 y_bot=201.3 → texto en y=196
-    //    Centros X: 32.0, 47.4, 62.8, 78.2, 93.5, 108.8, 124.2, 139.6,
-    //               155.0, 170.3, 185.8, 201.2, 216.6, 231.9, 247.2, 262.6, 278.0, 293.3
-    // ══════════════════════════════════════════════════════════════════════
+    // ── 2. CURP ────────────────────────────────────────────────────────────
     const CURP_CENTERS = [32.0,47.4,62.8,78.2,93.5,108.8,124.2,139.6,
                           155.0,170.3,185.8,201.2,216.6,231.9,247.2,262.6,278.0,293.3];
     const curp = (worker.curp||'').toUpperCase().replace(/\s/g,'').slice(0,18);
@@ -1479,11 +1473,9 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
         page.drawText(curp[i], { x: CURP_CENTERS[i] - w/2, y: PH - CURP_Y, size: 8, font, color: rgb(0,0,0) });
     }
 
-    // ══════════════════════════════════════════════════════════════════════
-    // 3. OCUPACIÓN (columna derecha, x=305, y=180)
-    // ══════════════════════════════════════════════════════════════════════
+    // ── 3. OCUPACIÓN ───────────────────────────────────────────────────────
     const occupationFinal = (worker.occupation || worker.position || '').toUpperCase().slice(0,50);
-    T(307, 187, occupationFinal, 7);
+    T(307, 199, occupationFinal, 7);
 
     // ══════════════════════════════════════════════════════════════════════
     // 4. PUESTO (y=202..226, texto en y=215)
