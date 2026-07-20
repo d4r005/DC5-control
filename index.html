@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ACE-Control | Generador de Constancias DC-3</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -707,6 +710,7 @@ function toSnake(obj) {
         logoBase64:'logo_base64', logoX:'logo_x', logoY:'logo_y', logoW:'logo_w', logoH:'logo_h',
         firmaBase64:'firma_base64', firmaX:'firma_x', firmaY:'firma_y', firmaW:'firma_w', firmaH:'firma_h',
         sloganX:'slogan_x', sloganY:'slogan_y', sloganSize:'slogan_size', sloganFont:'slogan_font',
+        headerSloganFont:'header_slogan_font',
         updatedAt:'updated_at'
     };
     const out = {};
@@ -728,6 +732,7 @@ function toCamel(obj) {
         logo_base64:'logoBase64', logo_x:'logoX', logo_y:'logoY', logo_w:'logoW', logo_h:'logoH',
         firma_base64:'firmaBase64', firma_x:'firmaX', firma_y:'firmaY', firma_w:'firmaW', firma_h:'firmaH',
         slogan_x:'sloganX', slogan_y:'sloganY', slogan_size:'sloganSize', slogan_font:'sloganFont',
+        header_slogan_font:'headerSloganFont',
         updated_at:'updatedAt'
     };
     const out = {};
@@ -1800,6 +1805,8 @@ async function saveDesign() {
             slogan_y: p.sloganY,
             slogan_size: p.sloganSize,
             agent_name: p.agentName,
+            slogan_font: p.sloganFont || 'Helvetica',
+            header_slogan_font: p.headerSloganFont || 'Times-Italic',
             updated_at: new Date().toISOString()
         };
 
@@ -1807,11 +1814,12 @@ async function saveDesign() {
 
         const existing = await api('find','agent_designs', { filter: { creatorEmail: p.creatorEmail } });
         if (existing.documents?.length > 0) {
-            const { error } = await sb.from('agent_designs').update(payload).eq('id', existing.documents[0].id);
-            if (error) throw error;
+            // Usar api('update') para que pase por toSnake() y evitar errores de columnas camelCase
+            const res = await api('update','agent_designs', { id: existing.documents[0].id, document: payload });
+            if (res.error) throw new Error(res.error);
         } else {
-            const { error } = await sb.from('agent_designs').insert(payload);
-            if (error) throw error;
+            const res = await api('insertOne','agent_designs', { document: payload });
+            if (res.error) throw new Error(res.error);
         }
         alert('✓ Diseño guardado');
     } catch(e) {
