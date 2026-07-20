@@ -770,7 +770,8 @@ function toSnake(obj) {
         firmaBase64:'firma_base64', firmaX:'firma_x', firmaY:'firma_y', firmaW:'firma_w', firmaH:'firma_h',
         sloganX:'slogan_x', sloganY:'slogan_y', sloganSize:'slogan_size', sloganFont:'slogan_font',
         headerSloganFont:'header_slogan_font',
-        updatedAt:'updated_at'
+        updatedAt:'updated_at',
+        apellidoPaterno:'apellido_paterno', apellidoMaterno:'apellido_materno', nombres:'nombres'
     };
     const out = {};
     for (const [k,v] of Object.entries(obj)) out[map[k]||k] = v;
@@ -792,7 +793,8 @@ function toCamel(obj) {
         firma_base64:'firmaBase64', firma_x:'firmaX', firma_y:'firmaY', firma_w:'firmaW', firma_h:'firmaH',
         slogan_x:'sloganX', slogan_y:'sloganY', slogan_size:'sloganSize', slogan_font:'sloganFont',
         header_slogan_font:'headerSloganFont',
-        updated_at:'updatedAt'
+        updated_at:'updatedAt',
+        apellido_paterno:'apellidoPaterno', apellido_materno:'apellidoMaterno', nombres:'nombres'
     };
     const out = {};
     for (const [k,v] of Object.entries(obj)) out[map[k]||k] = v;
@@ -954,9 +956,11 @@ async function loadSection(v) {
         const r = await api('find','workers',{ filter: f });
         const rows = (r.documents||[]);
         document.getElementById('tb-workers').innerHTML = rows.length
-            ? rows.map(x => `<tr>
+            ? rows.map(x => {
+                const fullName = x.apellidoPaterno ? `${x.apellidoPaterno} ${x.apellidoMaterno || ''} ${x.nombres || ''}`.trim() : (x.name || '');
+                return `<tr>
                 <td><input type="checkbox" class="worker-chk w-4 h-4 accent-indigo-600 rounded" data-worker='${JSON.stringify(x).replace(/'/g,"&apos;")}' onchange="onWorkerCheckChange()"></td>
-                <td class="font-semibold">${x.name||''}</td>
+                <td class="font-semibold">${fullName}</td>
                 <td class="font-mono text-xs text-gray-500">${x.curp||''}</td>
                 <td class="text-xs text-gray-500">${x.occupation||''}</td>
                 <td>${x.position||''}</td>
@@ -967,7 +971,8 @@ async function loadSection(v) {
                         <button onclick="delItem('workers','${x.id}')" class="btn-sm btn-red">✕</button>
                     </div>
                 </td>
-              </tr>`).join('')
+              </tr>`;
+            }).join('')
             : `<tr><td colspan="5" class="text-center py-12 text-gray-300 text-sm">Sin personal registrado</td></tr>`;
 
     } else if (v === 'companies') {
@@ -1090,9 +1095,19 @@ function openModal(item = null) {
         document.getElementById('modal-title').innerText = item ? 'Editar Trabajador' : 'Nuevo Trabajador';
         const opts = CATALOGS.occupations.map(o => `<option value="${o}" ${item && item.occupation === o ? 'selected' : ''}>${o}</option>`).join('');
         f.innerHTML = `
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Apellido Paterno</label>
+                    <input id="f1_p" class="input-field" value="${item ? (item.apellidoPaterno || '') : ''}" placeholder="Paterno">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Apellido Materno</label>
+                    <input id="f1_m" class="input-field" value="${item ? (item.apellidoMaterno || '') : ''}" placeholder="Materno">
+                </div>
+            </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Nombre completo</label>
-                <input id="f1" class="input-field" value="${item ? item.name : ''}" placeholder="Apellido Paterno Apellido Materno Nombre(s)">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nombre(s)</label>
+                <input id="f1_n" class="input-field" value="${item ? (item.nombres || '') : ''}" placeholder="Nombres">
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">CURP</label>
@@ -1106,7 +1121,8 @@ function openModal(item = null) {
                 <label class="block text-sm font-medium text-gray-700 mb-1">Puesto de trabajo</label>
                 <input id="f4" class="input-field" value="${item ? item.position : ''}" placeholder="Ej. Operador de Montacargas">
             </div>`;
-    } else if (currentView === 'courses') {
+    }
+else if (currentView === 'courses') {
         document.getElementById('modal-title').innerText = item ? 'Editar Curso' : 'Nuevo Curso';
         const areaOpts = CATALOGS.thematicAreas.map(a => `<option value="${a}" ${item && item.thematicArea && item.thematicArea.includes(a.substring(0,4)) ? 'selected' : ''}>${a}</option>`).join('');
         f.innerHTML = `
@@ -1148,12 +1164,20 @@ async function saveItem() {
         if (!name || !rfc || !representanteLegal) { alert('Completa los campos obligatorios'); return; }
         payload.document = { name, rfc, representanteLegal, representanteTrabajadores, creatorEmail: currentUser.email };
     } else if (currentView === 'workers') {
-        const name = document.getElementById('f1').value.trim();
+        const apellidoPaterno = document.getElementById('f1_p').value.trim();
+        const apellidoMaterno = document.getElementById('f1_m').value.trim();
+        const nombres = document.getElementById('f1_n').value.trim();
         const curp = document.getElementById('f2').value.trim().toUpperCase();
         const occupation = document.getElementById('f3').value;
         const position = document.getElementById('f4').value.trim();
-        if (!name || !curp) { alert('Nombre y CURP son requeridos'); return; }
-        payload.document = { name, curp, occupation, position, creatorEmail: currentUser.email };
+        if (!apellidoPaterno || !nombres || !curp) { alert('Nombre y CURP son requeridos'); return; }
+        payload.document = {
+            apellido_paterno: apellidoPaterno,
+            apellido_materno: apellidoMaterno,
+            nombres: nombres,
+            name: `${apellidoPaterno} ${apellidoMaterno} ${nombres}`.trim(),
+            curp, occupation, position, creatorEmail: currentUser.email
+        };
     } else if (currentView === 'courses') {
         const name = document.getElementById('f1').value.trim();
         const hours = document.getElementById('f2').value.trim();
@@ -1461,7 +1485,14 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     } catch(e) { console.warn('Error cabecera:', e); }
 
     // ── 1. NOMBRE DEL TRABAJADOR ───────────────────────────────────────────
-    T(30, 172, (worker.name||'').toUpperCase(), 9, true);
+    // Formato: Apellido Paterno, Apellido Materno, Nombre(s)
+    let fullName = "";
+    if (worker.apellidoPaterno) {
+        fullName = `${worker.apellidoPaterno} ${worker.apellidoMaterno || ''} ${worker.nombres || ''}`.trim();
+    } else {
+        fullName = worker.name || '';
+    }
+    T(30, 166, fullName.toUpperCase(), 9, true);
 
     // ── 2. CURP ────────────────────────────────────────────────────────────
     const CURP_CENTERS = [32.0,47.4,62.8,78.2,93.5,108.8,124.2,139.6,
