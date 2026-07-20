@@ -259,9 +259,18 @@
 
         <!-- Workers -->
         <div id="section-workers" class="hidden">
+            <!-- Barra de DC-3 masivo -->
+            <div id="bulk-dc3-bar" class="hidden mb-3 flex items-center gap-3 bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3">
+                <span id="bulk-count-label" class="text-sm font-semibold text-indigo-700">0 trabajadores seleccionados</span>
+                <button onclick="openBulkDC3Modal()" class="btn-sm btn-indigo ml-auto">
+                    ⬇ Generar PDF masivo DC-3
+                </button>
+                <button onclick="clearWorkerSelection()" class="text-xs text-indigo-400 hover:text-indigo-600">✕ Limpiar selección</button>
+            </div>
             <div class="card overflow-hidden">
                 <table>
                     <thead><tr id="th-workers">
+                        <th style="width:36px"><input type="checkbox" id="chk-all-workers" onchange="toggleAllWorkers(this)" class="w-4 h-4 accent-indigo-600 rounded"></th>
                         <th>Nombre</th><th>CURP</th><th>Ocupación</th><th>Puesto</th><th>Acciones</th>
                     </tr></thead>
                     <tbody id="tb-workers"><tr><td colspan="5" class="text-center py-12 text-gray-300">Cargando…</td></tr></tbody>
@@ -407,35 +416,7 @@
                         </div>
                     </div>
 
-                    <!-- SLOGAN EN FIRMAS -->
-                    <div class="border rounded-xl p-4 mb-4 space-y-3 bg-gray-50">
-                        <p class="text-xs font-bold text-gray-600 uppercase">Texto en sección de firmas</p>
-                        <input id="design-slogan" class="input-field" placeholder="Ej. Comprometidos con tu desarrollo" oninput="schedulePreview()">
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="text-xs text-gray-400">Fuente</label>
-                                <select id="design-slogan-font" class="input-field" style="padding:4px 6px;font-size:11px" onchange="schedulePreview()">
-                                    <option value="Helvetica">Helvetica (normal)</option>
-                                    <option value="Helvetica-Bold">Helvetica Negrita</option>
-                                    <option value="Helvetica-Oblique">Helvetica Cursiva</option>
-                                    <option value="Helvetica-BoldOblique">Neg+Cursiva</option>
-                                    <option value="Times-Roman">Times Roman</option>
-                                    <option value="Times-Bold">Times Negrita</option>
-                                    <option value="Times-Italic">Times Cursiva</option>
-                                    <option value="Courier">Courier</option>
-                                    <option value="KunstlerScript">Kunstler Script</option>
-                                    <option value="GreatVibes">Great Vibes (Script)</option>
-                                    <option value="Pacifico">Pacifico</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="text-xs text-gray-400">Tamaño</label>
-                                <input id="design-slogan-size" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="7" min="5" max="20" oninput="schedulePreview()">
-                            </div>
-                            <div><label class="text-xs text-gray-400">X</label><input id="design-slogan-x" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="30" oninput="schedulePreview()"></div>
-                            <div><label class="text-xs text-gray-400">Y</label><input id="design-slogan-y" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="445" oninput="schedulePreview()"></div>
-                        </div>
-                    </div>
+                    <!-- Texto en sección de firmas eliminado por usuario -->
 
                     <!-- NOMBRE AGENTE -->
                     <div class="border rounded-xl p-4 mb-4 bg-gray-50">
@@ -556,18 +537,14 @@
                     <input type="date" id="dc3-end" class="input-field">
                 </div>
             </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Resultado de evaluación</label>
-                <select id="dc3-result" class="input-field">
-                    <option value="Aprobado">Aprobado</option>
-                    <option value="Competente">Competente</option>
-                    <option value="Acreditado">Acreditado</option>
-                </select>
-            </div>
+            <!-- Resultado de evaluación eliminado -->
         </div>
 
         <div class="flex justify-end gap-3 mt-7">
             <button onclick="closeModal('modal-dc3')" class="btn-sm btn-outline px-5">Cancelar</button>
+            <button onclick="previewDC3()" class="btn-sm btn-outline px-5" style="border-color:#6366f1;color:#6366f1">
+                👁 Previsualizar
+            </button>
             <button onclick="generateDC3()" class="btn-sm btn-indigo px-7">
                 ⬇ Generar PDF DC-3
             </button>
@@ -575,6 +552,87 @@
     </div>
 </div>
 
+
+<!-- Modal Previsualización DC-3 -->
+<div id="modal-dc3-preview" class="modal-overlay" style="z-index:1100">
+    <div class="modal-box" style="width:720px;max-width:95vw">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold text-gray-900">Previsualización DC-3</h3>
+            <button onclick="closeModal('modal-dc3-preview')" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div id="dc3-preview-container" style="width:100%;height:70vh;background:#f3f4f6;border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center;">
+            <p class="text-gray-400 text-sm">Generando previsualización…</p>
+        </div>
+        <div class="flex justify-end gap-3 mt-4">
+            <button onclick="closeModal('modal-dc3-preview')" class="btn-sm btn-outline px-5">Cerrar</button>
+            <button id="btn-download-preview" onclick="downloadFromPreview()" class="btn-sm btn-indigo px-7">⬇ Descargar PDF</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal DC-3 Masivo -->
+<div id="modal-bulk-dc3" class="modal-overlay" style="z-index:1050">
+    <div class="modal-box" style="width:640px;max-width:95vw">
+        <div class="flex items-center justify-between mb-5">
+            <div>
+                <h3 class="text-xl font-bold text-gray-900">Generar DC-3 Masivo</h3>
+                <p id="bulk-modal-subtitle" class="text-sm text-gray-400 mt-0.5">Selecciona los parámetros comunes para todos</p>
+            </div>
+            <button onclick="closeModal('modal-bulk-dc3')" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+
+        <!-- Lista de trabajadores seleccionados -->
+        <div class="bg-indigo-50 rounded-xl p-3 mb-5 max-h-32 overflow-y-auto">
+            <p class="text-xs font-semibold text-indigo-500 uppercase mb-2">Trabajadores seleccionados</p>
+            <div id="bulk-workers-list" class="space-y-1"></div>
+        </div>
+
+        <div class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Empresa</label>
+                    <select id="bulk-company" class="input-field"></select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Agente Capacitador</label>
+                    <select id="bulk-agent" class="input-field"></select>
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Curso</label>
+                <select id="bulk-course" class="input-field"></select>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Fecha inicio</label>
+                    <input type="date" id="bulk-start" class="input-field">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Fecha término</label>
+                    <input type="date" id="bulk-end" class="input-field">
+                </div>
+            </div>
+        </div>
+
+        <div id="bulk-progress" class="hidden mt-4">
+            <div class="bg-gray-100 rounded-full h-2 overflow-hidden">
+                <div id="bulk-progress-bar" class="bg-indigo-600 h-2 transition-all duration-300" style="width:0%"></div>
+            </div>
+            <p id="bulk-progress-label" class="text-xs text-gray-500 mt-1 text-center">Preparando…</p>
+        </div>
+
+        <div class="flex justify-end gap-3 mt-7">
+            <button onclick="closeModal('modal-bulk-dc3')" class="btn-sm btn-outline px-5">Cancelar</button>
+            <button onclick="generateBulkDC3()" class="btn-sm btn-indigo px-7">
+                ⬇ Generar PDF con todos los DC-3
+            </button>
+        </div>
+    </div>
+</div>
 
 <!-- ══════════════════════════════════════════════════════
      SCRIPT
@@ -896,6 +954,7 @@ async function loadSection(v) {
         const rows = (r.documents||[]);
         document.getElementById('tb-workers').innerHTML = rows.length
             ? rows.map(x => `<tr>
+                <td><input type="checkbox" class="worker-chk w-4 h-4 accent-indigo-600 rounded" data-worker='${JSON.stringify(x).replace(/'/g,"&apos;")}' onchange="onWorkerCheckChange()"></td>
                 <td class="font-semibold">${x.name||''}</td>
                 <td class="font-mono text-xs text-gray-500">${x.curp||''}</td>
                 <td class="text-xs text-gray-500">${x.occupation||''}</td>
@@ -961,6 +1020,7 @@ async function loadSection(v) {
                 <td class="text-xs text-gray-400">${x.startDate||''} – ${x.endDate||''}</td>
                 <td class="text-right">
                     <div class="flex justify-end gap-2">
+                        <button onclick='previewDC3FromRecord(${JSON.stringify(x)})' title="Previsualizar DC-3" class="btn-sm btn-outline" style="border-color:#6366f1;color:#6366f1">👁 Ver</button>
                         <button onclick='regenDC3(${JSON.stringify(x)})' title="Descargar PDF" class="btn-sm btn-indigo">⬇ PDF</button>
                         <button onclick='prepareEditDC3(${JSON.stringify(x)})' title="Editar Registro" class="btn-sm btn-outline">✎</button>
                         <button onclick="delItem('dc3_records','${x.id}')" title="Eliminar" class="btn-sm btn-red">✕</button>
@@ -1191,7 +1251,7 @@ function prepareEditDC3(record) {
 
     document.getElementById('dc3-start').value = record.startDate;
     document.getElementById('dc3-end').value = record.endDate;
-    document.getElementById('dc3-result').value = record.resultText || 'Aprobado';
+    // dc3-result field removed
 
     document.getElementById('modal-dc3').classList.add('open');
 }
@@ -1202,7 +1262,7 @@ async function generateDC3() {
     const courseVal   = document.getElementById('dc3-course').value;
     const start       = document.getElementById('dc3-start').value;
     const end         = document.getElementById('dc3-end').value;
-    const result      = document.getElementById('dc3-result').value;
+    const result      = 'Acreditado';  // campo eliminado del formulario
 
     if (!start || !end) { alert('Selecciona las fechas de inicio y término'); return; }
 
@@ -1226,12 +1286,12 @@ async function generateDC3() {
         workerName:  selectedWorker.name,
         workerPos:   selectedWorker.position,
         courseName,
-        companyName: company,
+        companyName: company.name || companyName,
         agentName,
         agentStps,
         startDate:   start,
         endDate:     end,
-        resultText:  result,
+        resultText:  'Acreditado',
         creatorEmail: currentUser.email
     }});
 
@@ -1259,7 +1319,7 @@ async function regenDC3(record) {
 // Usa pdf-lib para superponer texto sobre la plantilla PDF real.
 // La plantilla se carga desde /plantilla_dc3.pdf (mismo origen).
 
-async function buildDC3PDF({ worker, company, agent, course, start, end, result }) {
+async function _buildDC3Core({ worker, company, agent, course, start, end, result }) {
     const { PDFDocument, StandardFonts, rgb } = PDFLib;
 
     // ── Helpers de texto ───────────────────────────────────────────────────
@@ -1583,13 +1643,18 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
         T(agentDesign.sloganX||30, agentDesign.sloganY||445, agentDesign.slogan, agentDesign.sloganSize||7);
     }
 
-    // Guardar y descargar
-    const outBytes = await pdfDoc.save();
+    // Retornar bytes (quien llama decide qué hacer)
+    return await pdfDoc.save();
+}
+
+// Wrapper que descarga directamente
+async function buildDC3PDF(opts) {
+    const outBytes = await _buildDC3Core(opts);
     const blob = new Blob([outBytes], { type: 'application/pdf' });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
     a.href = url;
-    a.download = `DC3_${sp((worker.name||'trabajador').replace(/\s+/g,'_'))}.pdf`;
+    a.download = `DC3_${(function sp(s){return String(s||'').replace(/[áà]/g,'a').replace(/[éè]/g,'e').replace(/[íì]/g,'i').replace(/[óò]/g,'o').replace(/[úùü]/g,'u').replace(/ñ/g,'n').replace(/[ÁÀ]/g,'A').replace(/[ÉÈ]/g,'E').replace(/[ÍÌ]/g,'I').replace(/[ÓÒ]/g,'O').replace(/[ÚÙÜ]/g,'U').replace(/Ñ/g,'N');})(opts.worker?.name||'trabajador').replace(/\s+/g,'_')}.pdf`;
     a.click();
     URL.revokeObjectURL(url);
 }
@@ -2110,6 +2175,219 @@ async function embedBase64Img(pdfDoc, dataUrl) {
 }
 
 
+
+
+// ─── SELECCIÓN MASIVA DE TRABAJADORES ─────────────────────────────────
+let selectedWorkers = [];
+
+function toggleAllWorkers(masterChk) {
+    const chks = document.querySelectorAll('.worker-chk');
+    chks.forEach(c => { c.checked = masterChk.checked; });
+    onWorkerCheckChange();
+}
+
+function onWorkerCheckChange() {
+    const chks = document.querySelectorAll('.worker-chk');
+    selectedWorkers = [];
+    chks.forEach(c => {
+        if (c.checked) {
+            try { selectedWorkers.push(JSON.parse(c.getAttribute('data-worker').replace(/&apos;/g,"'"))); }
+            catch(e) {}
+        }
+    });
+    const bar = document.getElementById('bulk-dc3-bar');
+    const lbl = document.getElementById('bulk-count-label');
+    if (selectedWorkers.length > 0) {
+        bar.classList.remove('hidden');
+        lbl.textContent = `${selectedWorkers.length} trabajador${selectedWorkers.length>1?'es':''} seleccionado${selectedWorkers.length>1?'s':''}`;
+    } else {
+        bar.classList.add('hidden');
+    }
+    // Update master checkbox state
+    const masterChk = document.getElementById('chk-all-workers');
+    if (masterChk) {
+        if (selectedWorkers.length === 0) masterChk.indeterminate = false, masterChk.checked = false;
+        else if (selectedWorkers.length === chks.length) masterChk.indeterminate = false, masterChk.checked = true;
+        else masterChk.indeterminate = true;
+    }
+}
+
+function clearWorkerSelection() {
+    selectedWorkers = [];
+    document.querySelectorAll('.worker-chk').forEach(c => c.checked = false);
+    const masterChk = document.getElementById('chk-all-workers');
+    if (masterChk) { masterChk.checked = false; masterChk.indeterminate = false; }
+    document.getElementById('bulk-dc3-bar')?.classList.add('hidden');
+}
+
+// ─── MODAL DC-3 MASIVO ────────────────────────────────────────────────
+function openBulkDC3Modal() {
+    if (!selectedWorkers.length) return;
+    document.getElementById('bulk-modal-subtitle').textContent =
+        `${selectedWorkers.length} trabajador${selectedWorkers.length>1?'es':''} — se generará un PDF con todos sus DC-3`;
+
+    // Llenar lista de trabajadores
+    document.getElementById('bulk-workers-list').innerHTML = selectedWorkers.map(w =>
+        `<p class="text-xs text-indigo-700 font-medium">• ${w.name||w.curp||'–'}</p>`
+    ).join('');
+
+    // Poblar selects con misma data que modal individual
+    const compSel = document.getElementById('bulk-company');
+    const agentSel = document.getElementById('bulk-agent');
+    const courseSel = document.getElementById('bulk-course');
+    compSel.innerHTML = (DATA.companies||[]).map(c => `<option value="${(c.name||'').replace(/"/g,'&quot;')}">${c.name||''}</option>`).join('');
+    agentSel.innerHTML = (DATA.agents||[]).map(a => `<option value="${(a.name||'')}|${(a.stps||'')}">  ${a.name||''}</option>`).join('');
+    courseSel.innerHTML = (DATA.courses||[]).map(c => `<option value="${(c.name||'')}|${(c.durationHours||'')}|${(c.thematicArea||'')}">${c.name||''}</option>`).join('');
+
+    // Reset progress
+    document.getElementById('bulk-progress').classList.add('hidden');
+    document.getElementById('bulk-progress-bar').style.width = '0%';
+    document.getElementById('modal-bulk-dc3').classList.add('open');
+}
+
+async function generateBulkDC3() {
+    const companyName = document.getElementById('bulk-company').value;
+    const agentVal    = document.getElementById('bulk-agent').value;
+    const courseVal   = document.getElementById('bulk-course').value;
+    const start       = document.getElementById('bulk-start').value;
+    const end         = document.getElementById('bulk-end').value;
+
+    if (!start || !end) { alert('Selecciona las fechas de inicio y término'); return; }
+    if (!selectedWorkers.length) { alert('No hay trabajadores seleccionados'); return; }
+
+    const company = DATA.companies.find(c => c.name === companyName) || { name: companyName, rfc: '', representanteLegal: '', representanteTrabajadores: null };
+    const [agentName, agentStps] = agentVal.split('|');
+    const [courseName, courseDuration, courseArea] = courseVal.split('|');
+
+    // Mostrar progreso
+    const progressDiv = document.getElementById('bulk-progress');
+    const progressBar = document.getElementById('bulk-progress-bar');
+    const progressLbl = document.getElementById('bulk-progress-label');
+    progressDiv.classList.remove('hidden');
+
+    const { PDFDocument } = PDFLib;
+    const mergedPdf = await PDFDocument.create();
+
+    for (let i = 0; i < selectedWorkers.length; i++) {
+        const worker = selectedWorkers[i];
+        progressLbl.textContent = `Generando DC-3 ${i+1} de ${selectedWorkers.length}: ${worker.name||worker.curp||'–'}`;
+        progressBar.style.width = `${Math.round(((i+0.5)/selectedWorkers.length)*100)}%`;
+
+        try {
+            const pdfBytes = await buildDC3PDFBytes({
+                worker, company,
+                agent: { name: agentName, stps: agentStps },
+                course: { name: courseName, duration: courseDuration, area: courseArea },
+                start, end, result: 'Acreditado'
+            });
+            const srcDoc = await PDFDocument.load(pdfBytes);
+            const [page] = await mergedPdf.copyPages(srcDoc, [0]);
+            mergedPdf.addPage(page);
+
+            // Guardar en historial
+            await api('insertOne','dc3_records',{ document: {
+                workerId: worker.curp, workerName: worker.name, workerPos: worker.position,
+                courseName, companyName: company.name, agentName, agentStps,
+                startDate: start, endDate: end, resultText: 'Acreditado',
+                creatorEmail: currentUser?.email || ''
+            }});
+        } catch(e) {
+            console.warn('Error DC-3 para', worker.name, e);
+        }
+        progressBar.style.width = `${Math.round(((i+1)/selectedWorkers.length)*100)}%`;
+    }
+
+    progressLbl.textContent = 'Preparando descarga…';
+    const finalBytes = await mergedPdf.save();
+    const blob = new Blob([finalBytes], { type: 'application/pdf' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `DC3_Masivo_${selectedWorkers.length}_trabajadores.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    closeModal('modal-bulk-dc3');
+    clearWorkerSelection();
+    if (currentView === 'dc3') loadSection('dc3');
+    alert(`✓ PDF masivo generado con ${selectedWorkers.length} DC-3`);
+}
+
+// ─── PREVISUALIZACIÓN DC-3 ────────────────────────────────────────────
+let _previewPdfBytes = null;
+
+async function previewDC3() {
+    const companyName = document.getElementById('dc3-company').value;
+    const agentVal    = document.getElementById('dc3-agent').value;
+    const courseVal   = document.getElementById('dc3-course').value;
+    const start       = document.getElementById('dc3-start').value;
+    const end         = document.getElementById('dc3-end').value;
+
+    if (!start || !end) { alert('Selecciona las fechas de inicio y término para previsualizar'); return; }
+
+    const company = DATA.companies.find(c => c.name === companyName) || { name: companyName, rfc: '' };
+    const [agentName, agentStps] = agentVal.split('|');
+    const [courseName, courseDuration, courseArea] = courseVal.split('|');
+
+    document.getElementById('modal-dc3-preview').classList.add('open');
+    const container = document.getElementById('dc3-preview-container');
+    container.innerHTML = '<p class="text-gray-400 text-sm">Generando previsualización…</p>';
+
+    try {
+        _previewPdfBytes = await buildDC3PDFBytes({
+            worker: selectedWorker, company,
+            agent: { name: agentName, stps: agentStps },
+            course: { name: courseName, duration: courseDuration, area: courseArea },
+            start, end, result: 'Acreditado'
+        });
+        showPDFInContainer(_previewPdfBytes, container);
+    } catch(e) {
+        container.innerHTML = `<p class="text-red-500 text-sm">Error: ${e.message}</p>`;
+    }
+}
+
+async function previewDC3FromRecord(record) {
+    const worker  = { name: record.workerName, curp: record.workerId, position: record.workerPos };
+    const regenCompany = DATA.companies.find(c => c.name === record.companyName) || { name: record.companyName, rfc: '' };
+
+    document.getElementById('modal-dc3-preview').classList.add('open');
+    const container = document.getElementById('dc3-preview-container');
+    container.innerHTML = '<p class="text-gray-400 text-sm">Cargando DC-3…</p>';
+
+    try {
+        _previewPdfBytes = await buildDC3PDFBytes({
+            worker, company: regenCompany,
+            agent:  { name: record.agentName || '–', stps: record.agentStps || '–' },
+            course: { name: record.courseName, duration: record.durationHours, area: record.thematicArea },
+            start: record.startDate, end: record.endDate, result: record.resultText || 'Acreditado'
+        });
+        showPDFInContainer(_previewPdfBytes, container);
+    } catch(e) {
+        container.innerHTML = `<p class="text-red-500 text-sm">Error: ${e.message}</p>`;
+    }
+}
+
+function showPDFInContainer(pdfBytes, container) {
+    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    const url  = URL.createObjectURL(blob);
+    container.innerHTML = `<iframe src="${url}" style="width:100%;height:100%;border:none;border-radius:8px" title="DC-3 Preview"></iframe>`;
+}
+
+function downloadFromPreview() {
+    if (!_previewPdfBytes) return;
+    const blob = new Blob([_previewPdfBytes], { type: 'application/pdf' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `DC3_preview.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+// ─── buildDC3PDFBytes: igual que buildDC3PDF pero retorna bytes en vez de descargar ──
+async function buildDC3PDFBytes(opts) {
+    return await _buildDC3Core(opts);
+}
 
 </script>
 </body>
