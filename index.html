@@ -570,6 +570,7 @@ let sb = null;
 try {
     if (typeof supabase !== 'undefined') {
         sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        console.log('[DEBUG] Supabase client created OK:', !!sb);
     } else {
         console.error("Supabase library not loaded. Check internet connection.");
     }
@@ -632,11 +633,13 @@ const DATA = {
 
 // Cargar catálogos desde Supabase al iniciar
 async function loadCatalogs() {
+    console.log('[DEBUG] loadCatalogs called, sb =', !!sb);
     const [coursesR, agentsR, companiesR] = await Promise.all([
         api('find','courses',{ filter: {} }),
         api('find','agents',{ filter: {} }),
         api('find','companies',{ filter: {} })
     ]);
+    console.log('[DEBUG] loadCatalogs results:', { courses: coursesR, agents: agentsR, companies: companiesR });
 
     // Combinar cursos pre-cargados con los de la base de datos
     const dbCourses = coursesR.documents || [];
@@ -709,6 +712,7 @@ function toCamel(obj) {
 }
 
 async function api(action, collection, payload = {}) {
+    console.log('[DEBUG] api called:', action, collection, 'sb =', !!sb);
     if (!sb) { console.warn("Supabase not initialized, API call skipped:", action, collection); return { documents: [] }; }
     const table = TABLE_MAP[collection] || collection;
     try {
@@ -721,6 +725,7 @@ async function api(action, collection, payload = {}) {
             }
             q = q.order('created_at', { ascending: false });
             const { data, error } = await q;
+            console.log('[DEBUG] api find result for', table, ':', { data: data?.length, error });
             if (error) { console.error('Supabase find error:', error); return { documents: [] }; }
             return { documents: (data||[]).map(toCamel) };
         }
@@ -846,11 +851,13 @@ async function loadSection(v) {
     const f = (currentUser.role === 'ADMIN') ? {} : { creatorEmail: currentUser.email };
 
     if (v === 'dashboard') {
+        console.log('[DEBUG] loadSection dashboard, sb =', !!sb, 'currentUser =', !!currentUser);
         const [w, d, co] = await Promise.all([
             api('find','workers',{ filter: f }),
             api('find','dc3_records',{ filter: {} }),
             api('find','companies',{ filter: {} })
         ]);
+        console.log('[DEBUG] dashboard API results:', { workers: w, dc3: d, companies: co });
         document.getElementById('stat-workers').innerText = (w.documents||[]).length;
         document.getElementById('stat-dc3').innerText = (d.documents||[]).length;
         document.getElementById('stat-companies').innerText = (co.documents||[]).length;
