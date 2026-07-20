@@ -166,6 +166,10 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                 Constancias DC-3
             </div>
+            <div class="nav-link" onclick="setView('dc3design')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
+                Diseño DC-3
+            </div>
             <div class="nav-link" id="btn-agents" onclick="setView('agents')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
                 Agentes Cap.
@@ -295,6 +299,115 @@
                     <thead><tr><th>Trabajador (CURP)</th><th>Curso</th><th>Empresa</th><th>Periodo</th><th>Acciones</th></tr></thead>
                     <tbody id="tb-dc3"><tr><td colspan="5" class="text-center py-12 text-gray-300">Cargando…</td></tr></tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- DC-3 Design -->
+        <div id="section-dc3design" class="hidden">
+            <div class="grid grid-cols-5 gap-6" style="grid-template-columns: 2fr 3fr;">
+                <!-- Panel de configuracion -->
+                <div class="card p-6 space-y-5" style="max-height: 78vh; overflow-y: auto;">
+                    <div>
+                        <h3 class="text-sm font-bold text-indigo-600 uppercase tracking-wide mb-1">Diseño DC-3 Personalizado</h3>
+                        <p class="text-xs text-gray-400">Personaliza el logo, firma y texto que apareceran en el PDF.</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Nombre del Agente (en firma)</label>
+                        <input id="design-agent-name" class="input-field" placeholder="Ej. ING. CYNTHIA YADIRA GARZA LUGO">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Slogan / Texto adicional</label>
+                        <input id="design-slogan" class="input-field" placeholder="Ej. Comprometidos con tu desarrollo">
+                    </div>
+
+                    <div class="border-t pt-4 space-y-3">
+                        <p class="text-xs font-bold text-gray-500 uppercase">Logo</p>
+                        <div class="flex gap-3 items-start">
+                            <div id="design-logo-preview" class="w-20 h-20 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-300 text-xs flex-shrink-0">Sin logo</div>
+                            <div class="flex-1">
+                                <label class="btn-sm btn-outline cursor-pointer block text-center">
+                                    Subir logo
+                                    <input type="file" accept="image/png" class="hidden" onchange="handleDesignImage(this, 'logo')">
+                                </label>
+                                <div class="grid grid-cols-2 gap-2 mt-2">
+                                    <div>
+                                        <label class="text-xs text-gray-400">X</label>
+                                        <input id="design-logo-x" type="number" class="input-field" style="padding:5px 8px;font-size:12px" value="58">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs text-gray-400">Y</label>
+                                        <input id="design-logo-y" type="number" class="input-field" style="padding:5px 8px;font-size:12px" value="454">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs text-gray-400">Ancho</label>
+                                        <input id="design-logo-w" type="number" class="input-field" style="padding:5px 8px;font-size:12px" value="115">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs text-gray-400">Alto</label>
+                                        <input id="design-logo-h" type="number" class="input-field" style="padding:5px 8px;font-size:12px" value="65">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border-t pt-4 space-y-3">
+                        <p class="text-xs font-bold text-gray-500 uppercase">Firma</p>
+                        <div class="flex gap-3 items-start">
+                            <div id="design-firma-preview" class="w-20 h-20 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-300 text-xs flex-shrink-0">Sin firma</div>
+                            <div class="flex-1">
+                                <label class="btn-sm btn-outline cursor-pointer block text-center">
+                                    Subir firma
+                                    <input type="file" accept="image/png" class="hidden" onchange="handleDesignImage(this, 'firma')">
+                                </label>
+                                <div class="grid grid-cols-2 gap-2 mt-2">
+                                    <div>
+                                        <label class="text-xs text-gray-400">X</label>
+                                        <input id="design-firma-x" type="number" class="input-field" style="padding:5px 8px;font-size:12px" value="88">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs text-gray-400">Y</label>
+                                        <input id="design-firma-y" type="number" class="input-field" style="padding:5px 8px;font-size:12px" value="457">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs text-gray-400">Ancho</label>
+                                        <input id="design-firma-w" type="number" class="input-field" style="padding:5px 8px;font-size:12px" value="85">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs text-gray-400">Alto</label>
+                                        <input id="design-firma-h" type="number" class="input-field" style="padding:5px 8px;font-size:12px" value="60">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border-t pt-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Posicion del slogan (X, Y)</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input id="design-slogan-x" type="number" class="input-field" style="padding:5px 8px;font-size:12px" value="30" placeholder="X">
+                            <input id="design-slogan-y" type="number" class="input-field" style="padding:5px 8px;font-size:12px" value="445" placeholder="Y">
+                        </div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5 mt-2">Tamano de fuente del slogan</label>
+                        <input id="design-slogan-size" type="number" class="input-field" style="padding:5px 8px;font-size:12px" value="7" min="5" max="14">
+                    </div>
+
+                    <div class="flex gap-3 pt-2">
+                        <button onclick="saveDesign()" class="btn-sm btn-indigo flex-1">Guardar diseno</button>
+                        <button onclick="previewDesign()" class="btn-sm btn-outline flex-1">Previsualizar</button>
+                    </div>
+                </div>
+
+                <!-- Preview del PDF -->
+                <div class="card p-4">
+                    <p class="text-xs font-bold text-gray-500 uppercase mb-3">Vista previa (seccion de firmas)</p>
+                    <div class="bg-gray-100 rounded-lg flex items-center justify-center" style="min-height: 500px;">
+                        <canvas id="design-preview-canvas" class="max-w-full" style="border: 1px solid #e5e7eb; border-radius: 8px;"></canvas>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-2 text-center">El preview muestra la seccion de firmas del DC-3 con tu diseno aplicado.</p>
+                </div>
             </div>
         </div>
 
@@ -523,7 +636,7 @@ window.onload = () => {
 // ─── API ──────────────────────────────────────────────
 // ─── SUPABASE API ──────────────────────────────────
 // Map frontend collection names to Supabase table names
-const TABLE_MAP = { workers:'workers', companies:'companies', courses:'courses', dc3_records:'dc3_records', agents:'agents' };
+const TABLE_MAP = { workers:'workers', companies:'companies', courses:'courses', dc3_records:'dc3_records', agents:'agents', agent_designs:'agent_designs' };
 
 // Map camelCase fields to snake_case for DB
 function toSnake(obj) {
@@ -657,13 +770,14 @@ function logout() {
 }
 
 // ─── NAVIGATION ────────────────────────────────────────
-const VIEWS = ['dashboard','workers','companies','courses','dc3','agents','users'];
+const VIEWS = ['dashboard','workers','companies','courses','dc3','dc3design','agents','users'];
 const TITLES = {
     dashboard: ['Dashboard', 'Resumen del sistema'],
     workers:   ['Personal', 'Trabajadores registrados con su CURP y puesto'],
     companies: ['Empresas', 'Empresas cliente registradas en el sistema'],
     courses:   ['Cursos', 'Catálogo de cursos disponibles por agente'],
     dc3:       ['Constancias DC-3', 'Historial de constancias generadas'],
+    dc3design: ['Diseno DC-3', 'Personaliza el logo, firma y texto de tu constancia'],
     agents:    ['Agentes Capacitadores', 'Agentes Externos registrados ante la STPS'],
     users:     ['Usuarios', 'Gestión de accesos al sistema'],
 };
@@ -674,12 +788,12 @@ function setView(v) {
         document.getElementById(`section-${x}`).classList.toggle('hidden', x !== v);
     });
     document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
-    const links = ['dashboard','workers','companies','courses','dc3','agents','users'];
+    const links = ['dashboard','workers','companies','courses','dc3','dc3design','agents','users'];
     const idx = links.indexOf(v);
     if (idx >= 0) document.querySelectorAll('.nav-link')[idx].classList.add('active');
     document.getElementById('page-title').innerText = TITLES[v][0];
     document.getElementById('page-subtitle').innerText = TITLES[v][1];
-    const addable = ['workers','companies'].includes(v);
+    const addable = ['workers','companies','courses','agents'].includes(v);
     document.getElementById('btn-add').classList.toggle('hidden', !addable);
     document.getElementById('btn-excel').classList.toggle('hidden', v !== 'workers');
     loadSection(v);
@@ -776,6 +890,9 @@ async function loadSection(v) {
                 </td>
               </tr>`).join('')
             : `<tr><td colspan="5" class="text-center py-12 text-gray-300 text-sm">Sin historial de constancias</td></tr>`;
+
+    } else if (v === 'dc3design') {
+        await loadDesign();
 
     } else if (v === 'agents') {
         const r = await api('find','agents',{ filter: {} });
@@ -1256,44 +1373,81 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     const agentLine = sp(((agent.name||'') + '  ' + (agent.stps||'')).toUpperCase().trim());
     T(30, 438, agentLine.slice(0,70), 8);
 
+    // ── 11.5. Cargar diseño personalizado del agente ──────────────────────────
+    let agentDesign = null;
+    try {
+        const dr = await api('find','agent_designs', { filter: { creatorEmail: currentUser?.email || '' } });
+        agentDesign = (dr.documents && dr.documents.length > 0) ? dr.documents[0] : null;
+    } catch(e) { console.warn('No se pudo cargar diseño del agente:', e); }
+
     // ── 12. Limpiar etiquetas y firmas antiguas de forma quirúrgica (no borrar bordes) ──
     // Limpiamos los títulos (Instructor, Patron, Repr) con rectángulos muy precisos para no dejar rastro
     page.drawRectangle({ x: 31, y: PH - 510, width: 538, height: 21, color: rgb(1,1,1) });
     // Limpiamos las líneas originales y "Nombre y firma" con rectángulos muy precisos
     page.drawRectangle({ x: 31, y: PH - 555, width: 538, height: 24, color: rgb(1,1,1) });
 
-    // Logo LUBER (fondo) - Centrado en X=120
-    const LOGO_H = 70, LOGO_W = 130;
-    const LOGO_X = 120 - (LOGO_W / 2);
-    const LOGO_Y_FITZ = 455;
-    try {
-        const logoResp = await fetch('/signatures/logo_luber.png');
-        if (logoResp.ok) {
-            const logoBytes = await logoResp.arrayBuffer();
+    // Logo (fondo) - Usar diseño del agente si existe, sino logo por defecto
+    let LOGO_H = 70, LOGO_W = 130, LOGO_X = 55, LOGO_Y_FITZ = 455;
+    if (agentDesign && agentDesign.logoBase64) {
+        try {
+            const logoBytes = await fetch(agentDesign.logoBase64).then(r => r.arrayBuffer());
             const logoImg = await pdfDoc.embedPng(logoBytes);
+            LOGO_W = agentDesign.logoW || 115;
+            LOGO_H = agentDesign.logoH || 65;
+            LOGO_X = agentDesign.logoX || 58;
+            LOGO_Y_FITZ = agentDesign.logoY || 454;
             page.drawImage(logoImg, {
                 x: LOGO_X, y: PH - (LOGO_Y_FITZ + LOGO_H),
-                width: LOGO_W, height: LOGO_H,
-                opacity: 1.0
+                width: LOGO_W, height: LOGO_H, opacity: 1.0
             });
-        }
-    } catch(e) { console.warn('Error cargando logo:', e); }
+        } catch(e) { console.warn('Error cargando logo del diseño:', e); }
+    } else {
+        try {
+            const logoResp = await fetch('/signatures/logo_luber.png');
+            if (logoResp.ok) {
+                const logoBytes = await logoResp.arrayBuffer();
+                const logoImg = await pdfDoc.embedPng(logoBytes);
+                page.drawImage(logoImg, {
+                    x: LOGO_X, y: PH - (LOGO_Y_FITZ + LOGO_H),
+                    width: LOGO_W, height: LOGO_H, opacity: 1.0
+                });
+            }
+        } catch(e) { console.warn('Error cargando logo:', e); }
+    }
 
     // Firma del instructor (encima del logo)
-    const FIRMA_H = 65, FIRMA_W = 100;
-    const FIRMA_X = 120 - (FIRMA_W / 2);
-    const FIRMA_Y_FITZ = 458;
-    try {
-        const sigResp = await fetch('/signatures/firma_instructor.png');
-        if (sigResp.ok) {
-            const sigBytes = await sigResp.arrayBuffer();
-            const sigImg = await pdfDoc.embedPng(sigBytes);
-            page.drawImage(sigImg, {
+    let FIRMA_H = 65, FIRMA_W = 100, FIRMA_X = 70, FIRMA_Y_FITZ = 458;
+    if (agentDesign && agentDesign.firmaBase64) {
+        try {
+            const firmaBytes = await fetch(agentDesign.firmaBase64).then(r => r.arrayBuffer());
+            const firmaImg = await pdfDoc.embedPng(firmaBytes);
+            FIRMA_W = agentDesign.firmaW || 85;
+            FIRMA_H = agentDesign.firmaH || 60;
+            FIRMA_X = agentDesign.firmaX || 88;
+            FIRMA_Y_FITZ = agentDesign.firmaY || 457;
+            page.drawImage(firmaImg, {
                 x: FIRMA_X, y: PH - (FIRMA_Y_FITZ + FIRMA_H),
                 width: FIRMA_W, height: FIRMA_H,
             });
-        }
-    } catch(e) { console.warn('Error cargando firma:', e); }
+        } catch(e) { console.warn('Error cargando firma del diseño:', e); }
+    } else {
+        try {
+            const sigResp = await fetch('/signatures/firma_instructor.png');
+            if (sigResp.ok) {
+                const sigBytes = await sigResp.arrayBuffer();
+                const sigImg = await pdfDoc.embedPng(sigBytes);
+                page.drawImage(sigImg, {
+                    x: FIRMA_X, y: PH - (FIRMA_Y_FITZ + FIRMA_H),
+                    width: FIRMA_W, height: FIRMA_H,
+                });
+            }
+        } catch(e) { console.warn('Error cargando firma:', e); }
+    }
+
+    // Slogan del diseño si existe
+    if (agentDesign && agentDesign.slogan) {
+        T(agentDesign.sloganX || 30, agentDesign.sloganY || 445, agentDesign.slogan, agentDesign.sloganSize || 7);
+    }
 
     // ── 14. Reconstrucción de los 3 bloques de firma perfectamente alineados ──────
     const Y_TITULOS = 498;
@@ -1306,7 +1460,7 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     const CENTER_X_INS = 120;
     T_Centered(CENTER_X_INS, Y_TITULOS, "Instructor o tutor", 7.5);
 
-    const insName = sp((agent.name||'').toUpperCase());
+    const insName = sp((agentDesign && agentDesign.agentName ? agentDesign.agentName : (agent.name||'')).toUpperCase());
     const insLines = splitNameJS(insName, 26);
     T_Centered(CENTER_X_INS, Y_NOMBRE_1, insLines[0], 8);
     if (insLines[1]) T_Centered(CENTER_X_INS, Y_NOMBRE_2, insLines[1], 8);
@@ -1371,6 +1525,215 @@ function splitNameJS(name, maxChars) {
     const mid = name.lastIndexOf(' ', maxChars);
     if (mid > 0) return [name.substring(0, mid), name.substring(mid + 1)];
     return [name.substring(0, maxChars), name.substring(maxChars)];
+}
+
+// ─── DISENO DC-3 ─────────────────────────────────────────
+let currentDesign = null;
+let designLogoBase64 = null;
+let designFirmaBase64 = null;
+
+async function loadDesign() {
+    if (!window.PDFLib) {
+        await new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js';
+            s.onload = resolve; s.onerror = reject;
+            document.head.appendChild(s);
+        });
+    }
+
+    const r = await api('find','agent_designs', { filter: { creatorEmail: currentUser.email } });
+    const designs = r.documents || [];
+
+    if (designs.length > 0) {
+        currentDesign = designs[0];
+    } else {
+        currentDesign = {
+            agentName: currentUser.name || '',
+            slogan: '', sloganX: 30, sloganY: 445, sloganSize: 7,
+            logoX: 58, logoY: 454, logoW: 115, logoH: 65,
+            firmaX: 88, firmaY: 457, firmaW: 85, firmaH: 60,
+            logoBase64: null, firmaBase64: null,
+            creatorEmail: currentUser.email
+        };
+    }
+
+    document.getElementById('design-agent-name').value = currentDesign.agentName || '';
+    document.getElementById('design-slogan').value = currentDesign.slogan || '';
+    document.getElementById('design-slogan-x').value = currentDesign.sloganX ?? 30;
+    document.getElementById('design-slogan-y').value = currentDesign.sloganY ?? 445;
+    document.getElementById('design-slogan-size').value = currentDesign.sloganSize ?? 7;
+    document.getElementById('design-logo-x').value = currentDesign.logoX ?? 58;
+    document.getElementById('design-logo-y').value = currentDesign.logoY ?? 454;
+    document.getElementById('design-logo-w').value = currentDesign.logoW ?? 115;
+    document.getElementById('design-logo-h').value = currentDesign.logoH ?? 65;
+    document.getElementById('design-firma-x').value = currentDesign.firmaX ?? 88;
+    document.getElementById('design-firma-y').value = currentDesign.firmaY ?? 457;
+    document.getElementById('design-firma-w').value = currentDesign.firmaW ?? 85;
+    document.getElementById('design-firma-h').value = currentDesign.firmaH ?? 60;
+
+    designLogoBase64 = currentDesign.logoBase64 || null;
+    designFirmaBase64 = currentDesign.firmaBase64 || null;
+    updateImagePreview('logo', designLogoBase64);
+    updateImagePreview('firma', designFirmaBase64);
+
+    renderDesignPreview();
+}
+
+function updateImagePreview(type, base64) {
+    const el = document.getElementById('design-' + type + '-preview');
+    if (base64) {
+        el.style.backgroundImage = `url(${base64})`;
+        el.style.backgroundSize = 'contain';
+        el.style.backgroundRepeat = 'no-repeat';
+        el.style.backgroundPosition = 'center';
+        el.innerHTML = '';
+    } else {
+        el.style.backgroundImage = '';
+        el.innerHTML = `Sin ${type}`;
+    }
+}
+
+function handleDesignImage(input, type) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const base64 = e.target.result;
+        if (type === 'logo') designLogoBase64 = base64;
+        else designFirmaBase64 = base64;
+        updateImagePreview(type, base64);
+        renderDesignPreview();
+    };
+    reader.readAsDataURL(file);
+}
+
+async function saveDesign() {
+    const design = {
+        agentName: document.getElementById('design-agent-name').value.trim(),
+        slogan: document.getElementById('design-slogan').value.trim(),
+        sloganX: parseInt(document.getElementById('design-slogan-x').value) || 30,
+        sloganY: parseInt(document.getElementById('design-slogan-y').value) || 445,
+        sloganSize: parseInt(document.getElementById('design-slogan-size').value) || 7,
+        logoX: parseInt(document.getElementById('design-logo-x').value) || 58,
+        logoY: parseInt(document.getElementById('design-logo-y').value) || 454,
+        logoW: parseInt(document.getElementById('design-logo-w').value) || 115,
+        logoH: parseInt(document.getElementById('design-logo-h').value) || 65,
+        firmaX: parseInt(document.getElementById('design-firma-x').value) || 88,
+        firmaY: parseInt(document.getElementById('design-firma-y').value) || 457,
+        firmaW: parseInt(document.getElementById('design-firma-w').value) || 85,
+        firmaH: parseInt(document.getElementById('design-firma-h').value) || 60,
+        logoBase64: designLogoBase64,
+        firmaBase64: designFirmaBase64,
+        creatorEmail: currentUser.email
+    };
+
+    if (currentDesign && currentDesign.id) {
+        const r = await api('update','agent_designs',{ id: currentDesign.id, document: design });
+        if (r.error) { alert('Error al guardar: ' + r.error); return; }
+    } else {
+        const r = await api('insertOne','agent_designs',{ document: design });
+        if (r.error) { alert('Error al guardar: ' + r.error); return; }
+        const rr = await api('find','agent_designs', { filter: { creatorEmail: currentUser.email } });
+        if (rr.documents && rr.documents.length > 0) currentDesign = rr.documents[0];
+    }
+    alert('Diseno guardado correctamente.');
+}
+
+async function renderDesignPreview() {
+    try {
+        const resp = await fetch('/plantilla_dc3.pdf');
+        if (!resp.ok) return;
+        const pdfBytes = await resp.arrayBuffer();
+        const { PDFDocument, StandardFonts, rgb } = PDFLib;
+        const pdfDoc = await PDFDocument.load(pdfBytes);
+        const page = pdfDoc.getPage(0);
+        const PH = 792;
+        const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+        function sp(s) { return String(s||'').replace(/[áà]/g,'a').replace(/[éè]/g,'e').replace(/[íì]/g,'i').replace(/[óò]/g,'o').replace(/[úùü]/g,'u').replace(/ñ/g,'n').replace(/[ÁÀ]/g,'A').replace(/[ÉÈ]/g,'E').replace(/[ÍÌ]/g,'I').replace(/[ÓÒ]/g,'O').replace(/[ÚÙÜ]/g,'U').replace(/Ñ/g,'N'); }
+
+        if (designLogoBase64) {
+            try {
+                const logoBytes = await fetch(designLogoBase64).then(r => r.arrayBuffer());
+                const logoImg = await pdfDoc.embedPng(logoBytes);
+                const lx = parseInt(document.getElementById('design-logo-x').value) || 58;
+                const ly = parseInt(document.getElementById('design-logo-y').value) || 454;
+                const lw = parseInt(document.getElementById('design-logo-w').value) || 115;
+                const lh = parseInt(document.getElementById('design-logo-h').value) || 65;
+                page.drawImage(logoImg, { x: lx, y: PH - (ly + lh), width: lw, height: lh, opacity: 1.0 });
+            } catch(e) {}
+        }
+
+        if (designFirmaBase64) {
+            try {
+                const firmaBytes = await fetch(designFirmaBase64).then(r => r.arrayBuffer());
+                const firmaImg = await pdfDoc.embedPng(firmaBytes);
+                const fx = parseInt(document.getElementById('design-firma-x').value) || 88;
+                const fy = parseInt(document.getElementById('design-firma-y').value) || 457;
+                const fw = parseInt(document.getElementById('design-firma-w').value) || 85;
+                const fh = parseInt(document.getElementById('design-firma-h').value) || 60;
+                page.drawImage(firmaImg, { x: fx, y: PH - (fy + fh), width: fw, height: fh });
+            } catch(e) {}
+        }
+
+        const agentName = (document.getElementById('design-agent-name').value || '').toUpperCase();
+        if (agentName) {
+            const lines = sp(agentName).length > 26 ? [sp(agentName).substring(0, 26), sp(agentName).substring(26)] : [sp(agentName)];
+            page.drawText(lines[0], { x: 28, y: PH - 521, size: 7.5, font, color: rgb(0,0,0) });
+            if (lines[1]) page.drawText(lines[1], { x: 28, y: PH - 530, size: 7.5, font, color: rgb(0,0,0) });
+        }
+
+        const slogan = document.getElementById('design-slogan').value || '';
+        if (slogan) {
+            const sx = parseInt(document.getElementById('design-slogan-x').value) || 30;
+            const sy = parseInt(document.getElementById('design-slogan-y').value) || 445;
+            const ss = parseInt(document.getElementById('design-slogan-size').value) || 7;
+            page.drawText(sp(slogan), { x: sx, y: PH - sy, size: ss, font, color: rgb(0.35,0.35,0.35) });
+        }
+
+        const outBytes = await pdfDoc.save();
+        if (window.pdfjsLib) {
+            renderPdfToCanvas(outBytes);
+        } else {
+            const s = document.createElement('script');
+            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+            s.onload = () => {
+                window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                renderPdfToCanvas(outBytes);
+            };
+            document.head.appendChild(s);
+        }
+    } catch(e) { console.warn('Preview error:', e); }
+}
+
+async function renderPdfToCanvas(pdfBytes) {
+    try {
+        const loadingTask = window.pdfjsLib.getDocument({ data: pdfBytes });
+        const pdf = await loadingTask.promise;
+        const page = await pdf.getPage(1);
+        const canvas = document.getElementById('design-preview-canvas');
+        const ctx = canvas.getContext('2d');
+        const viewport = page.getViewport({ scale: 1.5 });
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        await page.render({ canvasContext: ctx, viewport }).promise;
+
+        const yStart = Math.floor(viewport.height * (430/792));
+        const yEnd = Math.floor(viewport.height * (565/792));
+        const cropCanvas = document.createElement('canvas');
+        cropCanvas.width = viewport.width;
+        cropCanvas.height = yEnd - yStart;
+        const cropCtx = cropCanvas.getContext('2d');
+        cropCtx.drawImage(canvas, 0, yStart, viewport.width, yEnd - yStart, 0, 0, viewport.width, yEnd - yStart);
+        canvas.width = cropCanvas.width;
+        canvas.height = cropCanvas.height;
+        ctx.drawImage(cropCanvas, 0, 0);
+    } catch(e) { console.warn('Canvas render error:', e); }
+}
+
+async function previewDesign() {
+    await renderDesignPreview();
 }
 
 // ─── EXCEL IMPORT ──────────────────────────────────────
