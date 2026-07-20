@@ -86,7 +86,7 @@
                 </svg>
             </div>
             <h1 class="text-2xl font-black text-gray-900">ACE-Control</h1>
-            <p class="text-sm text-gray-400 mt-1">Sistema de Gestión DC-3 · STPS v1.0.2</p>
+            <p class="text-sm text-gray-400 mt-1">Sistema de Gestión DC-3 · STPS v1.0.3</p>
         </div>
 
         <div class="login-card">
@@ -521,10 +521,12 @@ const TABLE_MAP = { workers:'workers', companies:'companies', courses:'courses',
 
 // Map camelCase fields to snake_case for DB
 function toSnake(obj) {
-    const map = { creatorEmail:'creator_email', workerId:'worker_id', workerName:'worker_name', workerPos:'worker_pos',
-                  courseName:'course_name', companyName:'company_name', agentName:'agent_name', agentStps:'agent_stps',
-                  startDate:'start_date', endDate:'end_date', resultText:'result_text', durationHours:'duration_hours',
-                  thematicArea:'thematic_area', representanteLegal:'patron', representanteTrabajadores:'representante' };
+    const map = {
+        workerId:'worker_id', workerName:'worker_name', workerPos:'worker_pos',
+        courseName:'course_name', companyName:'company_name', agentName:'agent_name', agentStps:'agent_stps',
+        startDate:'start_date', endDate:'end_date', resultText:'result_text', durationHours:'duration_hours',
+        thematicArea:'thematic_area', representanteLegal:'patron', representanteTrabajadores:'representante'
+    };
     const out = {};
     for (const [k,v] of Object.entries(obj)) out[map[k]||k] = v;
     return out;
@@ -532,10 +534,12 @@ function toSnake(obj) {
 
 // Map snake_case back to camelCase for frontend
 function toCamel(obj) {
-    const map = { creator_email:'creatorEmail', worker_id:'workerId', worker_name:'workerName', worker_pos:'workerPos',
-                  course_name:'courseName', company_name:'companyName', agent_name:'agentName', agent_stps:'agentStps',
-                  start_date:'startDate', end_date:'endDate', result_text:'resultText', duration_hours:'durationHours',
-                  thematic_area:'thematicArea', created_at:'createdAt', patron:'representanteLegal', representante:'representanteTrabajadores' };
+    const map = {
+        worker_id:'workerId', worker_name:'workerName', worker_pos:'workerPos',
+        course_name:'courseName', company_name:'companyName', agent_name:'agentName', agent_stps:'agentStps',
+        start_date:'startDate', end_date:'endDate', result_text:'resultText', duration_hours:'durationHours',
+        thematic_area:'thematicArea', created_at:'createdAt', patron:'representanteLegal', representante:'representanteTrabajadores'
+    };
     const out = {};
     for (const [k,v] of Object.entries(obj)) out[map[k]||k] = v;
     return out;
@@ -880,7 +884,7 @@ async function saveItem() {
         const representanteLegal = document.getElementById('f3').value.trim();
         const representanteTrabajadores = document.getElementById('f4').value.trim();
         if (!name || !rfc || !representanteLegal) { alert('Completa los campos obligatorios'); return; }
-        payload.document = { name, rfc, representanteLegal, representanteTrabajadores: representanteTrabajadores || null, creatorEmail: currentUser.email };
+        payload.document = { name, rfc, representanteLegal, representanteTrabajadores, creatorEmail: currentUser.email };
     } else if (currentView === 'workers') {
         const name = document.getElementById('f1').value.trim();
         const curp = document.getElementById('f2').value.trim().toUpperCase();
