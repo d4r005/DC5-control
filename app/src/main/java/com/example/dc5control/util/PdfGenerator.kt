@@ -1,17 +1,7 @@
 // ============================================================
 // PdfGenerator.kt
 // Genera el DC-3 usando Android PdfRenderer + Canvas + PdfDocument.
-//
-// La plantilla se renderiza a bitmap con PdfRenderer (API 21+),
-// luego se dibuja texto e imágenes sobre ese bitmap con Canvas,
-// y finalmente se empaqueta en un PdfDocument de Android.
-//
-// Ventaja: coordenadas IDÉNTICAS a PyMuPDF (Y desde arriba),
-// sin problemas de transformaciones de PDFBox.
-//
-// Escala: la plantilla es 612×792 pts PDF.
-// Renderizamos a 2× (1224×1584 px) para nitidez.
-// Todas las coordenadas están en pts del PDF; se multiplican × SCALE.
+// Coordenadas milimétricas sincronizadas con la versión Web.
 // ============================================================
 
 package com.example.dc5control.util
@@ -39,8 +29,8 @@ data class DC3FormData(
     val areaTematica: String,
     val agenteCapacitador: String,
     val instructor: String,
-    val patron: String = "",
-    val representante: String? = null,
+    val representanteLegal: String = "",
+    val representanteTrabajadores: String? = null,
     val signatureBitmap: Bitmap? = null,
     val logoBitmap: Bitmap? = null
 )
@@ -50,106 +40,73 @@ object PdfGenerator {
     private const val TAG = "PdfGenerator"
     private const val TEMPLATE_ASSET = "plantilla_dc3.pdf"
     private const val LOGO_ASSET     = "logo_luber.png"
-    private const val FIRMA_ASSET    = "firma_instructor.png"
+    private const val FIRMA_ASSET    = "cynthia_firma_oficial.png"
 
-    // PDF pts: 612×792. Render a 2× para nitidez.
     private const val PDF_W  = 612f
     private const val PDF_H  = 792f
     private const val SCALE  = 2f
     private val BMP_W get() = (PDF_W * SCALE).toInt()
     private val BMP_H get() = (PDF_H * SCALE).toInt()
 
-    // ── Fuentes ──────────────────────────────────────────────────────────────
-    private fun paintText(size: Float, bold: Boolean = false, color: Int = Color.BLACK) = Paint().apply {
-        this.color = color
+    // ── Coordenadas (en pts PDF, Y desde arriba) ─────────────────────────────
+    
+    // CURP: 18 celdas - Centros exactos
+    private val CURP_CENTERS = floatArrayOf(
+        32.0f,47.4f,62.8f,78.2f,93.5f,108.8f,124.2f,139.6f,
+        155.0f,170.3f,185.8f,201.2f,216.6f,231.9f,247.2f,262.6f,278.0f,293.3f
+    )
+    private const val CURP_Y = 196f
+
+    // RFC: 15 celdas exactas - Centros exactos
+    private val RFC_CENTERS = floatArrayOf(
+        34.9f,52.1f,66.0f,80.8f,95.4f,109.8f,124.0f,138.3f,
+        152.8f,167.0f,181.2f,195.5f,209.8f,227.4f,245.1f
+    )
+    private const val RFC_Y = 311f
+
+    // FECHA: Centros recalibrados para coincidir con la Web (shift left)
+    private val AÑO_INI_CENTERS = floatArrayOf(257f, 273f, 289f, 305f)
+    private val MES_INI_CENTERS = floatArrayOf(345f, 366f)
+    private val DIA_INI_CENTERS = floatArrayOf(387f, 408f)
+    private val AÑO_FIN_CENTERS = floatArrayOf(449f, 468f, 488f, 508f)
+    private val MES_FIN_CENTERS = floatArrayOf(529f, 551f)
+    private val DIA_FIN_CENTERS = floatArrayOf(572f, 593f)
+    private const val FECHA_Y = 388f
+
+    // Texto libre
+    private const val Y_NOMBRE_TRAB = 160.0f
+    private const val Y_PUESTO      = 220.0f
+    private const val Y_EMPRESA     = 272.0f
+    private const val Y_CURSO       = 362.0f
+    private const val Y_DURACION    = 378.0f
+    private const val Y_AREA        = 412.0f
+    private const val Y_AGENTE      = 437.0f
+
+    // Sección de firmas
+    private const val SIG_INS_X  = 140f
+    private const val SIG_PAT_X  = 304f
+    private const val SIG_REP_X  = 490f
+    private const val SIG_IMG_Y  = 455f
+    private const val SIG_NAME_Y1 = 514f
+    private const val SIG_NAME_Y2 = 523f
+    private const val SIG_TITLES_Y = 498f
+    private const val SIG_FOOTER_Y = 545f
+    private const val SIG_LINE_Y   = 535f
+
+    private fun paintText(size: Float, bold: Boolean = false, center: Boolean = false) = Paint().apply {
+        color = Color.BLACK
         textSize = size * SCALE
         typeface = if (bold) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+        textAlign = if (center) Paint.Align.CENTER else Paint.Align.LEFT
         isAntiAlias = true
     }
 
-    // ── Coordenadas (en pts PDF, Y desde arriba) ─────────────────────────────
-    // CURP: 18 celdas
-    private val CURP_XS = floatArrayOf(
-        24.2f,39.6f,55.0f,70.6f,85.9f,101.1f,116.7f,132.1f,147.4f,
-        162.8f,178.1f,193.5f,208.9f,224.3f,239.6f,255.0f,270.3f,285.7f
-    )
-    private const val CURP_Y1 = 185.8f  // top de celda
-    private const val CURP_Y2 = 201.2f  // bottom de celda
-
-    // RFC: 15 celdas exactas - Desplazadas 3.5pts a la derecha para centrar
-    private val RFC_XS = floatArrayOf(
-        27.7f, 41.9f, 56.1f, 70.3f, 84.5f, 98.7f, 112.9f, 127.1f,
-        141.3f, 155.5f, 169.7f, 183.9f, 198.1f, 212.3f, 226.5f, 240.7f
-    )
-    private const val RFC_Y1 = 300.3f
-    private const val RFC_Y2 = 315.2f
-
-    // FECHA: separadores exactos de la fila de dígitos
-    // Año inicio: celdas [2]-[5], Mes [6]-[7], Día [8]-[9]
-    // 'a' separator: [10], Año fin: [11]-[14], Mes [15]-[16], Día [17]-[18]
-    private val FECHA_SEPS = floatArrayOf(
-        24.2f,180.6f,252.1f,267.7f,283.6f,300.1f,316.0f,
-        337.1f,358.9f,379.8f,401.0f,422.8f,442.2f,462.0f,
-        481.4f,501.1f,522.0f,543.1f,564.9f,586.1f
-    )
-    private const val FECHA_Y1 = 380.3f
-    private const val FECHA_Y2 = 394.0f
-
-    // Índices de las 16 celdas de fecha (dentro de FECHA_SEPS):
-    //  [2]...[18] → índices 2..18 en el array de 20 seps (19 celdas)
-    //  Año_ini: seps[2]-seps[3], seps[3]-[4], seps[4]-[5], seps[5]-[6]
-    //  Mes_ini: seps[6]-[7], seps[7]-[8]
-    //  Día_ini: seps[8]-[9], seps[9]-[10]
-    //  (a):     seps[10]-[11]
-    //  Año_fin: seps[11]-[12], seps[12]-[13], seps[13]-[14], seps[14]-[15]
-    //  Mes_fin: seps[15]-[16], seps[16]-[17]
-    //  Día_fin: seps[17]-[18], seps[18]-[19]
-    private val AÑO_INI_IDX = intArrayOf(2, 3, 4, 5)
-    private val MES_INI_IDX = intArrayOf(6, 7)
-    private val DIA_INI_IDX = intArrayOf(8, 9)
-    private val AÑO_FIN_IDX = intArrayOf(11, 12, 13, 14)
-    private val MES_FIN_IDX = intArrayOf(15, 16)
-    private val DIA_FIN_IDX = intArrayOf(17, 18)
-
-    // Texto libre
-    private const val Y_NOMBRE_TRAB = 170.0f
-    private const val Y_PUESTO      = 221.0f
-    private const val Y_EMPRESA     = 280.0f
-    private const val Y_CURSO       = 363.0f
-    private const val Y_DURACION    = 388.0f
-    private const val Y_AREA        = 414.0f
-    private const val Y_AGENTE      = 437.0f
-
-    // Sección de firmas - Centrado total
-    private const val SIG_Y1 = 443.4f
-    private const val SIG_Y2 = 539.9f
-    private const val CENTER_X_INS = 120f // Centro de la primera columna
-    
-    // Logo y Firma centrados en CENTER_X_INS
-    private const val LOGO_W = 130f;  private const val LOGO_H = 70f
-    private const val LOGO_X = CENTER_X_INS - (LOGO_W / 2f)
-    private const val LOGO_Y = 448f
-    
-    private const val FIRMA_W = 100f; private const val FIRMA_H = 65f
-    private const val FIRMA_X = CENTER_X_INS - (FIRMA_W / 2f)
-    private const val FIRMA_Y = 455f
-
-    // Nombre instructor centrado
-    private const val Y_NAME_L1 = 495f
-    private const val Y_NAME_L2 = 506f
-
-    // ─────────────────────────────────────────────────────────────────────────
-    //  API PÚBLICA
-    // ─────────────────────────────────────────────────────────────────────────
-
     fun generate(context: Context, data: DC3FormData): File {
-        // 1. Copiar plantilla a fichero temporal (PdfRenderer necesita File)
         val tmpFile = File(context.cacheDir, "dc3_template_tmp.pdf")
         context.assets.open(TEMPLATE_ASSET).use { input ->
             FileOutputStream(tmpFile).use { output -> input.copyTo(output) }
         }
 
-        // 2. Renderizar plantilla a bitmap con PdfRenderer
         val pfd = ParcelFileDescriptor.open(tmpFile, ParcelFileDescriptor.MODE_READ_ONLY)
         val renderer = PdfRenderer(pfd)
         val pdfPage = renderer.openPage(0)
@@ -161,84 +118,39 @@ object PdfGenerator {
         renderer.close()
         pfd.close()
 
-        // 3. Dibujar sobre el bitmap
         val canvas = Canvas(bmp)
         drawContent(context, canvas, data)
 
-        // 4. Empaquetar en PdfDocument de Android
         val pdfDoc = PdfDocument()
         val pageInfo = PdfDocument.PageInfo.Builder(BMP_W, BMP_H, 1).create()
         val page = pdfDoc.startPage(pageInfo)
         page.canvas.drawBitmap(bmp, 0f, 0f, null)
         pdfDoc.finishPage(page)
 
-        val name = "DC3_${sanitize(data.curp.ifBlank { data.nombreTrabajador })}.pdf"
+        val name = "DC3_${sanitize(data.nombreTrabajador.replace(" ","_"))}.pdf"
         val out = File(context.getExternalFilesDir(null), name)
         FileOutputStream(out).use { pdfDoc.writeTo(it) }
         pdfDoc.close()
 
-        Log.d(TAG, "PDF generado: ${out.absolutePath}")
         return out
     }
 
-    fun generateDC3(
-        context: Context,
-        employee: com.example.dc5control.data.model.Employee,
-        course: com.example.dc5control.data.model.Course,
-        instructor: com.example.dc5control.data.model.Instructor,
-        companyName: String,
-        companyRfc: String,
-        companyPatron: String = "",
-        companyRepresentante: String? = null,
-        startDate: String,
-        endDate: String,
-        signatureBitmap: Bitmap? = null,
-        logoBitmap: Bitmap? = null
-    ): File = generate(context, DC3FormData(
-        nombreTrabajador = "${employee.lastName} ${employee.firstName} ${employee.middleName ?: ""}".trim(),
-        curp             = employee.curp,
-        ocupacion        = employee.position,
-        puesto           = employee.position,
-        razonSocial      = companyName,
-        rfc              = companyRfc,
-        nombreCurso      = course.name,
-        duracionHoras    = "${course.duration} HORAS",
-        fechaInicio      = startDate,
-        fechaFin         = endDate,
-        areaTematica     = course.thematicArea,
-        agenteCapacitador = "${instructor.fullName} ${instructor.stpsNumber ?: ""}".trim(),
-        instructor       = instructor.fullName,
-        patron           = companyPatron,
-        representante    = companyRepresentante,
-        signatureBitmap  = signatureBitmap,
-        logoBitmap       = logoBitmap
-    ))
-
-    // ─────────────────────────────────────────────────────────────────────────
-    //  DIBUJO SOBRE CANVAS
-    // ─────────────────────────────────────────────────────────────────────────
-
     private fun drawContent(context: Context, canvas: Canvas, d: DC3FormData) {
-        val pNormal  = paintText(9f, bold = false)
-        val pBold    = paintText(9f, bold = true)
-        val pSmall   = paintText(8f)
-        val pBox     = paintText(7f)
+        val pNormal = paintText(9f)
+        val pBold   = paintText(9f, bold = true)
+        val pCenter = paintText(8f, center = true)
+        val pBox    = paintText(8f, center = true)
 
-        // Helper: texto en coordenadas PDF pts → px
-        fun text(paint: Paint, x: Float, yBaseline: Float, t: String) {
+        fun text(p: Paint, x: Float, y: Float, t: String) {
             if (t.isBlank()) return
-            canvas.drawText(sanitize(t), x * SCALE, yBaseline * SCALE, paint)
+            canvas.drawText(sanitize(t), x * SCALE, y * SCALE, p)
         }
 
-        // Helper: caracter centrado en una celda definida por x0..x1
-        fun charInCell(x0: Float, x1: Float, yBaseline: Float, ch: String) {
-            if (ch.isBlank()) return
-            val cw = pBox.measureText(ch)
-            val cx = ((x0 + x1) / 2f * SCALE) - cw / 2f
-            canvas.drawText(ch, cx, yBaseline * SCALE, pBox)
+        fun charInCell(x: Float, y: Float, ch: String) {
+            val w = pBox.measureText(ch)
+            canvas.drawText(ch, (x * SCALE) - (w/2f), y * SCALE, pBox)
         }
 
-        // Parsear "dd/MM/yyyy" → (año4, mes2, dia2)
         fun parseFecha(f: String): Triple<String, String, String> {
             val p = f.split("/")
             return Triple(
@@ -248,123 +160,97 @@ object PdfGenerator {
             )
         }
 
-        // ── Nombre trabajador ─────────────────────────────────────────────────
+        // 1. Trabajador
         text(pBold, 30f, Y_NOMBRE_TRAB, d.nombreTrabajador.uppercase())
 
-        // ── CURP (carácter por celda) ─────────────────────────────────────────
-        val curp = d.curp.uppercase().take(18)
-        val CURP_Y_BASE = (CURP_Y1 + CURP_Y2) / 2f + 2.5f  // baseline centrada
-        curp.forEachIndexed { i, c ->
-            if (i < CURP_XS.size - 1)
-                charInCell(CURP_XS[i], CURP_XS[i + 1], CURP_Y_BASE, c.toString())
+        // 2. CURP
+        d.curp.uppercase().replace(" ","").take(18).forEachIndexed { i, c ->
+            if (i < CURP_CENTERS.size) charInCell(CURP_CENTERS[i], CURP_Y, c.toString())
         }
 
-        // ── Puesto ────────────────────────────────────────────────────────────
-        // Borrar texto de ejemplo de la plantilla
-        val erasePaint = Paint().apply { color = Color.WHITE; style = Paint.Style.FILL }
-        canvas.drawRect(25f * SCALE, 209f * SCALE, 586f * SCALE, 228f * SCALE, erasePaint)
+        // 3. Ocupación
+        text(paintText(7f), 307f, 183f, d.ocupacion.uppercase().take(50))
+
+        // 4. Puesto (Limpiar y escribir)
+        val whitePaint = Paint().apply { color = Color.WHITE; style = Paint.Style.FILL }
+        canvas.drawRect(26f*SCALE, 208f*SCALE, 584f*SCALE, 226f*SCALE, whitePaint)
         text(pNormal, 30f, Y_PUESTO, d.puesto.uppercase())
 
-        // ── Empresa ───────────────────────────────────────────────────────────
+        // 5. Empresa
         text(pBold, 30f, Y_EMPRESA, d.razonSocial.uppercase().take(70))
 
-        // ── RFC (carácter por celda) ──────────────────────────────────────────
-        val RFC_Y_BASE = (RFC_Y1 + RFC_Y2) / 2f + 2.5f
-        val rfcClean = d.rfc.uppercase().replace(" ", "").take(15)
-        rfcClean.forEachIndexed { i, c ->
-            if (i < RFC_XS.size - 1)
-                charInCell(RFC_XS[i], RFC_XS[i + 1], RFC_Y_BASE, c.toString())
+        // 6. RFC
+        d.rfc.uppercase().replace(" ","").take(15).forEachIndexed { i, c ->
+            if (i < RFC_CENTERS.size) charInCell(RFC_CENTERS[i], RFC_Y, c.toString())
         }
 
-        // ── Curso ─────────────────────────────────────────────────────────────
+        // 7. Curso
         text(pBold, 30f, Y_CURSO, d.nombreCurso.uppercase().take(80))
 
-        // ── Duración ──────────────────────────────────────────────────────────
+        // 8. Duración
         text(pNormal, 30f, Y_DURACION, d.duracionHoras)
 
-        // ── FECHA (carácter por celda) ────────────────────────────────────────
-        val FECHA_Y_BASE = (FECHA_Y1 + FECHA_Y2) / 2f + 2.5f
+        // 9. Fecha
         val (yi, mi, di) = parseFecha(d.fechaInicio)
         val (yf, mf, df) = parseFecha(d.fechaFin)
-
-        fun drawFecha(chars: String, idxArray: IntArray) {
-            chars.forEachIndexed { i, c ->
-                if (i < idxArray.size) {
-                    val si = idxArray[i]
-                    charInCell(FECHA_SEPS[si], FECHA_SEPS[si + 1], FECHA_Y_BASE, c.toString())
-                }
-            }
-        }
-        drawFecha(yi, AÑO_INI_IDX)
-        drawFecha(mi, MES_INI_IDX)
-        drawFecha(di, DIA_INI_IDX)
-        drawFecha(yf, AÑO_FIN_IDX)
-        drawFecha(mf, MES_FIN_IDX)
-        drawFecha(df, DIA_FIN_IDX)
-
-        // ── Área temática ─────────────────────────────────────────────────────
-        text(pSmall, 30f, Y_AREA, d.areaTematica.take(80))
-
-        // ── Agente capacitador ────────────────────────────────────────────────
-        text(pSmall, 30f, Y_AGENTE, d.agenteCapacitador.uppercase().take(70))
-
-        // ── LOGO (fondo, en columna instructor) ───────────────────────────────
-        val logoBmp = d.logoBitmap ?: loadAssetBitmap(context, LOGO_ASSET)
-        logoBmp?.let {
-            val dst = RectF(LOGO_X * SCALE, LOGO_Y * SCALE,
-                            (LOGO_X + LOGO_W) * SCALE, (LOGO_Y + LOGO_H) * SCALE)
-            canvas.drawBitmap(it, null, dst, null)
-        }
-
-        // ── FIRMA (encima del logo) ───────────────────────────────────────────
-        val firmaBmp = d.signatureBitmap ?: loadAssetBitmap(context, FIRMA_ASSET)
-        firmaBmp?.let {
-            val dst = RectF(FIRMA_X * SCALE, FIRMA_Y * SCALE,
-                            (FIRMA_X + FIRMA_W) * SCALE, (FIRMA_Y + FIRMA_H) * SCALE)
-            canvas.drawBitmap(it, null, dst, null)
-        }
-
-        // ── Nombres en área de firmas ─────────────────────────────────────────
-        val pCenter = paintText(8f).apply { textAlign = Paint.Align.CENTER }
         
-        // Texto superior "Instructor o tutor"
-        canvas.drawText("Instructor o tutor", CENTER_X_INS * SCALE, 455f * SCALE, pCenter)
+        fun drawDate(s: String, centers: FloatArray) {
+            s.forEachIndexed { i, c -> if (i < centers.size) charInCell(centers[i], FECHA_Y, c.toString()) }
+        }
+        drawDate(yi, AÑO_INI_CENTERS); drawDate(mi, MES_INI_CENTERS); drawDate(di, DIA_INI_CENTERS)
+        drawDate(yf, AÑO_FIN_CENTERS); drawDate(mf, MES_FIN_CENTERS); drawDate(df, DIA_FIN_CENTERS)
 
-        val insLines = splitName(d.instructor.uppercase(), 24)
-        if (insLines.size > 1) {
-            canvas.drawText(insLines[0], CENTER_X_INS * SCALE, Y_NAME_L1 * SCALE, pCenter)
-            canvas.drawText(insLines[1], CENTER_X_INS * SCALE, Y_NAME_L2 * SCALE, pCenter)
-        } else {
-            canvas.drawText(insLines[0], CENTER_X_INS * SCALE, Y_NAME_L2 * SCALE, pCenter)
+        // 10. Área
+        text(paintText(8f), 30f, Y_AREA, d.areaTematica.uppercase().take(80))
+
+        // 11. Agente
+        val agentLine = "${d.agenteCapacitador}".uppercase()
+        text(paintText(8f), 30f, Y_AGENTE, agentLine.take(80))
+
+        // 12. Firmas (Limpiar área completa)
+        canvas.drawRect(31f*SCALE, 452f*SCALE, 571f*SCALE, 560f*SCALE, whitePaint)
+
+        // Logo fondo
+        val logo = d.logoBitmap ?: loadAssetBitmap(context, LOGO_ASSET)
+        logo?.let {
+            val dst = RectF((SIG_INS_X-50f)*SCALE, (SIG_IMG_Y)*SCALE, (SIG_INS_X+50f)*SCALE, (SIG_IMG_Y+60f)*SCALE)
+            canvas.drawBitmap(it, null, dst, null)
         }
 
-        if (d.patron.isNotBlank()) {
-            val X_PAT_CENTER = 300f
-            val patLines = splitName(d.patron.uppercase(), 26)
-            if (patLines.size > 1) {
-                canvas.drawText(patLines[0], X_PAT_CENTER * SCALE, Y_NAME_L1 * SCALE, pCenter)
-                canvas.drawText(patLines[1], X_PAT_CENTER * SCALE, Y_NAME_L2 * SCALE, pCenter)
-            } else {
-                canvas.drawText(patLines[0], X_PAT_CENTER * SCALE, Y_NAME_L2 * SCALE, pCenter)
-            }
+        // Firma arriba
+        val firma = d.signatureBitmap ?: loadAssetBitmap(context, FIRMA_ASSET)
+        firma?.let {
+            val dst = RectF((SIG_INS_X-47f)*SCALE, (SIG_IMG_Y)*SCALE, (SIG_INS_X+48f)*SCALE, (SIG_IMG_Y+65f)*SCALE)
+            canvas.drawBitmap(it, null, dst, null)
         }
 
-        d.representante?.let { rep ->
-            if (rep.isNotBlank()) {
-                val repLines = splitName(rep.uppercase(), 24)
-                if (repLines.size > 1) {
-                    text(pBox, X_REP, Y_NAME_L1, repLines[0])
-                    text(pBox, X_REP, Y_NAME_L2, repLines[1])
-                } else {
-                    text(pBox, X_REP, Y_NAME_L2, repLines[0])
-                }
-            }
+        // Reconstrucción bloques
+        val pSmallTitle = paintText(7.5f, center = true)
+        val pSmallName  = paintText(8f, center = true)
+
+        canvas.drawText("Instructor o tutor", SIG_INS_X*SCALE, SIG_TITLES_Y*SCALE, pSmallTitle)
+        val insLines = splitName(d.instructor.uppercase(), 26)
+        canvas.drawText(insLines[0], SIG_INS_X*SCALE, SIG_NAME_Y1*SCALE, pSmallName)
+        if (insLines.size > 1) canvas.drawText(insLines[1], SIG_INS_X*SCALE, SIG_NAME_Y2*SCALE, pSmallName)
+        canvas.drawLine(40f*SCALE, SIG_LINE_Y*SCALE, 210f*SCALE, SIG_LINE_Y*SCALE, Paint().apply { strokeWidth=1f*SCALE })
+        canvas.drawText("Nombre y firma", SIG_INS_X*SCALE, SIG_FOOTER_Y*SCALE, pSmallName)
+
+        canvas.drawText("Patron o representante legal 4/", SIG_PAT_X*SCALE, SIG_TITLES_Y*SCALE, pSmallTitle)
+        val patLines = splitName(d.representanteLegal.uppercase(), 28)
+        canvas.drawText(patLines[0], SIG_PAT_X*SCALE, SIG_NAME_Y1*SCALE, pSmallName)
+        if (patLines.size > 1) canvas.drawText(patLines[1], SIG_PAT_X*SCALE, SIG_NAME_Y2*SCALE, pSmallName)
+        canvas.drawLine(225f*SCALE, SIG_LINE_Y*SCALE, 395f*SCALE, SIG_LINE_Y*SCALE, Paint().apply { strokeWidth=1f*SCALE })
+        canvas.drawText("Nombre y firma", SIG_PAT_X*SCALE, SIG_FOOTER_Y*SCALE, pSmallName)
+
+        canvas.drawText("Representante de los trabajadores 5/", SIG_REP_X*SCALE, SIG_TITLES_Y*SCALE, pSmallTitle)
+        d.representanteTrabajadores?.let {
+            val repLines = splitName(it.uppercase(), 26)
+            canvas.drawText(repLines[0], SIG_REP_X*SCALE, SIG_NAME_Y1*SCALE, pSmallName)
+            if (repLines.size > 1) canvas.drawText(repLines[1], SIG_REP_X*SCALE, SIG_NAME_Y2*SCALE, pSmallName)
         }
+        canvas.drawLine(410f*SCALE, SIG_LINE_Y*SCALE, 580f*SCALE, SIG_LINE_Y*SCALE, Paint().apply { strokeWidth=1f*SCALE })
+        canvas.drawText("Nombre y firma", SIG_REP_X*SCALE, SIG_FOOTER_Y*SCALE, pSmallName)
     }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    //  HELPERS
-    // ─────────────────────────────────────────────────────────────────────────
 
     private fun splitName(name: String, maxChars: Int): List<String> {
         if (name.length <= maxChars) return listOf(name)
@@ -375,16 +261,10 @@ object PdfGenerator {
 
     private fun loadAssetBitmap(context: Context, assetName: String): Bitmap? = try {
         context.assets.open(assetName).use { BitmapFactory.decodeStream(it) }
-    } catch (e: Exception) {
-        Log.w(TAG, "Asset no encontrado: $assetName")
-        null
-    }
+    } catch (e: Exception) { null }
 
     private fun sanitize(s: String): String {
-        val map = mapOf(
-            'á' to 'a','é' to 'e','í' to 'i','ó' to 'o','ú' to 'u','ü' to 'u','ñ' to 'n',
-            'Á' to 'A','É' to 'E','Í' to 'I','Ó' to 'O','Ú' to 'U','Ü' to 'U','Ñ' to 'N'
-        )
+        val map = mapOf('á' to 'a','é' to 'e','í' to 'i','ó' to 'o','ú' to 'u','ü' to 'u','ñ' to 'n','Á' to 'A','É' to 'E','Í' to 'I','Ó' to 'O','Ú' to 'U','Ü' to 'U','Ñ' to 'N')
         return s.map { map[it] ?: it }.joinToString("")
     }
 }

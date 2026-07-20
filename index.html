@@ -1266,13 +1266,18 @@ async function generateDC3() {
 
     if (!start || !end) { alert('Selecciona las fechas de inicio y término'); return; }
 
-    // Buscar el objeto empresa completo para obtener RFC, patron y representante
-    const company = DATA.companies.find(c => c.name === companyName) || { name: companyName, rfc: '', representanteLegal: '', representanteTrabajadores: null };
+    // Buscar el objeto empresa completo para obtener RFC y representantes
+    const company = DATA.companies.find(c => c.name === companyName) || {
+        name: companyName,
+        rfc: '',
+        representanteLegal: '',
+        representanteTrabajadores: ''
+    };
 
     const [agentName, agentStps] = agentVal.split('|');
     const [courseName, courseDuration, courseArea] = courseVal.split('|');
 
-    await buildDC3PDF({
+    const pdfBytes = await _buildDC3Core({
         worker: selectedWorker,
         company,
         agent: { name: agentName, stps: agentStps },
@@ -1280,13 +1285,24 @@ async function generateDC3() {
         start, end, result
     });
 
+    if (!pdfBytes) return;
+
+    // Descargar PDF
+    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `DC3_${(function sp(s){return String(s||'').replace(/[áà]/g,'a').replace(/[éè]/g,'e').replace(/[íì]/g,'i').replace(/[óò]/g,'o').replace(/[úùü]/g,'u').replace(/ñ/g,'n').replace(/[ÁÀ]/g,'A').replace(/[ÉÈ]/g,'E').replace(/[ÍÌ]/g,'I').replace(/[ÓÒ]/g,'O').replace(/[ÚÙÜ]/g,'U').replace(/Ñ/g,'N');})(selectedWorker.name||'trabajador').replace(/\s+/g,'_')}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+
     // Save to DB
     await api('insertOne','dc3_records',{ document: {
         workerId:    selectedWorker.curp,
         workerName:  selectedWorker.name,
         workerPos:   selectedWorker.position,
         courseName,
-        companyName: company.name || companyName,
+        companyName: companyName,
         agentName,
         agentStps,
         startDate:   start,
@@ -1550,93 +1566,75 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     const agentLine = sp(((agent.name||'') + '   ' + (agent.stps||'')).toUpperCase().trim());
     T(30, 437, agentLine.slice(0,80), 8);
 
-    // ══════════════════════════════════════════════════════════════════════
-    // 12. SECCIÓN FIRMAS — rect y0=452.4 y1=560.5
-    //     Centros X:  Instructor=140  Patron=304  Repr=490
-    //     Líneas de firma en y≈532
-    //     "Nombre y firma" en y=540
-    //     Títulos en y≈500
-    //     Espacio para imagen: y=455..530 (75pts de alto)
-    // ══════════════════════════════════════════════════════════════════════
+    // ── 12. SECCIÓN FIRMAS — Reconstrucción total personalizada ──────
+    const SIG_INS_X  = 140;
+    const SIG_PAT_X  = 304;
+    const SIG_REP_X  = 490;
+    const SIG_IMG_Y  = 455;
+    const SIG_NAME_Y1= 514;
+    const SIG_NAME_Y2= 523;
 
-    const SIG_INS_X  = 140;   // centro columna instructor
-    const SIG_PAT_X  = 304;   // centro columna patron
-    const SIG_REP_X  = 490;   // centro columna representante
-    const SIG_IMG_Y  = 455;   // y_fitz tope para imagen (arriba del rect de firma)
-    const SIG_IMG_H  = 65;    // alto de logo/firma
-    const SIG_NAME_Y1= 516;   // primera línea nombre instructor
-    const SIG_NAME_Y2= 526;   // segunda línea nombre instructor
+    // Limpiar toda el área de firmas de la plantilla original (para quitar etiquetas fijas)
+    page.drawRectangle({ x:31, y: PH-560, width:540, height:108, color: rgb(1,1,1) });
 
-    // Limpiar zona de imágenes en columna instructor (sin borrar bordes del rect)
-    page.drawRectangle({ x:35, y: PH-(SIG_IMG_Y+SIG_IMG_H), width:200, height:SIG_IMG_H+5, color: rgb(1,1,1) });
+    // ── Logo LUBER (Fondo Instructor) ──────────────────────────────────
+    try {
+        const logoPath = agentDesign?.logoBase64 || '/signatures/logo_luber.png';
+        const lb = await fetch(logoPath).then(r=>r.arrayBuffer());
+        const lImg = await pdfDoc.embedPng(lb);
+        const lw = agentDesign?.logoW || 100;
+        const lh = agentDesign?.logoH || 60;
+        const lx = agentDesign?.logoX || (SIG_INS_X - lw/2);
+        const ly = agentDesign?.logoY || SIG_IMG_Y;
+        page.drawImage(lImg, { x:lx, y:PH-(ly+lh), width:lw, height:lh, opacity:1.0 });
+    } catch(e) {}
 
-    // ── Logo del agente (fondo) ──────────────────────────────────────────
-    let LOGO_W = 110, LOGO_H = SIG_IMG_H;
-    let LOGO_X = SIG_INS_X - 55;   // centrado
-    if (agentDesign && agentDesign.logoBase64) {
-        try {
-            const lb = await fetch(agentDesign.logoBase64).then(r=>r.arrayBuffer());
-            const lImg = await pdfDoc.embedPng(lb);
-            LOGO_W = agentDesign.logoW || 110;
-            LOGO_H = agentDesign.logoH || SIG_IMG_H;
-            LOGO_X = agentDesign.logoX || (SIG_INS_X - Math.round(LOGO_W/2));
-            page.drawImage(lImg, { x:LOGO_X, y:PH-(SIG_IMG_Y+LOGO_H), width:LOGO_W, height:LOGO_H, opacity:1.0 });
-        } catch(e) { console.warn('Logo agente error:', e); }
-    } else {
-        try {
-            const lr = await fetch('/signatures/logo_luber.png');
-            if (lr.ok) {
-                const lb = await lr.arrayBuffer();
-                const lImg = await pdfDoc.embedPng(lb);
-                page.drawImage(lImg, { x:LOGO_X, y:PH-(SIG_IMG_Y+LOGO_H), width:LOGO_W, height:LOGO_H, opacity:1.0 });
-            }
-        } catch(e) {}
-    }
+    // ── Firma Instructor (Sobrepuesta) ──────────────────────────────────
+    try {
+        const firmaPath = agentDesign?.firmaBase64 || '/signatures/cynthia_firma_oficial.png';
+        const fb = await fetch(firmaPath).then(r=>r.arrayBuffer());
+        const fImg = await pdfDoc.embedPng(fb);
+        const fw = agentDesign?.firmaW || 95;
+        const fh = agentDesign?.firmaH || 65;
+        const fx = agentDesign?.firmaX || (SIG_INS_X - fw/2);
+        const fy = agentDesign?.firmaY || (SIG_IMG_Y + 2);
+        page.drawImage(fImg, { x:fx, y:PH-(fy+fh), width:fw, height:fh });
+    } catch(e) {}
 
-    // ── Firma del agente (encima del logo) ───────────────────────────────
-    if (agentDesign && agentDesign.firmaBase64) {
-        try {
-            const fb = await fetch(agentDesign.firmaBase64).then(r=>r.arrayBuffer());
-            const fImg = await pdfDoc.embedPng(fb);
-            const FW = agentDesign.firmaW || 85;
-            const FH = agentDesign.firmaH || 55;
-            const FX = agentDesign.firmaX || (SIG_INS_X - Math.round(FW/2));
-            const FY_TOP = SIG_IMG_Y + 5;
-            page.drawImage(fImg, { x:FX, y:PH-(FY_TOP+FH), width:FW, height:FH });
-        } catch(e) { console.warn('Firma error:', e); }
-    } else {
-        try {
-            const sr = await fetch('/signatures/firma_instructor.png');
-            if (sr.ok) {
-                const sb2 = await sr.arrayBuffer();
-                const sImg = await pdfDoc.embedPng(sb2);
-                const FW=80, FH=50, FX=SIG_INS_X-40;
-                page.drawImage(sImg, { x:FX, y:PH-(SIG_IMG_Y+5+FH), width:FW, height:FH });
-            }
-        } catch(e) {}
-    }
+    // ── Nombres y Títulos reconstruidos ──────────────────────────────────
+    T_C(SIG_INS_X, 498, "Instructor o tutor", 7.5);
+    const insName = sp((agentDesign?.agentName || agent.name || '').toUpperCase());
+    const insLines = splitNameJS(insName, 26);
+    T_C(SIG_INS_X, SIG_NAME_Y1, insLines[0], 8);
+    if (insLines[1]) T_C(SIG_INS_X, SIG_NAME_Y2, insLines[1], 8);
 
-    // ── Nombre del instructor (bajo la imagen) ────────────────────────────
-    const insName = sp((agentDesign && agentDesign.agentName ? agentDesign.agentName : (agent.name||'')).toUpperCase());
-    const insLines = insName.length > 24 ? [insName.slice(0,24), insName.slice(24,48)] : [insName];
-    T_C(SIG_INS_X, SIG_NAME_Y1, insLines[0], 7.5);
-    if (insLines[1]) T_C(SIG_INS_X, SIG_NAME_Y2, insLines[1], 7.5);
+    // Línea Instructor
+    page.drawLine({ start:{x:40, y:PH-535}, end:{x:210, y:PH-535}, thickness:0.8, color:rgb(0,0,0) });
+    T_C(SIG_INS_X, 545, "Nombre y firma", 8);
 
-    // ── Nombre Patrón/Rep Legal (columna 2) ───────────────────────────────
-    const patName = sp((compObj.representanteLegal||'').toUpperCase());
-    if (patName) {
-        const patLines = patName.length > 26 ? [patName.slice(0,26), patName.slice(26)] : [patName];
-        T_C(SIG_PAT_X, SIG_NAME_Y1, patLines[0], 7.5);
-        if (patLines[1]) T_C(SIG_PAT_X, SIG_NAME_Y2, patLines[1], 7.5);
-    }
+    // --- Columna PATRÓN ---
+    T_C(SIG_PAT_X, 498, "Patron o representante legal 4/", 7.5);
+    const patName = sp((compObj.representanteLegal || '').toUpperCase());
+    const patLines = splitNameJS(patName, 28);
+    T_C(SIG_PAT_X, SIG_NAME_Y1, patLines[0], 8);
+    if (patLines[1]) T_C(SIG_PAT_X, SIG_NAME_Y2, patLines[1], 8);
 
-    // ── Nombre Representante Trabajadores (columna 3) ─────────────────────
-    const repName = sp((compObj.representanteTrabajadores||'').toUpperCase());
+    // Línea Patrón
+    page.drawLine({ start:{x:225, y:PH-535}, end:{x:395, y:PH-535}, thickness:0.8, color:rgb(0,0,0) });
+    T_C(SIG_PAT_X, 545, "Nombre y firma", 8);
+
+    // --- Columna REPRESENTANTE ---
+    T_C(SIG_REP_X, 498, "Representante de los trabajadores 5/", 7.5);
+    const repName = sp((compObj.representanteTrabajadores || '').toUpperCase());
     if (repName) {
-        const repLines = repName.length > 26 ? [repName.slice(0,26), repName.slice(26)] : [repName];
-        T_C(SIG_REP_X, SIG_NAME_Y1, repLines[0], 7.5);
-        if (repLines[1]) T_C(SIG_REP_X, SIG_NAME_Y2, repLines[1], 7.5);
+        const repLines = splitNameJS(repName, 26);
+        T_C(SIG_REP_X, SIG_NAME_Y1, repLines[0], 8);
+        if (repLines[1]) T_C(SIG_REP_X, SIG_NAME_Y2, repLines[1], 8);
     }
+
+    // Línea Representante
+    page.drawLine({ start:{x:410, y:PH-535}, end:{x:580, y:PH-535}, thickness:0.8, color:rgb(0,0,0) });
+    T_C(SIG_REP_X, 545, "Nombre y firma", 8);
 
     // ── Slogan extra en sección de firmas (si está configurado) ─────────
     if (agentDesign && agentDesign.slogan) {
