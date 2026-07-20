@@ -1931,8 +1931,8 @@ function _updateDragHandles(p) {
     designState._scale = sc;
     svg.innerHTML = '';
 
-    // cy: convierte PDF Y (bottom-up) a canvas Y (top-down)
-    const cy = (pdfY, h) => (PDF_H - pdfY - h) * sc;
+    // pdfY es top-down (di() ya invierte eje internamente), solo escalar
+    const cy = (pdfY, h) => pdfY * sc;
 
     const items = [
         { key:'logo',       x:p.logoX*sc,        y:cy(p.logoY, p.logoH),              w:p.logoW*sc,        h:p.logoH*sc,        label:'LOGO',       color:'#6366f1', xId:'design-logo-x', yId:'design-logo-y' },
