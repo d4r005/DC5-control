@@ -496,6 +496,9 @@ async function loadCatalogs() {
     // Combinar agentes pre-cargados
     const dbAgents = agentsR.documents || [];
     dbAgents.forEach(dba => {
+        // Evitar duplicado de Cynthia (preferir versión con 'ING.')
+        if (dba.name === "CYNTHIA YADIRA GARZA LUGO") return;
+
         const exists = DATA.agents.find(a => a.name === dba.name && a.stps === dba.stps);
         if (!exists) DATA.agents.push(dba);
     });
