@@ -2392,6 +2392,13 @@ async function buildDC3PDFBytes(opts) {
     return await _buildDC3Core(opts);
 }
 
+function splitNameJS(name, maxChars) {
+    if (!name || name.length <= maxChars) return [name || ''];
+    const mid = name.lastIndexOf(' ', maxChars);
+    if (mid > 0) return [name.substring(0, mid), name.substring(mid + 1)];
+    return [name.substring(0, maxChars), name.substring(maxChars)];
+}
+
 </script>
 </body>
 </html>
