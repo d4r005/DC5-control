@@ -267,7 +267,7 @@
             <div class="card overflow-hidden">
                 <table>
                     <thead><tr><th>Razón Social</th><th>RFC</th><th>Patrón</th><th>Acciones</th></tr></thead>
-                    <tbody id="tb-companies"><tr><td colspan="3" class="text-center py-12 text-gray-300">Cargando…</td></tr></tbody>
+                    <tbody id="tb-companies"><tr><td colspan="4" class="text-center py-12 text-gray-300">Cargando…</td></tr></tbody>
                 </table>
             </div>
         </div>
@@ -276,8 +276,8 @@
         <div id="section-courses" class="hidden">
             <div class="card overflow-hidden">
                 <table>
-                    <thead><tr><th>Nombre del Curso</th><th>Duración</th><th>Área Temática</th></tr></thead>
-                    <tbody id="tb-courses"><tr><td colspan="3" class="text-center py-12 text-gray-300">Cargando…</td></tr></tbody>
+                    <thead><tr><th>Nombre del Curso</th><th>Duración</th><th>Área Temática</th><th>Acciones</th></tr></thead>
+                    <tbody id="tb-courses"><tr><td colspan="4" class="text-center py-12 text-gray-300">Cargando…</td></tr></tbody>
                 </table>
             </div>
         </div>
@@ -296,7 +296,7 @@
         <div id="section-agents" class="hidden">
             <div class="card overflow-hidden">
                 <table>
-                    <thead><tr><th>Agente Capacitador</th><th>No. Registro STPS</th></tr></thead>
+                    <thead><tr><th>Agente Capacitador</th><th>No. Registro STPS</th><th>Acciones</th></tr></thead>
                     <tbody id="tb-agents"></tbody>
                 </table>
             </div>
@@ -306,7 +306,7 @@
         <div id="section-users" class="hidden">
             <div class="card overflow-hidden">
                 <table>
-                    <thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th></tr></thead>
+                    <thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Acciones</th></tr></thead>
                     <tbody id="tb-users"></tbody>
                 </table>
             </div>
@@ -506,7 +506,7 @@ async function loadCatalogs() {
     DATA.companies = companiesR.documents || [];
 }
 
-let currentUser = null, currentView = 'dashboard', selectedWorker = null, editingDC3Id = null;
+let currentUser = null, currentView = 'dashboard', selectedWorker = null, editingDC3Id = null, editingItemId = null;
 
 // ─── INIT ──────────────────────────────────────────────
 window.onload = () => {
@@ -697,8 +697,11 @@ async function loadSection(v) {
                 <td class="text-xs text-gray-500">${x.occupation||''}</td>
                 <td>${x.position||''}</td>
                 <td class="text-right">
-                    <button onclick='openDC3(${JSON.stringify(x)})' class="btn-sm btn-indigo mr-2">Generar DC-3</button>
-                    <button onclick="delItem('workers','${x.id}')" class="btn-sm btn-red">Eliminar</button>
+                    <div class="flex justify-end gap-2">
+                        <button onclick='openDC3(${JSON.stringify(x)})' class="btn-sm btn-indigo">Generar DC-3</button>
+                        <button onclick='openModal(${JSON.stringify(x)})' class="btn-sm btn-outline">✎</button>
+                        <button onclick="delItem('workers','${x.id}')" class="btn-sm btn-red">✕</button>
+                    </div>
                 </td>
               </tr>`).join('')
             : `<tr><td colspan="5" class="text-center py-12 text-gray-300 text-sm">Sin personal registrado</td></tr>`;
@@ -712,7 +715,12 @@ async function loadSection(v) {
                 <td class="font-semibold">${x.name||''}</td>
                 <td class="font-mono text-xs text-gray-500">${x.rfc||''}</td>
                 <td class="text-xs text-gray-500">${x.patron||'–'}</td>
-                <td class="text-right"><button onclick="delItem('companies','${x.id}')" class="btn-sm btn-red">Eliminar</button></td>
+                <td class="text-right">
+                    <div class="flex justify-end gap-2">
+                        <button onclick='openModal(${JSON.stringify(x)})' class="btn-sm btn-outline">✎</button>
+                        <button onclick="delItem('companies','${x.id}')" class="btn-sm btn-red">✕</button>
+                    </div>
+                </td>
               </tr>`).join('')
             : `<tr><td colspan="4" class="text-center py-12 text-gray-300 text-sm">Sin empresas registradas</td></tr>`;
 
@@ -725,6 +733,12 @@ async function loadSection(v) {
                 <td class="font-semibold">${c.name}</td>
                 <td><span class="badge badge-admin">${c.durationHours}</span></td>
                 <td class="text-xs text-gray-500">${c.thematicArea||'–'}</td>
+                <td class="text-right">
+                    <div class="flex justify-end gap-2">
+                        <button onclick='openModal(${JSON.stringify(c)})' class="btn-sm btn-outline">✎</button>
+                        <button onclick="delItem('courses','${c.id}')" class="btn-sm btn-red">✕</button>
+                    </div>
+                </td>
               </tr>`).join('')
             : `<tr><td colspan="3" class="text-center py-12 text-gray-300 text-sm">Sin cursos</td></tr>`;
 
@@ -751,57 +765,69 @@ async function loadSection(v) {
             : `<tr><td colspan="5" class="text-center py-12 text-gray-300 text-sm">Sin historial de constancias</td></tr>`;
 
     } else if (v === 'agents') {
-        const list = currentUser.role === 'ADMIN' ? DATA.agents : DATA.agents.filter(a => a.creatorEmail === currentUser.email);
-        document.getElementById('tb-agents').innerHTML = list.length
-            ? list.map(a => `<tr>
+        const r = await api('find','agents',{ filter: {} });
+        const rows = (r.documents||[]);
+        document.getElementById('tb-agents').innerHTML = rows.length
+            ? rows.map(a => `<tr>
                 <td class="font-semibold">${a.name}</td>
                 <td class="font-mono text-indigo-600">${a.stps}</td>
+                <td class="text-right">
+                    <div class="flex justify-end gap-2">
+                        <button onclick='openModal(${JSON.stringify(a)})' class="btn-sm btn-outline">✎</button>
+                        <button onclick="delItem('agents','${a.id}')" class="btn-sm btn-red">✕</button>
+                    </div>
+                </td>
               </tr>`).join('')
-            : `<tr><td colspan="2" class="text-center py-12 text-gray-300 text-sm">Sin agentes</td></tr>`;
+            : `<tr><td colspan="3" class="text-center py-12 text-gray-300 text-sm">Sin agentes</td></tr>`;
 
     } else if (v === 'users') {
         document.getElementById('tb-users').innerHTML = DATA.users.map(u => `<tr>
             <td class="font-semibold">${u.name}</td>
             <td class="text-gray-500 text-sm">${u.email}</td>
             <td><span class="badge ${u.role==='ADMIN'?'badge-admin':'badge-user'}">${u.role}</span></td>
+            <td class="text-right">
+                <button onclick="alert('Edición de usuarios protegida')" class="btn-sm btn-outline">✎</button>
+            </td>
           </tr>`).join('');
     }
 }
 
 // ─── MODAL AGREGAR ─────────────────────────────────────
-function openModal() {
+function openModal(item = null) {
+    editingItemId = item ? item.id : null;
     document.getElementById('modal-add').classList.add('open');
     const f = document.getElementById('modal-fields');
+
     if (currentView === 'companies') {
-        document.getElementById('modal-title').innerText = 'Nueva Empresa';
+        document.getElementById('modal-title').innerText = item ? 'Editar Empresa' : 'Nueva Empresa';
         f.innerHTML = `
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Razón Social</label>
-                <input id="f1" class="input-field" placeholder="Ej. Industriales del Norte SA de CV">
+                <input id="f1" class="input-field" value="${item ? item.name : ''}" placeholder="Ej. Industriales del Norte SA de CV">
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">RFC</label>
-                <input id="f2" class="input-field" placeholder="Ej. INA930512AB3" style="text-transform:uppercase">
+                <input id="f2" class="input-field" value="${item ? item.rfc : ''}" placeholder="Ej. INA930512AB3" style="text-transform:uppercase">
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Patrón o Representante Legal</label>
-                <input id="f3" class="input-field" placeholder="Nombre completo del patrón">
+                <input id="f3" class="input-field" value="${item ? item.patron : ''}" placeholder="Nombre completo del patrón">
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Representante de los Trabajadores</label>
-                <input id="f4" class="input-field" placeholder="Obligatorio para empresas con +50 trabajadores">
+                <input id="f4" class="input-field" value="${item ? (item.representante || '') : ''}" placeholder="Obligatorio para empresas con +50 trabajadores">
             </div>`;
     } else if (currentView === 'workers') {
-        document.getElementById('modal-title').innerText = 'Nuevo Trabajador';
-        const opts = CATALOGS.occupations.map(o => `<option value="${o}">${o}</option>`).join('');
+        document.getElementById('modal-title').innerText = item ? 'Editar Trabajador' : 'Nuevo Trabajador';
+        const opts = CATALOGS.occupations.map(o => `<option value="${o}" ${item && item.occupation === o ? 'selected' : ''}>${o}</option>`).join('');
         f.innerHTML = `
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Nombre completo</label>
-                <input id="f1" class="input-field" placeholder="Apellido Paterno Apellido Materno Nombre(s)">
+                <input id="f1" class="input-field" value="${item ? item.name : ''}" placeholder="Apellido Paterno Apellido Materno Nombre(s)">
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">CURP</label>
-                <input id="f2" class="input-field" placeholder="18 caracteres" style="text-transform:uppercase" maxlength="18">
+                <input id="f2" class="input-field" value="${item ? item.curp : ''}" placeholder="18 caracteres" style="text-transform:uppercase" maxlength="18">
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Ocupación Específica</label>
@@ -809,28 +835,83 @@ function openModal() {
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Puesto de trabajo</label>
-                <input id="f4" class="input-field" placeholder="Ej. Operador de Montacargas">
+                <input id="f4" class="input-field" value="${item ? item.position : ''}" placeholder="Ej. Operador de Montacargas">
+            </div>`;
+    } else if (currentView === 'courses') {
+        document.getElementById('modal-title').innerText = item ? 'Editar Curso' : 'Nuevo Curso';
+        const areaOpts = CATALOGS.thematicAreas.map(a => `<option value="${a}" ${item && item.thematicArea && item.thematicArea.includes(a.substring(0,4)) ? 'selected' : ''}>${a}</option>`).join('');
+        f.innerHTML = `
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nombre del Curso</label>
+                <input id="f1" class="input-field" value="${item ? item.name : ''}" placeholder="Ej. MANEJO DE MONTACARGAS">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Duración (Horas)</label>
+                <input id="f2" class="input-field" value="${item ? item.durationHours.replace(' HORAS','') : ''}" placeholder="Ej. 8">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Área Temática</label>
+                <select id="f3" class="input-field"><option value="">Seleccionar…</option>${areaOpts}</select>
+            </div>`;
+    } else if (currentView === 'agents') {
+        document.getElementById('modal-title').innerText = item ? 'Editar Agente' : 'Nuevo Agente';
+        f.innerHTML = `
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nombre del Agente</label>
+                <input id="f1" class="input-field" value="${item ? item.name : ''}" placeholder="Nombre completo">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Registro STPS</label>
+                <input id="f2" class="input-field" value="${item ? item.stps : ''}" placeholder="Ej. STPS-XXXXX-001" style="text-transform:uppercase">
             </div>`;
     }
 }
 
 async function saveItem() {
+    const action = editingItemId ? 'update' : 'insertOne';
+    const payload = { id: editingItemId, document: {} };
+
     if (currentView === 'companies') {
         const name = document.getElementById('f1').value.trim();
         const rfc = document.getElementById('f2').value.trim().toUpperCase();
         const patron = document.getElementById('f3').value.trim();
         const representante = document.getElementById('f4').value.trim();
-        if (!name || !rfc) { alert('Completa razón social y RFC'); return; }
-        if (!patron) { alert('El patrón o representante legal es obligatorio'); return; }
-        await api('insertOne','companies',{ document: { name, rfc, patron, representante: representante || null, creatorEmail: currentUser.email } });
+        if (!name || !rfc || !patron) { alert('Completa los campos obligatorios'); return; }
+        payload.document = { name, rfc, patron, representante: representante || null, creatorEmail: currentUser.email };
     } else if (currentView === 'workers') {
         const name = document.getElementById('f1').value.trim();
         const curp = document.getElementById('f2').value.trim().toUpperCase();
         const occupation = document.getElementById('f3').value;
         const position = document.getElementById('f4').value.trim();
         if (!name || !curp) { alert('Nombre y CURP son requeridos'); return; }
-        await api('insertOne','workers',{ document: { name, curp, occupation, position, creatorEmail: currentUser.email } });
+        payload.document = { name, curp, occupation, position, creatorEmail: currentUser.email };
+    } else if (currentView === 'courses') {
+        const name = document.getElementById('f1').value.trim();
+        const hours = document.getElementById('f2').value.trim();
+        const area = document.getElementById('f3').value;
+        if (!name || !hours || !area) { alert('Completa todos los campos'); return; }
+        payload.document = { name, durationHours: hours + " HORAS", thematicArea: area, creatorEmail: currentUser.email };
+        // Actualizar DATA local
+        if (editingItemId) {
+            const idx = DATA.courses.findIndex(c => c.id === editingItemId);
+            if (idx >= 0) DATA.courses[idx] = { ...DATA.courses[idx], ...payload.document };
+        } else {
+            DATA.courses.push(payload.document);
+        }
+    } else if (currentView === 'agents') {
+        const name = document.getElementById('f1').value.trim();
+        const stps = document.getElementById('f2').value.trim().toUpperCase();
+        if (!name || !stps) { alert('Completa todos los campos'); return; }
+        payload.document = { name, stps, creatorEmail: currentUser.email };
+        if (editingItemId) {
+            const idx = DATA.agents.findIndex(a => a.id === editingItemId);
+            if (idx >= 0) DATA.agents[idx] = { ...DATA.agents[idx], ...payload.document };
+        } else {
+            DATA.agents.push(payload.document);
+        }
     }
+
+    await api(action, currentView, payload);
     closeModal('modal-add');
     loadSection(currentView);
 }
