@@ -703,7 +703,11 @@ function toSnake(obj) {
         creatorEmail:'creator_email', representanteLegal:'representante_legal', representanteTrabajadores:'representante_trabajadores',
         headerSlogan:'header_slogan', headerSloganX:'header_slogan_x', headerSloganY:'header_slogan_y', headerSloganSize:'header_slogan_size',
         headerLogoW:'header_logo_w', headerLogoH:'header_logo_h', headerLogoX:'header_logo_x', headerLogoY:'header_logo_y',
-        headerLogoBase64:'header_logo_base64'
+        headerLogoBase64:'header_logo_base64',
+        logoBase64:'logo_base64', logoX:'logo_x', logoY:'logo_y', logoW:'logo_w', logoH:'logo_h',
+        firmaBase64:'firma_base64', firmaX:'firma_x', firmaY:'firma_y', firmaW:'firma_w', firmaH:'firma_h',
+        sloganX:'slogan_x', sloganY:'slogan_y', sloganSize:'slogan_size', sloganFont:'slogan_font',
+        updatedAt:'updated_at'
     };
     const out = {};
     for (const [k,v] of Object.entries(obj)) out[map[k]||k] = v;
@@ -720,7 +724,11 @@ function toCamel(obj) {
         creator_email:'creatorEmail', representante_legal:'representanteLegal', representante_trabajadores:'representanteTrabajadores',
         header_slogan:'headerSlogan', header_slogan_x:'headerSloganX', header_slogan_y:'headerSloganY', header_slogan_size:'headerSloganSize',
         header_logo_w:'headerLogoW', header_logo_h:'headerLogoH', header_logo_x:'headerLogoX', header_logo_y:'headerLogoY',
-        header_logo_base64:'headerLogoBase64'
+        header_logo_base64:'headerLogoBase64',
+        logo_base64:'logoBase64', logo_x:'logoX', logo_y:'logoY', logo_w:'logoW', logo_h:'logoH',
+        firma_base64:'firmaBase64', firma_x:'firmaX', firma_y:'firmaY', firma_w:'firmaW', firma_h:'firmaH',
+        slogan_x:'sloganX', slogan_y:'sloganY', slogan_size:'sloganSize', slogan_font:'sloganFont',
+        updated_at:'updatedAt'
     };
     const out = {};
     for (const [k,v] of Object.entries(obj)) out[map[k]||k] = v;
@@ -1765,11 +1773,36 @@ async function saveDesign() {
     try {
         const p = getDesignParams();
 
-        // ELIMINAMOS campos que sabemos que fallan por no existir en la DB
-        delete p.headerSloganFont;
-        delete p.sloganFont;
+        // Mapeo manual para asegurar que NO se envíen nombres camelCase ni columnas inexistentes
+        const payload = {
+            creator_email: p.creatorEmail,
+            logo_base64: p.logoBase64,
+            logo_x: p.logoX,
+            logo_y: p.logoY,
+            logo_w: p.logoW,
+            logo_h: p.logoH,
+            firma_base64: p.firmaBase64,
+            firma_x: p.firmaX,
+            firma_y: p.firmaY,
+            firma_w: p.firmaW,
+            firma_h: p.firmaH,
+            header_logo_base64: p.headerLogoBase64,
+            header_logo_x: p.headerLogoX,
+            header_logo_y: p.headerLogoY,
+            header_logo_w: p.headerLogoW,
+            header_logo_h: p.headerLogoH,
+            header_slogan: p.headerSlogan,
+            header_slogan_x: p.headerSloganX,
+            header_slogan_y: p.headerSloganY,
+            header_slogan_size: p.headerSloganSize,
+            slogan: p.slogan,
+            slogan_x: p.sloganX,
+            slogan_y: p.sloganY,
+            slogan_size: p.sloganSize,
+            agent_name: p.agentName,
+            updated_at: new Date().toISOString()
+        };
 
-        const payload = toSnake({ ...p, updatedAt: new Date().toISOString() });
         localStorage.setItem('dc3_design', JSON.stringify(payload));
 
         const existing = await api('find','agent_designs', { filter: { creatorEmail: p.creatorEmail } });
@@ -1781,7 +1814,10 @@ async function saveDesign() {
             if (error) throw error;
         }
         alert('✓ Diseño guardado');
-    } catch(e) { alert('Error: ' + e.message); }
+    } catch(e) {
+        console.error('Error saving design:', e);
+        alert('Error: ' + e.message);
+    }
     finally { if (btn) { btn.disabled=false; btn.textContent='💾 Guardar diseño'; } }
 }
 
