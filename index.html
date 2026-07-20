@@ -1461,7 +1461,7 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     } catch(e) { console.warn('Error cabecera:', e); }
 
     // ── 1. NOMBRE DEL TRABAJADOR ───────────────────────────────────────────
-    T(30, 178, (worker.name||'').toUpperCase(), 9, true);
+    T(30, 172, (worker.name||'').toUpperCase(), 9, true);
 
     // ── 2. CURP ────────────────────────────────────────────────────────────
     const CURP_CENTERS = [32.0,47.4,62.8,78.2,93.5,108.8,124.2,139.6,
