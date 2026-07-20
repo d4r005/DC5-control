@@ -390,6 +390,9 @@
                                     <option value="Times-Italic">Times Cursiva</option>
                                     <option value="Courier">Courier</option>
                                     <option value="Courier-Bold">Courier Negrita</option>
+                                    <option value="KunstlerScript">Kunstler Script</option>
+                                    <option value="GreatVibes">Great Vibes (Script)</option>
+                                    <option value="Pacifico">Pacifico</option>
                                 </select>
                             </div>
                             <div>
@@ -417,6 +420,9 @@
                                     <option value="Times-Bold">Times Negrita</option>
                                     <option value="Times-Italic">Times Cursiva</option>
                                     <option value="Courier">Courier</option>
+                                    <option value="KunstlerScript">Kunstler Script</option>
+                                    <option value="GreatVibes">Great Vibes (Script)</option>
+                                    <option value="Pacifico">Pacifico</option>
                                 </select>
                             </div>
                             <div>
@@ -450,7 +456,7 @@
                     <div id="design-preview-wrap" style="position:relative;overflow-y:auto;overflow-x:hidden;flex:1;min-height:0;border-radius:8px;background:#f3f4f6;">
                         <canvas id="design-preview-canvas" style="display:block;width:100%;"></canvas>
                         <!-- Overlay SVG para handles de arrastre -->
-                        <svg id="design-drag-overlay" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;"></svg>
+                        <svg id="design-drag-overlay" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;" viewBox="0 0 918 1188" preserveAspectRatio="none"></svg>
                     </div>
                 </div>
 
@@ -1836,8 +1842,21 @@ async function _renderPreview() {
     await di(p.firmaBase64,      p.firmaX,      p.firmaY,      p.firmaW,      p.firmaH);
     await di(p.headerLogoBase64, p.headerLogoX, p.headerLogoY, p.headerLogoW, p.headerLogoH);
 
-    // Helper: embedir fuente por nombre
+    // Helper: embedir fuente por nombre (soporta fuentes custom via CDN)
+    const CUSTOM_FONT_URLS = {
+        'KunstlerScript': 'https://fonts.gstatic.com/s/greatvibes/v19/RWmMoKWR9v4ksMfaWd_JN9XFiaQ.woff2',
+        'GreatVibes':     'https://fonts.gstatic.com/s/greatvibes/v19/RWmMoKWR9v4ksMfaWd_JN9XFiaQ.woff2',
+        'Pacifico':       'https://fonts.gstatic.com/s/pacifico/v22/FwZY7-Qmy14u9lezJ96A4sijpFu_.woff2',
+    };
     async function embedFont(name) {
+        if (CUSTOM_FONT_URLS[name]) {
+            try {
+                const fontBytes = await fetch(CUSTOM_FONT_URLS[name]).then(r => r.arrayBuffer());
+                return pdfDoc.embedFont(fontBytes);
+            } catch(e) {
+                console.warn('Custom font load failed, fallback to Helvetica:', e);
+            }
+        }
         const sfName = FONT_MAP[name] || 'Helvetica';
         const sfKey  = StandardFonts[sfName] || StandardFonts.Helvetica;
         return pdfDoc.embedFont(sfKey);
@@ -1906,19 +1925,21 @@ function _updateDragHandles(p) {
     const canvas = document.getElementById('design-preview-canvas');
     if (!svg || !canvas) return;
 
-    const sc = designState._scale;
+    // sc: factor de escala PDF→canvas (pdf.js renderiza a scale 1.5)
+    const sc = canvas.width / PDF_W;   // = 1.5 siempre
+    svg.setAttribute('viewBox', `0 0 ${canvas.width} ${canvas.height}`);
+    designState._scale = sc;
     svg.innerHTML = '';
 
-    // Helper: convertir coordenada PDF-Y a canvas-Y (PDF origin bottom-left → SVG top-down)
-    const PDF_H_LOCAL = 792;
-    const cy = (pdfY, h) => (PDF_H_LOCAL - pdfY - h) * sc;
+    // cy: convierte PDF Y (bottom-up) a canvas Y (top-down)
+    const cy = (pdfY, h) => (PDF_H - pdfY - h) * sc;
 
     const items = [
         { key:'logo',       x:p.logoX*sc,        y:cy(p.logoY, p.logoH),              w:p.logoW*sc,        h:p.logoH*sc,        label:'LOGO',       color:'#6366f1', xId:'design-logo-x', yId:'design-logo-y' },
         { key:'firma',      x:p.firmaX*sc,        y:cy(p.firmaY, p.firmaH),            w:p.firmaW*sc,       h:p.firmaH*sc,       label:'FIRMA',      color:'#0891b2', xId:'design-firma-x', yId:'design-firma-y' },
         { key:'headerLogo', x:p.headerLogoX*sc,   y:cy(p.headerLogoY, p.headerLogoH),  w:p.headerLogoW*sc,  h:p.headerLogoH*sc,  label:'CAB.LOGO',   color:'#7c3aed', xId:'design-header-logo-x', yId:'design-header-logo-y' },
-        { key:'hslogan',    x:p.headerSloganX*sc, y:cy(p.headerSloganY, p.headerSloganSize), w:Math.max(80,p.headerSloganSize*p.headerSlogan.length*0.55)*sc, h:(p.headerSloganSize+4)*sc, label:'CAB.SLOGAN', color:'#0d9488', xId:'design-header-slogan-x', yId:'design-header-slogan-y', isText:true },
-        { key:'slogan',     x:p.sloganX*sc,       y:cy(p.sloganY, p.sloganSize),       w:Math.max(60,p.sloganSize*p.slogan.length*0.55)*sc, h:(p.sloganSize+4)*sc, label:'SLOGAN', color:'#ea580c', xId:'design-slogan-x', yId:'design-slogan-y', isText:true },
+        { key:'hslogan',    x:p.headerSloganX*sc, y:cy(p.headerSloganY, p.headerSloganSize), w:Math.max(80,p.headerSloganSize*(p.headerSlogan||'').length*0.55)*sc, h:(p.headerSloganSize+4)*sc, label:'CAB.SLOGAN', color:'#0d9488', xId:'design-header-slogan-x', yId:'design-header-slogan-y', isText:true },
+        { key:'slogan',     x:p.sloganX*sc,       y:cy(p.sloganY, p.sloganSize),       w:Math.max(60,p.sloganSize*(p.slogan||'SLOGAN').length*0.55)*sc, h:(p.sloganSize+4)*sc, label:'SLOGAN', color:'#ea580c', xId:'design-slogan-x', yId:'design-slogan-y', isText:true },
     ];
 
     items.forEach(item => {
@@ -1981,11 +2002,11 @@ function _updateDragHandles(p) {
                 // sc_css: ratio entre tamaño CSS del canvas y su resolución interna
                 const canvasEl = document.getElementById('design-preview-canvas');
                 const cssW = canvasEl.getBoundingClientRect().width;
-                const sc_total = cssW / canvasEl.width;  // px-pantalla / px-canvas-interno
-                // Convertir dx pantalla → dx PDF
-                const dxPdf = (ev.clientX - _dragState.startMouseX) / (sc_total * _dragState.sc);
-                // PDF Y-axis is bottom-up: drag down → clientY increases → PDF Y decreases
-                const dyPdf = (ev.clientY - _dragState.startMouseY) / (sc_total * _dragState.sc);  // top-down: no negation
+                // Ratio pantalla→PDF: cssW corresponde a PDF_W puntos
+                const pxPerPt = cssW / PDF_W;
+                const dxPdf = (ev.clientX - _dragState.startMouseX) / pxPerPt;
+                // PDF Y bottom-up: arrastrar abajo (clientY+) debe aumentar pdfY (top-down stored)
+                const dyPdf = (ev.clientY - _dragState.startMouseY) / pxPerPt;
                 const elX = document.getElementById(item.xId);
                 const elY = document.getElementById(item.yId);
                 if (elX) elX.value = Math.max(0, Math.round(_dragState.startPdfX + dxPdf));
@@ -2014,9 +2035,9 @@ function _updateDragHandles(p) {
             const t = e.touches[0];
             const canvasEl = document.getElementById('design-preview-canvas');
             const cssW = canvasEl.getBoundingClientRect().width;
-            const sc_total = cssW / canvasEl.width;
-            const dxPdf = (t.clientX - _dragState.startMouseX) / (sc_total * _dragState.sc);
-            const dyPdf = (t.clientY - _dragState.startMouseY) / (sc_total * _dragState.sc);  // top-down: no negation
+            const pxPerPt = cssW / PDF_W;
+            const dxPdf = (t.clientX - _dragState.startMouseX) / pxPerPt;
+            const dyPdf = (t.clientY - _dragState.startMouseY) / pxPerPt;
             const elX = document.getElementById(item.xId);
             const elY = document.getElementById(item.yId);
             if (elX) elX.value = Math.max(0, Math.round(_dragState.startPdfX + dxPdf));
