@@ -304,195 +304,160 @@
 
         <!-- DC-3 Design -->
         <div id="section-dc3design" class="hidden">
-            <div class="grid grid-cols-5 gap-6" style="grid-template-columns: 2fr 3fr;">
-                <!-- Panel de configuracion -->
-                <div class="card p-6 space-y-5" style="max-height: 78vh; overflow-y: auto;">
-                    <div>
-                        <h3 class="text-sm font-bold text-indigo-600 uppercase tracking-wide mb-1">Diseño DC-3 Personalizado</h3>
-                        <p class="text-xs text-gray-400">Personaliza el logo, firma y texto que apareceran en el PDF.</p>
-                    </div>
+            <div style="display:grid;grid-template-columns:400px 1fr;gap:18px;min-height:82vh;">
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Nombre del Agente (en firma)</label>
-                        <input id="design-agent-name" class="input-field" placeholder="Ej. ING. CYNTHIA YADIRA GARZA LUGO">
-                    </div>
+                <!-- ── Panel izquierdo: controles ── -->
+                <div class="card p-5" style="overflow-y:auto;max-height:82vh;">
+                    <h3 class="text-sm font-bold text-indigo-600 uppercase tracking-wide mb-4">Diseño DC-3</h3>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Slogan / Texto adicional</label>
-                        <input id="design-slogan" class="input-field" placeholder="Ej. Comprometidos con tu desarrollo">
-                    </div>
-
-                    <div class="border-t pt-4 space-y-3">
-                        <p class="text-xs font-bold text-gray-500 uppercase">Logo</p>
+                    <!-- LOGO DE FIRMA -->
+                    <div class="border rounded-xl p-4 mb-4 space-y-3 bg-gray-50">
+                        <p class="text-xs font-bold text-gray-600 uppercase">Logo (sección de firmas)</p>
                         <div class="flex gap-3 items-start">
-                            <div id="design-logo-preview" class="w-20 h-20 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-300 text-xs flex-shrink-0">Sin logo</div>
+                            <div id="design-logo-preview" class="w-20 h-16 rounded border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-300 text-xs flex-shrink-0 overflow-hidden">Sin logo</div>
                             <div class="flex-1">
-                                <label class="btn-sm btn-outline cursor-pointer block text-center">
+                                <label class="btn-sm btn-outline cursor-pointer block text-center text-xs">
                                     Subir logo
-                                    <input type="file" accept="image/png" class="hidden" onchange="handleDesignImage(this, 'logo')">
+                                    <input type="file" accept="image/png,image/jpeg" class="hidden" onchange="handleDesignImage(this,'logo')">
                                 </label>
-                                <div class="grid grid-cols-2 gap-2 mt-2">
-                                    <div>
-                                        <label class="text-xs text-gray-400">X</label>
-                                        <input id="design-logo-x" type="number" class="input-field" style="padding:5px 8px;font-size:12px" value="58">
-                                    </div>
-                                    <div>
-                                        <label class="text-xs text-gray-400">Y</label>
-                                        <input id="design-logo-y" type="number" class="input-field" style="padding:5px 8px;font-size:12px" value="454">
-                                    </div>
-                                    <div>
-                                        <label class="text-xs text-gray-400">Ancho</label>
-                                        <input id="design-logo-w" type="number" class="input-field" style="padding:5px 8px;font-size:12px" value="115">
-                                    </div>
-                                    <div>
-                                        <label class="text-xs text-gray-400">Alto</label>
-                                        <input id="design-logo-h" type="number" class="input-field" style="padding:5px 8px;font-size:12px" value="65">
-                                    </div>
-                                </div>
+                                <button onclick="clearDesignImage('logo')" class="mt-1 text-xs text-red-400 hover:text-red-600 w-full text-center">✕ Quitar</button>
                             </div>
+                        </div>
+                        <div class="grid grid-cols-4 gap-1">
+                            <div><label class="text-xs text-gray-400">X</label><input id="design-logo-x" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="58" oninput="schedulePreview()"></div>
+                            <div><label class="text-xs text-gray-400">Y</label><input id="design-logo-y" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="454" oninput="schedulePreview()"></div>
+                            <div><label class="text-xs text-gray-400">Ancho</label><input id="design-logo-w" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="115" oninput="schedulePreview()"></div>
+                            <div><label class="text-xs text-gray-400">Alto</label><input id="design-logo-h" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="65" oninput="schedulePreview()"></div>
                         </div>
                     </div>
 
-                    <div class="border-t pt-4 space-y-3">
-                        <p class="text-xs font-bold text-gray-500 uppercase">Firma</p>
+                    <!-- FIRMA -->
+                    <div class="border rounded-xl p-4 mb-4 space-y-3 bg-gray-50">
+                        <p class="text-xs font-bold text-gray-600 uppercase">Firma del instructor</p>
                         <div class="flex gap-3 items-start">
-                            <div id="design-firma-preview" class="w-20 h-20 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-300 text-xs flex-shrink-0">Sin firma</div>
+                            <div id="design-firma-preview" class="w-20 h-16 rounded border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-300 text-xs flex-shrink-0 overflow-hidden">Sin firma</div>
                             <div class="flex-1">
-                                <label class="btn-sm btn-outline cursor-pointer block text-center">
+                                <label class="btn-sm btn-outline cursor-pointer block text-center text-xs">
                                     Subir firma
-                                    <input type="file" accept="image/png" class="hidden" onchange="handleDesignImage(this, 'firma')">
+                                    <input type="file" accept="image/png,image/jpeg" class="hidden" onchange="handleDesignImage(this,'firma')">
                                 </label>
-                                <div class="grid grid-cols-2 gap-2 mt-2">
-                                    <div>
-                                        <label class="text-xs text-gray-400">X</label>
-                                        <input id="design-firma-x" type="number" class="input-field" style="padding:5px 8px;font-size:12px" value="88">
-                                    </div>
-                                    <div>
-                                        <label class="text-xs text-gray-400">Y</label>
-                                        <input id="design-firma-y" type="number" class="input-field" style="padding:5px 8px;font-size:12px" value="457">
-                                    </div>
-                                    <div>
-                                        <label class="text-xs text-gray-400">Ancho</label>
-                                        <input id="design-firma-w" type="number" class="input-field" style="padding:5px 8px;font-size:12px" value="85">
-                                    </div>
-                                    <div>
-                                        <label class="text-xs text-gray-400">Alto</label>
-                                        <input id="design-firma-h" type="number" class="input-field" style="padding:5px 8px;font-size:12px" value="60">
-                                    </div>
-                                </div>
+                                <button onclick="clearDesignImage('firma')" class="mt-1 text-xs text-red-400 hover:text-red-600 w-full text-center">✕ Quitar</button>
                             </div>
+                        </div>
+                        <div class="grid grid-cols-4 gap-1">
+                            <div><label class="text-xs text-gray-400">X</label><input id="design-firma-x" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="88" oninput="schedulePreview()"></div>
+                            <div><label class="text-xs text-gray-400">Y</label><input id="design-firma-y" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="457" oninput="schedulePreview()"></div>
+                            <div><label class="text-xs text-gray-400">Ancho</label><input id="design-firma-w" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="85" oninput="schedulePreview()"></div>
+                            <div><label class="text-xs text-gray-400">Alto</label><input id="design-firma-h" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="60" oninput="schedulePreview()"></div>
                         </div>
                     </div>
 
-                    <!-- CABECERA DEL DC-3 -->
-                    <div class="border-t pt-4 space-y-3">
-                        <p class="text-xs font-bold text-indigo-500 uppercase">Cabecera del DC-3</p>
-                        <p class="text-xs text-gray-400">Logo y slogan que aparecen en la parte superior del documento.</p>
-
-                        <!-- Logo de cabecera -->
-                        <div>
-                            <p class="text-xs font-semibold text-gray-600 mb-2">Logo de cabecera</p>
-                            <div class="flex gap-3 items-start">
-                                <div id="design-header-logo-preview" class="w-20 h-14 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-300 text-xs flex-shrink-0">Sin logo</div>
-                                <div class="flex-1">
-                                    <label class="btn-sm btn-outline cursor-pointer block text-center">
-                                        Subir logo cabecera
-                                        <input type="file" accept="image/png,image/jpeg" class="hidden" onchange="handleDesignImage(this, 'headerLogo')">
-                                    </label>
-                                    <div class="grid grid-cols-2 gap-2 mt-2">
-                                        <div>
-                                            <label class="text-xs text-gray-400">Ancho</label>
-                                            <input id="design-header-logo-w" type="number" class="input-field" style="padding:5px 8px;font-size:12px" value="120">
-                                        </div>
-                                        <div>
-                                            <label class="text-xs text-gray-400">Alto</label>
-                                            <input id="design-header-logo-h" type="number" class="input-field" style="padding:5px 8px;font-size:12px" value="65">
-                                        </div>
-                                        <div>
-                                            <label class="text-xs text-gray-400">X (posicion)</label>
-                                            <input id="design-header-logo-x" type="number" class="input-field" style="padding:5px 8px;font-size:12px" value="240">
-                                        </div>
-                                        <div>
-                                            <label class="text-xs text-gray-400">Y (posicion)</label>
-                                            <input id="design-header-logo-y" type="number" class="input-field" style="padding:5px 8px;font-size:12px" value="45">
-                                        </div>
-                                    </div>
-                                </div>
+                    <!-- CABECERA: logo -->
+                    <div class="border rounded-xl p-4 mb-4 space-y-3 bg-indigo-50">
+                        <p class="text-xs font-bold text-indigo-600 uppercase">Cabecera — Logo</p>
+                        <div class="flex gap-3 items-start">
+                            <div id="design-header-logo-preview" class="w-20 h-14 rounded border-2 border-dashed border-indigo-200 flex items-center justify-center text-gray-300 text-xs flex-shrink-0 overflow-hidden">Sin logo</div>
+                            <div class="flex-1">
+                                <label class="btn-sm btn-outline cursor-pointer block text-center text-xs">
+                                    Subir logo cabecera
+                                    <input type="file" accept="image/png,image/jpeg" class="hidden" onchange="handleDesignImage(this,'headerLogo')">
+                                </label>
+                                <button onclick="clearDesignImage('headerLogo')" class="mt-1 text-xs text-red-400 hover:text-red-600 w-full text-center">✕ Quitar</button>
                             </div>
                         </div>
-
-                        <!-- Slogan de cabecera -->
-                        <div>
-                            <p class="text-xs font-semibold text-gray-600 mb-1">Slogan de cabecera</p>
-                            <input id="design-header-slogan" class="input-field" placeholder="Ej. Tu seguridad, nuestra mision">
-                            <div class="grid grid-cols-3 gap-2 mt-2">
-                                <div>
-                                    <label class="text-xs text-gray-400">X</label>
-                                    <input id="design-header-slogan-x" type="number" class="input-field" style="padding:5px 8px;font-size:12px" value="300">
-                                </div>
-                                <div>
-                                    <label class="text-xs text-gray-400">Y</label>
-                                    <input id="design-header-slogan-y" type="number" class="input-field" style="padding:5px 8px;font-size:12px" value="40">
-                                </div>
-                                <div>
-                                    <label class="text-xs text-gray-400">Tamano</label>
-                                    <input id="design-header-slogan-size" type="number" class="input-field" style="padding:5px 8px;font-size:12px" value="14" min="8" max="30">
-                                </div>
-                            </div>
+                        <div class="grid grid-cols-4 gap-1">
+                            <div><label class="text-xs text-gray-400">X</label><input id="design-header-logo-x" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="30" oninput="schedulePreview()"></div>
+                            <div><label class="text-xs text-gray-400">Y</label><input id="design-header-logo-y" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="10" oninput="schedulePreview()"></div>
+                            <div><label class="text-xs text-gray-400">Ancho</label><input id="design-header-logo-w" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="120" oninput="schedulePreview()"></div>
+                            <div><label class="text-xs text-gray-400">Alto</label><input id="design-header-logo-h" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="55" oninput="schedulePreview()"></div>
                         </div>
                     </div>
 
-                    <!-- SLOGAN EN SECCIÓN DE FIRMAS -->
-                    <div class="border-t pt-4">
-                        <p class="text-xs font-bold text-gray-500 uppercase mb-2">Texto extra en sección de firmas</p>
-                        <input id="design-slogan" class="input-field" placeholder="Ej. Texto adicional en firmas">
-                        <div class="grid grid-cols-3 gap-2 mt-2">
+                    <!-- CABECERA: slogan -->
+                    <div class="border rounded-xl p-4 mb-4 space-y-3 bg-indigo-50">
+                        <p class="text-xs font-bold text-indigo-600 uppercase">Cabecera — Slogan</p>
+                        <input id="design-header-slogan" class="input-field" placeholder="Ej. CONSULTING & TRAINING SAPI" oninput="schedulePreview()">
+                        <div class="grid grid-cols-2 gap-2">
                             <div>
-                                <label class="text-xs text-gray-400">X</label>
-                                <input id="design-slogan-x" type="number" class="input-field" style="padding:5px 8px;font-size:12px" value="30">
+                                <label class="text-xs text-gray-400">Fuente</label>
+                                <select id="design-header-slogan-font" class="input-field" style="padding:4px 6px;font-size:11px" onchange="schedulePreview()">
+                                    <option value="Helvetica">Helvetica (normal)</option>
+                                    <option value="Helvetica-Bold">Helvetica Negrita</option>
+                                    <option value="Helvetica-Oblique">Helvetica Cursiva</option>
+                                    <option value="Helvetica-BoldOblique">Helvetica Negrita+Cursiva</option>
+                                    <option value="Times-Roman">Times Roman</option>
+                                    <option value="Times-Bold">Times Negrita</option>
+                                    <option value="Times-Italic">Times Cursiva</option>
+                                    <option value="Courier">Courier</option>
+                                    <option value="Courier-Bold">Courier Negrita</option>
+                                </select>
                             </div>
                             <div>
-                                <label class="text-xs text-gray-400">Y</label>
-                                <input id="design-slogan-y" type="number" class="input-field" style="padding:5px 8px;font-size:12px" value="445">
+                                <label class="text-xs text-gray-400">Tamaño</label>
+                                <input id="design-header-slogan-size" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="9" min="6" max="30" oninput="schedulePreview()">
                             </div>
-                            <div>
-                                <label class="text-xs text-gray-400">Tamano</label>
-                                <input id="design-slogan-size" type="number" class="input-field" style="padding:5px 8px;font-size:12px" value="7" min="5" max="14">
-                            </div>
+                            <div><label class="text-xs text-gray-400">X</label><input id="design-header-slogan-x" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="160" oninput="schedulePreview()"></div>
+                            <div><label class="text-xs text-gray-400">Y</label><input id="design-header-slogan-y" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="18" oninput="schedulePreview()"></div>
                         </div>
+                    </div>
+
+                    <!-- SLOGAN EN FIRMAS -->
+                    <div class="border rounded-xl p-4 mb-4 space-y-3 bg-gray-50">
+                        <p class="text-xs font-bold text-gray-600 uppercase">Texto en sección de firmas</p>
+                        <input id="design-slogan" class="input-field" placeholder="Ej. Comprometidos con tu desarrollo" oninput="schedulePreview()">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="text-xs text-gray-400">Fuente</label>
+                                <select id="design-slogan-font" class="input-field" style="padding:4px 6px;font-size:11px" onchange="schedulePreview()">
+                                    <option value="Helvetica">Helvetica (normal)</option>
+                                    <option value="Helvetica-Bold">Helvetica Negrita</option>
+                                    <option value="Helvetica-Oblique">Helvetica Cursiva</option>
+                                    <option value="Helvetica-BoldOblique">Neg+Cursiva</option>
+                                    <option value="Times-Roman">Times Roman</option>
+                                    <option value="Times-Bold">Times Negrita</option>
+                                    <option value="Times-Italic">Times Cursiva</option>
+                                    <option value="Courier">Courier</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-xs text-gray-400">Tamaño</label>
+                                <input id="design-slogan-size" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="7" min="5" max="20" oninput="schedulePreview()">
+                            </div>
+                            <div><label class="text-xs text-gray-400">X</label><input id="design-slogan-x" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="30" oninput="schedulePreview()"></div>
+                            <div><label class="text-xs text-gray-400">Y</label><input id="design-slogan-y" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="445" oninput="schedulePreview()"></div>
+                        </div>
+                    </div>
+
+                    <!-- NOMBRE AGENTE -->
+                    <div class="border rounded-xl p-4 mb-4 bg-gray-50">
+                        <label class="block text-xs font-bold text-gray-600 uppercase mb-2">Nombre del Agente</label>
+                        <input id="design-agent-name" class="input-field" placeholder="Ej. ING. CYNTHIA YADIRA GARZA LUGO" oninput="schedulePreview()">
                     </div>
 
                     <div class="flex gap-3 pt-2">
-                        <button onclick="saveDesign()" class="btn-sm btn-indigo flex-1">Guardar diseno</button>
-                        <button onclick="previewDesign()" class="btn-sm btn-outline flex-1">Previsualizar</button>
+                        <button onclick="saveDesign()" class="btn-sm btn-indigo flex-1 text-sm font-semibold">💾 Guardar diseño</button>
+                        <button onclick="updateDesignPreview()" class="btn-sm btn-outline flex-1 text-sm">🔄 Actualizar</button>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-2 text-center">💡 Arrastra logo/firma directo en la vista previa</p>
+                </div>
+
+                <!-- ── Panel derecho: preview interactivo ── -->
+                <div class="card p-4" style="display:flex;flex-direction:column;overflow:hidden;">
+                    <div class="flex justify-between items-center mb-2">
+                        <p class="text-xs font-bold text-gray-500 uppercase">Vista previa — DC-3 (arrastra los elementos)</p>
+                        <span id="design-drag-hint" class="text-xs text-indigo-500"></span>
+                    </div>
+                    <div id="design-preview-wrap" style="position:relative;overflow-y:auto;overflow-x:hidden;flex:1;min-height:0;border-radius:8px;background:#f3f4f6;cursor:crosshair;">
+                        <canvas id="design-preview-canvas" style="display:block;width:100%;"></canvas>
+                        <!-- Overlay SVG para handles de arrastre -->
+                        <svg id="design-drag-overlay" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;"></svg>
                     </div>
                 </div>
 
-                <!-- Preview del PDF completo -->
-                <div class="card p-4" style="display:flex; flex-direction:column;">
-                    <div class="flex justify-between items-center mb-3">
-                        <p class="text-xs font-bold text-gray-500 uppercase">Vista previa — DC-3 completo</p>
-                        <span class="text-xs text-gray-400">Scroll para ver todo el documento</span>
-                    </div>
-                    <div class="bg-gray-100 rounded-lg flex items-center justify-start overflow-y-auto" style="max-height: 75vh; padding: 12px;">
-                        <canvas id="design-preview-canvas" style="border: 1px solid #e5e7eb; border-radius: 6px; width: 100%; display: block;"></canvas>
-                    </div>
-                    <p class="text-xs text-gray-400 mt-2 text-center">Preview en tiempo real del DC-3 con tu diseno aplicado.</p>
-                </div>
             </div>
         </div>
 
-        <!-- Agents -->
-        <div id="section-agents" class="hidden">
-            <div class="card overflow-hidden">
-                <table>
-                    <thead><tr><th>Agente Capacitador</th><th>No. Registro STPS</th><th>Acciones</th></tr></thead>
-                    <tbody id="tb-agents"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Users (admin only) -->
+                <!-- Users (admin only) -->
         <div id="section-users" class="hidden">
             <div class="card overflow-hidden">
                 <table>
@@ -1620,7 +1585,32 @@ function togglePassword() {
 }
 
 // ─── DISEÑO DC-3 — funciones del panel ────────────────────────────────────────
-const designState = { logo_base64: null, firma_base64: null, header_logo_base64: null };
+//  • Preview reactivo: cualquier cambio de input dispara schedulePreview()
+//  • Drag & Drop en canvas: arrastra logo, firma, logo-cabecera, slogan-cabecera
+//  • Tipografía seleccionable por cada texto
+// ─────────────────────────────────────────────────────────────────────────────
+
+const designState = {
+    logo_base64: null, firma_base64: null, header_logo_base64: null,
+    _previewTimer: null, _pdfTemplateBytes: null, _scale: 1.0
+};
+
+// Dimensiones internas del PDF (US Letter portrait)
+const PDF_W = 612, PDF_H = 792;
+
+// ── Fuentes disponibles en pdf-lib ────────────────────────────────────────────
+const FONT_MAP = {
+    'Helvetica':            'Helvetica',
+    'Helvetica-Bold':       'HelveticaBold',
+    'Helvetica-Oblique':    'HelveticaOblique',
+    'Helvetica-BoldOblique':'HelveticaBoldOblique',
+    'Times-Roman':          'TimesRoman',
+    'Times-Bold':           'TimesBold',
+    'Times-Italic':         'TimesItalic',
+    'Times-BoldItalic':     'TimesBoldItalic',
+    'Courier':              'Courier',
+    'Courier-Bold':         'CourierBold',
+};
 
 function fileToDataUrl(file) {
     return new Promise((res,rej) => {
@@ -1629,6 +1619,12 @@ function fileToDataUrl(file) {
         r.onerror = rej;
         r.readAsDataURL(file);
     });
+}
+
+/** Dispara el preview con debounce (evita renders en cada tecla) */
+function schedulePreview() {
+    clearTimeout(designState._previewTimer);
+    designState._previewTimer = setTimeout(() => updateDesignPreview(), 120);
 }
 
 async function loadDesign() {
@@ -1644,32 +1640,35 @@ async function loadDesign() {
         }
         if (!d) { await updateDesignPreview(); return; }
 
-        if (d.logoBase64)        { designState.logo_base64 = d.logoBase64;        showDesignThumb('logo', d.logoBase64); }
-        if (d.firmaBase64)       { designState.firma_base64 = d.firmaBase64;      showDesignThumb('firma', d.firmaBase64); }
+        const setV = (id, val) => { if (val !== null && val !== undefined) { const el = document.getElementById(id); if (el) el.value = val; } };
+
+        if (d.logoBase64)        { designState.logo_base64 = d.logoBase64;             showDesignThumb('logo', d.logoBase64); }
+        if (d.firmaBase64)       { designState.firma_base64 = d.firmaBase64;           showDesignThumb('firma', d.firmaBase64); }
         if (d.headerLogoBase64)  { designState.header_logo_base64 = d.headerLogoBase64; showDesignThumb('headerLogo', d.headerLogoBase64); }
 
-        const set = (id, val) => { if (val !== null && val !== undefined) { const el = document.getElementById(id); if (el) el.value = val; } };
-        set('design-agent-name', d.agentName);
-        set('design-slogan', d.slogan);
-        set('design-slogan-x', d.sloganX);
-        set('design-slogan-y', d.sloganY);
-        set('design-slogan-size', d.sloganSize);
-        set('design-logo-x', d.logoX);
-        set('design-logo-y', d.logoY);
-        set('design-logo-w', d.logoW);
-        set('design-logo-h', d.logoH);
-        set('design-firma-x', d.firmaX);
-        set('design-firma-y', d.firmaY);
-        set('design-firma-w', d.firmaW);
-        set('design-firma-h', d.firmaH);
-        set('design-header-slogan', d.headerSlogan);
-        set('design-header-slogan-x', d.headerSloganX);
-        set('design-header-slogan-y', d.headerSloganY);
-        set('design-header-slogan-size', d.headerSloganSize);
-        set('design-header-logo-w', d.headerLogoW);
-        set('design-header-logo-h', d.headerLogoH);
-        set('design-header-logo-x', d.headerLogoX);
-        set('design-header-logo-y', d.headerLogoY);
+        setV('design-agent-name', d.agentName);
+        setV('design-slogan', d.slogan);
+        setV('design-slogan-x', d.sloganX ?? 30);
+        setV('design-slogan-y', d.sloganY ?? 445);
+        setV('design-slogan-size', d.sloganSize ?? 7);
+        setV('design-slogan-font', d.sloganFont ?? 'Helvetica');
+        setV('design-logo-x', d.logoX ?? 58);
+        setV('design-logo-y', d.logoY ?? 454);
+        setV('design-logo-w', d.logoW ?? 115);
+        setV('design-logo-h', d.logoH ?? 65);
+        setV('design-firma-x', d.firmaX ?? 88);
+        setV('design-firma-y', d.firmaY ?? 457);
+        setV('design-firma-w', d.firmaW ?? 85);
+        setV('design-firma-h', d.firmaH ?? 60);
+        setV('design-header-slogan', d.headerSlogan);
+        setV('design-header-slogan-x', d.headerSloganX ?? 160);
+        setV('design-header-slogan-y', d.headerSloganY ?? 18);
+        setV('design-header-slogan-size', d.headerSloganSize ?? 9);
+        setV('design-header-slogan-font', d.headerSloganFont ?? 'Helvetica-Bold');
+        setV('design-header-logo-w', d.headerLogoW ?? 120);
+        setV('design-header-logo-h', d.headerLogoH ?? 55);
+        setV('design-header-logo-x', d.headerLogoX ?? 30);
+        setV('design-header-logo-y', d.headerLogoY ?? 10);
 
         await updateDesignPreview();
     } catch(e) { console.warn('loadDesign error:', e); }
@@ -1703,155 +1702,311 @@ function clearDesignImage(type) {
     updateDesignPreview();
 }
 
+function gv(id, def=0) { return +(document.getElementById(id)?.value ?? def) || def; }
+function gs(id, def='') { return document.getElementById(id)?.value ?? def; }
+
+/** Recopila todos los parámetros actuales del diseño */
+function getDesignParams() {
+    return {
+        logoBase64:       designState.logo_base64,
+        logoX: gv('design-logo-x',58), logoY: gv('design-logo-y',454),
+        logoW: gv('design-logo-w',115), logoH: gv('design-logo-h',65),
+        firmaBase64:      designState.firma_base64,
+        firmaX: gv('design-firma-x',88), firmaY: gv('design-firma-y',457),
+        firmaW: gv('design-firma-w',85), firmaH: gv('design-firma-h',60),
+        headerLogoBase64: designState.header_logo_base64,
+        headerLogoX: gv('design-header-logo-x',30), headerLogoY: gv('design-header-logo-y',10),
+        headerLogoW: gv('design-header-logo-w',120), headerLogoH: gv('design-header-logo-h',55),
+        headerSlogan: gs('design-header-slogan'),
+        headerSloganX: gv('design-header-slogan-x',160), headerSloganY: gv('design-header-slogan-y',18),
+        headerSloganSize: gv('design-header-slogan-size',9),
+        headerSloganFont: gs('design-header-slogan-font','Helvetica-Bold'),
+        slogan: gs('design-slogan'),
+        sloganX: gv('design-slogan-x',30), sloganY: gv('design-slogan-y',445),
+        sloganSize: gv('design-slogan-size',7),
+        sloganFont: gs('design-slogan-font','Helvetica'),
+        agentName: gs('design-agent-name'),
+        creatorEmail: currentUser?.email || ''
+    };
+}
+
+// ── Guardar diseño ─────────────────────────────────────────────────────────────
 async function saveDesign() {
     const btn = document.querySelector('[onclick="saveDesign()"]');
-    if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
+    if (btn) { btn.disabled=true; btn.textContent='Guardando…'; }
     try {
-        const payload = toSnake({
-            agentName: document.getElementById('design-agent-name')?.value || '',
-            slogan: document.getElementById('design-slogan')?.value || '',
-            sloganX: +document.getElementById('design-slogan-x')?.value || 30,
-            sloganY: +document.getElementById('design-slogan-y')?.value || 445,
-            sloganSize: +document.getElementById('design-slogan-size')?.value || 7,
-            logoBase64: designState.logo_base64,
-            logoX: +document.getElementById('design-logo-x')?.value || 58,
-            logoY: +document.getElementById('design-logo-y')?.value || 454,
-            logoW: +document.getElementById('design-logo-w')?.value || 115,
-            logoH: +document.getElementById('design-logo-h')?.value || 65,
-            firmaBase64: designState.firma_base64,
-            firmaX: +document.getElementById('design-firma-x')?.value || 88,
-            firmaY: +document.getElementById('design-firma-y')?.value || 457,
-            firmaW: +document.getElementById('design-firma-w')?.value || 85,
-            firmaH: +document.getElementById('design-firma-h')?.value || 60,
-            headerSlogan: document.getElementById('design-header-slogan')?.value || '',
-            headerSloganX: +document.getElementById('design-header-slogan-x')?.value || 300,
-            headerSloganY: +document.getElementById('design-header-slogan-y')?.value || 40,
-            headerSloganSize: +document.getElementById('design-header-slogan-size')?.value || 14,
-            headerLogoBase64: designState.header_logo_base64,
-            headerLogoW: +document.getElementById('design-header-logo-w')?.value || 120,
-            headerLogoH: +document.getElementById('design-header-logo-h')?.value || 65,
-            headerLogoX: +document.getElementById('design-header-logo-x')?.value || 240,
-            headerLogoY: +document.getElementById('design-header-logo-y')?.value || 45,
-            creatorEmail: currentUser?.email || '',
-            updatedAt: new Date().toISOString()
-        });
-
+        const p = getDesignParams();
+        const payload = toSnake({ ...p, updatedAt: new Date().toISOString() });
         localStorage.setItem('dc3_design', JSON.stringify(payload));
 
-        // Upsert en agent_designs (buscar por creatorEmail, si no existe insertar)
-        const existing = await api('find','agent_designs', { filter: { creatorEmail: currentUser?.email || '' } });
-        if (existing.documents && existing.documents.length > 0) {
-            // Update existente
-            const id = existing.documents[0].id;
-            const { error } = await sb.from('agent_designs').update(payload).eq('id', id);
+        const existing = await api('find','agent_designs', { filter: { creatorEmail: p.creatorEmail } });
+        if (existing.documents?.length > 0) {
+            const { error } = await sb.from('agent_designs').update(payload).eq('id', existing.documents[0].id);
             if (error) throw error;
         } else {
-            // Insert nuevo
             const { error } = await sb.from('agent_designs').insert(payload);
             if (error) throw error;
         }
-
-        alert('✓ Diseño guardado correctamente');
-    } catch(e) {
-        alert('Error guardando diseño: ' + e.message);
-    } finally {
-        if (btn) { btn.disabled = false; btn.textContent = 'Guardar diseno'; }
-    }
+        alert('✓ Diseño guardado');
+    } catch(e) { alert('Error: ' + e.message); }
+    finally { if (btn) { btn.disabled=false; btn.textContent='💾 Guardar diseño'; } }
 }
 
 async function previewDesign() { await updateDesignPreview(); }
 
+// ── Preview principal ──────────────────────────────────────────────────────────
+let _previewRendering = false;
 async function updateDesignPreview() {
+    if (_previewRendering) { schedulePreview(); return; }
+    _previewRendering = true;
+    try {
+        await _renderPreview();
+    } finally { _previewRendering = false; }
+}
+
+async function _renderPreview() {
     const canvas = document.getElementById('design-preview-canvas');
     if (!canvas) return;
 
+    // Cargar librerías si no están
     if (!window.PDFLib) {
-        await new Promise((res,rej) => {
-            const s = document.createElement('script');
-            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js';
-            s.onload = res; s.onerror = rej; document.head.appendChild(s);
+        await new Promise((res,rej)=>{
+            const s=document.createElement('script');
+            s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js';
+            s.onload=res; s.onerror=rej; document.head.appendChild(s);
         });
     }
     if (!window.pdfjsLib) {
-        await new Promise((res,rej) => {
-            const s = document.createElement('script');
-            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-            s.onload = () => { pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; res(); };
-            s.onerror = rej; document.head.appendChild(s);
+        await new Promise((res,rej)=>{
+            const s=document.createElement('script');
+            s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+            s.onload=()=>{ pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; res(); };
+            s.onerror=rej; document.head.appendChild(s);
         });
     }
 
     const { PDFDocument, StandardFonts, rgb } = PDFLib;
 
-    let pdfBytes;
-    try {
-        const resp = await fetch('/plantilla_dc3.pdf');
-        if (!resp.ok) throw new Error('HTTP ' + resp.status);
-        pdfBytes = await resp.arrayBuffer();
-    } catch(e) {
-        const ctx = canvas.getContext('2d');
-        canvas.width = 420; canvas.height = 80;
-        ctx.fillStyle = '#fee2e2'; ctx.fillRect(0,0,420,80);
-        ctx.fillStyle = '#991b1b'; ctx.font = '12px sans-serif';
-        ctx.fillText('No se pudo cargar /plantilla_dc3.pdf: ' + e.message, 10, 30);
-        return;
+    // Cargar plantilla (cacheada)
+    if (!designState._pdfTemplateBytes) {
+        try {
+            const resp = await fetch('/plantilla_dc3.pdf');
+            if (!resp.ok) throw new Error('HTTP '+resp.status);
+            designState._pdfTemplateBytes = await resp.arrayBuffer();
+        } catch(e) {
+            _showCanvasError(canvas, 'No se pudo cargar /plantilla_dc3.pdf: '+e.message);
+            return;
+        }
     }
 
-    const pdfDoc = await PDFDocument.load(pdfBytes);
+    const pdfDoc = await PDFDocument.load(designState._pdfTemplateBytes.slice(0));
     const page   = pdfDoc.getPage(0);
-    const PH     = 792;
 
-    async function drawImg(base64, xId, yId, wId, hId) {
+    const p = getDesignParams();
+
+    // Helper: embedir imagen desde base64
+    async function di(base64, x, y, w, h) {
         if (!base64) return;
         try {
             const img = await embedBase64Img(pdfDoc, base64);
-            const x = +document.getElementById(xId)?.value || 0;
-            const y = +document.getElementById(yId)?.value || 0;
-            const w = +document.getElementById(wId)?.value || 100;
-            const h = +document.getElementById(hId)?.value || 50;
-            page.drawImage(img, { x, y: PH-y-h, width: w, height: h });
-        } catch(e) { console.warn('preview img error:', e); }
+            // Y invertido: PDF origin = bottom-left
+            page.drawImage(img, { x, y: PDF_H - y - h, width: w, height: h });
+        } catch(e) { console.warn('img embed:', e); }
     }
 
-    await drawImg(designState.logo_base64, 'design-logo-x', 'design-logo-y', 'design-logo-w', 'design-logo-h');
-    await drawImg(designState.firma_base64, 'design-firma-x', 'design-firma-y', 'design-firma-w', 'design-firma-h');
-    await drawImg(designState.header_logo_base64, 'design-header-logo-x', 'design-header-logo-y', 'design-header-logo-w', 'design-header-logo-h');
+    // Dibujar imágenes
+    await di(p.logoBase64,       p.logoX,       p.logoY,       p.logoW,       p.logoH);
+    await di(p.firmaBase64,      p.firmaX,      p.firmaY,      p.firmaW,      p.firmaH);
+    await di(p.headerLogoBase64, p.headerLogoX, p.headerLogoY, p.headerLogoW, p.headerLogoH);
 
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-
-    // Slogan cabecera
-    const hs = document.getElementById('design-header-slogan')?.value;
-    if (hs && hs.trim()) {
-        const sx = +document.getElementById('design-header-slogan-x')?.value || 300;
-        const sy = +document.getElementById('design-header-slogan-y')?.value || 40;
-        const ss = +document.getElementById('design-header-slogan-size')?.value || 14;
-        page.drawText(hs.slice(0,60), { x: sx, y: PH-sy-ss, size: ss, font, color: rgb(0.2,0.2,0.2) });
+    // Helper: embedir fuente por nombre
+    async function embedFont(name) {
+        const sfName = FONT_MAP[name] || 'Helvetica';
+        const sfKey  = StandardFonts[sfName] || StandardFonts.Helvetica;
+        return pdfDoc.embedFont(sfKey);
     }
-    // Slogan en firmas
-    const fs = document.getElementById('design-slogan')?.value;
-    if (fs && fs.trim()) {
-        const sx = +document.getElementById('design-slogan-x')?.value || 30;
-        const sy = +document.getElementById('design-slogan-y')?.value || 445;
-        const ss = +document.getElementById('design-slogan-size')?.value || 7;
-        page.drawText(fs.slice(0,80), { x: sx, y: PH-sy-ss, size: ss, font, color: rgb(0.2,0.2,0.2) });
+
+    // Dibujar textos
+    if (p.headerSlogan?.trim()) {
+        const font = await embedFont(p.headerSloganFont);
+        page.drawText(p.headerSlogan.slice(0,80), {
+            x: p.headerSloganX,
+            y: PDF_H - p.headerSloganY - p.headerSloganSize,
+            size: p.headerSloganSize, font, color: rgb(0.05,0.05,0.35)
+        });
+    }
+    if (p.slogan?.trim()) {
+        const font = await embedFont(p.sloganFont);
+        page.drawText(p.slogan.slice(0,80), {
+            x: p.sloganX,
+            y: PDF_H - p.sloganY - p.sloganSize,
+            size: p.sloganSize, font, color: rgb(0.1,0.1,0.1)
+        });
     }
 
     const outBytes = await pdfDoc.save();
-    const loadingTask = pdfjsLib.getDocument({ data: outBytes });
-    const pdf = await loadingTask.promise;
+
+    // Renderizar con pdf.js
+    const loadTask = pdfjsLib.getDocument({ data: outBytes });
+    const pdf = await loadTask.promise;
     const pg  = await pdf.getPage(1);
-    const vp  = pg.getViewport({ scale: 1.4 });
-    canvas.width = vp.width; canvas.height = vp.height;
+    const vp  = pg.getViewport({ scale: 1.5 });
+    canvas.width  = vp.width;
+    canvas.height = vp.height;
     await pg.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+
+    // Escala canvas→PDF para drag
+    designState._scale = vp.width / PDF_W;
+
+    // Actualizar handles de arrastre sobre el SVG overlay
+    _updateDragHandles(p);
+}
+
+function _showCanvasError(canvas, msg) {
+    const ctx = canvas.getContext('2d');
+    canvas.width=500; canvas.height=60;
+    ctx.fillStyle='#fee2e2'; ctx.fillRect(0,0,500,60);
+    ctx.fillStyle='#991b1b'; ctx.font='12px sans-serif';
+    ctx.fillText(msg, 10, 30);
+}
+
+// ── Drag & Drop en el canvas ───────────────────────────────────────────────────
+// Cada "handle" es un rectángulo semitransparente sobre el overlay SVG que
+// se puede arrastrar. Al soltar, actualiza los inputs y redibuja.
+
+const DRAG_ITEMS = [
+    { key:'logo',       xId:'design-logo-x',        yId:'design-logo-y',        wId:'design-logo-w',        hId:'design-logo-h',        label:'LOGO',        color:'#6366f1' },
+    { key:'firma',      xId:'design-firma-x',        yId:'design-firma-y',        wId:'design-firma-w',        hId:'design-firma-h',        label:'FIRMA',       color:'#0891b2' },
+    { key:'headerLogo', xId:'design-header-logo-x',  yId:'design-header-logo-y',  wId:'design-header-logo-w',  hId:'design-header-logo-h',  label:'CAB.LOGO',    color:'#7c3aed' },
+    { key:'hslogan',    xId:'design-header-slogan-x', yId:'design-header-slogan-y', wId:null, hId:null,         label:'CAB.SLOGAN',  color:'#0d9488', isText:true },
+    { key:'slogan',     xId:'design-slogan-x',        yId:'design-slogan-y',        wId:null, hId:null,         label:'SLOGAN',      color:'#ea580c', isText:true },
+];
+
+let _dragState = null;
+
+function _updateDragHandles(p) {
+    const svg    = document.getElementById('design-drag-overlay');
+    const canvas = document.getElementById('design-preview-canvas');
+    if (!svg || !canvas) return;
+
+    const sc = designState._scale;
+    svg.innerHTML = '';
+
+    // Helper: convertir coordenada PDF-Y a canvas-Y (PDF origin bottom-left)
+    const cy = (pdfY, h) => (PDF_H - pdfY - h) * sc;
+
+    const items = [
+        { key:'logo',       x:p.logoX,         y:cy(p.logoY, p.logoH),           w:p.logoW*sc,   h:p.logoH*sc,   label:'LOGO',       color:'#6366f1', xId:'design-logo-x', yId:'design-logo-y' },
+        { key:'firma',      x:p.firmaX*sc,      y:cy(p.firmaY, p.firmaH),         w:p.firmaW*sc,  h:p.firmaH*sc,  label:'FIRMA',      color:'#0891b2', xId:'design-firma-x', yId:'design-firma-y' },
+        { key:'headerLogo', x:p.headerLogoX*sc, y:cy(p.headerLogoY, p.headerLogoH), w:p.headerLogoW*sc, h:p.headerLogoH*sc, label:'CAB.LOGO', color:'#7c3aed', xId:'design-header-logo-x', yId:'design-header-logo-y' },
+        { key:'hslogan',    x:p.headerSloganX*sc, y:(PDF_H - p.headerSloganY - p.headerSloganSize)*sc, w:120*sc, h:p.headerSloganSize*sc+4, label:'CAB.SLOGAN', color:'#0d9488', xId:'design-header-slogan-x', yId:'design-header-slogan-y', isText:true },
+        { key:'slogan',     x:p.sloganX*sc,     y:(PDF_H - p.sloganY - p.sloganSize)*sc,   w:160*sc, h:p.sloganSize*sc+4, label:'SLOGAN', color:'#ea580c', xId:'design-slogan-x', yId:'design-slogan-y', isText:true },
+    ];
+
+    items.forEach(item => {
+        const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+        g.setAttribute('class','drag-handle');
+        g.style.cursor = 'move';
+        g.style.pointerEvents = 'all';
+
+        // Solo mostrar si hay contenido
+        const hasContent = (item.key==='logo' && p.logoBase64) ||
+                           (item.key==='firma' && p.firmaBase64) ||
+                           (item.key==='headerLogo' && p.headerLogoBase64) ||
+                           (item.key==='hslogan' && p.headerSlogan?.trim()) ||
+                           (item.key==='slogan' && p.slogan?.trim());
+        if (!hasContent) return;
+
+        const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+        rect.setAttribute('x', item.x);
+        rect.setAttribute('y', item.y);
+        rect.setAttribute('width', item.w);
+        rect.setAttribute('height', item.h);
+        rect.setAttribute('fill', item.color+'22');
+        rect.setAttribute('stroke', item.color);
+        rect.setAttribute('stroke-width', '1.5');
+        rect.setAttribute('rx', '3');
+
+        const text = document.createElementNS('http://www.w3.org/2000/svg','text');
+        text.setAttribute('x', item.x + 4);
+        text.setAttribute('y', item.y + 10);
+        text.setAttribute('fill', item.color);
+        text.setAttribute('font-size', '9');
+        text.setAttribute('font-weight', 'bold');
+        text.setAttribute('font-family', 'sans-serif');
+        text.textContent = item.label;
+
+        g.appendChild(rect);
+        g.appendChild(text);
+        svg.appendChild(g);
+
+        // Drag events
+        g.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            const wrap = document.getElementById('design-preview-wrap');
+            const wRect = wrap.getBoundingClientRect();
+            const scrollTop = wrap.scrollTop;
+            _dragState = {
+                item,
+                startMouseX: e.clientX,
+                startMouseY: e.clientY,
+                startPdfX: gv(item.xId),
+                startPdfY: gv(item.yId),
+                sc: designState._scale
+            };
+            document.getElementById('design-drag-hint').textContent = '⟢ Arrastrando: ' + item.label;
+
+            const onMove = (ev) => {
+                if (!_dragState) return;
+                const dx = (ev.clientX - _dragState.startMouseX) / _dragState.sc;
+                const dy = (ev.clientY - _dragState.startMouseY) / _dragState.sc;
+                const newX = Math.round(_dragState.startPdfX + dx);
+                const newY = Math.round(_dragState.startPdfY + dy);
+                const elX = document.getElementById(item.xId);
+                const elY = document.getElementById(item.yId);
+                if (elX) elX.value = Math.max(0, newX);
+                if (elY) elY.value = Math.max(0, newY);
+                schedulePreview();
+            };
+            const onUp = () => {
+                _dragState = null;
+                document.getElementById('design-drag-hint').textContent = '';
+                document.removeEventListener('mousemove', onMove);
+                document.removeEventListener('mouseup', onUp);
+            };
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onUp);
+        });
+
+        // Touch drag
+        g.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const t = e.touches[0];
+            _dragState = { item, startMouseX:t.clientX, startMouseY:t.clientY, startPdfX:gv(item.xId), startPdfY:gv(item.yId), sc:designState._scale };
+        }, { passive:false });
+        g.addEventListener('touchmove', (e) => {
+            if (!_dragState) return;
+            e.preventDefault();
+            const t = e.touches[0];
+            const dx = (t.clientX - _dragState.startMouseX) / _dragState.sc;
+            const dy = (t.clientY - _dragState.startMouseY) / _dragState.sc;
+            const elX = document.getElementById(item.xId);
+            const elY = document.getElementById(item.yId);
+            if (elX) elX.value = Math.max(0, Math.round(_dragState.startPdfX + dx));
+            if (elY) elY.value = Math.max(0, Math.round(_dragState.startPdfY + dy));
+            schedulePreview();
+        }, { passive:false });
+        g.addEventListener('touchend', () => { _dragState = null; });
+    });
 }
 
 async function embedBase64Img(pdfDoc, dataUrl) {
-    const b64 = dataUrl.split(',')[1];
+    const b64   = dataUrl.split(',')[1];
     const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-    const lower = dataUrl.toLowerCase();
-    if (lower.startsWith('data:image/png')) return pdfDoc.embedPng(bytes);
+    if (dataUrl.toLowerCase().startsWith('data:image/png')) return pdfDoc.embedPng(bytes);
     return pdfDoc.embedJpg(bytes);
 }
+
 
 
 </script>
