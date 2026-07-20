@@ -86,7 +86,7 @@
                 </svg>
             </div>
             <h1 class="text-2xl font-black text-gray-900">ACE-Control</h1>
-            <p class="text-sm text-gray-400 mt-1">Sistema de Gestión DC-3 · STPS v1.0.3</p>
+            <p class="text-sm text-gray-400 mt-1">Sistema de Gestión DC-3 · STPS v1.0.5</p>
         </div>
 
         <div class="login-card">
@@ -266,8 +266,14 @@
         <div id="section-companies" class="hidden">
             <div class="card overflow-hidden">
                 <table>
-                    <thead><tr><th>Razón Social</th><th>RFC</th><th>Representantes</th><th>Acciones</th></tr></thead>
-                    <tbody id="tb-companies"><tr><td colspan="4" class="text-center py-12 text-gray-300">Cargando…</td></tr></tbody>
+                    <thead><tr>
+                        <th>Razón Social</th>
+                        <th>RFC</th>
+                        <th>Patrón o Representante Legal</th>
+                        <th>Representante de los Trabajadores</th>
+                        <th></th>
+                    </tr></thead>
+                    <tbody id="tb-companies"><tr><td colspan="5" class="text-center py-12 text-gray-300">Cargando…</td></tr></tbody>
                 </table>
             </div>
         </div>
@@ -525,7 +531,7 @@ function toSnake(obj) {
         workerId:'worker_id', workerName:'worker_name', workerPos:'worker_pos',
         courseName:'course_name', companyName:'company_name', agentName:'agent_name', agentStps:'agent_stps',
         startDate:'start_date', endDate:'end_date', resultText:'result_text', durationHours:'duration_hours',
-        thematicArea:'thematic_area', representanteLegal:'patron', representanteTrabajadores:'representante'
+        thematicArea:'thematic_area'
     };
     const out = {};
     for (const [k,v] of Object.entries(obj)) out[map[k]||k] = v;
@@ -538,7 +544,7 @@ function toCamel(obj) {
         worker_id:'workerId', worker_name:'workerName', worker_pos:'workerPos',
         course_name:'courseName', company_name:'companyName', agent_name:'agentName', agent_stps:'agentStps',
         start_date:'startDate', end_date:'endDate', result_text:'resultText', duration_hours:'durationHours',
-        thematic_area:'thematicArea', created_at:'createdAt', patron:'representanteLegal', representante:'representanteTrabajadores'
+        thematic_area:'thematicArea', created_at:'createdAt'
     };
     const out = {};
     for (const [k,v] of Object.entries(obj)) out[map[k]||k] = v;
@@ -718,10 +724,8 @@ async function loadSection(v) {
             ? rows.map(x => `<tr>
                 <td class="font-semibold">${x.name||''}</td>
                 <td class="font-mono text-xs text-gray-500">${x.rfc||''}</td>
-                <td class="text-xs text-gray-500">
-                    <p class="font-medium">Legal: ${x.representanteLegal||'–'}</p>
-                    <p class="text-[10px] text-gray-400">Trabajadores: ${x.representanteTrabajadores||'–'}</p>
-                </td>
+                <td class="text-sm">${x.patron||'–'}</td>
+                <td class="text-sm">${x.representante||'–'}</td>
                 <td class="text-right">
                     <div class="flex justify-end gap-2">
                         <button onclick='openModal(${JSON.stringify(x)})' class="btn-sm btn-outline">✎</button>
@@ -729,7 +733,7 @@ async function loadSection(v) {
                     </div>
                 </td>
               </tr>`).join('')
-            : `<tr><td colspan="4" class="text-center py-12 text-gray-300 text-sm">Sin empresas registradas</td></tr>`;
+            : `<tr><td colspan="5" class="text-center py-12 text-gray-300 text-sm">Sin empresas registradas</td></tr>`;
 
     } else if (v === 'courses') {
         const list = (currentUser.role === 'ADMIN' ? DATA.courses : DATA.courses.filter(c => c.creatorEmail === currentUser.email))
@@ -818,11 +822,11 @@ function openModal(item = null) {
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Patrón o Representante Legal</label>
-                <input id="f3" class="input-field" value="${item ? (item.representanteLegal || '') : ''}" placeholder="Nombre completo del patrón">
+                <input id="f3" class="input-field" value="${item ? (item.patron || '') : ''}" placeholder="Nombre completo del patrón">
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Representante de los Trabajadores</label>
-                <input id="f4" class="input-field" value="${item ? (item.representanteTrabajadores || '') : ''}" placeholder="Obligatorio para empresas con +50 trabajadores">
+                <input id="f4" class="input-field" value="${item ? (item.representante || '') : ''}" placeholder="Obligatorio para empresas con +50 trabajadores">
             </div>`;
     } else if (currentView === 'workers') {
         document.getElementById('modal-title').innerText = item ? 'Editar Trabajador' : 'Nuevo Trabajador';
@@ -881,10 +885,10 @@ async function saveItem() {
     if (currentView === 'companies') {
         const name = document.getElementById('f1').value.trim();
         const rfc = document.getElementById('f2').value.trim().toUpperCase();
-        const representanteLegal = document.getElementById('f3').value.trim();
-        const representanteTrabajadores = document.getElementById('f4').value.trim();
-        if (!name || !rfc || !representanteLegal) { alert('Completa los campos obligatorios'); return; }
-        payload.document = { name, rfc, representanteLegal, representanteTrabajadores, creatorEmail: currentUser.email };
+        const patron = document.getElementById('f3').value.trim();
+        const representante = document.getElementById('f4').value.trim();
+        if (!name || !rfc || !patron) { alert('Completa los campos obligatorios'); return; }
+        payload.document = { name, rfc, patron, representante, creatorEmail: currentUser.email };
     } else if (currentView === 'workers') {
         const name = document.getElementById('f1').value.trim();
         const curp = document.getElementById('f2').value.trim().toUpperCase();
