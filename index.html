@@ -10,6 +10,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
@@ -1525,12 +1526,12 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     const fEnd   = parseFecha(end);
     const FY     = 388; // y de escritura para fechas
 
-    const AÑO_INI = [260.2, 276.1, 292.1, 308.4];
-    const MES_INI = [347.9, 369.4];
-    const DIA_INI = [390.4, 411.8];
-    const AÑO_FIN = [452.1, 471.6, 491.1, 511.4];
-    const MES_FIN = [532.5, 553.9];
-    const DIA_FIN = [575.3, 595.9];
+    const AÑO_INI = [255.5, 271.4, 287.4, 303.7];
+    const MES_INI = [343.2, 364.7];
+    const DIA_INI = [385.7, 407.1];
+    const AÑO_FIN = [447.4, 466.9, 486.4, 506.7];
+    const MES_FIN = [527.8, 549.2];
+    const DIA_FIN = [570.6, 591.2];
 
     for (let i=0; i<4; i++) {
         const ch = fStart.a[i]||'';
@@ -1603,7 +1604,10 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
 
     // ── Nombres y Títulos reconstruidos ──────────────────────────────────
     T_C(SIG_INS_X, 498, "Instructor o tutor", 7.5);
-    const insName = sp((agentDesign?.agentName || agent.name || '').toUpperCase());
+    let insName = sp((agentDesign?.agentName || agent.name || '').toUpperCase());
+    if (insName.includes("CYNTHIA YADIRA GARZA LUGO") && !insName.includes("ING.")) {
+        insName = "ING. " + insName;
+    }
     const insLines = splitNameJS(insName, 26);
     T_C(SIG_INS_X, SIG_NAME_Y1, insLines[0], 8);
     if (insLines[1]) T_C(SIG_INS_X, SIG_NAME_Y2, insLines[1], 8);
