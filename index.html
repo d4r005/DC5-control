@@ -1618,6 +1618,242 @@ function togglePassword() {
     const p = document.getElementById('password');
     p.type = p.type === 'password' ? 'text' : 'password';
 }
+
+// ─── DISEÑO DC-3 — funciones del panel ────────────────────────────────────────
+const designState = { logo_base64: null, firma_base64: null, header_logo_base64: null };
+
+function fileToDataUrl(file) {
+    return new Promise((res,rej) => {
+        const r = new FileReader();
+        r.onload = e => res(e.target.result);
+        r.onerror = rej;
+        r.readAsDataURL(file);
+    });
+}
+
+async function loadDesign() {
+    try {
+        let d = null;
+        try {
+            const r = await api('find','agent_designs', { filter: { creatorEmail: currentUser?.email || '' } });
+            if (r.documents && r.documents.length > 0) d = toCamel(r.documents[0]);
+        } catch(e) {}
+        if (!d) {
+            const saved = localStorage.getItem('dc3_design');
+            if (saved) d = JSON.parse(saved);
+        }
+        if (!d) { await updateDesignPreview(); return; }
+
+        if (d.logoBase64)        { designState.logo_base64 = d.logoBase64;        showDesignThumb('logo', d.logoBase64); }
+        if (d.firmaBase64)       { designState.firma_base64 = d.firmaBase64;      showDesignThumb('firma', d.firmaBase64); }
+        if (d.headerLogoBase64)  { designState.header_logo_base64 = d.headerLogoBase64; showDesignThumb('headerLogo', d.headerLogoBase64); }
+
+        const set = (id, val) => { if (val !== null && val !== undefined) { const el = document.getElementById(id); if (el) el.value = val; } };
+        set('design-agent-name', d.agentName);
+        set('design-slogan', d.slogan);
+        set('design-slogan-x', d.sloganX);
+        set('design-slogan-y', d.sloganY);
+        set('design-slogan-size', d.sloganSize);
+        set('design-logo-x', d.logoX);
+        set('design-logo-y', d.logoY);
+        set('design-logo-w', d.logoW);
+        set('design-logo-h', d.logoH);
+        set('design-firma-x', d.firmaX);
+        set('design-firma-y', d.firmaY);
+        set('design-firma-w', d.firmaW);
+        set('design-firma-h', d.firmaH);
+        set('design-header-slogan', d.headerSlogan);
+        set('design-header-slogan-x', d.headerSloganX);
+        set('design-header-slogan-y', d.headerSloganY);
+        set('design-header-slogan-size', d.headerSloganSize);
+        set('design-header-logo-w', d.headerLogoW);
+        set('design-header-logo-h', d.headerLogoH);
+        set('design-header-logo-x', d.headerLogoX);
+        set('design-header-logo-y', d.headerLogoY);
+
+        await updateDesignPreview();
+    } catch(e) { console.warn('loadDesign error:', e); }
+}
+
+function showDesignThumb(type, src) {
+    const idMap = { logo: 'design-logo-preview', firma: 'design-firma-preview', headerLogo: 'design-header-logo-preview' };
+    const el = document.getElementById(idMap[type]);
+    if (!el) return;
+    el.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:contain;border-radius:4px">`;
+}
+
+async function handleDesignImage(input, type) {
+    const file = input.files[0];
+    if (!file) return;
+    const dataUrl = await fileToDataUrl(file);
+    if (type === 'logo')             designState.logo_base64 = dataUrl;
+    else if (type === 'firma')       designState.firma_base64 = dataUrl;
+    else if (type === 'headerLogo')  designState.header_logo_base64 = dataUrl;
+    showDesignThumb(type, dataUrl);
+    updateDesignPreview();
+}
+
+function clearDesignImage(type) {
+    if (type === 'logo')             designState.logo_base64 = null;
+    else if (type === 'firma')       designState.firma_base64 = null;
+    else if (type === 'headerLogo')  designState.header_logo_base64 = null;
+    const idMap = { logo: 'design-logo-preview', firma: 'design-firma-preview', headerLogo: 'design-header-logo-preview' };
+    const el = document.getElementById(idMap[type]);
+    if (el) el.innerHTML = type === 'firma' ? 'Sin firma' : 'Sin logo';
+    updateDesignPreview();
+}
+
+async function saveDesign() {
+    const btn = document.querySelector('[onclick="saveDesign()"]');
+    if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
+    try {
+        const payload = toSnake({
+            agentName: document.getElementById('design-agent-name')?.value || '',
+            slogan: document.getElementById('design-slogan')?.value || '',
+            sloganX: +document.getElementById('design-slogan-x')?.value || 30,
+            sloganY: +document.getElementById('design-slogan-y')?.value || 445,
+            sloganSize: +document.getElementById('design-slogan-size')?.value || 7,
+            logoBase64: designState.logo_base64,
+            logoX: +document.getElementById('design-logo-x')?.value || 58,
+            logoY: +document.getElementById('design-logo-y')?.value || 454,
+            logoW: +document.getElementById('design-logo-w')?.value || 115,
+            logoH: +document.getElementById('design-logo-h')?.value || 65,
+            firmaBase64: designState.firma_base64,
+            firmaX: +document.getElementById('design-firma-x')?.value || 88,
+            firmaY: +document.getElementById('design-firma-y')?.value || 457,
+            firmaW: +document.getElementById('design-firma-w')?.value || 85,
+            firmaH: +document.getElementById('design-firma-h')?.value || 60,
+            headerSlogan: document.getElementById('design-header-slogan')?.value || '',
+            headerSloganX: +document.getElementById('design-header-slogan-x')?.value || 300,
+            headerSloganY: +document.getElementById('design-header-slogan-y')?.value || 40,
+            headerSloganSize: +document.getElementById('design-header-slogan-size')?.value || 14,
+            headerLogoBase64: designState.header_logo_base64,
+            headerLogoW: +document.getElementById('design-header-logo-w')?.value || 120,
+            headerLogoH: +document.getElementById('design-header-logo-h')?.value || 65,
+            headerLogoX: +document.getElementById('design-header-logo-x')?.value || 240,
+            headerLogoY: +document.getElementById('design-header-logo-y')?.value || 45,
+            creatorEmail: currentUser?.email || '',
+            updatedAt: new Date().toISOString()
+        });
+
+        localStorage.setItem('dc3_design', JSON.stringify(payload));
+
+        // Upsert en agent_designs (buscar por creatorEmail, si no existe insertar)
+        const existing = await api('find','agent_designs', { filter: { creatorEmail: currentUser?.email || '' } });
+        if (existing.documents && existing.documents.length > 0) {
+            // Update existente
+            const id = existing.documents[0].id;
+            const { error } = await sb.from('agent_designs').update(payload).eq('id', id);
+            if (error) throw error;
+        } else {
+            // Insert nuevo
+            const { error } = await sb.from('agent_designs').insert(payload);
+            if (error) throw error;
+        }
+
+        alert('✓ Diseño guardado correctamente');
+    } catch(e) {
+        alert('Error guardando diseño: ' + e.message);
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Guardar diseno'; }
+    }
+}
+
+async function previewDesign() { await updateDesignPreview(); }
+
+async function updateDesignPreview() {
+    const canvas = document.getElementById('design-preview-canvas');
+    if (!canvas) return;
+
+    if (!window.PDFLib) {
+        await new Promise((res,rej) => {
+            const s = document.createElement('script');
+            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js';
+            s.onload = res; s.onerror = rej; document.head.appendChild(s);
+        });
+    }
+    if (!window.pdfjsLib) {
+        await new Promise((res,rej) => {
+            const s = document.createElement('script');
+            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+            s.onload = () => { pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; res(); };
+            s.onerror = rej; document.head.appendChild(s);
+        });
+    }
+
+    const { PDFDocument, StandardFonts, rgb } = PDFLib;
+
+    let pdfBytes;
+    try {
+        const resp = await fetch('/plantilla_dc3.pdf');
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        pdfBytes = await resp.arrayBuffer();
+    } catch(e) {
+        const ctx = canvas.getContext('2d');
+        canvas.width = 420; canvas.height = 80;
+        ctx.fillStyle = '#fee2e2'; ctx.fillRect(0,0,420,80);
+        ctx.fillStyle = '#991b1b'; ctx.font = '12px sans-serif';
+        ctx.fillText('No se pudo cargar /plantilla_dc3.pdf: ' + e.message, 10, 30);
+        return;
+    }
+
+    const pdfDoc = await PDFDocument.load(pdfBytes);
+    const page   = pdfDoc.getPage(0);
+    const PH     = 792;
+
+    async function drawImg(base64, xId, yId, wId, hId) {
+        if (!base64) return;
+        try {
+            const img = await embedBase64Img(pdfDoc, base64);
+            const x = +document.getElementById(xId)?.value || 0;
+            const y = +document.getElementById(yId)?.value || 0;
+            const w = +document.getElementById(wId)?.value || 100;
+            const h = +document.getElementById(hId)?.value || 50;
+            page.drawImage(img, { x, y: PH-y-h, width: w, height: h });
+        } catch(e) { console.warn('preview img error:', e); }
+    }
+
+    await drawImg(designState.logo_base64, 'design-logo-x', 'design-logo-y', 'design-logo-w', 'design-logo-h');
+    await drawImg(designState.firma_base64, 'design-firma-x', 'design-firma-y', 'design-firma-w', 'design-firma-h');
+    await drawImg(designState.header_logo_base64, 'design-header-logo-x', 'design-header-logo-y', 'design-header-logo-w', 'design-header-logo-h');
+
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+    // Slogan cabecera
+    const hs = document.getElementById('design-header-slogan')?.value;
+    if (hs && hs.trim()) {
+        const sx = +document.getElementById('design-header-slogan-x')?.value || 300;
+        const sy = +document.getElementById('design-header-slogan-y')?.value || 40;
+        const ss = +document.getElementById('design-header-slogan-size')?.value || 14;
+        page.drawText(hs.slice(0,60), { x: sx, y: PH-sy-ss, size: ss, font, color: rgb(0.2,0.2,0.2) });
+    }
+    // Slogan en firmas
+    const fs = document.getElementById('design-slogan')?.value;
+    if (fs && fs.trim()) {
+        const sx = +document.getElementById('design-slogan-x')?.value || 30;
+        const sy = +document.getElementById('design-slogan-y')?.value || 445;
+        const ss = +document.getElementById('design-slogan-size')?.value || 7;
+        page.drawText(fs.slice(0,80), { x: sx, y: PH-sy-ss, size: ss, font, color: rgb(0.2,0.2,0.2) });
+    }
+
+    const outBytes = await pdfDoc.save();
+    const loadingTask = pdfjsLib.getDocument({ data: outBytes });
+    const pdf = await loadingTask.promise;
+    const pg  = await pdf.getPage(1);
+    const vp  = pg.getViewport({ scale: 1.4 });
+    canvas.width = vp.width; canvas.height = vp.height;
+    await pg.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+}
+
+async function embedBase64Img(pdfDoc, dataUrl) {
+    const b64 = dataUrl.split(',')[1];
+    const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    const lower = dataUrl.toLowerCase();
+    if (lower.startsWith('data:image/png')) return pdfDoc.embedPng(bytes);
+    return pdfDoc.embedJpg(bytes);
+}
+
+
 </script>
 </body>
 </html>
