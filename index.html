@@ -1106,7 +1106,11 @@ async function saveItem() {
         }
     }
 
-    await api(action, currentView, payload);
+    const res = await api(action, currentView, payload);
+    if (res.error) {
+        alert("Error al guardar: " + res.error);
+        return;
+    }
     closeModal('modal-add');
     loadSection(currentView);
 }
@@ -1760,6 +1764,11 @@ async function saveDesign() {
     if (btn) { btn.disabled=true; btn.textContent='Guardando…'; }
     try {
         const p = getDesignParams();
+
+        // ELIMINAMOS campos que sabemos que fallan por no existir en la DB
+        delete p.headerSloganFont;
+        delete p.sloganFont;
+
         const payload = toSnake({ ...p, updatedAt: new Date().toISOString() });
         localStorage.setItem('dc3_design', JSON.stringify(payload));
 
