@@ -1429,7 +1429,7 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     } catch(e) { console.warn('No se pudo cargar diseño del agente:', e); }
 
     // ── Asegurar que compObj sea un objeto válido ──────────────────────────
-    const compObj = (typeof company === 'object' && company !== null) ? company : { name: String(company || ''), rfc: '', representanteLegal: '', representanteTrabajadores: '' };
+    const compObj = (typeof company === 'object' && company !== null) ? company : { name: String(company || ''), rfc: '', representante_legal: '', representante_trabajadores: '' };
 
     const companyNameFinal = String(compObj.name || company || '').toUpperCase();
 
@@ -1482,7 +1482,8 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     // ══════════════════════════════════════════════════════════════════════
     // 3. OCUPACIÓN (columna derecha, x=305, y=180)
     // ══════════════════════════════════════════════════════════════════════
-    T(307, 183, (worker.occupation||worker.position||'').toUpperCase().slice(0,50), 7);
+    const occupationFinal = (worker.occupation || worker.position || '').toUpperCase().slice(0,50);
+    T(307, 187, occupationFinal, 7);
 
     // ══════════════════════════════════════════════════════════════════════
     // 4. PUESTO (y=202..226, texto en y=215)
@@ -1531,18 +1532,18 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     //    Día fin:     centros 575.3, 595.9
     // ══════════════════════════════════════════════════════════════════════
     // ══════════════════════════════════════════════════════════════════════
-    // 9. FECHAS — recalibrado milimétrico para centrar en cuadros (v1.0.8)
+    // 9. FECHAS — recalibrado milimétrico para centrar en cuadros (v1.0.9)
     // ══════════════════════════════════════════════════════════════════════
     const fStart = parseFecha(start);
     const fEnd   = parseFecha(end);
-    const FY     = 388;
+    const FY     = 388.5;
 
-    const AÑO_INI = [260.5, 276.4, 292.4, 308.7];
-    const MES_INI = [348.2, 369.7];
-    const DIA_INI = [390.7, 412.1];
-    const AÑO_FIN = [452.4, 471.9, 491.4, 511.7];
-    const MES_FIN = [532.8, 554.2];
-    const DIA_FIN = [575.6, 596.2];
+    const AÑO_INI = [260.2, 276.1, 292.1, 308.4];
+    const MES_INI = [347.9, 369.4];
+    const DIA_INI = [390.4, 411.8];
+    const AÑO_FIN = [452.1, 471.6, 491.1, 511.4];
+    const MES_FIN = [532.5, 553.9];
+    const DIA_FIN = [575.3, 595.9];
 
     for (let i=0; i<4; i++) {
         const ch = fStart.a[i]||'';
@@ -1629,7 +1630,7 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
 
     // --- Columna PATRÓN ---
     T_C(SIG_PAT_X, 498, "Patron o representante legal 4/", 7.5);
-    const patName = sp((compObj.representanteLegal || '').toUpperCase());
+    const patName = sp((compObj.representante_legal || compObj.representanteLegal || '').toUpperCase());
     const patLines = splitNameJS(patName, 28);
     T_C(SIG_PAT_X, SIG_NAME_Y1, patLines[0], 8);
     if (patLines[1]) T_C(SIG_PAT_X, SIG_NAME_Y2, patLines[1], 8);
@@ -1640,7 +1641,7 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
 
     // --- Columna REPRESENTANTE ---
     T_C(SIG_REP_X, 498, "Representante de los trabajadores 5/", 7.5);
-    const repName = sp((compObj.representanteTrabajadores || '').toUpperCase());
+    const repName = sp((compObj.representante_trabajadores || compObj.representanteTrabajadores || '').toUpperCase());
     if (repName) {
         const repLines = splitNameJS(repName, 26);
         T_C(SIG_REP_X, SIG_NAME_Y1, repLines[0], 8);
