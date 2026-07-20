@@ -1255,28 +1255,18 @@ async function regenDC3(record) {
 // La plantilla se carga desde /plantilla_dc3.pdf (mismo origen).
 
 async function buildDC3PDF({ worker, company, agent, course, start, end, result }) {
-    // Cargar pdf-lib dinámicamente si no está disponible
-    if (!window.PDFLib) {
-        await new Promise((resolve, reject) => {
-            const s = document.createElement('script');
-            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js';
-            s.onload = resolve; s.onerror = reject;
-            document.head.appendChild(s);
-        });
-    }
     const { PDFDocument, StandardFonts, rgb } = PDFLib;
 
-    // Quitar acentos para compatibilidad con Helvetica standard
+    // ── Helpers de texto ───────────────────────────────────────────────────
     function sp(s) {
-        if (!s) return '';
-        return String(s)
+        return String(s||'')
             .replace(/[áà]/g,'a').replace(/[éè]/g,'e').replace(/[íì]/g,'i')
             .replace(/[óò]/g,'o').replace(/[úùü]/g,'u').replace(/ñ/g,'n')
             .replace(/[ÁÀ]/g,'A').replace(/[ÉÈ]/g,'E').replace(/[ÍÌ]/g,'I')
             .replace(/[ÓÒ]/g,'O').replace(/[ÚÙÜ]/g,'U').replace(/Ñ/g,'N');
     }
 
-    // Parsear fecha "yyyy-mm-dd" (input[type=date]) o "dd/mm/yyyy"
+    // Parsear fecha "yyyy-mm-dd" o "dd/mm/yyyy"
     function parseFecha(f) {
         if (!f) return { a:'    ', m:'  ', d:'  ' };
         let parts;
@@ -1296,309 +1286,297 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
         if (!resp.ok) throw new Error('No se pudo cargar plantilla_dc3.pdf: ' + resp.status);
         pdfBytes = await resp.arrayBuffer();
     } catch(e) {
-        alert('Error cargando plantilla DC-3: ' + e.message + '\n\nAsegúrate de que /plantilla_dc3.pdf existe en el servidor.');
+        alert('Error cargando plantilla DC-3: ' + e.message);
         return;
     }
 
     const pdfDoc = await PDFDocument.load(pdfBytes);
     const font   = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const fontB  = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const fontI  = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
     const page   = pdfDoc.getPage(0);
-    const PH     = 792;
+    const PH     = 792;  // altura en puntos
 
-    // ── Separadores exactos del PDF oficial (extraídos con PyMuPDF) ──────────
-    const FECHA_SEPS = [24.2,180.6,252.1,267.7,283.6,300.1,316.0,
-                        337.1,358.9,379.8,401.0,422.8,442.2,462.0,
-                        481.4,501.1,522.0,543.1,564.9,586.1];
-
-    // Índices de celdas dentro de FECHA_SEPS
-    const AÑO_INI_IDX = [2,3,4,5];
-    const MES_INI_IDX = [6,7];
-    const DIA_INI_IDX = [8,9];
-    const AÑO_FIN_IDX = [11,12,13,14];
-    const MES_FIN_IDX = [15,16];
-    const DIA_FIN_IDX = [17,18];
-
-    // CURP: separadores exactos
-    const CURP_SEPS = [24.2,39.6,55.0,70.6,85.9,101.1,116.7,132.1,147.4,
-                       162.8,178.1,193.5,208.9,224.3,239.6,255.0,270.3,285.7,301.1];
-    // RFC: separadores desplazados 3.5pts a la derecha para centrar caracteres
-    const RFC_SEPS  = [27.7, 41.9, 56.1, 70.3, 84.5, 98.7, 112.9, 127.1,
-                       141.3, 155.5, 169.7, 183.9, 198.1, 212.3, 226.5, 240.7];
-
-    // Baseline Y para cada fila (centro vertical de la celda + ajuste)
-    const CURP_Y  = (185.8 + 201.2)/2 + 2.5;  // 193.5
-    const RFC_Y   = (300.3 + 315.2)/2 + 2.5;  // 310.25
-    const FECHA_Y = (380.3 + 394.0)/2 + 2.5;  // 389.65
-
-    // Helper: dibuja texto en coordenada (x, yFitz desde arriba)
-    function T(x, yFitz, text, size, useBold) {
-        const s = sp(String(text||''));
+    // ── Helpers de dibujo ─────────────────────────────────────────────────
+    // T: texto en coordenadas Fitz (y desde arriba)
+    function T(x, yFitz, s, size, useBold) {
         if (!s) return;
         const sz = size || 9;
-        const f = useBold ? fontB : font;
-        page.drawText(s, { x, y: PH - yFitz, size: sz, font: f, color: rgb(0,0,0) });
-    }
-
-    // Helper: dibuja texto centrado en una coordenada X
-    function T_Centered(xCenter, yFitz, text, size, useBold) {
-        const s = sp(String(text||''));
-        if (!s) return;
-        const sz = size || 9;
-        const f = useBold ? fontB : font;
-        const width = f.widthOfTextAtSize(s, sz);
-        page.drawText(s, {
-            x: xCenter - (width / 2),
-            y: PH - yFitz,
-            size: sz,
-            font: f,
+        page.drawText(sp(String(s)), {
+            x, y: PH - yFitz,
+            size: sz, font: useBold ? fontB : font,
             color: rgb(0,0,0)
         });
     }
 
-    // Helper: dibuja un caracter CENTRADO en una celda definida por x0..x1
-    function charInCell(x0, x1, yFitz, ch, size) {
-        const s = sp(String(ch||''));
+    // T_C: texto centrado en X
+    function T_C(xCenter, yFitz, s, size, useBold) {
         if (!s) return;
-        const sz = size || 7;
-        const cw = font.widthOfTextAtSize(s, sz);
-        const cx = (x0 + x1) / 2 - cw / 2;  // centro exacto
-        page.drawText(s, { x: cx, y: PH - yFitz, size: sz, font, color: rgb(0,0,0) });
-    }
-
-    // Helper: dibuja string carácter por celda usando array de separadores
-    function drawInCells(str, seps, idxArr, yFitz, size) {
-        [...(str||'')].forEach((c, i) => {
-            if (i < idxArr.length) {
-                const si = idxArr[i];
-                charInCell(seps[si], seps[si+1], yFitz, c, size);
-            }
+        const sz = size || 9;
+        const f  = useBold ? fontB : font;
+        const w  = f.widthOfTextAtSize(sp(String(s)), sz);
+        page.drawText(sp(String(s)), {
+            x: xCenter - w/2, y: PH - yFitz,
+            size: sz, font: f, color: rgb(0,0,0)
         });
     }
 
-    // ── 0. CABECERA: logo y slogan desde el diseño del agente ────────────
-    try {
-        const sloganFont = await pdfDoc.embedFont(PDFLib.StandardFonts.TimesRomanItalic);
+    // drawInCell: un carácter centrado dentro de x0..x1
+    function drawInCell(ch, x0, x1, yFitz, sz) {
+        if (!ch || ch === ' ') return;
+        const w = font.widthOfTextAtSize(ch, sz||9);
+        const cx = (x0 + x1) / 2;
+        page.drawText(ch, {
+            x: cx - w/2, y: PH - yFitz,
+            size: sz||9, font, color: rgb(0,0,0)
+        });
+    }
 
-        // Logo de cabecera personalizado
-        const hlBase64 = agentDesign?.headerLogoBase64 || null;
-        if (hlBase64) {
-            const hlBytes = await fetch(hlBase64).then(r => r.arrayBuffer());
-            let hlImg;
-            try { hlImg = await pdfDoc.embedPng(hlBytes); } catch(e) { hlImg = await pdfDoc.embedJpg(hlBytes); }
-            const hlw = agentDesign.headerLogoW || 120;
-            const hlh = agentDesign.headerLogoH || 65;
-            const hlx = agentDesign.headerLogoX || 240;
-            const hly = agentDesign.headerLogoY || 45;
-            page.drawImage(hlImg, { x: hlx, y: PH - (hly + hlh), width: hlw, height: hlh, opacity: 1.0 });
-        } else {
-            // Fallback: logo por defecto (image3.png) si existe
-            try {
-                const logoResp = await fetch('signatures/image3.png');
-                if (logoResp.ok) {
-                    const logoBytes = await logoResp.arrayBuffer();
-                    const logoImg = await pdfDoc.embedPng(logoBytes);
-                    page.drawImage(logoImg, { x: 240, y: PH - 110, width: 120, height: 65 });
-                }
-            } catch(e) {}
-        }
-
-        // Slogan de cabecera personalizado
-        const hSlogan = agentDesign?.headerSlogan || '';
-        if (hSlogan) {
-            const hsx  = agentDesign.headerSloganX || 300;
-            const hsy  = agentDesign.headerSloganY || 40;
-            const hss  = agentDesign.headerSloganSize || 14;
-            const hst  = sp(hSlogan);
-            const hsw  = sloganFont.widthOfTextAtSize(hst, hss);
-            page.drawText(hst, { x: hsx - hsw/2, y: PH - hsy, size: hss, font: sloganFont, color: rgb(0.1,0.1,0.1) });
-        } else if (!hlBase64) {
-            // Fallback: slogan hardcoded si no hay diseño
-            const fallback = sp("Tu seguridad, nuestra mision");
-            const sw = sloganFont.widthOfTextAtSize(fallback, 14);
-            page.drawText(fallback, { x: 300 - sw/2, y: PH - 40, size: 14, font: sloganFont, color: rgb(0.1,0.1,0.1) });
-        }
-    } catch(e) { console.warn('Error en cabecera:', e); }
-
-    // ── 1. Nombre trabajador ─────────────────────────────────────────────────
-    T(30, 170, (worker.name||'').toUpperCase(), 9, true);
-
-    // ── 2. CURP (carácter por celda centrado) ─────────────────────────────────
-    drawInCells((worker.curp||'').toUpperCase().slice(0,18), CURP_SEPS,
-                [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17], CURP_Y, 7);
-
-    // ── 3. Ocupación (col derecha) ───────────────────────────────────────────
-    T(305, 193, (worker.occupation||worker.position||'').toUpperCase().slice(0,50), 7);
-
-    // ── 4. Puesto (limpieza quirúrgica solo para el texto) ────────────────────
-    page.drawRectangle({ x:31, y: PH-229, width:538, height:13, color: rgb(1,1,1) });
-    T(30, 223, (worker.position||'').toUpperCase(), 9);
-
-    // ── 5. Nombre empresa ────────────────────────────────────────────────────
-    const compObj = (typeof company === 'object') ? company : { name: company, rfc: '' };
-    T(30, 282, (compObj.name||company||'').toUpperCase().slice(0,70), 9, true);
-
-    // ── 6. RFC empresa (carácter por celda centrado) ──────────────────────────
-    const rfcClean = (compObj.rfc||'').toUpperCase().replace(/\s/g,'').slice(0,15);
-    drawInCells(rfcClean, RFC_SEPS, [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14], RFC_Y, 7);
-
-    // ── 7. Nombre del curso ──────────────────────────────────────────────────
-    T(30, 365, (course.name||'').toUpperCase().slice(0,80), 8, true);
-
-    // ── 8. Duración ──────────────────────────────────────────────────────────
-    T(30, 391, String(course.duration||''), 8);
-
-    // ── 9. Periodo (dígito por celda, centrado) ───────────────────────────────
-    const fi = parseFecha(start), ff = parseFecha(end);
-    drawInCells(fi.a, FECHA_SEPS, AÑO_INI_IDX, FECHA_Y, 7);
-    drawInCells(fi.m, FECHA_SEPS, MES_INI_IDX, FECHA_Y, 7);
-    drawInCells(fi.d, FECHA_SEPS, DIA_INI_IDX, FECHA_Y, 7);
-    drawInCells(ff.a, FECHA_SEPS, AÑO_FIN_IDX, FECHA_Y, 7);
-    drawInCells(ff.m, FECHA_SEPS, MES_FIN_IDX, FECHA_Y, 7);
-    drawInCells(ff.d, FECHA_SEPS, DIA_FIN_IDX, FECHA_Y, 7);
-
-    // ── 10. Área temática ────────────────────────────────────────────────────
-    T(30, 416, (course.area||course.thematicArea||'').slice(0,80), 8);
-
-    // ── 11. Agente capacitador ────────────────────────────────────────────────
-    const agentLine = sp(((agent.name||'') + '  ' + (agent.stps||'')).toUpperCase().trim());
-    T(30, 438, agentLine.slice(0,70), 8);
-
-    // ── 11.5. Cargar diseño personalizado del agente ──────────────────────────
+    // ── Cargar diseño personalizado del agente ────────────────────────────
     let agentDesign = null;
     try {
         const dr = await api('find','agent_designs', { filter: { creatorEmail: currentUser?.email || '' } });
         agentDesign = (dr.documents && dr.documents.length > 0) ? dr.documents[0] : null;
     } catch(e) { console.warn('No se pudo cargar diseño del agente:', e); }
 
-    // ── 12. Limpiar etiquetas y firmas antiguas de forma quirúrgica (no borrar bordes) ──
-    // Limpiamos los títulos (Instructor, Patron, Repr) con rectángulos muy precisos para no dejar rastro
-    page.drawRectangle({ x: 31, y: PH - 510, width: 538, height: 21, color: rgb(1,1,1) });
-    // Limpiamos las líneas originales y "Nombre y firma" con rectángulos muy precisos
-    page.drawRectangle({ x: 31, y: PH - 555, width: 538, height: 24, color: rgb(1,1,1) });
+    // ── Buscar objeto empresa completo ────────────────────────────────────
+    const compObj = DATA.companies.find(c => c.name === company)
+        || { name: company, rfc: '', representanteLegal: '', representanteTrabajadores: '' };
 
-    // Logo (fondo) - Usar diseño del agente si existe, sino logo por defecto
-    let LOGO_H = 70, LOGO_W = 130, LOGO_X = 55, LOGO_Y_FITZ = 455;
+    // ══════════════════════════════════════════════════════════════════════
+    // 0. CABECERA: logo y slogan del agente (encima del formulario oficial)
+    // ══════════════════════════════════════════════════════════════════════
+    try {
+        const sloganFont = fontI;
+        const hlBase64 = agentDesign?.headerLogoBase64 || null;
+        if (hlBase64) {
+            const hlBytes = await fetch(hlBase64).then(r => r.arrayBuffer());
+            let hlImg;
+            try { hlImg = await pdfDoc.embedPng(hlBytes); } catch(e2) { hlImg = await pdfDoc.embedJpg(hlBytes); }
+            const hlw = agentDesign.headerLogoW || 120;
+            const hlh = agentDesign.headerLogoH || 65;
+            const hlx = agentDesign.headerLogoX || 240;
+            const hly = agentDesign.headerLogoY || 45;
+            page.drawImage(hlImg, { x: hlx, y: PH - (hly + hlh), width: hlw, height: hlh, opacity: 1.0 });
+        }
+        const hSlogan = agentDesign?.headerSlogan || '';
+        if (hSlogan) {
+            const hss = agentDesign.headerSloganSize || 14;
+            const hst = sp(hSlogan);
+            const hsw = sloganFont.widthOfTextAtSize(hst, hss);
+            const hsx = agentDesign.headerSloganX || 306;
+            const hsy = agentDesign.headerSloganY || 40;
+            page.drawText(hst, { x: hsx - hsw/2, y: PH - hsy, size: hss, font: sloganFont, color: rgb(0.1,0.1,0.1) });
+        }
+    } catch(e) { console.warn('Error cabecera:', e); }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 1. NOMBRE DEL TRABAJADOR  (y=149.8 → escribir en y=155)
+    // ══════════════════════════════════════════════════════════════════════
+    T(30, 160, (worker.name||'').toUpperCase(), 9, true);
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 2. CURP — 18 celdas, y_top=185.8 y_bot=201.3 → texto en y=196
+    //    Centros X: 32.0, 47.4, 62.8, 78.2, 93.5, 108.8, 124.2, 139.6,
+    //               155.0, 170.3, 185.8, 201.2, 216.6, 231.9, 247.2, 262.6, 278.0, 293.3
+    // ══════════════════════════════════════════════════════════════════════
+    const CURP_CENTERS = [32.0,47.4,62.8,78.2,93.5,108.8,124.2,139.6,
+                          155.0,170.3,185.8,201.2,216.6,231.9,247.2,262.6,278.0,293.3];
+    const curp = (worker.curp||'').toUpperCase().replace(/\s/g,'').slice(0,18);
+    const CURP_Y = 196;
+    for (let i = 0; i < curp.length && i < 18; i++) {
+        const w = font.widthOfTextAtSize(curp[i], 8);
+        page.drawText(curp[i], { x: CURP_CENTERS[i] - w/2, y: PH - CURP_Y, size: 8, font, color: rgb(0,0,0) });
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 3. OCUPACIÓN (columna derecha, x=305, y=180)
+    // ══════════════════════════════════════════════════════════════════════
+    T(307, 183, (worker.occupation||worker.position||'').toUpperCase().slice(0,50), 7);
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 4. PUESTO (y=202..226, texto en y=215)
+    // ══════════════════════════════════════════════════════════════════════
+    page.drawRectangle({ x:26, y: PH-226, width:558, height:18, color: rgb(1,1,1) });
+    T(30, 220, (worker.position||'').toUpperCase(), 9);
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 5. NOMBRE EMPRESA (y=255..289, texto en y=272)
+    // ══════════════════════════════════════════════════════════════════════
+    page.drawRectangle({ x:26, y: PH-288, width:558, height:28, color: rgb(1,1,1) });
+    T(30, 272, (compObj.name||company||'').toUpperCase().slice(0,80), 9, true);
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 6. RFC — 15 celdas, y_top=300.3 y_bot=315.3 → texto en y=311
+    //    Centros: 34.9, 52.1, 66.0, 80.8, 95.4, 109.8, 124.0, 138.3,
+    //             152.8, 167.0, 181.2, 195.5, 209.8, 227.4, 245.1
+    // ══════════════════════════════════════════════════════════════════════
+    const RFC_CENTERS = [34.9,52.1,66.0,80.8,95.4,109.8,124.0,138.3,
+                         152.8,167.0,181.2,195.5,209.8,227.4,245.1];
+    const rfcClean = (compObj.rfc||'').toUpperCase().replace(/\s/g,'').slice(0,15);
+    const RFC_Y = 311;
+    for (let i = 0; i < rfcClean.length && i < 15; i++) {
+        const w = font.widthOfTextAtSize(rfcClean[i], 8);
+        page.drawText(rfcClean[i], { x: RFC_CENTERS[i] - w/2, y: PH - RFC_Y, size: 8, font, color: rgb(0,0,0) });
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 7. NOMBRE DEL CURSO (y=344..368, texto en y=360)
+    // ══════════════════════════════════════════════════════════════════════
+    page.drawRectangle({ x:26, y: PH-367, width:558, height:19, color: rgb(1,1,1) });
+    T(30, 362, (course.name||course||'').toUpperCase().slice(0,80), 9);
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 8. DURACIÓN (y=369..380, texto en y=378)
+    // ══════════════════════════════════════════════════════════════════════
+    T(30, 378, (course.durationHours||'').toUpperCase(), 8);
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 9. FECHAS — fila 2 y_center ≈ 387
+    //    Año inicio:  centros 260.2, 276.1, 292.1, 308.4
+    //    Mes inicio:  centros 347.9, 369.4
+    //    Día inicio:  centros 390.4, 411.8
+    //    Año fin:     centros 452.1, 471.6, 491.1, 511.4
+    //    Mes fin:     centros 532.5, 553.9
+    //    Día fin:     centros 575.3, 595.9
+    // ══════════════════════════════════════════════════════════════════════
+    const fStart = parseFecha(start);
+    const fEnd   = parseFecha(end);
+    const FY     = 388; // y de escritura para fechas
+
+    const AÑO_INI = [260.2, 276.1, 292.1, 308.4];
+    const MES_INI = [347.9, 369.4];
+    const DIA_INI = [390.4, 411.8];
+    const AÑO_FIN = [452.1, 471.6, 491.1, 511.4];
+    const MES_FIN = [532.5, 553.9];
+    const DIA_FIN = [575.3, 595.9];
+
+    for (let i=0; i<4; i++) {
+        const ch = fStart.a[i]||'';
+        if (ch) { const w=font.widthOfTextAtSize(ch,8); page.drawText(ch,{x:AÑO_INI[i]-w/2,y:PH-FY,size:8,font,color:rgb(0,0,0)}); }
+    }
+    for (let i=0; i<2; i++) {
+        const ch = fStart.m[i]||'';
+        if (ch) { const w=font.widthOfTextAtSize(ch,8); page.drawText(ch,{x:MES_INI[i]-w/2,y:PH-FY,size:8,font,color:rgb(0,0,0)}); }
+        const ch2 = fStart.d[i]||'';
+        if (ch2) { const w=font.widthOfTextAtSize(ch2,8); page.drawText(ch2,{x:DIA_INI[i]-w/2,y:PH-FY,size:8,font,color:rgb(0,0,0)}); }
+    }
+    for (let i=0; i<4; i++) {
+        const ch = fEnd.a[i]||'';
+        if (ch) { const w=font.widthOfTextAtSize(ch,8); page.drawText(ch,{x:AÑO_FIN[i]-w/2,y:PH-FY,size:8,font,color:rgb(0,0,0)}); }
+    }
+    for (let i=0; i<2; i++) {
+        const ch = fEnd.m[i]||'';
+        if (ch) { const w=font.widthOfTextAtSize(ch,8); page.drawText(ch,{x:MES_FIN[i]-w/2,y:PH-FY,size:8,font,color:rgb(0,0,0)}); }
+        const ch2 = fEnd.d[i]||'';
+        if (ch2) { const w=font.widthOfTextAtSize(ch2,8); page.drawText(ch2,{x:DIA_FIN[i]-w/2,y:PH-FY,size:8,font,color:rgb(0,0,0)}); }
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 10. ÁREA TEMÁTICA (y=394..418, texto en y=408)
+    // ══════════════════════════════════════════════════════════════════════
+    page.drawRectangle({ x:26, y: PH-417, width:558, height:18, color: rgb(1,1,1) });
+    T(30, 412, (course.thematicArea||'').toUpperCase().slice(0,80), 8);
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 11. NOMBRE AGENTE CAPACITADOR (y=419..443, texto en y=434)
+    // ══════════════════════════════════════════════════════════════════════
+    page.drawRectangle({ x:26, y: PH-442, width:558, height:19, color: rgb(1,1,1) });
+    const agentLine = sp(((agent.name||'') + '   ' + (agent.stps||'')).toUpperCase().trim());
+    T(30, 437, agentLine.slice(0,80), 8);
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 12. SECCIÓN FIRMAS — rect y0=452.4 y1=560.5
+    //     Centros X:  Instructor=140  Patron=304  Repr=490
+    //     Líneas de firma en y≈532
+    //     "Nombre y firma" en y=540
+    //     Títulos en y≈500
+    //     Espacio para imagen: y=455..530 (75pts de alto)
+    // ══════════════════════════════════════════════════════════════════════
+
+    const SIG_INS_X  = 140;   // centro columna instructor
+    const SIG_PAT_X  = 304;   // centro columna patron
+    const SIG_REP_X  = 490;   // centro columna representante
+    const SIG_IMG_Y  = 455;   // y_fitz tope para imagen (arriba del rect de firma)
+    const SIG_IMG_H  = 65;    // alto de logo/firma
+    const SIG_NAME_Y1= 516;   // primera línea nombre instructor
+    const SIG_NAME_Y2= 526;   // segunda línea nombre instructor
+
+    // Limpiar zona de imágenes en columna instructor (sin borrar bordes del rect)
+    page.drawRectangle({ x:35, y: PH-(SIG_IMG_Y+SIG_IMG_H), width:200, height:SIG_IMG_H+5, color: rgb(1,1,1) });
+
+    // ── Logo del agente (fondo) ──────────────────────────────────────────
+    let LOGO_W = 110, LOGO_H = SIG_IMG_H;
+    let LOGO_X = SIG_INS_X - 55;   // centrado
     if (agentDesign && agentDesign.logoBase64) {
         try {
-            const logoBytes = await fetch(agentDesign.logoBase64).then(r => r.arrayBuffer());
-            const logoImg = await pdfDoc.embedPng(logoBytes);
-            LOGO_W = agentDesign.logoW || 115;
-            LOGO_H = agentDesign.logoH || 65;
-            LOGO_X = agentDesign.logoX || 58;
-            LOGO_Y_FITZ = agentDesign.logoY || 454;
-            page.drawImage(logoImg, {
-                x: LOGO_X, y: PH - (LOGO_Y_FITZ + LOGO_H),
-                width: LOGO_W, height: LOGO_H, opacity: 1.0
-            });
-        } catch(e) { console.warn('Error cargando logo del diseño:', e); }
+            const lb = await fetch(agentDesign.logoBase64).then(r=>r.arrayBuffer());
+            const lImg = await pdfDoc.embedPng(lb);
+            LOGO_W = agentDesign.logoW || 110;
+            LOGO_H = agentDesign.logoH || SIG_IMG_H;
+            LOGO_X = agentDesign.logoX || (SIG_INS_X - Math.round(LOGO_W/2));
+            page.drawImage(lImg, { x:LOGO_X, y:PH-(SIG_IMG_Y+LOGO_H), width:LOGO_W, height:LOGO_H, opacity:1.0 });
+        } catch(e) { console.warn('Logo agente error:', e); }
     } else {
         try {
-            const logoResp = await fetch('/signatures/logo_luber.png');
-            if (logoResp.ok) {
-                const logoBytes = await logoResp.arrayBuffer();
-                const logoImg = await pdfDoc.embedPng(logoBytes);
-                page.drawImage(logoImg, {
-                    x: LOGO_X, y: PH - (LOGO_Y_FITZ + LOGO_H),
-                    width: LOGO_W, height: LOGO_H, opacity: 1.0
-                });
+            const lr = await fetch('/signatures/logo_luber.png');
+            if (lr.ok) {
+                const lb = await lr.arrayBuffer();
+                const lImg = await pdfDoc.embedPng(lb);
+                page.drawImage(lImg, { x:LOGO_X, y:PH-(SIG_IMG_Y+LOGO_H), width:LOGO_W, height:LOGO_H, opacity:1.0 });
             }
-        } catch(e) { console.warn('Error cargando logo:', e); }
+        } catch(e) {}
     }
 
-    // Firma del instructor (encima del logo)
-    let FIRMA_H = 65, FIRMA_W = 100, FIRMA_X = 70, FIRMA_Y_FITZ = 458;
+    // ── Firma del agente (encima del logo) ───────────────────────────────
     if (agentDesign && agentDesign.firmaBase64) {
         try {
-            const firmaBytes = await fetch(agentDesign.firmaBase64).then(r => r.arrayBuffer());
-            const firmaImg = await pdfDoc.embedPng(firmaBytes);
-            FIRMA_W = agentDesign.firmaW || 85;
-            FIRMA_H = agentDesign.firmaH || 60;
-            FIRMA_X = agentDesign.firmaX || 88;
-            FIRMA_Y_FITZ = agentDesign.firmaY || 457;
-            page.drawImage(firmaImg, {
-                x: FIRMA_X, y: PH - (FIRMA_Y_FITZ + FIRMA_H),
-                width: FIRMA_W, height: FIRMA_H,
-            });
-        } catch(e) { console.warn('Error cargando firma del diseño:', e); }
+            const fb = await fetch(agentDesign.firmaBase64).then(r=>r.arrayBuffer());
+            const fImg = await pdfDoc.embedPng(fb);
+            const FW = agentDesign.firmaW || 85;
+            const FH = agentDesign.firmaH || 55;
+            const FX = agentDesign.firmaX || (SIG_INS_X - Math.round(FW/2));
+            const FY_TOP = SIG_IMG_Y + 5;
+            page.drawImage(fImg, { x:FX, y:PH-(FY_TOP+FH), width:FW, height:FH });
+        } catch(e) { console.warn('Firma error:', e); }
     } else {
         try {
-            const sigResp = await fetch('/signatures/firma_instructor.png');
-            if (sigResp.ok) {
-                const sigBytes = await sigResp.arrayBuffer();
-                const sigImg = await pdfDoc.embedPng(sigBytes);
-                page.drawImage(sigImg, {
-                    x: FIRMA_X, y: PH - (FIRMA_Y_FITZ + FIRMA_H),
-                    width: FIRMA_W, height: FIRMA_H,
-                });
+            const sr = await fetch('/signatures/firma_instructor.png');
+            if (sr.ok) {
+                const sb2 = await sr.arrayBuffer();
+                const sImg = await pdfDoc.embedPng(sb2);
+                const FW=80, FH=50, FX=SIG_INS_X-40;
+                page.drawImage(sImg, { x:FX, y:PH-(SIG_IMG_Y+5+FH), width:FW, height:FH });
             }
-        } catch(e) { console.warn('Error cargando firma:', e); }
+        } catch(e) {}
     }
 
-    // Slogan del diseño si existe
-    if (agentDesign && agentDesign.slogan) {
-        T(agentDesign.sloganX || 30, agentDesign.sloganY || 445, agentDesign.slogan, agentDesign.sloganSize || 7);
-    }
-
-    // ── 14. Reconstrucción de los 3 bloques de firma perfectamente alineados ──────
-    const Y_TITULOS = 498;
-    const Y_LINEA   = 537;
-    const Y_NOMBRE_FIRMA = 548;
-    const Y_NOMBRE_1 = 518;
-    const Y_NOMBRE_2 = 527;
-
-    // --- COLUMNA 1: INSTRUCTOR ---
-    const CENTER_X_INS = 120;
-    T_Centered(CENTER_X_INS, Y_TITULOS, "Instructor o tutor", 7.5);
-
+    // ── Nombre del instructor (bajo la imagen) ────────────────────────────
     const insName = sp((agentDesign && agentDesign.agentName ? agentDesign.agentName : (agent.name||'')).toUpperCase());
-    const insLines = splitNameJS(insName, 26);
-    T_Centered(CENTER_X_INS, Y_NOMBRE_1, insLines[0], 8);
-    if (insLines[1]) T_Centered(CENTER_X_INS, Y_NOMBRE_2, insLines[1], 8);
+    const insLines = insName.length > 24 ? [insName.slice(0,24), insName.slice(24,48)] : [insName];
+    T_C(SIG_INS_X, SIG_NAME_Y1, insLines[0], 7.5);
+    if (insLines[1]) T_C(SIG_INS_X, SIG_NAME_Y2, insLines[1], 7.5);
 
-    page.drawLine({
-        start: { x: 35, y: PH - Y_LINEA },
-        end: { x: 205, y: PH - Y_LINEA },
-        thickness: 0.8,
-        color: rgb(0,0,0)
-    });
-    T_Centered(CENTER_X_INS, Y_NOMBRE_FIRMA, "Nombre y firma", 8);
-
-    // --- COLUMNA 2: PATRÓN ---
-    const CENTER_X_PAT = 300;
-    T_Centered(CENTER_X_PAT, Y_TITULOS, "Patrón o representante legal 4/", 7.5);
-
-    const patName = sp((compObj.representanteLegal || '').toUpperCase());
-    const patLines = splitNameJS(patName, 28);
-    T_Centered(CENTER_X_PAT, Y_NOMBRE_1, patLines[0], 8);
-    if (patLines[1]) T_Centered(CENTER_X_PAT, Y_NOMBRE_2, patLines[1], 8);
-
-    page.drawLine({
-        start: { x: 220, y: PH - Y_LINEA },
-        end: { x: 390, y: PH - Y_LINEA },
-        thickness: 0.8,
-        color: rgb(0,0,0)
-    });
-    T_Centered(CENTER_X_PAT, Y_NOMBRE_FIRMA, "Nombre y firma", 8);
-
-    // --- COLUMNA 3: REPRESENTANTE ---
-    const CENTER_X_REP = 475;
-    T_Centered(CENTER_X_REP, Y_TITULOS, "Representante de los trabajadores 5/", 7.5);
-
-    if (compObj.representanteTrabajadores) {
-        const repName = sp(compObj.representanteTrabajadores.toUpperCase());
-        const repLines = splitNameJS(repName, 26);
-        T_Centered(CENTER_X_REP, Y_NOMBRE_1, repLines[0], 8);
-        if (repLines[1]) T_Centered(CENTER_X_REP, Y_NOMBRE_2, repLines[1], 8);
+    // ── Nombre Patrón/Rep Legal (columna 2) ───────────────────────────────
+    const patName = sp((compObj.representanteLegal||'').toUpperCase());
+    if (patName) {
+        const patLines = patName.length > 26 ? [patName.slice(0,26), patName.slice(26)] : [patName];
+        T_C(SIG_PAT_X, SIG_NAME_Y1, patLines[0], 7.5);
+        if (patLines[1]) T_C(SIG_PAT_X, SIG_NAME_Y2, patLines[1], 7.5);
     }
 
-    page.drawLine({
-        start: { x: 405, y: PH - Y_LINEA },
-        end: { x: 575, y: PH - Y_LINEA },
-        thickness: 0.8,
-        color: rgb(0,0,0)
-    });
-    T_Centered(CENTER_X_REP, Y_NOMBRE_FIRMA, "Nombre y firma", 8);
+    // ── Nombre Representante Trabajadores (columna 3) ─────────────────────
+    const repName = sp((compObj.representanteTrabajadores||'').toUpperCase());
+    if (repName) {
+        const repLines = repName.length > 26 ? [repName.slice(0,26), repName.slice(26)] : [repName];
+        T_C(SIG_REP_X, SIG_NAME_Y1, repLines[0], 7.5);
+        if (repLines[1]) T_C(SIG_REP_X, SIG_NAME_Y2, repLines[1], 7.5);
+    }
+
+    // ── Slogan extra en sección de firmas (si está configurado) ─────────
+    if (agentDesign && agentDesign.slogan) {
+        T(agentDesign.sloganX||30, agentDesign.sloganY||445, agentDesign.slogan, agentDesign.sloganSize||7);
+    }
 
     // Guardar y descargar
     const outBytes = await pdfDoc.save();
@@ -1606,283 +1584,11 @@ async function buildDC3PDF({ worker, company, agent, course, start, end, result 
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
     a.href = url;
-    a.download = 'DC3_' + sp((worker.curp||worker.name||'constancia').replace(/\s/g,'_')) + '.pdf';
-    document.body.appendChild(a); a.click(); a.remove();
+    a.download = `DC3_${sp((worker.name||'trabajador').replace(/\s+/g,'_'))}.pdf`;
+    a.click();
     URL.revokeObjectURL(url);
 }
 
-function splitNameJS(name, maxChars) {
-    if (!name || name.length <= maxChars) return [name || ''];
-    const mid = name.lastIndexOf(' ', maxChars);
-    if (mid > 0) return [name.substring(0, mid), name.substring(mid + 1)];
-    return [name.substring(0, maxChars), name.substring(maxChars)];
-}
-
-// ─── DISENO DC-3 ─────────────────────────────────────────
-let currentDesign = null;
-let designLogoBase64 = null;
-let designFirmaBase64 = null;
-let designHeaderLogoBase64 = null;
-
-async function loadDesign() {
-    if (!window.PDFLib) {
-        await new Promise((resolve, reject) => {
-            const s = document.createElement('script');
-            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js';
-            s.onload = resolve; s.onerror = reject;
-            document.head.appendChild(s);
-        });
-    }
-
-    const r = await api('find','agent_designs', { filter: { creatorEmail: currentUser.email } });
-    const designs = r.documents || [];
-
-    if (designs.length > 0) {
-        currentDesign = designs[0];
-    } else {
-        currentDesign = {
-            agentName: currentUser.name || '',
-            slogan: '', sloganX: 30, sloganY: 445, sloganSize: 7,
-            logoX: 58, logoY: 454, logoW: 115, logoH: 65,
-            firmaX: 88, firmaY: 457, firmaW: 85, firmaH: 60,
-            logoBase64: null, firmaBase64: null,
-            creatorEmail: currentUser.email
-        };
-    }
-
-    document.getElementById('design-agent-name').value = currentDesign.agentName || '';
-    document.getElementById('design-slogan').value = currentDesign.slogan || '';
-    document.getElementById('design-slogan-x').value = currentDesign.sloganX ?? 30;
-    document.getElementById('design-slogan-y').value = currentDesign.sloganY ?? 445;
-    document.getElementById('design-slogan-size').value = currentDesign.sloganSize ?? 7;
-    document.getElementById('design-logo-x').value = currentDesign.logoX ?? 58;
-    document.getElementById('design-logo-y').value = currentDesign.logoY ?? 454;
-    document.getElementById('design-logo-w').value = currentDesign.logoW ?? 115;
-    document.getElementById('design-logo-h').value = currentDesign.logoH ?? 65;
-    document.getElementById('design-firma-x').value = currentDesign.firmaX ?? 88;
-    document.getElementById('design-firma-y').value = currentDesign.firmaY ?? 457;
-    document.getElementById('design-firma-w').value = currentDesign.firmaW ?? 85;
-    document.getElementById('design-firma-h').value = currentDesign.firmaH ?? 60;
-    // Cabecera
-    document.getElementById('design-header-slogan').value = currentDesign.headerSlogan || '';
-    document.getElementById('design-header-slogan-x').value = currentDesign.headerSloganX ?? 300;
-    document.getElementById('design-header-slogan-y').value = currentDesign.headerSloganY ?? 40;
-    document.getElementById('design-header-slogan-size').value = currentDesign.headerSloganSize ?? 14;
-    document.getElementById('design-header-logo-w').value = currentDesign.headerLogoW ?? 120;
-    document.getElementById('design-header-logo-h').value = currentDesign.headerLogoH ?? 65;
-    document.getElementById('design-header-logo-x').value = currentDesign.headerLogoX ?? 240;
-    document.getElementById('design-header-logo-y').value = currentDesign.headerLogoY ?? 45;
-
-    designLogoBase64 = currentDesign.logoBase64 || null;
-    designFirmaBase64 = currentDesign.firmaBase64 || null;
-    designHeaderLogoBase64 = currentDesign.headerLogoBase64 || null;
-    updateImagePreview('logo', designLogoBase64);
-    updateImagePreview('firma', designFirmaBase64);
-    updateImagePreview('headerLogo', designHeaderLogoBase64);
-
-    renderDesignPreview();
-}
-
-function updateImagePreview(type, base64) {
-    const elId = type === 'headerLogo' ? 'design-header-logo-preview' : 'design-' + type + '-preview';
-    const el = document.getElementById(elId);
-    if (!el) return;
-    if (base64) {
-        el.style.backgroundImage = `url(${base64})`;
-        el.style.backgroundSize = 'contain';
-        el.style.backgroundRepeat = 'no-repeat';
-        el.style.backgroundPosition = 'center';
-        el.innerHTML = '';
-    } else {
-        el.style.backgroundImage = '';
-        const labels = { logo: 'Sin logo', firma: 'Sin firma', headerLogo: 'Sin logo' };
-        el.innerHTML = labels[type] || 'Sin imagen';
-    }
-}
-
-function handleDesignImage(input, type) {
-    const file = input.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        const base64 = e.target.result;
-        if (type === 'logo') designLogoBase64 = base64;
-        else if (type === 'firma') designFirmaBase64 = base64;
-        else if (type === 'headerLogo') designHeaderLogoBase64 = base64;
-        updateImagePreview(type, base64);
-        renderDesignPreview();
-    };
-    reader.readAsDataURL(file);
-}
-
-async function saveDesign() {
-    const design = {
-        agentName: document.getElementById('design-agent-name').value.trim(),
-        slogan: document.getElementById('design-slogan').value.trim(),
-        sloganX: parseInt(document.getElementById('design-slogan-x').value) || 30,
-        sloganY: parseInt(document.getElementById('design-slogan-y').value) || 445,
-        sloganSize: parseInt(document.getElementById('design-slogan-size').value) || 7,
-        logoX: parseInt(document.getElementById('design-logo-x').value) || 58,
-        logoY: parseInt(document.getElementById('design-logo-y').value) || 454,
-        logoW: parseInt(document.getElementById('design-logo-w').value) || 115,
-        logoH: parseInt(document.getElementById('design-logo-h').value) || 65,
-        firmaX: parseInt(document.getElementById('design-firma-x').value) || 88,
-        firmaY: parseInt(document.getElementById('design-firma-y').value) || 457,
-        firmaW: parseInt(document.getElementById('design-firma-w').value) || 85,
-        firmaH: parseInt(document.getElementById('design-firma-h').value) || 60,
-        logoBase64: designLogoBase64,
-        firmaBase64: designFirmaBase64,
-        // Cabecera
-        headerSlogan: document.getElementById('design-header-slogan').value.trim(),
-        headerSloganX: parseInt(document.getElementById('design-header-slogan-x').value) || 300,
-        headerSloganY: parseInt(document.getElementById('design-header-slogan-y').value) || 40,
-        headerSloganSize: parseInt(document.getElementById('design-header-slogan-size').value) || 14,
-        headerLogoW: parseInt(document.getElementById('design-header-logo-w').value) || 120,
-        headerLogoH: parseInt(document.getElementById('design-header-logo-h').value) || 65,
-        headerLogoX: parseInt(document.getElementById('design-header-logo-x').value) || 240,
-        headerLogoY: parseInt(document.getElementById('design-header-logo-y').value) || 45,
-        headerLogoBase64: designHeaderLogoBase64,
-        creatorEmail: currentUser.email
-    };
-
-    if (currentDesign && currentDesign.id) {
-        const r = await api('update','agent_designs',{ id: currentDesign.id, document: design });
-        if (r.error) { alert('Error al guardar: ' + r.error); return; }
-    } else {
-        const r = await api('insertOne','agent_designs',{ document: design });
-        if (r.error) { alert('Error al guardar: ' + r.error); return; }
-        const rr = await api('find','agent_designs', { filter: { creatorEmail: currentUser.email } });
-        if (rr.documents && rr.documents.length > 0) currentDesign = rr.documents[0];
-    }
-    alert('Diseno guardado correctamente.');
-}
-
-async function renderDesignPreview() {
-    try {
-        const resp = await fetch('/plantilla_dc3.pdf');
-        if (!resp.ok) return;
-        const pdfBytes = await resp.arrayBuffer();
-        const { PDFDocument, StandardFonts, rgb } = PDFLib;
-        const pdfDoc = await PDFDocument.load(pdfBytes);
-        const page = pdfDoc.getPage(0);
-        const PH = 792;
-        const font  = await pdfDoc.embedFont(StandardFonts.Helvetica);
-        const fontI = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
-        const fontB = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-
-        function sp(s) { return String(s||'').replace(/[áà]/g,'a').replace(/[éè]/g,'e').replace(/[íì]/g,'i').replace(/[óò]/g,'o').replace(/[úùü]/g,'u').replace(/ñ/g,'n').replace(/[ÁÀ]/g,'A').replace(/[ÉÈ]/g,'E').replace(/[ÍÌ]/g,'I').replace(/[ÓÒ]/g,'O').replace(/[ÚÙÜ]/g,'U').replace(/Ñ/g,'N'); }
-
-        // ── CABECERA: logo de empresa ──────────────────────────────────────
-        const hlBase64 = designHeaderLogoBase64;
-        if (hlBase64) {
-            try {
-                const hlBytes = await fetch(hlBase64).then(r => r.arrayBuffer());
-                let hlImg;
-                try { hlImg = await pdfDoc.embedPng(hlBytes); } catch(e) { hlImg = await pdfDoc.embedJpg(hlBytes); }
-                const hlw = parseInt(document.getElementById('design-header-logo-w').value) || 120;
-                const hlh = parseInt(document.getElementById('design-header-logo-h').value) || 65;
-                const hlx = parseInt(document.getElementById('design-header-logo-x').value) || 240;
-                const hly = parseInt(document.getElementById('design-header-logo-y').value) || 45;
-                page.drawImage(hlImg, { x: hlx, y: PH - (hly + hlh), width: hlw, height: hlh, opacity: 1.0 });
-            } catch(e) { console.warn('Error logo cabecera preview:', e); }
-        }
-
-        // ── CABECERA: slogan ───────────────────────────────────────────────
-        const hSlogan = document.getElementById('design-header-slogan').value.trim();
-        if (hSlogan) {
-            const hsx = parseInt(document.getElementById('design-header-slogan-x').value) || 300;
-            const hsy = parseInt(document.getElementById('design-header-slogan-y').value) || 40;
-            const hss = parseInt(document.getElementById('design-header-slogan-size').value) || 14;
-            const hst = sp(hSlogan);
-            const hsw = fontI.widthOfTextAtSize(hst, hss);
-            page.drawText(hst, { x: hsx - hsw/2, y: PH - hsy, size: hss, font: fontI, color: rgb(0.1,0.1,0.1) });
-        }
-
-        // ── FIRMA: limpiar área de firma ───────────────────────────────────
-        page.drawRectangle({ x: 25, y: PH - 541, width: 185, height: 88, color: rgb(1,1,1) });
-
-        // ── FIRMA: logo del agente ─────────────────────────────────────────
-        if (designLogoBase64) {
-            try {
-                const logoBytes = await fetch(designLogoBase64).then(r => r.arrayBuffer());
-                const logoImg = await pdfDoc.embedPng(logoBytes);
-                const lx = parseInt(document.getElementById('design-logo-x').value) || 58;
-                const ly = parseInt(document.getElementById('design-logo-y').value) || 454;
-                const lw = parseInt(document.getElementById('design-logo-w').value) || 115;
-                const lh = parseInt(document.getElementById('design-logo-h').value) || 65;
-                page.drawImage(logoImg, { x: lx, y: PH - (ly + lh), width: lw, height: lh, opacity: 1.0 });
-            } catch(e) {}
-        }
-
-        // ── FIRMA: firma del agente ────────────────────────────────────────
-        if (designFirmaBase64) {
-            try {
-                const firmaBytes = await fetch(designFirmaBase64).then(r => r.arrayBuffer());
-                const firmaImg = await pdfDoc.embedPng(firmaBytes);
-                const fx = parseInt(document.getElementById('design-firma-x').value) || 88;
-                const fy = parseInt(document.getElementById('design-firma-y').value) || 457;
-                const fw = parseInt(document.getElementById('design-firma-w').value) || 85;
-                const fh = parseInt(document.getElementById('design-firma-h').value) || 60;
-                page.drawImage(firmaImg, { x: fx, y: PH - (fy + fh), width: fw, height: fh });
-            } catch(e) {}
-        }
-
-        // ── FIRMA: nombre del agente ───────────────────────────────────────
-        const agentName = (document.getElementById('design-agent-name').value || '').toUpperCase();
-        if (agentName) {
-            const clean = sp(agentName);
-            const lines = clean.length > 26 ? [clean.substring(0,26), clean.substring(26)] : [clean];
-            page.drawText(lines[0], { x: 28, y: PH - 521, size: 7.5, font, color: rgb(0,0,0) });
-            if (lines[1]) page.drawText(lines[1], { x: 28, y: PH - 530, size: 7.5, font, color: rgb(0,0,0) });
-        }
-
-        // ── SLOGAN de firmas ───────────────────────────────────────────────
-        const slogan = document.getElementById('design-slogan').value || '';
-        if (slogan) {
-            const sx = parseInt(document.getElementById('design-slogan-x').value) || 30;
-            const sy = parseInt(document.getElementById('design-slogan-y').value) || 445;
-            const ss = parseInt(document.getElementById('design-slogan-size').value) || 7;
-            page.drawText(sp(slogan), { x: sx, y: PH - sy, size: ss, font, color: rgb(0.35,0.35,0.35) });
-        }
-
-        const outBytes = await pdfDoc.save();
-        if (window.pdfjsLib) {
-            renderPdfToCanvas(outBytes);
-        } else {
-            const s = document.createElement('script');
-            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-            s.onload = () => {
-                window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-                renderPdfToCanvas(outBytes);
-            };
-            document.head.appendChild(s);
-        }
-    } catch(e) { console.warn('Preview error:', e); }
-}
-
-async function renderPdfToCanvas(pdfBytes) {
-    try {
-        const loadingTask = window.pdfjsLib.getDocument({ data: pdfBytes });
-        const pdf = await loadingTask.promise;
-        const page = await pdf.getPage(1);
-        const canvas = document.getElementById('design-preview-canvas');
-        const ctx = canvas.getContext('2d');
-        // Calcular escala para ajustar al ancho del contenedor
-        const container = canvas.parentElement;
-        const containerW = container ? container.clientWidth - 24 : 600;
-        const baseVP = page.getViewport({ scale: 1 });
-        const scale = Math.min(1.8, containerW / baseVP.width);
-        const viewport = page.getViewport({ scale });
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        // Renderizar página completa sin recorte
-        await page.render({ canvasContext: ctx, viewport }).promise;
-    } catch(e) { console.warn('Canvas render error:', e); }
-}
-
-async function previewDesign() {
-    await renderDesignPreview();
-}
 
 // ─── EXCEL IMPORT ──────────────────────────────────────
 function handleExcel(input) {
