@@ -1909,8 +1909,9 @@ function _updateDragHandles(p) {
     const sc = designState._scale;
     svg.innerHTML = '';
 
-    // Helper: convertir coordenada PDF-Y a canvas-Y (PDF origin bottom-left)
-    const cy = (pdfY, h) => pdfY * sc;  // top-down: user Y is already top-down, just scale it
+    // Helper: convertir coordenada PDF-Y a canvas-Y (PDF origin bottom-left → SVG top-down)
+    const PDF_H_LOCAL = 792;
+    const cy = (pdfY, h) => (PDF_H_LOCAL - pdfY - h) * sc;
 
     const items = [
         { key:'logo',       x:p.logoX*sc,        y:cy(p.logoY, p.logoH),              w:p.logoW*sc,        h:p.logoH*sc,        label:'LOGO',       color:'#6366f1', xId:'design-logo-x', yId:'design-logo-y' },
