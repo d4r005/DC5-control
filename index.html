@@ -1893,7 +1893,7 @@ function _updateDragHandles(p) {
     svg.innerHTML = '';
 
     // Helper: convertir coordenada PDF-Y a canvas-Y (PDF origin bottom-left)
-    const cy = (pdfY, h) => (PDF_H - pdfY - h) * sc;
+    const cy = (pdfY, h) => pdfY * sc;  // top-down: user Y is already top-down, just scale it
 
     const items = [
         { key:'logo',       x:p.logoX*sc,        y:cy(p.logoY, p.logoH),              w:p.logoW*sc,        h:p.logoH*sc,        label:'LOGO',       color:'#6366f1', xId:'design-logo-x', yId:'design-logo-y' },
@@ -1910,21 +1910,22 @@ function _updateDragHandles(p) {
         g.style.pointerEvents = 'all';
 
         // Solo mostrar si hay contenido
+        // Always show drag handles — even without content uploaded — so user can position them
         const hasContent = (item.key==='logo' && p.logoBase64) ||
                            (item.key==='firma' && p.firmaBase64) ||
                            (item.key==='headerLogo' && p.headerLogoBase64) ||
                            (item.key==='hslogan' && p.headerSlogan?.trim()) ||
                            (item.key==='slogan' && p.slogan?.trim());
-        if (!hasContent) return;
 
         const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
         rect.setAttribute('x', item.x);
         rect.setAttribute('y', item.y);
         rect.setAttribute('width', item.w);
         rect.setAttribute('height', item.h);
-        rect.setAttribute('fill', item.color+'22');
+        rect.setAttribute('fill', hasContent ? item.color+'22' : item.color+'10');
         rect.setAttribute('stroke', item.color);
-        rect.setAttribute('stroke-width', '1.5');
+        rect.setAttribute('stroke-width', hasContent ? '1.5' : '1');
+        rect.setAttribute('stroke-dasharray', hasContent ? '' : '4,3');
         rect.setAttribute('rx', '3');
 
         const text = document.createElementNS('http://www.w3.org/2000/svg','text');
@@ -1966,7 +1967,7 @@ function _updateDragHandles(p) {
                 // Convertir dx pantalla → dx PDF
                 const dxPdf = (ev.clientX - _dragState.startMouseX) / (sc_total * _dragState.sc);
                 // PDF Y-axis is bottom-up: drag down → clientY increases → PDF Y decreases
-                const dyPdf = -(ev.clientY - _dragState.startMouseY) / (sc_total * _dragState.sc);
+                const dyPdf = (ev.clientY - _dragState.startMouseY) / (sc_total * _dragState.sc);  // top-down: no negation
                 const elX = document.getElementById(item.xId);
                 const elY = document.getElementById(item.yId);
                 if (elX) elX.value = Math.max(0, Math.round(_dragState.startPdfX + dxPdf));
@@ -1997,7 +1998,7 @@ function _updateDragHandles(p) {
             const cssW = canvasEl.getBoundingClientRect().width;
             const sc_total = cssW / canvasEl.width;
             const dxPdf = (t.clientX - _dragState.startMouseX) / (sc_total * _dragState.sc);
-            const dyPdf = -(t.clientY - _dragState.startMouseY) / (sc_total * _dragState.sc);
+            const dyPdf = (t.clientY - _dragState.startMouseY) / (sc_total * _dragState.sc);  // top-down: no negation
             const elX = document.getElementById(item.xId);
             const elY = document.getElementById(item.yId);
             if (elX) elX.value = Math.max(0, Math.round(_dragState.startPdfX + dxPdf));
