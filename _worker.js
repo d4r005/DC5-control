@@ -53,6 +53,11 @@ export default {
     const method = request.method;
     const params = url.searchParams;
 
+    // Si no es una ruta de API, servir los archivos estáticos de la página
+    if (!path.startsWith("/api/")) {
+      return env.ASSETS.fetch(request);
+    }
+
     if (method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
     // Seguridad básica (opcional, configurar API_KEY en Cloudflare)
@@ -66,6 +71,13 @@ export default {
     try {
       const segments = path.split("/").filter(Boolean);
       const collection = segments.pop();
+
+      if (!collection) {
+        return new Response(JSON.stringify({ error: "No collection specified" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
 
       // Manejo especial para subida de archivos
       if (collection === "upload" && method === "POST") {
