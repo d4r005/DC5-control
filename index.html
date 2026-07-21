@@ -1580,15 +1580,31 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     // Limpiar SOLO el interior de celdas de dígitos (NO la celda "De" ni la celda "a")
     // Bordes medidos con PyMuPDF — separadores en: 252.3|268.1|284.0|300.4|316.3|337.4|359.1|380.2|401.2 ... 423.1|442.6|462.2|481.7|501.2|522.3|543.3|565.2|586.2
     // Interior: x + 0.4 para evitar el borde izquierdo
-    // Limpiar interior de celdas SIN tocar las líneas negras del formato
-    // y=PH-392.69 (deja 0.5pt sobre línea inferior y1=393.91), height=11.12 (deja margen en ambos lados)
-    page.drawRectangle({ x:253.4, y: PH-392.69, width:62.5,  height:11.12, color: rgb(1,1,1) }); // AÑO ini
-    page.drawRectangle({ x:317.4, y: PH-392.69, width:41.3,  height:11.12, color: rgb(1,1,1) }); // MES ini
-    page.drawRectangle({ x:360.2, y: PH-392.69, width:40.6,  height:11.12, color: rgb(1,1,1) }); // DIA ini
+    // Limpiar CELDA POR CELDA sin tocar separadores verticales (sep_w=0.72pt, margin=0.5pt)
+    // y=PH-392.69, height=11.12 (márgenes verticales preservados)
+    // AÑO inicio
+    page.drawRectangle({ x:253.87, y: PH-392.69, width:13.4,  height:11.12, color: rgb(1,1,1) }); // AÑO_ini[0]
+    page.drawRectangle({ x:268.99, y: PH-392.69, width:14.12, height:11.12, color: rgb(1,1,1) }); // AÑO_ini[1]
+    page.drawRectangle({ x:284.83, y: PH-392.69, width:14.72, height:11.12, color: rgb(1,1,1) }); // AÑO_ini[2]
+    page.drawRectangle({ x:301.27, y: PH-392.69, width:14.12, height:11.12, color: rgb(1,1,1) }); // AÑO_ini[3]
+    // MES inicio
+    page.drawRectangle({ x:317.11, y: PH-392.69, width:19.4,  height:11.12, color: rgb(1,1,1) }); // MES_ini[0]
+    page.drawRectangle({ x:338.23, y: PH-392.69, width:20.02, height:11.12, color: rgb(1,1,1) }); // MES_ini[1]
+    // DÍA inicio
+    page.drawRectangle({ x:359.97, y: PH-392.69, width:19.4,  height:11.12, color: rgb(1,1,1) }); // DIA_ini[0]
+    page.drawRectangle({ x:381.09, y: PH-392.69, width:19.28, height:11.12, color: rgb(1,1,1) }); // DIA_ini[1]
     // celda "a" (401..423) — NO limpiar
-    page.drawRectangle({ x:424.2, y: PH-392.69, width:76.6,  height:11.12, color: rgb(1,1,1) }); // AÑO fin
-    page.drawRectangle({ x:502.3, y: PH-392.69, width:40.6,  height:11.12, color: rgb(1,1,1) }); // MES fin
-    page.drawRectangle({ x:544.4, y: PH-392.69, width:41.4,  height:11.12, color: rgb(1,1,1) }); // DIA fin
+    // AÑO fin
+    page.drawRectangle({ x:423.93, y: PH-392.69, width:17.84, height:11.12, color: rgb(1,1,1) }); // AÑO_fin[0]
+    page.drawRectangle({ x:443.49, y: PH-392.69, width:17.84, height:11.12, color: rgb(1,1,1) }); // AÑO_fin[1]
+    page.drawRectangle({ x:463.05, y: PH-392.69, width:17.75, height:11.12, color: rgb(1,1,1) }); // AÑO_fin[2]
+    page.drawRectangle({ x:482.52, y: PH-392.69, width:17.84, height:11.12, color: rgb(1,1,1) }); // AÑO_fin[3]
+    // MES fin
+    page.drawRectangle({ x:502.08, y: PH-392.69, width:19.4,  height:11.12, color: rgb(1,1,1) }); // MES_fin[0]
+    page.drawRectangle({ x:523.2,  y: PH-392.69, width:19.28, height:11.12, color: rgb(1,1,1) }); // MES_fin[1]
+    // DÍA fin
+    page.drawRectangle({ x:544.2,  y: PH-392.69, width:20.12, height:11.12, color: rgb(1,1,1) }); // DIA_fin[0]
+    page.drawRectangle({ x:566.04, y: PH-392.69, width:19.28, height:11.12, color: rgb(1,1,1) }); // DIA_fin[1]
 
     // Centros exactos calculados del promedio de bordes reales de la plantilla
     const AÑO_INI = [260.2, 276.1, 292.2, 308.4];
