@@ -77,8 +77,14 @@ fun DC3GenerationScreen(onBack: () -> Unit) {
                                 val record = DC3Record(
                                     workerId   = employee.curp,
                                     workerName = "${employee.lastName} ${employee.firstName}",
+                                    workerPos  = employee.position,
                                     courseName = selectedCourse!!.name,
+                                    durationHours = selectedCourse!!.duration.toString(),
+                                    thematicArea = selectedCourse!!.thematicArea,
                                     companyName = selectedCompany!!.name,
+                                    companyRfc = selectedCompany!!.rfc,
+                                    companyPatron = selectedCompany!!.patron,
+                                    instructorName = selectedInstructor!!.fullName,
                                     startDate  = startDate,
                                     endDate    = endDate
                                 )
