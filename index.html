@@ -2065,11 +2065,13 @@ async function _renderPreview() {
         return pdfDoc.embedFont(sfKey);
     }
 
-    // Dibujar textos
+    // Dibujar textos — headerSloganX es el CENTRO del texto (igual que en buildDC3PDF)
     if (p.headerSlogan?.trim()) {
         const font = await embedFont(p.headerSloganFont);
-        page.drawText(p.headerSlogan.slice(0,80), {
-            x: p.headerSloganX,
+        const txt  = p.headerSlogan.slice(0,80);
+        const tw   = font.widthOfTextAtSize(txt, p.headerSloganSize);
+        page.drawText(txt, {
+            x: p.headerSloganX - tw / 2,
             y: PDF_H - p.headerSloganY - p.headerSloganSize,
             size: p.headerSloganSize, font, color: rgb(0.05,0.05,0.35)
         });
@@ -2141,7 +2143,7 @@ function _updateDragHandles(p) {
         { key:'logo',       x:p.logoX*sc,        y:cy(p.logoY, p.logoH),              w:p.logoW*sc,        h:p.logoH*sc,        label:'LOGO',       color:'#6366f1', xId:'design-logo-x', yId:'design-logo-y' },
         { key:'firma',      x:p.firmaX*sc,        y:cy(p.firmaY, p.firmaH),            w:p.firmaW*sc,       h:p.firmaH*sc,       label:'FIRMA',      color:'#0891b2', xId:'design-firma-x', yId:'design-firma-y' },
         { key:'headerLogo', x:p.headerLogoX*sc,   y:cy(p.headerLogoY, p.headerLogoH),  w:p.headerLogoW*sc,  h:p.headerLogoH*sc,  label:'CAB.LOGO',   color:'#7c3aed', xId:'design-header-logo-x', yId:'design-header-logo-y' },
-        { key:'hslogan',    x:p.headerSloganX*sc, y:cy(p.headerSloganY, p.headerSloganSize), w:Math.max(80,p.headerSloganSize*(p.headerSlogan||'').length*0.55)*sc, h:(p.headerSloganSize+4)*sc, label:'CAB.SLOGAN', color:'#0d9488', xId:'design-header-slogan-x', yId:'design-header-slogan-y', isText:true },
+        { key:'hslogan',    x:(p.headerSloganX - Math.max(40,p.headerSloganSize*(p.headerSlogan||'').length*0.28))*sc, y:cy(p.headerSloganY, p.headerSloganSize), w:Math.max(80,p.headerSloganSize*(p.headerSlogan||'').length*0.55)*sc, h:(p.headerSloganSize+4)*sc, label:'CAB.SLOGAN', color:'#0d9488', xId:'design-header-slogan-x', yId:'design-header-slogan-y', isText:true, isCentered:true },
         { key:'slogan',     x:p.sloganX*sc,       y:cy(p.sloganY, p.sloganSize),       w:Math.max(60,p.sloganSize*(p.slogan||'SLOGAN').length*0.55)*sc, h:(p.sloganSize+4)*sc, label:'SLOGAN', color:'#ea580c', xId:'design-slogan-x', yId:'design-slogan-y', isText:true },
     ];
 
