@@ -1529,14 +1529,14 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     // ══════════════════════════════════════════════════════════════════════
     // 4. PUESTO (y=202..226, texto en y=215)
     // ══════════════════════════════════════════════════════════════════════
-    page.drawRectangle({ x:27, y: PH-225, width:556, height:14, color: rgb(1,1,1) });
-    T(30, 220, (worker.position||'').toUpperCase(), 9);
+    page.drawRectangle({ x:27, y: PH-222, width:556, height:12, color: rgb(1,1,1) });
+    T(30, 218, (worker.position||'').toUpperCase(), 9);
 
     // ══════════════════════════════════════════════════════════════════════
     // 5. NOMBRE EMPRESA (y=255..289, texto en y=272)
     // ══════════════════════════════════════════════════════════════════════
-    page.drawRectangle({ x:27, y: PH-287, width:556, height:24, color: rgb(1,1,1) });
-    T(30, 272, companyNameFinal.slice(0,80), 9, true);
+    page.drawRectangle({ x:27, y: PH-282, width:556, height:16, color: rgb(1,1,1) });
+    T(30, 274, companyNameFinal.slice(0,80), 9, true);
 
     // ══════════════════════════════════════════════════════════════════════
     // 6. RFC — 15 celdas, y_top=300.3 y_bot=315.3 → texto en y=311
@@ -1555,8 +1555,8 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     // ══════════════════════════════════════════════════════════════════════
     // 7. NOMBRE DEL CURSO (y=344..368, texto en y=360)
     // ══════════════════════════════════════════════════════════════════════
-    page.drawRectangle({ x:27, y: PH-366, width:556, height:15, color: rgb(1,1,1) });
-    T(30, 362, (String(course.name||course||'')).toUpperCase().slice(0,80), 9);
+    page.drawRectangle({ x:27, y: PH-363, width:556, height:12, color: rgb(1,1,1) });
+    T(30, 361, (String(course.name||course||'')).toUpperCase().slice(0,80), 9);
 
     // ══════════════════════════════════════════════════════════════════════
     // 8. DURACIÓN (y=369..380, texto en y=378)
@@ -1570,22 +1570,31 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     const fEnd   = parseFecha(end);
     const FY     = 388.5;
 
-    const AÑO_INI = [260.2, 276.1, 292.1, 308.4];
-    const MES_INI = [347.9, 369.4];
-    const DIA_INI = [390.4, 411.8];
-    const AÑO_FIN = [452.1, 471.6, 491.1, 511.4];
-    const MES_FIN = [532.5, 553.9];
-    const DIA_FIN = [575.3, 595.9];
+    // ── Fechas: limpiar SOLO las celdas de dígitos con rectángulos precisos ──
+    // Celda individual ~14pt ancho. Ajustado para no tapar labels "Año","Mes","Día"
+    // AÑO inicio: 4 celdas x≈248..320 → rect conservador que no toque labels
+    page.drawRectangle({ x:248, y: PH-403, width:76, height:10, color: rgb(1,1,1) }); // AÑO inicio
+    page.drawRectangle({ x:330, y: PH-403, width:48, height:10, color: rgb(1,1,1) }); // MES inicio
+    page.drawRectangle({ x:382, y: PH-403, width:44, height:10, color: rgb(1,1,1) }); // DÍA inicio
+    page.drawRectangle({ x:436, y: PH-403, width:76, height:10, color: rgb(1,1,1) }); // AÑO fin
+    page.drawRectangle({ x:516, y: PH-403, width:48, height:10, color: rgb(1,1,1) }); // MES fin
+    page.drawRectangle({ x:568, y: PH-403, width:44, height:10, color: rgb(1,1,1) }); // DÍA fin
 
-    // Limpiar SOLO las celdas de dígitos (no borrar "De" ni "a" de la plantilla)
-    // Celdas AÑO_INI: x=252..316, Celdas MES_INI/DIA_INI: x=337..422, celdas fin: x=443..596
-    page.drawRectangle({ x:252, y: PH-407, width:70,  height:12, color: rgb(1,1,1) }); // AÑO inicio
-    page.drawRectangle({ x:337, y: PH-407, width:88,  height:12, color: rgb(1,1,1) }); // MES+DIA inicio
-    page.drawRectangle({ x:443, y: PH-407, width:76,  height:12, color: rgb(1,1,1) }); // AÑO fin
-    page.drawRectangle({ x:522, y: PH-407, width:76,  height:12, color: rgb(1,1,1) }); // MES+DIA fin
+    const FY_digits = 395; // Y baseline de los dígitos (centrado en celda ~396..406)
 
-    // FY: baseline del texto centrado verticalmente en las celdas (celda y=396..408 en PDF coords)
-    const FY_digits = 393; // pdf_y = 792-393 = 399 → centrado en celda (396..408)
+    // ── Centros de celdas recalibrados ──
+    // AÑO inicio: 4 celdas de ~14pt cada una, inicio x≈249
+    const AÑO_INI = [256, 270, 284, 298];
+    // MES inicio: 2 celdas, inicio x≈331
+    const MES_INI = [338, 352];
+    // DÍA inicio: 2 celdas, inicio x≈383
+    const DIA_INI = [390, 404];
+    // AÑO fin: 4 celdas, inicio x≈437
+    const AÑO_FIN = [444, 458, 472, 486];
+    // MES fin: 2 celdas, inicio x≈517
+    const MES_FIN = [524, 538];
+    // DÍA fin: 2 celdas, inicio x≈569
+    const DIA_FIN = [576, 590];
 
     for (let i=0; i<4; i++) {
         const ch = fStart.a[i]||'';
@@ -1611,31 +1620,33 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     // ══════════════════════════════════════════════════════════════════════
     // 10. ÁREA TEMÁTICA (y=394..418, texto en y=408)
     // ══════════════════════════════════════════════════════════════════════
-    page.drawRectangle({ x:27, y: PH-416, width:556, height:14, color: rgb(1,1,1) });
-    T(30, 412, (course.thematicArea||course.area||'').toUpperCase().slice(0,80), 8);
+    page.drawRectangle({ x:27, y: PH-413, width:556, height:11, color: rgb(1,1,1) });
+    T(30, 411, (course.thematicArea||course.area||'').toUpperCase().slice(0,80), 8);
 
     // ══════════════════════════════════════════════════════════════════════
     // 11. NOMBRE AGENTE CAPACITADOR (y=419..443, texto en y=434)
     // ══════════════════════════════════════════════════════════════════════
-    page.drawRectangle({ x:27, y: PH-441, width:556, height:15, color: rgb(1,1,1) });
-    const agentLine = sp(((agent.name||'') + '   ' + (agent.stps||'')).toUpperCase().trim());
-    T(30, 437, agentLine.slice(0,80), 8);
+    page.drawRectangle({ x:27, y: PH-437, width:556, height:12, color: rgb(1,1,1) });
+    const agentLine = sp(((agent.name||'') + '   STPS-' + (agent.stps||'')).toUpperCase().trim());
+    T(30, 435, agentLine.slice(0,80), 8);
 
     // ── 12. SECCIÓN FIRMAS — Reconstrucción total personalizada ──────
-    const SIG_INS_X  = 132;  // centro columna instructor: x=62+140/2
-    const SIG_PAT_X  = 295;  // centro columna patron: x=217+156/2
-    const SIG_REP_X  = 464;  // centro columna rep: x=387+155/2
-    const SIG_IMG_Y  = 473;  // top de zona imagen (yFitz inicio zona limpia)
-    const SIG_NAME_Y1= 516;  // primera línea nombre (dentro de zona limpia 472-540)
+    const SIG_INS_X  = 132;  // centro columna instructor: x=64+136/2
+    const SIG_PAT_X  = 295;  // centro columna patron: x=219+152/2
+    const SIG_REP_X  = 465;  // centro columna rep: x=389+152/2
+    const SIG_IMG_Y  = 483;  // top de zona imagen (dentro de zona limpia 483..535)
+    const SIG_NAME_Y1= 516;  // primera línea nombre
     const SIG_NAME_Y2= 526;  // segunda línea nombre
 
-    // Limpiar SOLO la zona central de firma/imagen de cada columna (no headers ni bordes)
-    // Columna Instructor: x=63..201, yFitz=472..540
-    page.drawRectangle({ x:63,  y: PH-539, width:137, height:66, color: rgb(1,1,1) });
-    // Columna Patrón: x=218..372, yFitz=472..540
-    page.drawRectangle({ x:218, y: PH-539, width:153, height:66, color: rgb(1,1,1) });
-    // Columna Rep: x=388..542, yFitz=472..540
-    page.drawRectangle({ x:388, y: PH-539, width:153, height:66, color: rgb(1,1,1) });
+    // Limpiar SOLO la zona de imagen/firma dentro de cada columna
+    // Ajustado para NO tapar el texto "bajo protesta..." que está arriba (y_doc≈455..470)
+    // Solo limpiar zona y_doc≈480..538 → y_pdf = PH-538 a PH-480 = altura 58
+    // Columna Instructor: x=64..200
+    page.drawRectangle({ x:64,  y: PH-535, width:136, height:52, color: rgb(1,1,1) });
+    // Columna Patrón: x=219..371
+    page.drawRectangle({ x:219, y: PH-535, width:152, height:52, color: rgb(1,1,1) });
+    // Columna Rep: x=389..541
+    page.drawRectangle({ x:389, y: PH-535, width:152, height:52, color: rgb(1,1,1) });
 
     // ── Helper: embeber imagen (dataURL o URL relativa) ────────────────
     async function embedSig(src) {
