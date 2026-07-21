@@ -1327,6 +1327,8 @@ async function generateDC3() {
         workerName:  selectedWorker.name,
         workerPos:   selectedWorker.position,
         courseName,
+        durationHours: courseDuration,
+        thematicArea:  courseArea,
         companyName: companyName,
         representanteLegal: company.representante_legal || company.representanteLegal,
         representanteTrabajadores: company.representante_trabajadores || company.representanteTrabajadores,
@@ -1448,8 +1450,18 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     // ── Cargar diseño personalizado del agente ────────────────────────────
     let agentDesign = null;
     try {
-        const dr = await api('find','agent_designs', { filter: { creatorEmail: currentUser?.email || '' } });
+        // Buscar diseño por email del agente capacitador específico
+        const agentRecord = (DATA.agents || []).find(a =>
+            a.name && agent.name && a.name.toUpperCase().trim() === agent.name.toUpperCase().trim()
+        );
+        const agentEmail = agentRecord?.creatorEmail || agentRecord?.email || currentUser?.email || '';
+        const dr = await api('find','agent_designs', { filter: { creatorEmail: agentEmail } });
         agentDesign = (dr.documents && dr.documents.length > 0) ? dr.documents[0] : null;
+        // Fallback al diseño del usuario actual si no se encontró
+        if (!agentDesign && agentEmail !== (currentUser?.email || '')) {
+            const dr2 = await api('find','agent_designs', { filter: { creatorEmail: currentUser?.email || '' } });
+            agentDesign = (dr2.documents && dr2.documents.length > 0) ? dr2.documents[0] : null;
+        }
     } catch(e) { console.warn('No se pudo cargar diseño del agente:', e); }
 
     // ── Asegurar que compObj sea un objeto válido ──────────────────────────
@@ -1466,7 +1478,13 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
         if (hlBase64) {
             const hlBytes = await fetch(hlBase64).then(r => r.arrayBuffer());
             let hlImg;
-            try { hlImg = await pdfDoc.embedPng(hlBytes); } catch(e2) { hlImg = await pdfDoc.embedJpg(hlBytes); }
+            try {
+                if (hlBase64.startsWith('data:image/jpeg') || hlBase64.startsWith('data:image/jpg')) {
+                    hlImg = await pdfDoc.embedJpg(hlBytes);
+                } else {
+                    try { hlImg = await pdfDoc.embedPng(hlBytes); } catch(e3) { hlImg = await pdfDoc.embedJpg(hlBytes); }
+                }
+            } catch(eImg) { console.warn('Header logo embed error:', eImg); hlImg = null; }
             const hlw = agentDesign.headerLogoW || 120;
             const hlh = agentDesign.headerLogoH || 65;
             const hlx = agentDesign.headerLogoX || 240;
@@ -1480,7 +1498,7 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
             const hsw = sloganFont.widthOfTextAtSize(hst, hss);
             const hsx = agentDesign.headerSloganX || 306;
             const hsy = agentDesign.headerSloganY || 40;
-            page.drawText(hst, { x: hsx - hsw/2, y: PH - hsy, size: hss, font: sloganFont, color: rgb(0.1,0.1,0.1) });
+            page.drawText(hst, { x: hsx - hsw/2, y: PH - hsy - hss/2, size: hss, font: sloganFont, color: rgb(0.1,0.1,0.1) });
         }
     } catch(e) { console.warn('Error cabecera:', e); }
 
@@ -1511,13 +1529,13 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     // ══════════════════════════════════════════════════════════════════════
     // 4. PUESTO (y=202..226, texto en y=215)
     // ══════════════════════════════════════════════════════════════════════
-    page.drawRectangle({ x:26, y: PH-226, width:558, height:18, color: rgb(1,1,1) });
+    page.drawRectangle({ x:27, y: PH-225, width:556, height:14, color: rgb(1,1,1) });
     T(30, 220, (worker.position||'').toUpperCase(), 9);
 
     // ══════════════════════════════════════════════════════════════════════
     // 5. NOMBRE EMPRESA (y=255..289, texto en y=272)
     // ══════════════════════════════════════════════════════════════════════
-    page.drawRectangle({ x:26, y: PH-288, width:558, height:28, color: rgb(1,1,1) });
+    page.drawRectangle({ x:27, y: PH-287, width:556, height:24, color: rgb(1,1,1) });
     T(30, 272, companyNameFinal.slice(0,80), 9, true);
 
     // ══════════════════════════════════════════════════════════════════════
@@ -1537,7 +1555,7 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     // ══════════════════════════════════════════════════════════════════════
     // 7. NOMBRE DEL CURSO (y=344..368, texto en y=360)
     // ══════════════════════════════════════════════════════════════════════
-    page.drawRectangle({ x:26, y: PH-367, width:558, height:19, color: rgb(1,1,1) });
+    page.drawRectangle({ x:27, y: PH-366, width:556, height:15, color: rgb(1,1,1) });
     T(30, 362, (String(course.name||course||'')).toUpperCase().slice(0,80), 9);
 
     // ══════════════════════════════════════════════════════════════════════
@@ -1586,13 +1604,13 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     // ══════════════════════════════════════════════════════════════════════
     // 10. ÁREA TEMÁTICA (y=394..418, texto en y=408)
     // ══════════════════════════════════════════════════════════════════════
-    page.drawRectangle({ x:26, y: PH-417, width:558, height:18, color: rgb(1,1,1) });
-    T(30, 412, (course.thematicArea||'').toUpperCase().slice(0,80), 8);
+    page.drawRectangle({ x:27, y: PH-416, width:556, height:14, color: rgb(1,1,1) });
+    T(30, 412, (course.thematicArea||course.area||'').toUpperCase().slice(0,80), 8);
 
     // ══════════════════════════════════════════════════════════════════════
     // 11. NOMBRE AGENTE CAPACITADOR (y=419..443, texto en y=434)
     // ══════════════════════════════════════════════════════════════════════
-    page.drawRectangle({ x:26, y: PH-442, width:558, height:19, color: rgb(1,1,1) });
+    page.drawRectangle({ x:27, y: PH-441, width:556, height:15, color: rgb(1,1,1) });
     const agentLine = sp(((agent.name||'') + '   ' + (agent.stps||'')).toUpperCase().trim());
     T(30, 437, agentLine.slice(0,80), 8);
 
@@ -1681,6 +1699,7 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
 // Wrapper que descarga directamente
 async function buildDC3PDF(opts) {
     const outBytes = await _buildDC3Core(opts);
+    if (!outBytes) { alert('Error: No se pudo generar el PDF. Verifica que la plantilla DC-3 esté disponible.'); return; }
     const blob = new Blob([outBytes], { type: 'application/pdf' });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
