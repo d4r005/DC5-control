@@ -1565,10 +1565,15 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     T(30, 363, (String(course.name||course||'')).toUpperCase().slice(0,80), 9);
 
     // ══════════════════════════════════════════════════════════════════════
-    // 8. DURACIÓN — y_doc=368.5..379.6 (fila delgada)
-    //    Texto duración en horas a la izquierda, no toca columna de fechas
+    // 8. DURACIÓN — y_doc=364..393 (fila delgada)
+    //    Label "Duración en horas": x=29-89, y_doc=368.6-378.6 (preimpreso)
+    //    Campo de escritura: x=90..183 (ANTES de "Periodo de ejecución" en x=185)
+    //    Limpiar el campo y escribir SOLO el número dentro del espacio correcto
     // ══════════════════════════════════════════════════════════════════════
-    T(30, 377, (course.durationHours||course.duration||'').toUpperCase(), 8);
+    // Limpiar campo de horas (x=90..183, y_doc=365..393 → pdf_y=399..427)
+    page.drawRectangle({ x:90, y: PH-393, width:93, height:28, color: rgb(1,1,1) });
+    // Escribir horas centrado verticalmente en la celda (baseline y_doc≈376 → pdf_y=416)
+    T(92, 376, (course.durationHours||course.duration||'').replace(/ HORAS?/i,'').trim(), 9);
 
     // ══════════════════════════════════════════════════════════════════════
     // 9. FECHAS — Coordenadas medidas pixel-perfect de la plantilla real
@@ -1622,16 +1627,22 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     //     Solo limpiar zona de texto: y_doc=406..418
     // ══════════════════════════════════════════════════════════════════════
     page.drawRectangle({ x:26, y: PH-416, width:559, height:9, color: rgb(1,1,1) });
-    T(30, 413, (course.thematicArea||course.area||'').toUpperCase().slice(0,80), 8);
+    // Área temática: label preimpreso x=29-107, campo libre x=110..580
+    // Limpiar campo área temática (y_doc=389..415 → pdf_y=377..403)
+    page.drawRectangle({ x:110, y: PH-415, width:470, height:26, color: rgb(1,1,1) });
+    // Escribir área (baseline y_doc≈402 → pdf_y=390)
+    T(112, 402, (course.thematicArea||course.area||'').toUpperCase().slice(0,80), 8);
 
     // ══════════════════════════════════════════════════════════════════════
     // 11. NOMBRE AGENTE CAPACITADOR — zona y_doc=419.4..443.5
     //     Label "Nombre del agente" en y=418.8..428.8
     //     Solo limpiar zona de texto: y_doc=430..443
     // ══════════════════════════════════════════════════════════════════════
-    page.drawRectangle({ x:26, y: PH-442.25, width:559, height:11, color: rgb(1,1,1) }); // margen 0.5pt antes de línea inferior y_fitz=443.47
+    // Label "Nombre del agente capacitador o STPS 3/" termina en x=165.7
+    // Campo libre: x=167..585, misma fila y_doc=418.8-428.8
+    page.drawRectangle({ x:167, y: PH-430, width:418, height:14, color: rgb(1,1,1) });
     const agentLine = sp(((agent.name||'') + '   STPS-' + (agent.stps||'')).toUpperCase().trim());
-    T(30, 440, agentLine.slice(0,80), 8);
+    T(169, 426, agentLine.slice(0,80), 8);
 
     // ── 12. SECCIÓN FIRMAS — Reconstrucción total personalizada ──────
     // Centros de columnas (calculados de bordes exactos de la plantilla)
