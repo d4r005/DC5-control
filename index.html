@@ -1577,28 +1577,35 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     const MES_FIN = [532.5, 553.9];
     const DIA_FIN = [575.3, 595.9];
 
-    // Limpiar toda la fila de la fecha para evitar duplicados
-    page.drawRectangle({ x:250, y: PH-396, width:350, height:15, color: rgb(1,1,1) });
+    // Limpiar SOLO las celdas de dígitos (no borrar "De" ni "a" de la plantilla)
+    // Celdas AÑO_INI: x=252..316, Celdas MES_INI/DIA_INI: x=337..422, celdas fin: x=443..596
+    page.drawRectangle({ x:252, y: PH-407, width:70,  height:12, color: rgb(1,1,1) }); // AÑO inicio
+    page.drawRectangle({ x:337, y: PH-407, width:88,  height:12, color: rgb(1,1,1) }); // MES+DIA inicio
+    page.drawRectangle({ x:443, y: PH-407, width:76,  height:12, color: rgb(1,1,1) }); // AÑO fin
+    page.drawRectangle({ x:522, y: PH-407, width:76,  height:12, color: rgb(1,1,1) }); // MES+DIA fin
+
+    // FY: baseline del texto centrado verticalmente en las celdas (celda y=396..408 en PDF coords)
+    const FY_digits = 393; // pdf_y = 792-393 = 399 → centrado en celda (396..408)
 
     for (let i=0; i<4; i++) {
         const ch = fStart.a[i]||'';
-        if (ch) { const w=font.widthOfTextAtSize(ch,8); page.drawText(ch,{x:AÑO_INI[i]-w/2,y:PH-FY,size:8,font,color:rgb(0,0,0)}); }
+        if (ch) { const w=font.widthOfTextAtSize(ch,8); page.drawText(ch,{x:AÑO_INI[i]-w/2,y:PH-FY_digits,size:8,font,color:rgb(0,0,0)}); }
     }
     for (let i=0; i<2; i++) {
         const ch = fStart.m[i]||'';
-        if (ch) { const w=font.widthOfTextAtSize(ch,8); page.drawText(ch,{x:MES_INI[i]-w/2,y:PH-FY,size:8,font,color:rgb(0,0,0)}); }
+        if (ch) { const w=font.widthOfTextAtSize(ch,8); page.drawText(ch,{x:MES_INI[i]-w/2,y:PH-FY_digits,size:8,font,color:rgb(0,0,0)}); }
         const ch2 = fStart.d[i]||'';
-        if (ch2) { const w=font.widthOfTextAtSize(ch2,8); page.drawText(ch2,{x:DIA_INI[i]-w/2,y:PH-FY,size:8,font,color:rgb(0,0,0)}); }
+        if (ch2) { const w=font.widthOfTextAtSize(ch2,8); page.drawText(ch2,{x:DIA_INI[i]-w/2,y:PH-FY_digits,size:8,font,color:rgb(0,0,0)}); }
     }
     for (let i=0; i<4; i++) {
         const ch = fEnd.a[i]||'';
-        if (ch) { const w=font.widthOfTextAtSize(ch,8); page.drawText(ch,{x:AÑO_FIN[i]-w/2,y:PH-FY,size:8,font,color:rgb(0,0,0)}); }
+        if (ch) { const w=font.widthOfTextAtSize(ch,8); page.drawText(ch,{x:AÑO_FIN[i]-w/2,y:PH-FY_digits,size:8,font,color:rgb(0,0,0)}); }
     }
     for (let i=0; i<2; i++) {
         const ch = fEnd.m[i]||'';
-        if (ch) { const w=font.widthOfTextAtSize(ch,8); page.drawText(ch,{x:MES_FIN[i]-w/2,y:PH-FY,size:8,font,color:rgb(0,0,0)}); }
+        if (ch) { const w=font.widthOfTextAtSize(ch,8); page.drawText(ch,{x:MES_FIN[i]-w/2,y:PH-FY_digits,size:8,font,color:rgb(0,0,0)}); }
         const ch2 = fEnd.d[i]||'';
-        if (ch2) { const w=font.widthOfTextAtSize(ch2,8); page.drawText(ch2,{x:DIA_FIN[i]-w/2,y:PH-FY,size:8,font,color:rgb(0,0,0)}); }
+        if (ch2) { const w=font.widthOfTextAtSize(ch2,8); page.drawText(ch2,{x:DIA_FIN[i]-w/2,y:PH-FY_digits,size:8,font,color:rgb(0,0,0)}); }
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -1615,42 +1622,53 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     T(30, 437, agentLine.slice(0,80), 8);
 
     // ── 12. SECCIÓN FIRMAS — Reconstrucción total personalizada ──────
-    const SIG_INS_X  = 140;
-    const SIG_PAT_X  = 304;
-    const SIG_REP_X  = 490;
-    const SIG_IMG_Y  = 455;
-    const SIG_NAME_Y1= 514;
-    const SIG_NAME_Y2= 523;
+    const SIG_INS_X  = 132;  // centro columna instructor: x=62+140/2
+    const SIG_PAT_X  = 295;  // centro columna patron: x=217+156/2
+    const SIG_REP_X  = 464;  // centro columna rep: x=387+155/2
+    const SIG_IMG_Y  = 473;  // top de zona imagen (yFitz inicio zona limpia)
+    const SIG_NAME_Y1= 516;  // primera línea nombre (dentro de zona limpia 472-540)
+    const SIG_NAME_Y2= 526;  // segunda línea nombre
 
-    // Limpiar toda el área de firmas de la plantilla original (para quitar etiquetas fijas)
-    page.drawRectangle({ x:31, y: PH-560, width:540, height:108, color: rgb(1,1,1) });
+    // Limpiar SOLO la zona central de firma/imagen de cada columna (no headers ni bordes)
+    // Columna Instructor: x=63..201, yFitz=472..540
+    page.drawRectangle({ x:63,  y: PH-539, width:137, height:66, color: rgb(1,1,1) });
+    // Columna Patrón: x=218..372, yFitz=472..540
+    page.drawRectangle({ x:218, y: PH-539, width:153, height:66, color: rgb(1,1,1) });
+    // Columna Rep: x=388..542, yFitz=472..540
+    page.drawRectangle({ x:388, y: PH-539, width:153, height:66, color: rgb(1,1,1) });
 
-    // ── Logo LUBER (Fondo Instructor - Más pequeño y centrado) ─────────
-    try {
-        const logoPath = agentDesign?.logoBase64 || '/signatures/logo_luber.png';
-        const lb = await fetch(logoPath).then(r=>r.arrayBuffer());
-        const lImg = await pdfDoc.embedPng(lb);
+    // ── Helper: embeber imagen (dataURL o URL relativa) ────────────────
+    async function embedSig(src) {
+        if (!src) return null;
+        try {
+            const bytes = await fetch(src).then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); });
+            try { return await pdfDoc.embedPng(bytes); } catch(e) { return await pdfDoc.embedJpg(bytes); }
+        } catch(e) { console.warn('embedSig error:', src?.slice(0,40), e.message); return null; }
+    }
+
+    // ── Logo LUBER (Fondo Instructor) ─────────────────────────────────
+    const lImg = await embedSig(agentDesign?.logoBase64 || '/signatures/logo_luber.png');
+    if (lImg) {
         const lw = agentDesign?.logoW || 90;
-        const lh = agentDesign?.logoH || 55;
-        const lx = agentDesign?.logoX || (SIG_INS_X - lw/2);
-        const ly = agentDesign?.logoY || (SIG_IMG_Y + 5);
-        page.drawImage(lImg, { x:lx, y:PH-(ly+lh), width:lw, height:lh, opacity:0.8 });
-    } catch(e) {}
+        const lh = agentDesign?.logoH || 50;
+        const lx = agentDesign?.logoX !== undefined ? agentDesign.logoX : (SIG_INS_X - lw/2);
+        const ly = agentDesign?.logoY !== undefined ? agentDesign.logoY : SIG_IMG_Y;
+        page.drawImage(lImg, { x:lx, y:PH-(ly+lh), width:lw, height:lh, opacity:0.85 });
+    }
 
-    // ── Firma Instructor (Sobrepuesta - Ajustada) ──────────────────────
-    try {
-        const firmaPath = agentDesign?.firmaBase64 || '/signatures/cynthia_firma_oficial.png';
-        const fb = await fetch(firmaPath).then(r=>r.arrayBuffer());
-        const fImg = await pdfDoc.embedPng(fb);
-        const fw = agentDesign?.firmaW || 100;
-        const fh = agentDesign?.firmaH || 70;
-        const fx = agentDesign?.firmaX || (SIG_INS_X - fw/2);
-        const fy = agentDesign?.firmaY || (SIG_IMG_Y - 5);
+    // ── Firma Instructor (Sobrepuesta) ────────────────────────────────
+    const fImg = await embedSig(agentDesign?.firmaBase64 || '/signatures/cynthia_firma_oficial.png');
+    if (fImg) {
+        const fw = agentDesign?.firmaW || 95;
+        const fh = agentDesign?.firmaH || 55;
+        const fx = agentDesign?.firmaX !== undefined ? agentDesign.firmaX : (SIG_INS_X - fw/2);
+        const fy = agentDesign?.firmaY !== undefined ? agentDesign.firmaY : (SIG_IMG_Y + 5);
         page.drawImage(fImg, { x:fx, y:PH-(fy+fh), width:fw, height:fh });
-    } catch(e) {}
+    }
 
     // ── Nombres y Títulos reconstruidos ──────────────────────────────────
-    T_C(SIG_INS_X, 498, "Instructor o tutor", 7.5);
+    // No reescribir labels — la plantilla ya los tiene ("Instructor o tutor", etc.)
+    // Solo escribir nombres encima de la zona limpia
     let insName = sp((agentDesign?.agentName || agent.name || '').toUpperCase());
     if (insName.includes("CYNTHIA YADIRA GARZA LUGO") && !insName.includes("ING.")) {
         insName = "ING. " + insName;
@@ -1660,22 +1678,22 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     if (insLines[1]) T_C(SIG_INS_X, SIG_NAME_Y2, insLines[1], 8);
 
     // Línea Instructor
-    page.drawLine({ start:{x:40, y:PH-535}, end:{x:210, y:PH-535}, thickness:0.8, color:rgb(0,0,0) });
-    T_C(SIG_INS_X, 545, "Nombre y firma", 8);
+    // línea firma instructor: ya existe en plantilla
+    // "Nombre y firma": ya existe en plantilla
 
     // --- Columna PATRÓN ---
-    T_C(SIG_PAT_X, 498, "Patron o representante legal 4/", 7.5);
+    // Patron label: ya existe en plantilla
     const patName = sp((compObj.representante_legal || compObj.representanteLegal || '').toUpperCase());
     const patLines = splitNameJS(patName, 28);
     T_C(SIG_PAT_X, SIG_NAME_Y1, patLines[0], 8);
     if (patLines[1]) T_C(SIG_PAT_X, SIG_NAME_Y2, patLines[1], 8);
 
     // Línea Patrón
-    page.drawLine({ start:{x:225, y:PH-535}, end:{x:395, y:PH-535}, thickness:0.8, color:rgb(0,0,0) });
-    T_C(SIG_PAT_X, 545, "Nombre y firma", 8);
+    // línea firma patron: ya existe en plantilla
+    // "Nombre y firma": ya existe en plantilla
 
     // --- Columna REPRESENTANTE ---
-    T_C(SIG_REP_X, 498, "Representante de los trabajadores 5/", 7.5);
+    // Rep label: ya existe en plantilla
     const repName = sp((compObj.representante_trabajadores || compObj.representanteTrabajadores || '').toUpperCase());
     if (repName) {
         const repLines = splitNameJS(repName, 26);
@@ -1684,8 +1702,8 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     }
 
     // Línea Representante
-    page.drawLine({ start:{x:410, y:PH-535}, end:{x:580, y:PH-535}, thickness:0.8, color:rgb(0,0,0) });
-    T_C(SIG_REP_X, 545, "Nombre y firma", 8);
+    // línea firma rep: ya existe en plantilla
+    // "Nombre y firma": ya existe en plantilla
 
     // ── Slogan extra en sección de firmas (si está configurado) ─────────
     if (agentDesign && agentDesign.slogan) {
