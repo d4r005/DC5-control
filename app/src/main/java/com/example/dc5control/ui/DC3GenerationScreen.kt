@@ -52,48 +52,55 @@ fun DC3GenerationScreen(onBack: () -> Unit) {
             onSave = { bitmap ->
                 scope.launch {
                     isGenerating = true
-                    withContext(Dispatchers.IO) {
-                        employees.filter { it.active }.forEach { employee ->
-                            val file = PdfGenerator.generateDC3(
-                                context = context,
-                                employee = employee,
-                                course = selectedCourse!!,
-                                instructor = selectedInstructor!!,
-                                companyName = selectedCompany!!.name,
-                                companyRfc = selectedCompany!!.rfc,
-                                companyPatron = selectedCompany!!.patron,
-                                companyRepresentante = selectedCompany!!.representante,
-                                startDate = startDate,
-                                endDate = endDate,
-                                signatureBitmap = bitmap,
-                                logoBitmap = null  // null → carga logo_luber.png desde assets
-                            )
+                    try {
+                        withContext(Dispatchers.IO) {
+                            val activeEmployees = employees.filter { it.active }
+                            activeEmployees.forEach { employee ->
+                                val file = PdfGenerator.generateDC3(
+                                    context = context,
+                                    employee = employee,
+                                    course = selectedCourse!!,
+                                    instructor = selectedInstructor!!,
+                                    companyName = selectedCompany!!.name,
+                                    companyRfc = selectedCompany!!.rfc,
+                                    companyPatron = selectedCompany!!.patron,
+                                    companyRepresentante = selectedCompany!!.representante,
+                                    startDate = startDate,
+                                    endDate = endDate,
+                                    signatureBitmap = bitmap,
+                                    logoBitmap = null
+                                )
 
-                            CloudflareHelper.uploadPdf(
-                                file = file,
-                                onSuccess = { android.util.Log.d("DC3", "PDF subido: ${file.name}") },
-                                onError  = { e -> android.util.Log.e("DC3", "Error al subir: $e") }
-                            )
-
-                            val record = DC3Record(
-                                workerId   = employee.curp,
-                                workerName = "${employee.lastName} ${employee.firstName}",
-                                courseName = selectedCourse!!.name,
-                                companyName = selectedCompany!!.name,
-                                startDate  = startDate,
-                                endDate    = endDate
-                            )
-                            SupabaseRepository.insertData("dc3_records", record, DC3Record.serializer()) {}
+                                // Esperar a que se suba y se guarde el registro
+                                CloudflareHelper.uploadPdfSuspend(file)
+                                
+                                val record = DC3Record(
+                                    workerId   = employee.curp,
+                                    workerName = "${employee.lastName} ${employee.firstName}",
+                                    courseName = selectedCourse!!.name,
+                                    companyName = selectedCompany!!.name,
+                                    companyRfc = selectedCompany!!.rfc,
+                                    companyPatron = selectedCompany!!.patron,
+                                    instructorName = selectedInstructor!!.fullName,
+                                    startDate  = startDate,
+                                    endDate    = endDate
+                                )
+                                SupabaseRepository.insertDataSuspend("dc3_records", record, DC3Record.serializer())
+                            }
                         }
+                    } catch (e: Exception) {
+                        android.util.Log.e("DC3", "Error durante la generación: ${e.message}")
+                    } finally {
+                        isGenerating = false
+                        showSignaturePad = false
+                        onBack()
                     }
-                    isGenerating = false
-                    showSignaturePad = false
-                    onBack()
                 }
             },
             onDismiss = { showSignaturePad = false }
         )
-    } else {
+    }
+else {
         Scaffold(
             topBar = {
                 TopAppBar(

@@ -16,9 +16,13 @@ import java.io.File
 @Composable
 fun DC3HistoryScreen(onBack: () -> Unit) {
     val context = LocalContext.current
-    val files = remember {
+    var files by remember { mutableStateOf<List<File>>(emptyList()) }
+
+    LaunchedEffect(Unit) {
         val dir = context.getExternalFilesDir(null)
-        dir?.listFiles { _, name -> name.endsWith(".pdf") }?.toList() ?: emptyList()
+        files = dir?.listFiles { _, name -> name.endsWith(".pdf") }
+            ?.sortedByDescending { it.lastModified() }
+            ?.toList() ?: emptyList()
     }
 
     Scaffold(

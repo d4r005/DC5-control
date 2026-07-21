@@ -65,6 +65,23 @@ object SupabaseRepository {
         })
     }
 
+    suspend fun <T> insertDataSuspend(table: String, item: T, serializer: kotlinx.serialization.KSerializer<T>): Boolean = 
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            val doc = json.encodeToJsonElement(serializer, item)
+            val body = JsonObject(mapOf("document" to doc)).toString()
+            
+            val request = Request.Builder()
+                .url("$BASE_URL/$table")
+                .post(body.toRequestBody("application/json".toMediaType()))
+                .build()
+
+            try {
+                client.newCall(request).execute().use { it.isSuccessful }
+            } catch (e: Exception) {
+                false
+            }
+        }
+
     // ─── INSERT (batch workers) ────────────────────────────────────
     fun insertWorkers(workers: List<Worker>, onResult: (Boolean) -> Unit) {
         val arr = workers.map { json.encodeToJsonElement(Worker.serializer(), it) }

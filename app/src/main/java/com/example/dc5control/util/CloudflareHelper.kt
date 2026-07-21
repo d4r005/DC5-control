@@ -34,4 +34,18 @@ object CloudflareHelper {
             }
         })
     }
+
+    suspend fun uploadPdfSuspend(file: File): Boolean = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        val requestBody = file.asRequestBody("application/pdf".toMediaType())
+        val request = Request.Builder()
+            .url("$PAGES_URL/api/upload?name=${file.name}")
+            .post(requestBody)
+            .build()
+
+        try {
+            client.newCall(request).execute().use { it.isSuccessful }
+        } catch (e: Exception) {
+            false
+        }
+    }
 }

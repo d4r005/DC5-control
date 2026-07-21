@@ -134,6 +134,46 @@ object PdfGenerator {
         return out
     }
 
+    /**
+     * Versión simplificada para generar DC3 a partir de modelos de datos,
+     * usada en DC3GenerationScreen.
+     */
+    fun generateDC3(
+        context: Context,
+        employee: com.example.dc5control.data.model.Employee,
+        course: com.example.dc5control.data.model.Course,
+        instructor: com.example.dc5control.data.model.Instructor,
+        companyName: String,
+        companyRfc: String,
+        companyPatron: String,
+        companyRepresentante: String?,
+        startDate: String,
+        endDate: String,
+        signatureBitmap: Bitmap?,
+        logoBitmap: Bitmap?
+    ): File {
+        val data = DC3FormData(
+            nombreTrabajador = "${employee.lastName} ${employee.firstName} ${employee.middleName ?: ""}".trim(),
+            curp = employee.curp,
+            ocupacion = course.occupationKey ?: "No especificada",
+            puesto = employee.position,
+            razonSocial = companyName,
+            rfc = companyRfc,
+            nombreCurso = course.name,
+            duracionHoras = course.duration.toString(),
+            fechaInicio = startDate,
+            fechaFin = endDate,
+            areaTematica = course.thematicArea,
+            agenteCapacitador = instructor.company ?: "Agente Independiente",
+            instructor = instructor.fullName,
+            representanteLegal = companyPatron,
+            representanteTrabajadores = companyRepresentante,
+            signatureBitmap = signatureBitmap,
+            logoBitmap = logoBitmap
+        )
+        return generate(context, data)
+    }
+
     private fun drawContent(context: Context, canvas: Canvas, d: DC3FormData) {
         val pNormal = paintText(9f)
         val pBold   = paintText(9f, bold = true)
