@@ -412,7 +412,7 @@
                                 <label class="text-xs text-gray-400">Tamaño</label>
                                 <input id="design-header-slogan-size" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="9" min="6" max="30" oninput="schedulePreview()">
                             </div>
-                            <div><label class="text-xs text-gray-400">X</label><input id="design-header-slogan-x" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="160" oninput="schedulePreview()"></div>
+                            <div><label class="text-xs text-gray-400">X</label><input id="design-header-slogan-x" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="306" oninput="schedulePreview()"></div>
                             <div><label class="text-xs text-gray-400">Y</label><input id="design-header-slogan-y" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="18" oninput="schedulePreview()"></div>
                         </div>
                     </div>
@@ -1496,7 +1496,8 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
             const hss = agentDesign.headerSloganSize || 14;
             const hst = sp(hSlogan);
             const hsw = sloganFont.widthOfTextAtSize(hst, hss);
-            const hsx = agentDesign.headerSloganX || 306;
+            const rawHsx = agentDesign.headerSloganX || 306;
+            const hsx = (rawHsx > 0 && rawHsx <= 200) ? 306 : rawHsx; // migrar default viejo 160→306
             const hsy = agentDesign.headerSloganY || 40;
             page.drawText(hst, { x: hsx - hsw/2, y: PH - hsy - hss/2, size: hss, font: sloganFont, color: rgb(0.1,0.1,0.1) });
         }
@@ -1567,7 +1568,7 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     // 8. DURACIÓN — y_doc=368.5..379.6 (fila delgada)
     //    Texto duración en horas a la izquierda, no toca columna de fechas
     // ══════════════════════════════════════════════════════════════════════
-    T(30, 377, (course.durationHours||'').toUpperCase(), 8);
+    T(30, 377, (course.durationHours||course.duration||'').toUpperCase(), 8);
 
     // ══════════════════════════════════════════════════════════════════════
     // 9. FECHAS — Coordenadas medidas pixel-perfect de la plantilla real
@@ -1851,7 +1852,7 @@ async function loadDesign() {
         setV('design-firma-w', d.firmaW ?? 85);
         setV('design-firma-h', d.firmaH ?? 60);
         setV('design-header-slogan', d.headerSlogan);
-        setV('design-header-slogan-x', d.headerSloganX ?? 160);
+        setV('design-header-slogan-x', (d.headerSloganX && d.headerSloganX > 200) ? d.headerSloganX : 306);
         setV('design-header-slogan-y', d.headerSloganY ?? 18);
         setV('design-header-slogan-size', d.headerSloganSize ?? 9);
         setV('design-header-slogan-font', d.headerSloganFont ?? 'Times-Italic');
@@ -1908,7 +1909,7 @@ function getDesignParams() {
         headerLogoX: gv('design-header-logo-x',30), headerLogoY: gv('design-header-logo-y',10),
         headerLogoW: gv('design-header-logo-w',120), headerLogoH: gv('design-header-logo-h',55),
         headerSlogan: gs('design-header-slogan'),
-        headerSloganX: gv('design-header-slogan-x',160), headerSloganY: gv('design-header-slogan-y',18),
+        headerSloganX: gv('design-header-slogan-x',306), headerSloganY: gv('design-header-slogan-y',18),
         headerSloganSize: gv('design-header-slogan-size',9),
         headerSloganFont: gs('design-header-slogan-font','Times-Italic'),
         slogan: gs('design-slogan'),
@@ -2071,7 +2072,7 @@ async function _renderPreview() {
         const txt  = p.headerSlogan.slice(0,80);
         const tw   = font.widthOfTextAtSize(txt, p.headerSloganSize);
         page.drawText(txt, {
-            x: p.headerSloganX - tw / 2,
+            x: ((p.headerSloganX > 0 && p.headerSloganX <= 200) ? 306 : p.headerSloganX) - tw / 2,
             y: PDF_H - p.headerSloganY - p.headerSloganSize,
             size: p.headerSloganSize, font, color: rgb(0.05,0.05,0.35)
         });
