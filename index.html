@@ -1577,31 +1577,26 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     const fStart = parseFecha(start);
     const fEnd   = parseFecha(end);
 
-    // Limpiar solo el interior de cada celda (sin bordes ni labels "Año","Mes","Día")
-    // y_doc interior: 381..393 → y_pdf_bot=PH-393=399, height=12
-    page.drawRectangle({ x:253.0, y: PH-393.5, width:62.5, height:12.5, color: rgb(1,1,1) }); // AÑO ini
-    page.drawRectangle({ x:316.5, y: PH-393.5, width:42.0, height:12.5, color: rgb(1,1,1) }); // MES ini
-    page.drawRectangle({ x:359.5, y: PH-393.5, width:41.0, height:12.5, color: rgb(1,1,1) }); // DIA ini
-    page.drawRectangle({ x:423.2, y: PH-393.5, width:77.3, height:12.5, color: rgb(1,1,1) }); // AÑO fin
-    page.drawRectangle({ x:501.5, y: PH-393.5, width:41.2, height:12.5, color: rgb(1,1,1) }); // MES fin
-    page.drawRectangle({ x:543.7, y: PH-393.5, width:41.8, height:12.5, color: rgb(1,1,1) }); // DIA fin
+    // Limpiar SOLO el interior de celdas de dígitos (NO la celda "De" ni la celda "a")
+    // Bordes medidos con PyMuPDF — separadores en: 252.3|268.1|284.0|300.4|316.3|337.4|359.1|380.2|401.2 ... 423.1|442.6|462.2|481.7|501.2|522.3|543.3|565.2|586.2
+    // Interior: x + 0.4 para evitar el borde izquierdo
+    page.drawRectangle({ x:252.7, y: PH-393.5, width:63.2, height:12.5, color: rgb(1,1,1) }); // AÑO ini
+    page.drawRectangle({ x:316.7, y: PH-393.5, width:42.0, height:12.5, color: rgb(1,1,1) }); // MES ini
+    page.drawRectangle({ x:359.5, y: PH-393.5, width:41.3, height:12.5, color: rgb(1,1,1) }); // DIA ini
+    // celda 401.2..423.1 contiene "a" — NO limpiar
+    page.drawRectangle({ x:423.5, y: PH-393.5, width:77.3, height:12.5, color: rgb(1,1,1) }); // AÑO fin
+    page.drawRectangle({ x:501.6, y: PH-393.5, width:41.3, height:12.5, color: rgb(1,1,1) }); // MES fin
+    page.drawRectangle({ x:543.7, y: PH-393.5, width:42.1, height:12.5, color: rgb(1,1,1) }); // DIA fin
 
-    // Centros de celdas calculados de los bordes reales del PDF
-    // AÑO ini: divisiones en 252.6|267.8|283.6|300.0|315.9
-    const AÑO_INI = [260.2, 275.7, 291.8, 307.9];
-    // MES ini: 315.9|337.0|358.8
-    const MES_INI = [326.5, 347.9];
-    // DIA ini: 358.8|379.9|400.9
-    const DIA_INI = [369.4, 390.4];
-    // AÑO fin: 422.7|442.3|461.8|481.3|500.9
-    const AÑO_FIN = [432.5, 452.1, 471.6, 491.1];
-    // MES fin: 500.9|522.0|543.0
-    const MES_FIN = [511.5, 532.5];
-    // DIA fin: 543.0|564.8|585.8
-    const DIA_FIN = [553.9, 575.3];
+    // Centros exactos calculados del promedio de bordes reales de la plantilla
+    const AÑO_INI = [260.2, 276.1, 292.2, 308.4];
+    const MES_INI = [326.9, 348.2];
+    const DIA_INI = [369.6, 390.7];
+    const AÑO_FIN = [432.9, 452.4, 471.9, 491.4];
+    const MES_FIN = [511.8, 532.8];
+    const DIA_FIN = [554.2, 575.7];
 
-    // Y texto: centrado verticalmente en celdas y_doc=380.4..393.9
-    // baseline texto ≈ y_doc=389 → y_pdf=PH-389=403
+    // Y baseline: centrado en celdas y_doc=380.4..393.9 → baseline y_doc≈389
     const FY_digits = 389;
 
     for (let i=0; i<4; i++) {
