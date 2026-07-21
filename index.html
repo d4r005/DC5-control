@@ -1325,18 +1325,10 @@ async function generateDC3() {
     const res = await api('insertOne','dc3_records',{ document: {
         workerId:    selectedWorker.curp,
         workerName:  selectedWorker.name,
-        workerPos:   selectedWorker.position,
         courseName,
-        durationHours: courseDuration,
-        thematicArea:  courseArea,
         companyName: companyName,
-        representanteLegal: company.representante_legal || company.representanteLegal,
-        representanteTrabajadores: company.representante_trabajadores || company.representanteTrabajadores,
-        agentName,
-        agentStps,
         startDate:   start,
         endDate:     end,
-        resultText:  'Acreditado',
         creatorEmail: currentUser.email
     }});
 

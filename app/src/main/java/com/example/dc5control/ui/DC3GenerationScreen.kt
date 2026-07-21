@@ -79,9 +79,6 @@ fun DC3GenerationScreen(onBack: () -> Unit) {
                                     workerName = "${employee.lastName} ${employee.firstName}",
                                     courseName = selectedCourse!!.name,
                                     companyName = selectedCompany!!.name,
-                                    companyRfc = selectedCompany!!.rfc,
-                                    companyPatron = selectedCompany!!.patron,
-                                    instructorName = selectedInstructor!!.fullName,
                                     startDate  = startDate,
                                     endDate    = endDate
                                 )

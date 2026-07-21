@@ -96,10 +96,7 @@ data class DC3Record(
     @SerialName("worker_name") val workerName: String = "",
     @SerialName("course_name") val courseName: String = "",
     @SerialName("company_name") val companyName: String = "",
-    @SerialName("company_rfc") val companyRfc: String = "",
-    @SerialName("company_patron") val companyPatron: String = "",
-    @SerialName("instructor_name") val instructorName: String = "",
     @SerialName("start_date") val startDate: String = "",
     @SerialName("end_date") val endDate: String = "",
-    @SerialName("creatorEmail") val creatorEmail: String? = null
+    @SerialName("creator_email") val creatorEmail: String? = null
 )
