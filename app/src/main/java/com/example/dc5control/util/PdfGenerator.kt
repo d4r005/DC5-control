@@ -74,7 +74,7 @@ object PdfGenerator {
     private const val FECHA_Y = 393f  // centrado en celdas (PDF y=400, altura celda=12)
 
     // Texto libre
-    private const val Y_NOMBRE_TRAB = 175.0f
+    private const val Y_NOMBRE_TRAB = 172.5f
     private const val Y_PUESTO      = 220.0f
     private const val Y_EMPRESA     = 272.0f
     private const val Y_CURSO       = 362.0f
