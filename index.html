@@ -1295,8 +1295,8 @@ async function generateDC3() {
     const company = DATA.companies.find(c => c.name === companyName) || {
         name: companyName,
         rfc: '',
-        representanteLegal: '',
-        representanteTrabajadores: ''
+        representante_legal: '',
+        representante_trabajadores: ''
     };
 
     const [agentName, agentStps] = agentVal.split('|');
@@ -1306,7 +1306,7 @@ async function generateDC3() {
         worker: selectedWorker,
         company,
         agent: { name: agentName, stps: agentStps },
-        course: { name: courseName, duration: courseDuration, area: courseArea },
+        course: { name: courseName, durationHours: courseDuration, thematicArea: courseArea },
         start, end, result
     });
 
@@ -1317,7 +1317,7 @@ async function generateDC3() {
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
     a.href = url;
-    a.download = `DC3_${(function sp(s){return String(s||'').replace(/[áà]/g,'a').replace(/[éè]/g,'e').replace(/[íì]/g,'i').replace(/[óò]/g,'o').replace(/[úùü]/g,'u').replace(/ñ/g,'n').replace(/[ÁÀ]/g,'A').replace(/[ÉÈ]/g,'E').replace(/[ÍÌ]/g,'I').replace(/[ÓÒ]/g,'O').replace(/[ÚÙÜ]/g,'U').replace(/Ñ/g,'N');})(selectedWorker.name||'trabajador').replace(/\s+/g,'_')}.pdf`;
+    a.download = `DC3_${(function sp(s){return String(s||'').replace(/[áà]/g,'a').replace(/[éè]/g,'e').replace(/[íì]/g,'i').replace(/[óò]/g,'o').replace(/[úùü]/g,'u').replace(/ñ/g,'n').replace(/[ÁÀ]/g,'A').replace(/[ÉÈ]/g,'E').replace(/[ÍÌ]/g,'I').replace(/[ÓÒ]/g,'O').replace(/[ÚÙÜ]/g,'U').replace(/Ñ/g,'N');})(selectedWorker.name||'constancia').replace(/\s+/g,'_')}.pdf`;
     a.click();
     URL.revokeObjectURL(url);
 
@@ -1328,8 +1328,8 @@ async function generateDC3() {
         workerPos:   selectedWorker.position,
         courseName,
         companyName: companyName,
-        representanteLegal: company.representanteLegal,
-        representanteTrabajadores: company.representanteTrabajadores,
+        representanteLegal: company.representante_legal || company.representanteLegal,
+        representanteTrabajadores: company.representante_trabajadores || company.representanteTrabajadores,
         agentName,
         agentStps,
         startDate:   start,
@@ -1546,16 +1546,7 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     T(30, 378, (course.durationHours||'').toUpperCase(), 8);
 
     // ══════════════════════════════════════════════════════════════════════
-    // 9. FECHAS — fila 2 y_center ≈ 387
-    //    Año inicio:  centros 260.2, 276.1, 292.1, 308.4
-    //    Mes inicio:  centros 347.9, 369.4
-    //    Día inicio:  centros 390.4, 411.8
-    //    Año fin:     centros 452.1, 471.6, 491.1, 511.4
-    //    Mes fin:     centros 532.5, 553.9
-    //    Día fin:     centros 575.3, 595.9
-    // ══════════════════════════════════════════════════════════════════════
-    // ══════════════════════════════════════════════════════════════════════
-    // 9. FECHAS — recalibrado milimétrico para centrar en cuadros (v1.0.9)
+    // 9. FECHAS — recalibrado milimétrico para centrar en cuadros (v1.1.0)
     // ══════════════════════════════════════════════════════════════════════
     const fStart = parseFecha(start);
     const fEnd   = parseFecha(end);
@@ -1567,6 +1558,9 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     const AÑO_FIN = [452.1, 471.6, 491.1, 511.4];
     const MES_FIN = [532.5, 553.9];
     const DIA_FIN = [575.3, 595.9];
+
+    // Limpiar toda la fila de la fecha para evitar duplicados
+    page.drawRectangle({ x:250, y: PH-396, width:350, height:15, color: rgb(1,1,1) });
 
     for (let i=0; i<4; i++) {
         const ch = fStart.a[i]||'';
