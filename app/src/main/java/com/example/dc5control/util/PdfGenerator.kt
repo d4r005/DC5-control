@@ -64,14 +64,14 @@ object PdfGenerator {
     )
     private const val RFC_Y = 311f
 
-    // FECHA: Centros recalibrados para coincidir con la Web (shift left)
-    private val AÑO_INI_CENTERS = floatArrayOf(257f, 273f, 289f, 305f)
-    private val MES_INI_CENTERS = floatArrayOf(345f, 366f)
-    private val DIA_INI_CENTERS = floatArrayOf(387f, 408f)
-    private val AÑO_FIN_CENTERS = floatArrayOf(449f, 468f, 488f, 508f)
-    private val MES_FIN_CENTERS = floatArrayOf(529f, 551f)
-    private val DIA_FIN_CENTERS = floatArrayOf(572f, 593f)
-    private const val FECHA_Y = 388f
+    // FECHA: Centros exactos de celdas (extraídos de la plantilla real)
+    private val AÑO_INI_CENTERS = floatArrayOf(260.2f, 276.1f, 292.2f, 308.3f)
+    private val MES_INI_CENTERS = floatArrayOf(348.2f, 369.7f)
+    private val DIA_INI_CENTERS = floatArrayOf(390.7f, 412.1f)
+    private val AÑO_FIN_CENTERS = floatArrayOf(452.4f, 471.9f, 491.4f, 511.8f)
+    private val MES_FIN_CENTERS = floatArrayOf(532.8f, 554.3f)
+    private val DIA_FIN_CENTERS = floatArrayOf(575.7f, 595.9f)
+    private const val FECHA_Y = 393f  // centrado en celdas (PDF y=400, altura celda=12)
 
     // Texto libre
     private const val Y_NOMBRE_TRAB = 160.0f
@@ -83,15 +83,14 @@ object PdfGenerator {
     private const val Y_AGENTE      = 437.0f
 
     // Sección de firmas
-    private const val SIG_INS_X  = 140f
-    private const val SIG_PAT_X  = 304f
-    private const val SIG_REP_X  = 490f
-    private const val SIG_IMG_Y  = 455f
-    private const val SIG_NAME_Y1 = 514f
-    private const val SIG_NAME_Y2 = 523f
-    private const val SIG_TITLES_Y = 498f
-    private const val SIG_FOOTER_Y = 545f
-    private const val SIG_LINE_Y   = 535f
+    private const val SIG_INS_X  = 132f  // centro columna instructor (62+140/2)
+    private const val SIG_PAT_X  = 295f  // centro columna patron (217+156/2)
+    private const val SIG_REP_X  = 464f  // centro columna rep (387+155/2)
+    private const val SIG_IMG_Y  = 473f  // inicio zona imagen (yFitz)
+    private const val SIG_NAME_Y1 = 516f
+    private const val SIG_NAME_Y2 = 526f
+    // Labels de títulos y "Nombre y firma" YA EXISTEN en la plantilla
+    // No reescribir: SIG_TITLES_Y y SIG_FOOTER_Y eliminados
 
     private fun paintText(size: Float, bold: Boolean = false, center: Boolean = false) = Paint().apply {
         color = Color.BLACK
@@ -207,8 +206,10 @@ object PdfGenerator {
         val agentLine = "${d.agenteCapacitador}".uppercase()
         text(paintText(8f), 30f, Y_AGENTE, agentLine.take(80))
 
-        // 12. Firmas (Limpiar área completa)
-        canvas.drawRect(31f*SCALE, 452f*SCALE, 571f*SCALE, 560f*SCALE, whitePaint)
+        // 12. Firmas - limpiar SOLO zona imagen/nombre de cada columna (preservar borders y labels)
+        canvas.drawRect(63f*SCALE,  472f*SCALE, 201f*SCALE, 540f*SCALE, whitePaint) // Instructor
+        canvas.drawRect(218f*SCALE, 472f*SCALE, 372f*SCALE, 540f*SCALE, whitePaint) // Patron
+        canvas.drawRect(388f*SCALE, 472f*SCALE, 542f*SCALE, 540f*SCALE, whitePaint) // Rep
 
         // Logo fondo
         val logo = d.logoBitmap ?: loadAssetBitmap(context, LOGO_ASSET)
@@ -225,31 +226,30 @@ object PdfGenerator {
         }
 
         // Reconstrucción bloques
-        val pSmallTitle = paintText(7.5f, center = true)
         val pSmallName  = paintText(8f, center = true)
-
-        canvas.drawText("Instructor o tutor", SIG_INS_X*SCALE, SIG_TITLES_Y*SCALE, pSmallTitle)
+        // Labels "Instructor o tutor", "Patron...", "Representante..." ya están en plantilla
+        // Solo escribir los nombres de los firmantes:
         val insLines = splitName(d.instructor.uppercase(), 26)
         canvas.drawText(insLines[0], SIG_INS_X*SCALE, SIG_NAME_Y1*SCALE, pSmallName)
         if (insLines.size > 1) canvas.drawText(insLines[1], SIG_INS_X*SCALE, SIG_NAME_Y2*SCALE, pSmallName)
-        canvas.drawLine(40f*SCALE, SIG_LINE_Y*SCALE, 210f*SCALE, SIG_LINE_Y*SCALE, Paint().apply { strokeWidth=1f*SCALE })
-        canvas.drawText("Nombre y firma", SIG_INS_X*SCALE, SIG_FOOTER_Y*SCALE, pSmallName)
+        // línea instructor: ya en plantilla //
+        // "Nombre y firma" instructor: ya en plantilla
 
-        canvas.drawText("Patron o representante legal 4/", SIG_PAT_X*SCALE, SIG_TITLES_Y*SCALE, pSmallTitle)
+        // "Patron..." label: ya en plantilla
         val patLines = splitName(d.representanteLegal.uppercase(), 28)
         canvas.drawText(patLines[0], SIG_PAT_X*SCALE, SIG_NAME_Y1*SCALE, pSmallName)
         if (patLines.size > 1) canvas.drawText(patLines[1], SIG_PAT_X*SCALE, SIG_NAME_Y2*SCALE, pSmallName)
-        canvas.drawLine(225f*SCALE, SIG_LINE_Y*SCALE, 395f*SCALE, SIG_LINE_Y*SCALE, Paint().apply { strokeWidth=1f*SCALE })
-        canvas.drawText("Nombre y firma", SIG_PAT_X*SCALE, SIG_FOOTER_Y*SCALE, pSmallName)
+        // línea patron: ya en plantilla //
+        // "Nombre y firma" patron: ya en plantilla
 
-        canvas.drawText("Representante de los trabajadores 5/", SIG_REP_X*SCALE, SIG_TITLES_Y*SCALE, pSmallTitle)
+        // "Representante..." label: ya en plantilla //
         d.representanteTrabajadores?.let {
             val repLines = splitName(it.uppercase(), 26)
             canvas.drawText(repLines[0], SIG_REP_X*SCALE, SIG_NAME_Y1*SCALE, pSmallName)
             if (repLines.size > 1) canvas.drawText(repLines[1], SIG_REP_X*SCALE, SIG_NAME_Y2*SCALE, pSmallName)
         }
-        canvas.drawLine(410f*SCALE, SIG_LINE_Y*SCALE, 580f*SCALE, SIG_LINE_Y*SCALE, Paint().apply { strokeWidth=1f*SCALE })
-        canvas.drawText("Nombre y firma", SIG_REP_X*SCALE, SIG_FOOTER_Y*SCALE, pSmallName)
+        // línea rep: ya en plantilla //
+        // "Nombre y firma" rep: ya en plantilla
     }
 
     private fun splitName(name: String, maxChars: Int): List<String> {
