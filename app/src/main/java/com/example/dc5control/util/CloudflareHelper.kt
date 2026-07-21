@@ -38,13 +38,21 @@ object CloudflareHelper {
     suspend fun uploadPdfSuspend(file: File): Boolean = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
         val requestBody = file.asRequestBody("application/pdf".toMediaType())
         val request = Request.Builder()
-            .url("$PAGES_URL/api/upload?name=${file.name}")
+            .url("$PAGES_URL/api/upload?name=${java.net.URLEncoder.encode(file.name, "UTF-8")}")
             .post(requestBody)
             .build()
 
         try {
-            client.newCall(request).execute().use { it.isSuccessful }
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    android.util.Log.e("CloudflareHelper", "Error upload: ${response.code} ${response.message}")
+                } else {
+                    android.util.Log.d("CloudflareHelper", "Upload successful: ${file.name}")
+                }
+                response.isSuccessful
+            }
         } catch (e: Exception) {
+            android.util.Log.e("CloudflareHelper", "Exception upload: ${e.message}")
             false
         }
     }
