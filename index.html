@@ -272,7 +272,7 @@
                 <table>
                     <thead><tr id="th-workers">
                         <th style="width:36px"><input type="checkbox" id="chk-all-workers" onchange="toggleAllWorkers(this)" class="w-4 h-4 accent-indigo-600 rounded"></th>
-                        <th>Nombre</th><th>CURP</th><th>Ocupación</th><th>Puesto</th><th>Acciones</th>
+                        <th style="width:52px">Foto</th><th>Nombre</th><th>CURP</th><th>Ocupación</th><th>Puesto</th><th>Acciones</th>
                     </tr></thead>
                     <tbody id="tb-workers"><tr><td colspan="5" class="text-center py-12 text-gray-300">Cargando…</td></tr></tbody>
                 </table>
@@ -635,6 +635,64 @@
     </div>
 </div>
 
+
+<!-- ══════════════════════════════════════════════════════
+     MODAL: CURSOS POR TRABAJADOR (PDF masivo individual)
+══════════════════════════════════════════════════════ -->
+<div id="modal-worker-courses" class="modal-overlay" style="z-index:1060">
+    <div class="modal-box" style="width:680px;max-width:95vw;max-height:90vh;overflow-y:auto">
+        <div class="flex items-center justify-between mb-5">
+            <div>
+                <h3 class="text-xl font-bold text-gray-900">Cursos del Trabajador</h3>
+                <p id="wc-subtitle" class="text-sm text-gray-400 mt-0.5">Asigna y genera DC-3 para cada curso</p>
+            </div>
+            <button onclick="closeModal('modal-worker-courses')" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+
+        <!-- Info del trabajador -->
+        <div class="flex items-center gap-3 bg-indigo-50 rounded-xl p-3 mb-5">
+            <div id="wc-worker-photo" class="w-12 h-12 rounded-full bg-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center text-gray-400 text-lg font-bold"></div>
+            <div>
+                <p id="wc-worker-name" class="font-bold text-gray-900"></p>
+                <p id="wc-worker-curp" class="text-xs font-mono text-gray-400"></p>
+            </div>
+            <div class="ml-auto">
+                <p class="text-xs text-gray-500">Empresa</p>
+                <select id="wc-company" class="input-field text-sm" style="min-width:160px"></select>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500">Agente</p>
+                <select id="wc-agent" class="input-field text-sm" style="min-width:160px"></select>
+            </div>
+        </div>
+
+        <!-- Lista de cursos asignados -->
+        <div id="wc-courses-list" class="space-y-3 mb-4"></div>
+
+        <!-- Botón agregar curso -->
+        <button onclick="addWorkerCourseRow()" class="w-full border-2 border-dashed border-indigo-300 rounded-xl py-3 text-indigo-500 hover:bg-indigo-50 text-sm font-semibold transition-colors">
+            + Agregar otro curso
+        </button>
+
+        <!-- Barra de progreso -->
+        <div id="wc-progress" class="hidden mt-4">
+            <div class="bg-gray-100 rounded-full h-2 overflow-hidden">
+                <div id="wc-progress-bar" class="bg-violet-600 h-2 transition-all duration-300" style="width:0%"></div>
+            </div>
+            <p id="wc-progress-label" class="text-xs text-gray-500 mt-1 text-center">Generando…</p>
+        </div>
+
+        <div class="flex justify-end gap-3 mt-6">
+            <button onclick="closeModal('modal-worker-courses')" class="btn-sm btn-outline px-5">Cancelar</button>
+            <button onclick="generateWorkerCoursesPDF()" class="btn-sm px-7" style="background:#7c3aed;color:#fff;border-radius:8px;padding:8px 28px;font-size:14px;font-weight:700">
+                ⬇ Generar PDF con todos los cursos
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- ══════════════════════════════════════════════════════
      SCRIPT
 ══════════════════════════════════════════════════════ -->
@@ -958,15 +1016,20 @@ async function loadSection(v) {
         document.getElementById('tb-workers').innerHTML = rows.length
             ? rows.map(x => {
                 const fullName = x.apellidoPaterno ? `${x.apellidoPaterno} ${x.apellidoMaterno || ''} ${x.nombres || ''}`.trim() : (x.name || '');
+                const photoHtml = x.photoUrl
+                    ? `<img src="${x.photoUrl}" class="w-9 h-9 rounded-full object-cover border border-gray-200">`
+                    : `<div class="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 text-xs font-bold border border-gray-200">${(fullName||'?')[0]}</div>`;
                 return `<tr>
                 <td><input type="checkbox" class="worker-chk w-4 h-4 accent-indigo-600 rounded" data-worker='${JSON.stringify(x).replace(/'/g,"&apos;")}' onchange="onWorkerCheckChange()"></td>
+                <td>${photoHtml}</td>
                 <td class="font-semibold">${fullName}</td>
                 <td class="font-mono text-xs text-gray-500">${x.curp||''}</td>
                 <td class="text-xs text-gray-500">${x.occupation||''}</td>
                 <td>${x.position||''}</td>
                 <td class="text-right">
-                    <div class="flex justify-end gap-2">
-                        <button onclick='openDC3(${JSON.stringify(x)})' class="btn-sm btn-indigo">Generar DC-3</button>
+                    <div class="flex justify-end gap-2 flex-wrap">
+                        <button onclick='openDC3(${JSON.stringify(x)})' class="btn-sm btn-indigo">DC-3</button>
+                        <button onclick='openWorkerCourses(${JSON.stringify(x)})' class="btn-sm" style="background:#7c3aed;color:#fff;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:600">+ Cursos</button>
                         <button onclick='openModal(${JSON.stringify(x)})' class="btn-sm btn-outline">✎</button>
                         <button onclick="delItem('workers','${x.id}')" class="btn-sm btn-red">✕</button>
                     </div>
@@ -1120,6 +1183,22 @@ function openModal(item = null) {
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Puesto de trabajo</label>
                 <input id="f4" class="input-field" value="${item ? item.position : ''}" placeholder="Ej. Operador de Montacargas">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Foto del trabajador</label>
+                <div class="flex items-center gap-3">
+                    <div id="worker-photo-preview" class="w-16 h-16 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-300 text-xs overflow-hidden flex-shrink-0">
+                        ${item && item.photoUrl ? '<img src="'+item.photoUrl+'" class="w-full h-full object-cover">' : '<svg class=\'w-6 h-6\' fill=\'none\' stroke=\'currentColor\' viewBox=\'0 0 24 24\'><path stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z\'></path></svg>'}
+                    </div>
+                    <div class="flex-1 space-y-1">
+                        <label class="btn-sm btn-outline cursor-pointer block text-center text-xs">
+                            📷 Subir foto
+                            <input type="file" accept="image/png,image/jpeg,image/jpg,image/webp" class="hidden" onchange="handleWorkerPhoto(this)">
+                        </label>
+                        <button type="button" onclick="clearWorkerPhoto()" class="text-xs text-red-400 hover:text-red-600 w-full text-center block">✕ Quitar foto</button>
+                    </div>
+                </div>
+                <input type="hidden" id="f5_photo" value="${item ? (item.photoUrl || '') : ''}">
             </div>`;
     }
 else if (currentView === 'courses') {
@@ -1171,12 +1250,15 @@ async function saveItem() {
         const occupation = document.getElementById('f3').value;
         const position = document.getElementById('f4').value.trim();
         if (!apellidoPaterno || !nombres || !curp) { alert('Nombre y CURP son requeridos'); return; }
+        const photoUrl = document.getElementById('f5_photo')?.value || '';
         payload.document = {
             apellido_paterno: apellidoPaterno,
             apellido_materno: apellidoMaterno,
             nombres: nombres,
             name: `${apellidoPaterno} ${apellidoMaterno} ${nombres}`.trim(),
-            curp, occupation, position, creatorEmail: currentUser.email
+            curp, occupation, position,
+            photoUrl: photoUrl || undefined,
+            creatorEmail: currentUser.email
         };
     } else if (currentView === 'courses') {
         const name = document.getElementById('f1').value.trim();
@@ -1470,6 +1552,23 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     const companyNameFinal = String(compObj.name || company || '').toUpperCase();
 
     // ══════════════════════════════════════════════════════════════════════
+    // -1. FOTO DEL TRABAJADOR (esquina superior izquierda)
+    // ══════════════════════════════════════════════════════════════════════
+    if (worker && worker.photoUrl) {
+        try {
+            const photoBytes = await fetch(worker.photoUrl).then(r => {
+                if (!r.ok) throw new Error(r.status);
+                return r.arrayBuffer();
+            });
+            let photoImg;
+            try { photoImg = await pdfDoc.embedJpg(photoBytes); }
+            catch(e) { photoImg = await pdfDoc.embedPng(photoBytes); }
+            // Zona: x=25, yFitz=14..114 → 85×100 pts
+            page.drawImage(photoImg, { x: 25, y: PH - 114, width: 85, height: 100 });
+        } catch(e) { console.warn('Foto trabajador no disponible:', e.message); }
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
     // 0. CABECERA: logo y slogan del agente (encima del formulario oficial)
     // ══════════════════════════════════════════════════════════════════════
     try {
@@ -1755,16 +1854,28 @@ function handleExcel(input) {
         const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
         const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
         if (!rows.length) { alert('El archivo está vacío'); return; }
-        const workers = rows.map(row => ({
-            name:       (row.Nombre || row.NOMBRE || row.nombre || '').trim(),
-            curp:       (row.CURP   || row.curp   || '').trim().toUpperCase(),
-            position:   (row.Puesto || row.PUESTO  || row.puesto || '').trim(),
-            occupation: (row.Ocupacion || row.OCUPACION || '').trim(),
-            creatorEmail: currentUser.email
-        })).filter(w => w.name && w.curp);
-        if (!workers.length) { alert('No se encontraron filas válidas (requiere columnas: Nombre, CURP, Puesto)'); return; }
+        const workers = rows.map(row => {
+            // Soporte para columnas con apellidos separados O columna "Nombre" completo
+            const ap = (row.ApellidoPaterno || row.Paterno || row.PATERNO || '').trim();
+            const am = (row.ApellidoMaterno || row.Materno || row.MATERNO || '').trim();
+            const nm = (row.Nombres || row.Nombre || row.NOMBRE || row.nombre || '').trim();
+            const fullName = ap ? `${ap} ${am} ${nm}`.trim() : nm;
+            const photoUrl = (row.FotoUrl || row.Foto || row.foto || row.PhotoUrl || '').trim();
+            return {
+                name:           fullName,
+                apellido_paterno: ap || fullName.split(' ')[0] || '',
+                apellido_materno: ap ? am : (fullName.split(' ')[1] || ''),
+                nombres:          ap ? nm : fullName.split(' ').slice(2).join(' ') || nm,
+                curp:           (row.CURP || row.curp || '').trim().toUpperCase(),
+                position:       (row.Puesto || row.PUESTO || row.puesto || '').trim(),
+                occupation:     (row.Ocupacion || row.OCUPACION || '').trim(),
+                photoUrl:       photoUrl || undefined,
+                creatorEmail:   currentUser.email
+            };
+        }).filter(w => w.name && w.curp);
+        if (!workers.length) { alert('No se encontraron filas válidas (requiere columnas: Nombre/ApellidoPaterno, CURP, Puesto)'); return; }
         await api('insertMany','workers',{ documents: workers });
-        alert(`${workers.length} trabajadores importados correctamente.`);
+        alert(`${workers.length} trabajadores importados.\n\nColumnas soportadas:\n• Nombre (o ApellidoPaterno + ApellidoMaterno + Nombres)\n• CURP, Puesto, Ocupacion\n• FotoUrl (URL de foto, opcional)`);
         loadSection('workers');
     };
     r.readAsArrayBuffer(input.files[0]);
@@ -2477,6 +2588,206 @@ function downloadFromPreview() {
 // ─── buildDC3PDFBytes: igual que buildDC3PDF pero retorna bytes en vez de descargar ──
 async function buildDC3PDFBytes(opts) {
     return await _buildDC3Core(opts);
+}
+
+
+// ─── FOTO DE TRABAJADOR ────────────────────────────────────────────────────
+let _workerPhotoDataUrl = null;
+
+async function handleWorkerPhoto(input) {
+    if (!input.files[0]) return;
+    const file = input.files[0];
+    // Redimensionar a max 300x300 antes de subir
+    const dataUrl = await resizeImage(file, 300);
+    _workerPhotoDataUrl = dataUrl;
+    document.getElementById('f5_photo').value = dataUrl;
+    const preview = document.getElementById('worker-photo-preview');
+    if (preview) preview.innerHTML = `<img src="${dataUrl}" class="w-full h-full object-cover">`;
+}
+
+function clearWorkerPhoto() {
+    _workerPhotoDataUrl = null;
+    const el = document.getElementById('f5_photo');
+    if (el) el.value = '';
+    const preview = document.getElementById('worker-photo-preview');
+    if (preview) preview.innerHTML = `<svg class="w-6 h-6 m-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>`;
+}
+
+function resizeImage(file, maxSize) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let w = img.width, h = img.height;
+            if (w > h && w > maxSize) { h = h * maxSize / w; w = maxSize; }
+            else if (h > maxSize) { w = w * maxSize / h; h = maxSize; }
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            URL.revokeObjectURL(url);
+            resolve(canvas.toDataURL('image/jpeg', 0.85));
+        };
+        img.src = url;
+    });
+}
+
+// ─── MODAL CURSOS POR TRABAJADOR ─────────────────────────────────────────────
+let _wcWorker = null;
+let _wcCourseRowCount = 0;
+
+function openWorkerCourses(worker) {
+    _wcWorker = worker;
+    _wcCourseRowCount = 0;
+
+    // Nombre y foto
+    const fullName = worker.apellidoPaterno
+        ? `${worker.apellidoPaterno} ${worker.apellidoMaterno || ''} ${worker.nombres || ''}`.trim()
+        : (worker.name || '');
+    document.getElementById('wc-worker-name').textContent = fullName;
+    document.getElementById('wc-worker-curp').textContent = worker.curp || '';
+    document.getElementById('wc-subtitle').textContent = 'Asigna los cursos y genera el PDF masivo';
+
+    const photoEl = document.getElementById('wc-worker-photo');
+    photoEl.innerHTML = worker.photoUrl
+        ? `<img src="${worker.photoUrl}" class="w-full h-full object-cover">`
+        : `<span>${(fullName[0]||'?').toUpperCase()}</span>`;
+
+    // Empresa y agente
+    const compSel = document.getElementById('wc-company');
+    const agentSel = document.getElementById('wc-agent');
+    compSel.innerHTML = DATA.companies.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+    agentSel.innerHTML = DATA.agents.map(a => `<option value="${a.name}|${a.stps}">${a.name}</option>`).join('');
+
+    // Iniciar con una fila de curso
+    document.getElementById('wc-courses-list').innerHTML = '';
+    addWorkerCourseRow();
+
+    // Ocultar progreso
+    document.getElementById('wc-progress').classList.add('hidden');
+    document.getElementById('modal-worker-courses').classList.add('open');
+}
+
+function addWorkerCourseRow() {
+    const idx = _wcCourseRowCount++;
+    const courseOpts = DATA.courses.map(c =>
+        `<option value="${c.id}|${c.name}|${c.durationHours}|${c.thematicArea}">${c.name} (${c.durationHours})</option>`
+    ).join('');
+
+    const today = new Date().toISOString().split('T')[0];
+    const row = document.createElement('div');
+    row.id = `wc-row-${idx}`;
+    row.className = 'border border-gray-200 rounded-xl p-4 bg-gray-50 relative';
+    row.innerHTML = `
+        <button onclick="document.getElementById('wc-row-${idx}').remove()" 
+            class="absolute top-2 right-2 text-gray-300 hover:text-red-400 text-lg leading-none" title="Quitar">×</button>
+        <div class="grid grid-cols-1 gap-3">
+            <div>
+                <label class="text-xs font-semibold text-gray-500 uppercase">Curso</label>
+                <select id="wc-course-${idx}" class="input-field mt-1">
+                    <option value="">Seleccionar curso…</option>
+                    ${courseOpts}
+                </select>
+            </div>
+            <div class="grid grid-cols-3 gap-3">
+                <div>
+                    <label class="text-xs font-semibold text-gray-500 uppercase">Resultado</label>
+                    <select id="wc-result-${idx}" class="input-field mt-1">
+                        <option value="Aprobado">Aprobado</option>
+                        <option value="No aprobado">No aprobado</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-gray-500 uppercase">Fecha inicio</label>
+                    <input type="date" id="wc-start-${idx}" class="input-field mt-1" value="${today}">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-gray-500 uppercase">Fecha fin</label>
+                    <input type="date" id="wc-end-${idx}" class="input-field mt-1" value="${today}">
+                </div>
+            </div>
+        </div>`;
+    document.getElementById('wc-courses-list').appendChild(row);
+}
+
+async function generateWorkerCoursesPDF() {
+    if (!_wcWorker) return;
+
+    // Recolectar filas de cursos
+    const rows = [];
+    for (let i = 0; i < _wcCourseRowCount; i++) {
+        const row = document.getElementById(`wc-row-${i}`);
+        if (!row) continue; // fila eliminada
+        const courseVal = document.getElementById(`wc-course-${i}`)?.value || '';
+        const result    = document.getElementById(`wc-result-${i}`)?.value || 'Aprobado';
+        const start     = document.getElementById(`wc-start-${i}`)?.value || '';
+        const end       = document.getElementById(`wc-end-${i}`)?.value || '';
+        if (!courseVal || !start || !end) continue;
+        const [courseId, courseName, durationHours, thematicArea] = courseVal.split('|');
+        rows.push({ courseId, courseName, durationHours, thematicArea, result, start, end });
+    }
+
+    if (!rows.length) { alert('Agrega al menos un curso válido.'); return; }
+
+    const companyName = document.getElementById('wc-company').value;
+    const agentVal    = document.getElementById('wc-agent').value;
+    const [agentName, agentStps] = agentVal.split('|');
+    const company = DATA.companies.find(c => c.name === companyName) || { name: companyName, rfc: '', representante_legal: '', representante_trabajadores: '' };
+
+    // Mostrar progreso
+    const progressEl = document.getElementById('wc-progress');
+    const progressBar = document.getElementById('wc-progress-bar');
+    const progressLbl = document.getElementById('wc-progress-label');
+    progressEl.classList.remove('hidden');
+
+    // Generar PDFs uno por uno y combinar
+    const { PDFDocument } = PDFLib;
+    const mergedPdf = await PDFDocument.create();
+
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        progressLbl.textContent = `Generando DC-3 ${i + 1} de ${rows.length}: ${row.courseName}`;
+        progressBar.style.width = `${Math.round((i / rows.length) * 100)}%`;
+        try {
+            const pdfBytes = await _buildDC3Core({
+                worker:  _wcWorker,
+                company,
+                agent:   { name: agentName, stps: agentStps },
+                course:  { name: row.courseName, durationHours: row.durationHours, thematicArea: row.thematicArea },
+                start:   row.start,
+                end:     row.end,
+                result:  row.result
+            });
+            if (pdfBytes) {
+                const srcPdf = await PDFDocument.load(pdfBytes);
+                const [pg] = await mergedPdf.copyPages(srcPdf, [0]);
+                mergedPdf.addPage(pg);
+            }
+        } catch(e) { console.error('Error generando DC-3 para', row.courseName, e); }
+    }
+
+    progressBar.style.width = '100%';
+    progressLbl.textContent = 'Listo — descargando…';
+
+    const mergedBytes = await mergedPdf.save();
+    const fn = sp2(((_wcWorker.apellidoPaterno||_wcWorker.name||'trabajador') + '_' + rows.length + 'cursos').replace(/\s+/g,'_'));
+    const blob = new Blob([mergedBytes], { type: 'application/pdf' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = `DC3_${fn}.pdf`; a.click();
+    URL.revokeObjectURL(url);
+
+    setTimeout(() => {
+        closeModal('modal-worker-courses');
+        progressEl.classList.add('hidden');
+    }, 800);
+}
+
+function sp2(s) {
+    return String(s||'')
+        .replace(/[áà]/g,'a').replace(/[éè]/g,'e').replace(/[íì]/g,'i')
+        .replace(/[óò]/g,'o').replace(/[úùü]/g,'u').replace(/ñ/g,'n')
+        .replace(/[ÁÀ]/g,'A').replace(/[ÉÈ]/g,'E').replace(/[ÍÌ]/g,'I')
+        .replace(/[ÓÒ]/g,'O').replace(/[ÚÙÜ]/g,'U').replace(/Ñ/g,'N');
 }
 
 function splitNameJS(name, maxChars) {

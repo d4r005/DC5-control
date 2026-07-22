@@ -32,7 +32,8 @@ data class DC3FormData(
     val representanteLegal: String = "",
     val representanteTrabajadores: String? = null,
     val signatureBitmap: Bitmap? = null,
-    val logoBitmap: Bitmap? = null
+    val logoBitmap: Bitmap? = null,
+    val photoBitmap: Bitmap? = null          // Foto del trabajador (esquina superior izq)
 )
 
 object PdfGenerator {
@@ -197,6 +198,14 @@ object PdfGenerator {
                 p.getOrElse(1) { "" }.padStart(2, '0'),
                 p.getOrElse(0) { "" }.padStart(2, '0')
             )
+        }
+
+        // 0. Foto del trabajador (esquina superior izquierda, x=25 yFitz=14..114)
+        d.photoBitmap?.let { photo ->
+            val dst = RectF(25f * SCALE, 14f * SCALE, 110f * SCALE, 114f * SCALE)
+            val paint = Paint().apply { isAntiAlias = true }
+            // Dibujar en rectángulo con clip circular suave
+            canvas.drawBitmap(photo, null, dst, paint)
         }
 
         // 1. Trabajador
