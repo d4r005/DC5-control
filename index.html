@@ -2505,8 +2505,8 @@ async function generateBulkDC3() {
                 start, end, result: 'Acreditado'
             });
             const srcDoc = await PDFDocument.load(pdfBytes);
-            const [page] = await mergedPdf.copyPages(srcDoc, [0]);
-            mergedPdf.addPage(page);
+            const srcPages = await mergedPdf.copyPages(srcDoc, srcDoc.getPageIndices());
+            srcPages.forEach(p => mergedPdf.addPage(p));
 
             // Guardar en historial
             await api('insertOne','dc3_records',{ document: {
@@ -2810,8 +2810,8 @@ async function generateWorkerCoursesPDF() {
             });
             if (pdfBytes) {
                 const srcPdf = await PDFDocument.load(pdfBytes);
-                const [pg] = await mergedPdf.copyPages(srcPdf, [0]);
-                mergedPdf.addPage(pg);
+                const srcPages = await mergedPdf.copyPages(srcPdf, srcPdf.getPageIndices());
+                srcPages.forEach(p => mergedPdf.addPage(p));
             }
         } catch(e) { console.error('Error generando DC-3 para', row.courseName, e); }
     }
