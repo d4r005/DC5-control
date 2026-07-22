@@ -2612,44 +2612,21 @@ async function buildDC3PDFBytes(opts) {
 
 
 // ─── FOTO DE TRABAJADOR ────────────────────────────────────────────────────
-const PHOTO_BUCKET = 'worker-photos';
+// Foto guardada como base64 en la DB (sin Supabase Storage, sin RLS)
 
 async function handleWorkerPhoto(input) {
     if (!input.files[0]) return;
     const file = input.files[0];
-
-    // Mostrar preview local inmediata (UX)
-    const localUrl = URL.createObjectURL(file);
     const preview = document.getElementById('worker-photo-preview');
-    if (preview) preview.innerHTML = `<div class="w-full h-full flex items-center justify-center text-xs text-gray-400">Subiendo…</div>`;
-
+    if (preview) preview.innerHTML = '<div class="w-full h-full flex items-center justify-center text-xs text-gray-400">Procesando…</div>';
     try {
-        // Redimensionar a max 400×400 (JPEG, 85%)
-        const blob = await resizeImageToBlob(file, 400);
-
-        // Nombre único: curp_timestamp.jpg (o uuid si no hay curp aún)
-        const curp = (document.getElementById('f2')?.value || '').trim().toUpperCase() || `w_${Date.now()}`;
-        const fileName = `${curp}_${Date.now()}.jpg`;
-
-        // Upload a Supabase Storage (bucket: worker-photos, carpeta pública)
-        const { data, error } = await sb.storage
-            .from(PHOTO_BUCKET)
-            .upload(fileName, blob, { contentType: 'image/jpeg', upsert: true });
-
-        if (error) throw new Error(error.message);
-
-        // Obtener URL pública
-        const { data: urlData } = sb.storage.from(PHOTO_BUCKET).getPublicUrl(fileName);
-        const publicUrl = urlData.publicUrl;
-
-        document.getElementById('f5_photo').value = publicUrl;
-        if (preview) preview.innerHTML = `<img src="${publicUrl}" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<span class=\'text-xs text-red-400\'>Error</span>'">`;
-
+        const base64 = await resizeImage(file, 300);
+        document.getElementById('f5_photo').value = base64;
+        if (preview) preview.innerHTML = '<img src="' + base64 + '" class="w-full h-full object-cover">';
     } catch(e) {
-        console.error('Error subiendo foto:', e);
-        URL.revokeObjectURL(localUrl);
-        if (preview) preview.innerHTML = `<span class="text-xs text-red-400 p-1">Error al subir</span>`;
-        alert('Error al subir la foto: ' + e.message + '\n\nVerifica que el bucket "worker-photos" esté creado en Supabase.');
+        console.error('Error procesando foto:', e);
+        if (preview) preview.innerHTML = '<span class="text-xs text-red-400 p-1">Error</span>';
+        alert('Error al procesar la foto: ' + e.message);
     }
 }
 
