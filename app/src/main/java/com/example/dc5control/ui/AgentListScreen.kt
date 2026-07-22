@@ -8,21 +8,18 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.example.dc5control.data.model.TrainingAgent
+import com.example.dc5control.data.model.Agent
 import com.example.dc5control.data.repository.SupabaseRepository
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AgentListScreen(onBack: () -> Unit) {
-    val agents = remember { mutableStateListOf<TrainingAgent>() }
-    val scope = rememberCoroutineScope()
+    val agents = remember { mutableStateListOf<Agent>() }
     var showAddDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        SupabaseRepository.fetchData("agents", TrainingAgent.serializer()) { fetchedAgents ->
+        SupabaseRepository.fetchData("agents", Agent.serializer()) { fetchedAgents ->
             agents.clear()
             agents.addAll(fetchedAgents)
         }
@@ -49,7 +46,7 @@ fun AgentListScreen(onBack: () -> Unit) {
             items(agents) { agent ->
                 ListItem(
                     headlineContent = { Text(agent.name) },
-                    supportingContent = { Text("Registro: ${agent.stpsRegistry}") }
+                    supportingContent = { Text("Registro: ${agent.stps}") }
                 )
                 HorizontalDivider()
             }
@@ -60,8 +57,8 @@ fun AgentListScreen(onBack: () -> Unit) {
         AddAgentDialog(
             onDismiss = { showAddDialog = false },
             onConfirm = { name, registry ->
-                val newAgent = TrainingAgent(name = name, stpsRegistry = registry)
-                SupabaseRepository.insertData("agents", newAgent, TrainingAgent.serializer()) { success ->
+                val newAgent = Agent(name = name, stps = registry)
+                SupabaseRepository.insertData("agents", newAgent, Agent.serializer()) { success ->
                     if (success) {
                         agents.add(newAgent)
                         showAddDialog = false
