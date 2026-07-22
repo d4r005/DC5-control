@@ -1586,7 +1586,8 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
             try { photoImg = await pdfDoc.embedJpg(photoBytes); }
             catch(e) { photoImg = await pdfDoc.embedPng(photoBytes); }
             // Zona: x=25, yFitz=14..114 → 85×100 pts
-            page.drawImage(photoImg, { x: 25, y: PH - 114, width: 85, height: 100 });
+            // Foto en cabecera izquierda: y_top=10→90 (no tapa 'CONSTANCIA' en y_top=93)
+            page.drawImage(photoImg, { x: 14, y: PH - 90, width: 65, height: 80 });
         } catch(e) { console.warn('Foto trabajador no disponible:', e.message); }
     }
 
