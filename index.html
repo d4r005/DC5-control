@@ -834,7 +834,8 @@ function toSnake(obj) {
         sloganX:'slogan_x', sloganY:'slogan_y', sloganSize:'slogan_size', sloganFont:'slogan_font',
         headerSloganFont:'header_slogan_font',
         updatedAt:'updated_at',
-        apellidoPaterno:'apellido_paterno', apellidoMaterno:'apellido_materno', nombres:'nombres'
+        apellidoPaterno:'apellido_paterno', apellidoMaterno:'apellido_materno', nombres:'nombres',
+        photoUrl:'photo_url'
     };
     const out = {};
     for (const [k,v] of Object.entries(obj)) out[map[k]||k] = v;
@@ -857,7 +858,8 @@ function toCamel(obj) {
         slogan_x:'sloganX', slogan_y:'sloganY', slogan_size:'sloganSize', slogan_font:'sloganFont',
         header_slogan_font:'headerSloganFont',
         updated_at:'updatedAt',
-        apellido_paterno:'apellidoPaterno', apellido_materno:'apellidoMaterno', nombres:'nombres'
+        apellido_paterno:'apellidoPaterno', apellido_materno:'apellidoMaterno', nombres:'nombres',
+        photo_url:'photoUrl'
     };
     const out = {};
     for (const [k,v] of Object.entries(obj)) out[map[k]||k] = v;
