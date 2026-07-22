@@ -20,7 +20,7 @@ import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DC3GenerationScreen(onBack: () -> Unit) {
+fun DC3GenerationScreen(onBack: () -> Unit, isExpanded: Boolean = false) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -123,165 +123,233 @@ else {
                 return@Scaffold
             }
 
-            Column(
-                modifier = Modifier
-                    .padding(padding)
-                    .padding(16.dp)
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // ─────────────────────────────────────────────────────────────
-                // EMPRESA (selección de lista)
-                // ─────────────────────────────────────────────────────────────
-                Text("Empresa", style = MaterialTheme.typography.titleMedium)
-
-                ExposedDropdownMenuBox(
-                    expanded = companyDropdownExpanded,
-                    onExpandedChange = { companyDropdownExpanded = it }
+            if (isExpanded) {
+                // Diseño para Tablet o Pantalla Completa (Dos columnas)
+                Row(
+                    modifier = Modifier
+                        .padding(padding)
+                        .padding(16.dp)
+                        .fillMaxSize(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    OutlinedTextField(
-                        value = selectedCompany?.name ?: "",
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Seleccionar empresa") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = companyDropdownExpanded) },
-                        modifier = Modifier.fillMaxWidth().menuAnchor()
-                    )
-                    ExposedDropdownMenu(
+                    // Columna Izquierda: Selección de Empresa y Curso
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        SectionEmpresa(
+                            selectedCompany,
+                            companies,
+                            onCompanySelected = { selectedCompany = it },
+                            expanded = companyDropdownExpanded,
+                            onExpandedChange = { companyDropdownExpanded = it }
+                        )
+
+                        Text("Curso", style = MaterialTheme.typography.titleMedium)
+                        courses.forEach { course ->
+                            SelectableButton(
+                                text = "${course.name} (${course.duration} h)",
+                                isSelected = selectedCourse == course,
+                                onClick = { selectedCourse = course }
+                            )
+                        }
+                    }
+
+                    // Columna Derecha: Instructor, Fechas y Botón
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text("Agente Capacitador / Instructor", style = MaterialTheme.typography.titleMedium)
+                        instructors.forEach { instructor ->
+                            SelectableButton(
+                                text = "${instructor.fullName}${if (instructor.stpsNumber != null) " — ${instructor.stpsNumber}" else ""}",
+                                isSelected = selectedInstructor == instructor,
+                                onClick = { selectedInstructor = instructor }
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+                        SectionFechas(
+                            startDate, { startDate = it },
+                            endDate, { endDate = it }
+                        )
+
+                        Spacer(modifier = Modifier.weight(1f))
+                        
+                        InfoAndGenerateButton(
+                            employees.count { it.active },
+                            enabled = selectedCourse != null && selectedInstructor != null && selectedCompany != null && startDate.isNotEmpty() && endDate.isNotEmpty(),
+                            onClick = { showSignaturePad = true }
+                        )
+                    }
+                }
+            } else {
+                // Diseño para Teléfono (Vertical - Una sola columna)
+                Column(
+                    modifier = Modifier
+                        .padding(padding)
+                        .padding(16.dp)
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    SectionEmpresa(
+                        selectedCompany,
+                        companies,
+                        onCompanySelected = { selectedCompany = it },
                         expanded = companyDropdownExpanded,
-                        onDismissRequest = { companyDropdownExpanded = false }
-                    ) {
-                        if (companies.isEmpty()) {
-                            DropdownMenuItem(
-                                text = { Text("No hay empresas registradas") },
-                                onClick = { companyDropdownExpanded = false }
-                            )
-                        }
-                        companies.forEach { company ->
-                            DropdownMenuItem(
-                                text = {
-                                    Column {
-                                        Text(company.name)
-                                        Text("RFC: ${company.rfc}", style = MaterialTheme.typography.bodySmall)
-                                    }
-                                },
-                                onClick = {
-                                    selectedCompany = company
-                                    companyDropdownExpanded = false
-                                }
-                            )
-                        }
-                    }
-                }
-
-                // Mostrar datos del patrón y representante de la empresa seleccionada
-                if (selectedCompany != null) {
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Text("Patrón o Representante Legal:", style = MaterialTheme.typography.labelMedium)
-                            Text(
-                                selectedCompany!!.patron.ifBlank { "(no especificado)" },
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text("Representante de los Trabajadores:", style = MaterialTheme.typography.labelMedium)
-                            Text(
-                                selectedCompany!!.representante ?: "(no especificado)",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // ─────────────────────────────────────────────────────────────
-                // CURSO
-                // ─────────────────────────────────────────────────────────────
-                Text("Curso", style = MaterialTheme.typography.titleMedium)
-                courses.forEach { course ->
-                    OutlinedButton(
-                        onClick = { selectedCourse = course },
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = if (selectedCourse == course)
-                                MaterialTheme.colorScheme.primaryContainer
-                            else MaterialTheme.colorScheme.surface
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("${course.name} (${course.duration} h)")
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                // ─────────────────────────────────────────────────────────────
-                // INSTRUCTOR
-                // ─────────────────────────────────────────────────────────────
-                Text("Agente Capacitador / Instructor", style = MaterialTheme.typography.titleMedium)
-                instructors.forEach { instructor ->
-                    OutlinedButton(
-                        onClick = { selectedInstructor = instructor },
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = if (selectedInstructor == instructor)
-                                MaterialTheme.colorScheme.primaryContainer
-                            else MaterialTheme.colorScheme.surface
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("${instructor.fullName}${if (instructor.stpsNumber != null) " — ${instructor.stpsNumber}" else ""}")
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // ─────────────────────────────────────────────────────────────
-                // FECHAS
-                // ─────────────────────────────────────────────────────────────
-                Text("Período de Ejecución", style = MaterialTheme.typography.titleMedium)
-                TextField(
-                    value = startDate,
-                    onValueChange = { startDate = it },
-                    label = { Text("Fecha Inicio (dd/MM/yyyy)") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                TextField(
-                    value = endDate,
-                    onValueChange = { endDate = it },
-                    label = { Text("Fecha Fin (dd/MM/yyyy)") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                // ─────────────────────────────────────────────────────────────
-                // INFO
-                // ─────────────────────────────────────────────────────────────
-                val activeCount = employees.count { it.active }
-                if (activeCount > 0) {
-                    Text(
-                        "Se generarán $activeCount constancias DC-3 (empleados activos)",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        onExpandedChange = { companyDropdownExpanded = it }
                     )
-                }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                    Text("Curso", style = MaterialTheme.typography.titleMedium)
+                    courses.forEach { course ->
+                        SelectableButton(
+                            text = "${course.name} (${course.duration} h)",
+                            isSelected = selectedCourse == course,
+                            onClick = { selectedCourse = course }
+                        )
+                    }
 
-                // ─────────────────────────────────────────────────────────────
-                // BOTÓN
-                // ─────────────────────────────────────────────────────────────
-                Button(
-                    onClick = { showSignaturePad = true },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = selectedCourse != null
-                          && selectedInstructor != null
-                          && selectedCompany != null
-                          && startDate.isNotEmpty()
-                          && endDate.isNotEmpty()
-                ) {
-                    Text("Firmar y Generar DC-3")
+                    Text("Agente Capacitador / Instructor", style = MaterialTheme.typography.titleMedium)
+                    instructors.forEach { instructor ->
+                        SelectableButton(
+                            text = "${instructor.fullName}${if (instructor.stpsNumber != null) " — ${instructor.stpsNumber}" else ""}",
+                            isSelected = selectedInstructor == instructor,
+                            onClick = { selectedInstructor = instructor }
+                        )
+                    }
+
+                    SectionFechas(
+                        startDate, { startDate = it },
+                        endDate, { endDate = it }
+                    )
+
+                    InfoAndGenerateButton(
+                        employees.count { it.active },
+                        enabled = selectedCourse != null && selectedInstructor != null && selectedCompany != null && startDate.isNotEmpty() && endDate.isNotEmpty(),
+                        onClick = { showSignaturePad = true }
+                    )
                 }
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SectionEmpresa(
+    selectedCompany: Company?,
+    companies: List<Company>,
+    onCompanySelected: (Company) -> Unit,
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit
+) {
+    Text("Empresa", style = MaterialTheme.typography.titleMedium)
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = onExpandedChange
+    ) {
+        OutlinedTextField(
+            value = selectedCompany?.name ?: "",
+            onValueChange = {},
+            readOnly = true,
+            label = { Text("Seleccionar empresa") },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier.fillMaxWidth().menuAnchor()
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { onExpandedChange(false) }
+        ) {
+            if (companies.isEmpty()) {
+                DropdownMenuItem(
+                    text = { Text("No hay empresas registradas") },
+                    onClick = { onExpandedChange(false) }
+                )
+            }
+            companies.forEach { company ->
+                DropdownMenuItem(
+                    text = {
+                        Column {
+                            Text(company.name)
+                            Text("RFC: ${company.rfc}", style = MaterialTheme.typography.bodySmall)
+                        }
+                    },
+                    onClick = {
+                        onCompanySelected(company)
+                        onExpandedChange(false)
+                    }
+                )
+            }
+        }
+    }
+
+    if (selectedCompany != null) {
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text("Patrón o Representante Legal:", style = MaterialTheme.typography.labelMedium)
+                Text(selectedCompany.patron.ifBlank { "(no especificado)" }, style = MaterialTheme.typography.bodyMedium)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text("Representante de los Trabajadores:", style = MaterialTheme.typography.labelMedium)
+                Text(selectedCompany.representante ?: "(no especificado)", style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+    }
+}
+
+@Composable
+fun SectionFechas(
+    startDate: String, onStartChange: (String) -> Unit,
+    endDate: String, onEndChange: (String) -> Unit
+) {
+    Text("Período de Ejecución", style = MaterialTheme.typography.titleMedium)
+    TextField(
+        value = startDate,
+        onValueChange = onStartChange,
+        label = { Text("Fecha Inicio (dd/MM/yyyy)") },
+        modifier = Modifier.fillMaxWidth()
+    )
+    TextField(
+        value = endDate,
+        onValueChange = onEndChange,
+        label = { Text("Fecha Fin (dd/MM/yyyy)") },
+        modifier = Modifier.fillMaxWidth()
+    )
+}
+
+@Composable
+fun SelectableButton(text: String, isSelected: Boolean, onClick: () -> Unit) {
+    OutlinedButton(
+        onClick = onClick,
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
+        ),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(text)
+    }
+}
+
+@Composable
+fun InfoAndGenerateButton(activeCount: Int, enabled: Boolean, onClick: () -> Unit) {
+    if (activeCount > 0) {
+        Text(
+            "Se generarán $activeCount constancias DC-3 (empleados activos)",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+    Spacer(modifier = Modifier.height(16.dp))
+    Button(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        enabled = enabled
+    ) {
+        Text("Firmar y Generar DC-3")
     }
 }

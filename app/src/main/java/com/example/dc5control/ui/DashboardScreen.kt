@@ -21,6 +21,7 @@ fun DashboardScreen(
     onNavigateToCourses: () -> Unit,
     onNavigateToAgents: () -> Unit,
     onNavigateToCompanies: () -> Unit,
+    onNavigateToEmployees: () -> Unit,
     onNavigateToGenerate: () -> Unit,
     onNavigateToHistory: () -> Unit
 ) {
@@ -53,6 +54,7 @@ fun DashboardScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             DashboardButton("Empresas", Icons.Default.Business, onNavigateToCompanies)
+            DashboardButton("Personal", Icons.Default.AccountBox, onNavigateToEmployees)
             DashboardButton("Catálogo de Cursos", Icons.Default.List, onNavigateToCourses)
             DashboardButton("Agentes Capacitadores", Icons.Default.Person, onNavigateToAgents)
             DashboardButton(
