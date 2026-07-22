@@ -1514,6 +1514,7 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     const fontB  = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
     const fontI  = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
     const page   = pdfDoc.getPage(0);
+    const pageR  = pdfDoc.getPageCount() > 1 ? pdfDoc.getPage(1) : null;
     const PH     = 792;  // altura en puntos
 
     // ── Helpers de dibujo ─────────────────────────────────────────────────
@@ -1593,6 +1594,7 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
 
     // ══════════════════════════════════════════════════════════════════════
     // 0. CABECERA: logo y slogan del agente (encima del formulario oficial)
+    //    Se dibuja en AMBAS páginas (anverso y reverso)
     // ══════════════════════════════════════════════════════════════════════
     try {
         const sloganFont = fontI;
@@ -1611,7 +1613,9 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
             const hlh = agentDesign.headerLogoH || 65;
             const hlx = agentDesign.headerLogoX || 240;
             const hly = agentDesign.headerLogoY || 45;
-            page.drawImage(hlImg, { x: hlx, y: PH - (hly + hlh), width: hlw, height: hlh, opacity: 1.0 });
+            const drawLogo = (pg) => pg.drawImage(hlImg, { x: hlx, y: PH - (hly + hlh), width: hlw, height: hlh, opacity: 1.0 });
+            drawLogo(page);
+            if (pageR) drawLogo(pageR);
         }
         const hSlogan = agentDesign?.headerSlogan || '';
         if (hSlogan) {
@@ -1621,7 +1625,9 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
             const rawHsx = agentDesign.headerSloganX || 306;
             const hsx = (rawHsx > 0 && rawHsx <= 200) ? 306 : rawHsx; // migrar default viejo 160→306
             const hsy = agentDesign.headerSloganY || 40;
-            page.drawText(hst, { x: hsx - hsw/2, y: PH - hsy - hss/2, size: hss, font: sloganFont, color: rgb(0.1,0.1,0.1) });
+            const drawSlogan = (pg) => pg.drawText(hst, { x: hsx - hsw/2, y: PH - hsy - hss/2, size: hss, font: sloganFont, color: rgb(0.1,0.1,0.1) });
+            drawSlogan(page);
+            if (pageR) drawSlogan(pageR);
         }
     } catch(e) { console.warn('Error cabecera:', e); }
 
