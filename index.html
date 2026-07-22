@@ -1615,7 +1615,15 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
             const hly = agentDesign.headerLogoY || 45;
             const drawLogo = (pg) => pg.drawImage(hlImg, { x: hlx, y: PH - (hly + hlh), width: hlw, height: hlh, opacity: 1.0 });
             drawLogo(page);
-            if (pageR) drawLogo(pageR);
+            // Reverso: zona libre y_top=28→79 (51pt). Logo reducido para no tapar texto.
+            if (pageR) {
+                const scaleR = Math.min(1, 48 / hlh);           // escalar para caber en 48pt
+                const hlwR = Math.round(hlw * scaleR);
+                const hlhR = Math.round(hlh * scaleR);
+                const hlxR = Math.round(hlx + (hlw - hlwR) / 2); // centrado horizontalmente
+                const hlyR = 29;                                  // y_top desde arriba
+                pageR.drawImage(hlImg, { x: hlxR, y: PH - (hlyR + hlhR), width: hlwR, height: hlhR, opacity: 1.0 });
+            }
         }
         const hSlogan = agentDesign?.headerSlogan || '';
         if (hSlogan) {
@@ -1627,7 +1635,11 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
             const hsy = agentDesign.headerSloganY || 40;
             const drawSlogan = (pg) => pg.drawText(hst, { x: hsx - hsw/2, y: PH - hsy - hss/2, size: hss, font: sloganFont, color: rgb(0.1,0.1,0.1) });
             drawSlogan(page);
-            if (pageR) drawSlogan(pageR);
+            // Reverso: slogan en la zona libre superior (y_top≈18, zona 28→79)
+            if (pageR) {
+                const hsyR = 20;  // y_top fijo en zona segura del reverso
+                pageR.drawText(hst, { x: hsx - hsw/2, y: PH - hsyR - hss/2, size: hss, font: sloganFont, color: rgb(0.1,0.1,0.1) });
+            }
         }
     } catch(e) { console.warn('Error cabecera:', e); }
 
