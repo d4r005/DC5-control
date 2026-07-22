@@ -2,13 +2,13 @@ package com.example.dc5control.util
 
 import android.content.Context
 import android.net.Uri
-import com.example.dc5control.data.model.Worker
+import com.example.dc5control.data.model.Employee
 import org.apache.poi.ss.usermodel.WorkbookFactory
 import java.io.InputStream
 
 object ExcelHelper {
-    fun readWorkersFromExcel(context: Context, uri: Uri): List<Worker> {
-        val workers = mutableListOf<Worker>()
+    fun readWorkersFromExcel(context: Context, uri: Uri): List<Employee> {
+        val workers = mutableListOf<Employee>()
         val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
         
         inputStream?.use { isStream ->
@@ -24,7 +24,7 @@ object ExcelHelper {
                 val position = row.getCell(3)?.toString() ?: ""
                 
                 if (name.isNotEmpty()) {
-                    workers.add(Worker(name = name, curp = curp, occupation = occupation, position = position))
+                    workers.add(Employee(name = name, curp = curp, occupation = occupation, position = position))
                 }
             }
         }

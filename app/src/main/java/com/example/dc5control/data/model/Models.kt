@@ -6,28 +6,24 @@ import kotlinx.serialization.SerialName
 @Serializable
 data class Employee(
     val id: Long? = null,
-    @SerialName("employee_number") val employeeNumber: String = "",
-    @SerialName("first_name") val firstName: String = "",
-    @SerialName("last_name") val lastName: String = "",
-    @SerialName("middle_name") val middleName: String? = null,
+    @SerialName("apellido_paterno") val apellidoPaterno: String = "",
+    @SerialName("apellido_materno") val apellidoMaterno: String = "",
+    val nombres: String = "",
+    val name: String = "",
     val curp: String = "",
-    val rfc: String = "",
-    val nss: String? = null,
+    val occupation: String = "",
     val position: String = "",
-    val department: String? = null,
-    @SerialName("hire_date") val hireDate: String? = null,
+    @SerialName("photo_url") val photoUrl: String? = null,
     val active: Boolean = true,
-    @SerialName("creatorEmail") val creatorEmail: String? = null
+    @SerialName("creator_email") val creatorEmail: String? = null
 )
 
 @Serializable
-data class Instructor(
+data class Agent(
     val id: Long? = null,
-    @SerialName("full_name") val fullName: String = "",
-    @SerialName("stps_number") val stpsNumber: String? = null,
-    val external: Boolean = false,
-    val company: String? = null,
-    @SerialName("creatorEmail") val creatorEmail: String? = null
+    val name: String = "",
+    val stps: String = "",
+    @SerialName("creator_email") val creatorEmail: String? = null
 )
 
 @Serializable
@@ -35,58 +31,18 @@ data class Company(
     val id: Long? = null,
     val name: String = "",
     val rfc: String = "",
-    val patron: String = "",
-    val representante: String? = null,
-    val creatorEmail: String? = null
+    @SerialName("representante_legal") val representanteLegal: String = "",
+    @SerialName("representante_trabajadores") val representanteTrabajadores: String? = null,
+    @SerialName("creator_email") val creatorEmail: String? = null
 )
 
 @Serializable
 data class Course(
     val id: Long? = null,
     val name: String = "",
-    val duration: Int = 8,
+    @SerialName("duration_hours") val durationHours: String = "",
     @SerialName("thematic_area") val thematicArea: String = "",
-    @SerialName("occupation_key") val occupationKey: String? = null,
-    val description: String? = null,
-    @SerialName("creatorEmail") val creatorEmail: String? = null
-)
-
-@Serializable
-data class ThematicArea(
-    val code: String = "",
-    val description: String = ""
-)
-
-@Serializable
-data class Occupation(
-    val code: String = "",
-    val description: String = ""
-)
-
-@Serializable
-data class Training(
-    val id: Long? = null,
-    @SerialName("employee_id") val employeeId: Long,
-    @SerialName("course_id") val courseId: Long,
-    @SerialName("instructor_id") val instructorId: Long,
-    @SerialName("start_date") val startDate: String,
-    @SerialName("end_date") val endDate: String,
-    val hours: Int,
-    val approved: Boolean = true,
-    val score: Double? = null,
-    @SerialName("creatorEmail") val creatorEmail: String? = null
-)
-
-@Serializable
-data class DC3(
-    val id: Long? = null,
-    @SerialName("training_id") val trainingId: Long,
-    @SerialName("dc3_number") val dc3Number: String? = null,
-    val generated: String? = null,
-    val pdf: String? = null,
-    val docx: String? = null,
-    val signed: Boolean = false,
-    @SerialName("creatorEmail") val creatorEmail: String? = null
+    @SerialName("creator_email") val creatorEmail: String? = null
 )
 
 @Serializable
@@ -99,10 +55,18 @@ data class DC3Record(
     @SerialName("duration_hours") val durationHours: String = "",
     @SerialName("thematic_area") val thematicArea: String = "",
     @SerialName("company_name") val companyName: String = "",
-    @SerialName("company_rfc") val companyRfc: String = "",
-    @SerialName("company_patron") val companyPatron: String = "",
-    @SerialName("instructor_name") val instructorName: String = "",
+    @SerialName("agent_name") val agentName: String = "",
+    @SerialName("agent_stps") val agentStps: String = "",
     @SerialName("start_date") val startDate: String = "",
     @SerialName("end_date") val endDate: String = "",
+    @SerialName("result_text") val resultText: String = "Acreditado",
     @SerialName("creator_email") val creatorEmail: String? = null
+)
+
+@Serializable
+data class User(
+    val name: String,
+    val email: String,
+    val role: String,
+    val password: String = ""
 )

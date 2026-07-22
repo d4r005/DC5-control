@@ -20,12 +20,12 @@ import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DC3GenerationScreen(onBack: () -> Unit, isExpanded: Boolean = false) {
+fun DC3GenerationScreen(user: User, onBack: () -> Unit, isExpanded: Boolean = false) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
     var selectedCourse by remember { mutableStateOf<Course?>(null) }
-    var selectedInstructor by remember { mutableStateOf<Instructor?>(null) }
+    var selectedAgent by remember { mutableStateOf<Agent?>(null) }
     var selectedCompany by remember { mutableStateOf<Company?>(null) }
     var companyDropdownExpanded by remember { mutableStateOf(false) }
 
@@ -36,15 +36,21 @@ fun DC3GenerationScreen(onBack: () -> Unit, isExpanded: Boolean = false) {
     var isGenerating by remember { mutableStateOf(false) }
 
     val courses = remember { mutableStateListOf<Course>() }
-    val instructors = remember { mutableStateListOf<Instructor>() }
+    val agents = remember { mutableStateListOf<Agent>() }
     val employees = remember { mutableStateListOf<Employee>() }
     val companies = remember { mutableStateListOf<Company>() }
 
     LaunchedEffect(Unit) {
-        SupabaseRepository.fetchData("courses", Course.serializer()) { courses.addAll(it) }
-        SupabaseRepository.fetchData("instructors", Instructor.serializer()) { instructors.addAll(it) }
-        SupabaseRepository.fetchData("employees", Employee.serializer()) { employees.addAll(it) }
-        SupabaseRepository.fetchData("companies", Company.serializer()) { companies.addAll(it) }
+        SupabaseRepository.fetchData("courses", Course.serializer()) { fetched -> 
+            val filtered = if (user.role == "ADMIN") fetched else fetched.filter { it.creatorEmail == user.email }
+            courses.clear(); courses.addAll(filtered) 
+        }
+        SupabaseRepository.fetchData("agents", Agent.serializer()) { agents.clear(); agents.addAll(it) }
+        SupabaseRepository.fetchData("workers", Employee.serializer()) { fetched ->
+            val filtered = if (user.role == "ADMIN") fetched else fetched.filter { it.creatorEmail == user.email }
+            employees.clear(); employees.addAll(filtered) 
+        }
+        SupabaseRepository.fetchData("companies", Company.serializer()) { companies.clear(); companies.addAll(it) }
     }
 
     if (showSignaturePad) {
@@ -60,33 +66,34 @@ fun DC3GenerationScreen(onBack: () -> Unit, isExpanded: Boolean = false) {
                                     context = context,
                                     employee = employee,
                                     course = selectedCourse!!,
-                                    instructor = selectedInstructor!!,
+                                    agent = selectedAgent!!,
                                     companyName = selectedCompany!!.name,
                                     companyRfc = selectedCompany!!.rfc,
-                                    companyPatron = selectedCompany!!.patron,
-                                    companyRepresentante = selectedCompany!!.representante,
+                                    companyPatron = selectedCompany!!.representanteLegal,
+                                    companyRepresentante = selectedCompany!!.representanteTrabajadores,
                                     startDate = startDate,
                                     endDate = endDate,
                                     signatureBitmap = bitmap,
                                     logoBitmap = null
                                 )
 
-                                // Esperar a que se suba y se guarde el registro
-                                CloudflareHelper.uploadPdfSuspend(file)
+                                try {
+                                    CloudflareHelper.uploadPdfSuspend(file)
+                                } catch (e: Exception) {}
                                 
                                 val record = DC3Record(
                                     workerId   = employee.curp,
-                                    workerName = "${employee.lastName} ${employee.firstName}",
+                                    workerName = "${employee.apellidoPaterno} ${employee.nombres}",
                                     workerPos  = employee.position,
                                     courseName = selectedCourse!!.name,
-                                    durationHours = selectedCourse!!.duration.toString(),
+                                    durationHours = selectedCourse!!.durationHours,
                                     thematicArea = selectedCourse!!.thematicArea,
                                     companyName = selectedCompany!!.name,
-                                    companyRfc = selectedCompany!!.rfc,
-                                    companyPatron = selectedCompany!!.patron,
-                                    instructorName = selectedInstructor!!.fullName,
+                                    agentName = selectedAgent!!.name,
+                                    agentStps = selectedAgent!!.stps,
                                     startDate  = startDate,
-                                    endDate    = endDate
+                                    endDate    = endDate,
+                                    creatorEmail = employee.creatorEmail
                                 )
                                 SupabaseRepository.insertDataSuspend("dc3_records", record, DC3Record.serializer())
                             }
@@ -124,7 +131,6 @@ else {
             }
 
             if (isExpanded) {
-                // Diseño para Tablet o Pantalla Completa (Dos columnas)
                 Row(
                     modifier = Modifier
                         .padding(padding)
@@ -132,7 +138,6 @@ else {
                         .fillMaxSize(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // Columna Izquierda: Selección de Empresa y Curso
                     Column(
                         modifier = Modifier
                             .weight(1f)
@@ -150,14 +155,13 @@ else {
                         Text("Curso", style = MaterialTheme.typography.titleMedium)
                         courses.forEach { course ->
                             SelectableButton(
-                                text = "${course.name} (${course.duration} h)",
+                                text = "${course.name} (${course.durationHours})",
                                 isSelected = selectedCourse == course,
                                 onClick = { selectedCourse = course }
                             )
                         }
                     }
 
-                    // Columna Derecha: Instructor, Fechas y Botón
                     Column(
                         modifier = Modifier
                             .weight(1f)
@@ -165,11 +169,11 @@ else {
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text("Agente Capacitador / Instructor", style = MaterialTheme.typography.titleMedium)
-                        instructors.forEach { instructor ->
+                        agents.forEach { agent ->
                             SelectableButton(
-                                text = "${instructor.fullName}${if (instructor.stpsNumber != null) " — ${instructor.stpsNumber}" else ""}",
-                                isSelected = selectedInstructor == instructor,
-                                onClick = { selectedInstructor = instructor }
+                                text = "${agent.name} — ${agent.stps}",
+                                isSelected = selectedAgent == agent,
+                                onClick = { selectedAgent = agent }
                             )
                         }
 
@@ -183,13 +187,12 @@ else {
                         
                         InfoAndGenerateButton(
                             employees.count { it.active },
-                            enabled = selectedCourse != null && selectedInstructor != null && selectedCompany != null && startDate.isNotEmpty() && endDate.isNotEmpty(),
+                            enabled = selectedCourse != null && selectedAgent != null && selectedCompany != null && startDate.isNotEmpty() && endDate.isNotEmpty(),
                             onClick = { showSignaturePad = true }
                         )
                     }
                 }
             } else {
-                // Diseño para Teléfono (Vertical - Una sola columna)
                 Column(
                     modifier = Modifier
                         .padding(padding)
@@ -209,18 +212,18 @@ else {
                     Text("Curso", style = MaterialTheme.typography.titleMedium)
                     courses.forEach { course ->
                         SelectableButton(
-                            text = "${course.name} (${course.duration} h)",
+                            text = "${course.name} (${course.durationHours})",
                             isSelected = selectedCourse == course,
                             onClick = { selectedCourse = course }
                         )
                     }
 
                     Text("Agente Capacitador / Instructor", style = MaterialTheme.typography.titleMedium)
-                    instructors.forEach { instructor ->
+                    agents.forEach { agent ->
                         SelectableButton(
-                            text = "${instructor.fullName}${if (instructor.stpsNumber != null) " — ${instructor.stpsNumber}" else ""}",
-                            isSelected = selectedInstructor == instructor,
-                            onClick = { selectedInstructor = instructor }
+                            text = "${agent.name} — ${agent.stps}",
+                            isSelected = selectedAgent == agent,
+                            onClick = { selectedAgent = agent }
                         )
                     }
 
@@ -231,7 +234,7 @@ else {
 
                     InfoAndGenerateButton(
                         employees.count { it.active },
-                        enabled = selectedCourse != null && selectedInstructor != null && selectedCompany != null && startDate.isNotEmpty() && endDate.isNotEmpty(),
+                        enabled = selectedCourse != null && selectedAgent != null && selectedCompany != null && startDate.isNotEmpty() && endDate.isNotEmpty(),
                         onClick = { showSignaturePad = true }
                     )
                 }
@@ -293,10 +296,10 @@ fun SectionEmpresa(
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(12.dp)) {
                 Text("Patrón o Representante Legal:", style = MaterialTheme.typography.labelMedium)
-                Text(selectedCompany.patron.ifBlank { "(no especificado)" }, style = MaterialTheme.typography.bodyMedium)
+                Text(selectedCompany.representanteLegal.ifBlank { "(no especificado)" }, style = MaterialTheme.typography.bodyMedium)
                 Spacer(modifier = Modifier.height(4.dp))
                 Text("Representante de los Trabajadores:", style = MaterialTheme.typography.labelMedium)
-                Text(selectedCompany.representante ?: "(no especificado)", style = MaterialTheme.typography.bodyMedium)
+                Text(selectedCompany.representanteTrabajadores ?: "(no especificado)", style = MaterialTheme.typography.bodyMedium)
             }
         }
     }
