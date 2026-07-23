@@ -59,6 +59,7 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.material3.windowsize)
+    implementation(libs.androidx.material.icons.extended)
     
     implementation(libs.apache.poi)
     implementation(libs.okhttp)

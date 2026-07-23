@@ -113,6 +113,29 @@ object SupabaseRepository {
             }
         }
 
+    // ─── UPDATE ────────────────────────────────────────────────────
+    fun <T> updateData(table: String, id: String, item: T, serializer: kotlinx.serialization.KSerializer<T>, onResult: (Boolean) -> Unit) {
+        val bodyString = json.encodeToString(serializer, item)
+        val request = getBaseRequest(table)
+            .url("$SUPABASE_URL/$table?id=eq.$id")
+            .patch(bodyString.toRequestBody("application/json".toMediaType()))
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) { 
+                android.util.Log.e("Supabase", "Update failed: ${e.message}")
+                mainHandler.post { onResult(false) } 
+            }
+            override fun onResponse(call: Call, response: Response) {
+                response.use { 
+                    val success = it.isSuccessful
+                    if (!success) android.util.Log.e("Supabase", "Update error ${it.code}: ${it.body?.string()}")
+                    mainHandler.post { onResult(success) }
+                }
+            }
+        })
+    }
+
     // ─── INSERT (batch workers) ────────────────────────────────────
     fun insertWorkers(workers: List<Employee>, onResult: (Boolean) -> Unit) {
         val bodyString = json.encodeToString(kotlinx.serialization.builtins.ListSerializer(Employee.serializer()), workers)
