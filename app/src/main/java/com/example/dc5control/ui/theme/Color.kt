@@ -49,3 +49,6 @@ val Violet600 = Color(0xFF7C3AED)
 val LoginGradientStart = Color(0xFFE8EEF8)
 val LoginGradientMid = Color(0xFFF0F4FF)
 val LoginGradientEnd = Color(0xFFE8EEF8)
+
+// ── Compliance (STPS badge) ──
+val ComplianceGreen = Color(0xFF15803D)

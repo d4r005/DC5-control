@@ -11,13 +11,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import com.example.dc5control.data.model.AgentDesign
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -44,7 +43,7 @@ fun DC3DesignScreen(
     // Load existing design
     LaunchedEffect(Unit) {
         // Fetch agent_designs for this user
-        SupabaseRepository.fetchData("agent_designs", com.example.dc5control.data.model.AgentDesign.serializer()) { designs ->
+        SupabaseRepository.fetchData("agent_designs", AgentDesign.serializer()) { designs ->
             val userDesign = designs.find { it.creatorEmail == user.email }
             if (userDesign != null) {
                 headerSlogan = userDesign.headerSlogan ?: ""

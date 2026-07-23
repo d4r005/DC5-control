@@ -11,7 +11,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.dc5control"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
@@ -39,12 +39,16 @@ android {
         compose = true
     }
 
-    // PDFBox necesita excluir algunos módulos que no existen en Android
+    // PDFBox y POI necesitan excluir conflictos de META-INF en Android
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
             excludes += "/META-INF/DEPENDENCIES"
-            excludes += "META-INF/INDEX.LIST"
+            excludes += "/META-INF/INDEX.LIST"
+            excludes += "/META-INF/LICENSE*"
+            excludes += "/META-INF/NOTICE*"
+            excludes += "/META-INF/*.kotlin_module"
+            excludes += "/META-INF/versions/9/OSGI-INF/MANIFEST.MF"
         }
     }
 }

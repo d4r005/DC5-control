@@ -24,4 +24,3 @@ dependencyResolutionManagement {
 
 rootProject.name = "DC5-control"
 include(":app")
-include(":naf-erp")

@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -78,7 +79,7 @@ fun MainApp(windowSizeClass: WindowSizeClass) {
     var currentScreen by remember { mutableStateOf(Screen.Dashboard) }
 
     // Restore session from SharedPreferences on startup
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
     androidx.compose.runtime.LaunchedEffect(Unit) {
         val prefs = context.getSharedPreferences("ace_session", Context.MODE_PRIVATE)
         val savedEmail = prefs.getString("email", null)
