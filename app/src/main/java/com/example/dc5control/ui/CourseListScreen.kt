@@ -291,11 +291,19 @@ fun CourseListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                                                 fontWeight = FontWeight.Bold
                                             )
                                         }
-                                        Text(
-                                            text = course.thematicArea ?: "–",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = Gray500
-                                        )
+                                        if (!course.thematicArea.isNullOrBlank() && course.thematicArea != "–" && course.thematicArea != "-") {
+                                            Surface(
+                                                color = NavySurface,
+                                                shape = RoundedCornerShape(6.dp)
+                                            ) {
+                                                Text(
+                                                    text = course.thematicArea,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = NavyPrimary,
+                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                                )
+                                            }
+                                        }
                                     }
                                     Spacer(modifier = Modifier.height(8.dp))
                                     Row(

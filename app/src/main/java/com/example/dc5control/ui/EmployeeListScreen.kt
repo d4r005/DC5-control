@@ -33,6 +33,9 @@ import com.example.dc5control.Screen
 import com.example.dc5control.data.model.Employee
 import com.example.dc5control.data.model.User
 import com.example.dc5control.data.repository.SupabaseRepository
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import androidx.compose.ui.platform.LocalContext
 import com.example.dc5control.ui.theme.*
 import com.example.dc5control.util.ExcelHelper
 import kotlinx.coroutines.launch
@@ -314,7 +317,19 @@ fun EmployeeListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                                                     .border(BorderStroke(1.dp, Gray200), CircleShape),
                                                 contentAlignment = Alignment.Center
                                             ) {
-                                                Icon(Icons.Default.Person, contentDescription = null, tint = Gray500, modifier = Modifier.size(18.dp))
+                                                if (!employee.photoUrl.isNullOrBlank()) {
+                                                    AsyncImage(
+                                                        model = ImageRequest.Builder(LocalContext.current)
+                                                            .data(employee.photoUrl)
+                                                            .crossfade(true)
+                                                            .build(),
+                                                        contentDescription = "Foto",
+                                                        modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                                    )
+                                                } else {
+                                                    Icon(Icons.Default.Person, contentDescription = null, tint = Gray500, modifier = Modifier.size(18.dp))
+                                                }
                                             }
                                             Spacer(modifier = Modifier.width(12.dp))
                                             Column {
@@ -466,7 +481,19 @@ fun EmployeeListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                                                     .background(Gray100),
                                                 contentAlignment = Alignment.Center
                                             ) {
-                                                Icon(Icons.Default.Person, contentDescription = null, tint = Gray500, modifier = Modifier.size(16.dp))
+                                                if (!employee.photoUrl.isNullOrBlank()) {
+                                                    AsyncImage(
+                                                        model = ImageRequest.Builder(LocalContext.current)
+                                                            .data(employee.photoUrl)
+                                                            .crossfade(true)
+                                                            .build(),
+                                                        contentDescription = "Foto",
+                                                        modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                                    )
+                                                } else {
+                                                    Icon(Icons.Default.Person, contentDescription = null, tint = Gray500, modifier = Modifier.size(16.dp))
+                                                }
                                             }
                                             Spacer(modifier = Modifier.width(8.dp))
                                             

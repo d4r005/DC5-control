@@ -95,6 +95,9 @@ dependencies {
     // Apache PDFBox 3.0.1 — generación de DC-3 sobre plantilla PDF
     implementation(libs.apache.pdfbox)
 
+    // Coil — carga de imágenes desde URL (fotos de trabajadores)
+    implementation(libs.coil.compose)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

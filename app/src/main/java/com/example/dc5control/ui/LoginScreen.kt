@@ -28,6 +28,9 @@ import android.content.Context
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import com.example.dc5control.R
 import com.example.dc5control.data.AuthManager
 import com.example.dc5control.data.model.User
 import com.example.dc5control.ui.theme.*
@@ -66,14 +69,19 @@ fun LoginScreen(onLoginSuccess: (User, Boolean) -> Unit) {
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Logo & Brand
+            // Logo & Brand — logo de la app
             Box(
                 modifier = Modifier
-                    .size(56.dp)
-                    .background(NavyPrimary, shape = RoundedCornerShape(16.dp)),
+                    .size(80.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(NavyPrimary),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(28.dp))
+                Image(
+                    painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                    contentDescription = "Logo ACE-Control",
+                    modifier = Modifier.size(64.dp)
+                )
             }
             Spacer(modifier = Modifier.height(12.dp))
             Text("ACE-Control", fontSize = 24.sp, fontWeight = FontWeight.Black, color = Gray900)
