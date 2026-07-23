@@ -1,9 +1,17 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
 }
+
+// ── Keystore de debug (el mismo que Android Studio usa automáticamente) ──
+// Permite generar APKs release firmadas e instalables sin configurar un
+// keystore de producción manualmente.
+val debugKeystorePath = rootProject.file("app/debug.keystore")
+val hasDebugKeystore = debugKeystorePath.exists()
 
 android {
     namespace = "com.example.dc5control"
@@ -19,6 +27,17 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("releaseDebug") {
+            if (hasDebugKeystore) {
+                storeFile = debugKeystorePath
+                storePassword = "android"
+                keyAlias = "androiddebugkey"
+                keyPassword = "android"
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -26,6 +45,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Firmar la APK release con el keystore de debug para poder instalarla
+            if (hasDebugKeystore) {
+                signingConfig = signingConfigs.getByName("releaseDebug")
+            }
         }
     }
     compileOptions {
