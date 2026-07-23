@@ -386,15 +386,18 @@ fun CompanyListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                 } else {
                     // Update existing company
                     val editId = companyToEdit!!.id ?: ""
-                    if (editId.isBlank()) { showAddEditDialog = false; return@onConfirm }
-                    SupabaseRepository.updateData("companies", editId, updated, Company.serializer()) { success ->
-                        if (success) {
-                            Toast.makeText(context, "Empresa actualizada exitosamente", Toast.LENGTH_SHORT).show()
-                            loadData()
-                        } else {
-                            Toast.makeText(context, "Error al actualizar la empresa", Toast.LENGTH_SHORT).show()
-                            isLoading = false
+                    if (!editId.isBlank()) {
+                        SupabaseRepository.updateData("companies", editId, updated, Company.serializer()) { success ->
+                            if (success) {
+                                Toast.makeText(context, "Empresa actualizada exitosamente", Toast.LENGTH_SHORT).show()
+                                loadData()
+                            } else {
+                                Toast.makeText(context, "Error al actualizar la empresa", Toast.LENGTH_SHORT).show()
+                                isLoading = false
+                            }
+                            showAddEditDialog = false
                         }
+                    } else {
                         showAddEditDialog = false
                     }
                 }
@@ -412,7 +415,7 @@ fun CompanyListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                 companyToDelete = null
                 isLoading = true
                 val delId = comp.id ?: ""
-                if (delId.isBlank()) { isLoading = false; return@onConfirm }
+                if (!delId.isBlank()) {
                 SupabaseRepository.deleteData("companies", delId) { success ->
                     if (success) {
                         Toast.makeText(context, "Empresa eliminada", Toast.LENGTH_SHORT).show()
@@ -422,6 +425,7 @@ fun CompanyListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                         isLoading = false
                     }
                 }
+                } // end if delId
             }
         )
     }

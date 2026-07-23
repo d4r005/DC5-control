@@ -619,15 +619,18 @@ fun EmployeeListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                 } else {
                     // Update existing employee
                     val editId = employeeToEdit!!.id ?: ""
-                    if (editId.isBlank()) { showAddEditDialog = false; return@onConfirm }
-                    SupabaseRepository.updateData("workers", editId, updated, Employee.serializer()) { success ->
-                        if (success) {
-                            Toast.makeText(context, "Empleado actualizado exitosamente", Toast.LENGTH_SHORT).show()
-                            loadData()
-                        } else {
-                            Toast.makeText(context, "Error al actualizar el empleado", Toast.LENGTH_SHORT).show()
-                            isLoading = false
+                    if (!editId.isBlank()) {
+                        SupabaseRepository.updateData("workers", editId, updated, Employee.serializer()) { success ->
+                            if (success) {
+                                Toast.makeText(context, "Empleado actualizado exitosamente", Toast.LENGTH_SHORT).show()
+                                loadData()
+                            } else {
+                                Toast.makeText(context, "Error al actualizar el empleado", Toast.LENGTH_SHORT).show()
+                                isLoading = false
+                            }
+                            showAddEditDialog = false
                         }
+                    } else {
                         showAddEditDialog = false
                     }
                 }
@@ -645,15 +648,18 @@ fun EmployeeListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                 employeeToDelete = null
                 isLoading = true
                 val delId = emp.id ?: ""
-                if (delId.isBlank()) { isLoading = false; return@onConfirm }
-                SupabaseRepository.deleteData("workers", delId) { success ->
-                    if (success) {
-                        Toast.makeText(context, "Empleado eliminado", Toast.LENGTH_SHORT).show()
-                        loadData()
-                    } else {
-                        Toast.makeText(context, "Error al eliminar empleado", Toast.LENGTH_SHORT).show()
-                        isLoading = false
+                if (!delId.isBlank()) {
+                    SupabaseRepository.deleteData("workers", delId) { success ->
+                        if (success) {
+                            Toast.makeText(context, "Empleado eliminado", Toast.LENGTH_SHORT).show()
+                            loadData()
+                        } else {
+                            Toast.makeText(context, "Error al eliminar empleado", Toast.LENGTH_SHORT).show()
+                            isLoading = false
+                        }
                     }
+                } else {
+                    isLoading = false
                 }
             }
         )
