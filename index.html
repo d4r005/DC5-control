@@ -719,6 +719,26 @@ try {
     console.error("Error initializing Supabase:", e);
 }
 
+// Check for existing valid session on page load
+function checkExistingSession() {
+    const sessionStr = sessionStorage.getItem('ace_session');
+    if (sessionStr) {
+        try {
+            const session = JSON.parse(sessionStr);
+            if (session.expires && Date.now() < session.expires) {
+                currentUser = DATA.users.find(u => u.email === session.email);
+                if (currentUser) {
+                    initApp();
+                    return true;
+                }
+            } else {
+                sessionStorage.removeItem('ace_session');
+            }
+        } catch(e) { /* invalid session, ignore */ }
+    }
+    return false;
+}
+
 const CATALOGS = {
     occupations: [
         "01 Cultivo, crianza y aprovechamiento","01.1 Agricultura y silvicultura","01.2 Ganadería","01.3 Pesca y acuacultura",
@@ -742,8 +762,8 @@ const CATALOGS = {
 
 const DATA = {
     users: [
-        { name: "Dario Robles", email: "d4r005@gmail.com", role: "ADMIN", password: "Branco2025" },
-        { name: "Cynthia Garza Lugo", email: "lugga.advisors@gmail.com", role: "USER", password: "Cynthia123" }
+        { name: "Dario Robles", email: "d4r005@gmail.com", role: "ADMIN", passHash: "dd080657906b80be4ea5f3b67af9a02ccf2bc6d9a004d10c1e9bfd42e0cc7754" },
+        { name: "Cynthia Garza Lugo", email: "lugga.advisors@gmail.com", role: "USER", passHash: "c625194773dbb816d11f159af7702363e7ccc64d213ea54d17c7f31aeab9921f" }
     ],
     courses: [
         { name: "SEGURIDAD EN TRABAJOS DE SOLDADURAS Y OXICORTE", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", creatorEmail: "lugga.advisors@gmail.com" },
@@ -914,15 +934,31 @@ async function api(action, collection, payload = {}) {
 }
 
 // ─── LOGIN ─────────────────────────────────────────────
+async function sha256(text) {
+    const data = new TextEncoder().encode(text);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 async function login(e) {
     try {
         e.preventDefault();
         const email = document.getElementById('email').value.trim();
         const pass = document.getElementById('password').value;
-        const user = DATA.users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === pass);
+        
+        // Hash the password with SHA-256 before comparing
+        const passHash = await sha256(pass);
+        const user = DATA.users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.passHash === passHash);
 
         if (!user) {
             document.getElementById('login-error').classList.remove('hidden');
+            return;
+        }
+
+        // Check if user is active (future enhancement: disable users)
+        if (user.active === false) {
+            document.getElementById('login-error').classList.remove('hidden');
+            document.querySelector('#login-error').textContent = 'Usuario desactivado. Contacta al administrador.';
             return;
         }
 
@@ -932,6 +968,15 @@ async function login(e) {
         } else {
             localStorage.removeItem('rememberedEmail');
         }
+
+        // Store session with expiration (24 hours)
+        const session = {
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            expires: Date.now() + (24 * 60 * 60 * 1000)
+        };
+        sessionStorage.setItem('ace_session', JSON.stringify(session));
 
         currentUser = user;
         await initApp();
@@ -967,6 +1012,7 @@ async function initApp() {
 
 function logout() {
     currentUser = null;
+    sessionStorage.removeItem('ace_session');
     document.getElementById('view-login').style.display = '';
     document.getElementById('view-app').style.display = 'none';
 }

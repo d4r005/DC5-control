@@ -28,7 +28,7 @@ import com.example.dc5control.ui.*
 import com.example.dc5control.ui.theme.*
 
 enum class Screen {
-    Dashboard, Workers, Companies, Courses, DC3, DC3History, Agents
+    Dashboard, Workers, Companies, Courses, DC3, DC3History, Agents, DC3Design, Users
 }
 
 data class NavItem(
@@ -44,7 +44,13 @@ val navItems = listOf(
     NavItem(Screen.Courses, "Cursos", Icons.Default.MenuBook),
     NavItem(Screen.DC3, "Constancias", Icons.Default.Description),
     NavItem(Screen.DC3History, "Historial", Icons.Default.History),
-    NavItem(Screen.Agents, "Agentes", Icons.Default.Schedule)
+    NavItem(Screen.Agents, "Agentes", Icons.Default.Schedule),
+    NavItem(Screen.DC3Design, "Diseño DC-3", Icons.Default.Palette)
+)
+
+// Items visible only for ADMIN
+val adminNavItems = listOf(
+    NavItem(Screen.Users, "Usuarios", Icons.Default.AdminPanelSettings)
 )
 
 class MainActivity : ComponentActivity() {
@@ -155,6 +161,8 @@ fun ScreenContent(
         Screen.DC3 -> DC3GenerationScreen(user = user, isExpanded = isExpanded, onBack = onBack)
         Screen.DC3History -> DC3HistoryScreen(user = user, isExpanded = isExpanded, onBack = onBack)
         Screen.Agents -> AgentListScreen(user = user, isExpanded = isExpanded, onBack = onBack)
+        Screen.DC3Design -> DC3DesignScreen(user = user, isExpanded = isExpanded, onBack = onBack)
+        Screen.Users -> UsersScreen(user = user, isExpanded = isExpanded, onBack = onBack)
     }
 }
 
@@ -204,6 +212,30 @@ fun PermanentNavDrawer(
                 Text(item.label, fontSize = 14.sp, fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal, color = if (isSelected) NavyPrimary else Gray500)
             }
             Spacer(modifier = Modifier.height(2.dp))
+        }
+
+        // Admin-only items
+        if (user.role == "ADMIN") {
+            Spacer(modifier = Modifier.height(8.dp))
+            HorizontalDivider(color = Gray100)
+            Spacer(modifier = Modifier.height(8.dp))
+            adminNavItems.forEach { item ->
+                val isSelected = currentScreen == item.screen
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(MaterialTheme.shapes.small)
+                        .background(if (isSelected) NavySurface else Color.Transparent)
+                        .clickable { onNavigate(item.screen) }
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(item.icon, contentDescription = item.label, modifier = Modifier.size(18.dp), tint = if (isSelected) NavyPrimary else Gray500)
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(item.label, fontSize = 14.sp, fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal, color = if (isSelected) NavyPrimary else Gray500)
+                }
+                Spacer(modifier = Modifier.height(2.dp))
+            }
         }
 
         Spacer(modifier = Modifier.weight(1f))

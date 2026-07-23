@@ -11,8 +11,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,20 +26,23 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.dc5control.data.AuthManager
 import com.example.dc5control.data.model.User
 import com.example.dc5control.ui.theme.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.MainScope
 
 @Composable
 fun LoginScreen(onLoginSuccess: (User) -> Unit) {
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+    var email by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
-    var rememberMe by remember { mutableStateOf(false) }
+    var rememberMe by rememberSaveable { mutableStateOf(false) }
     var showError by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("Credenciales incorrectas. Intenta de nuevo.") }
     var isLoading by remember { mutableStateOf(false) }
+    var attempts by remember { mutableStateOf(0) }
+    val scope = rememberCoroutineScope()
 
     Box(
         modifier = Modifier
@@ -72,7 +78,7 @@ fun LoginScreen(onLoginSuccess: (User) -> Unit) {
 
             // Login Card
             Surface(
-                modifier = Modifier.width(IntrinsicSize.Min).width(420.dp),
+                modifier = Modifier.width(420.dp),
                 shape = RoundedCornerShape(20.dp),
                 color = SurfaceWhite,
                 shadowElevation = 20.dp
@@ -98,6 +104,9 @@ fun LoginScreen(onLoginSuccess: (User) -> Unit) {
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(10.dp),
                             singleLine = true,
+                            leadingIcon = {
+                                Icon(Icons.Default.Email, contentDescription = null, tint = Gray400, modifier = Modifier.size(18.dp))
+                            },
                             colors = OutlinedTextFieldDefaults.colors(
                                 unfocusedBorderColor = Gray200,
                                 focusedBorderColor = NavyPrimary,
@@ -121,6 +130,9 @@ fun LoginScreen(onLoginSuccess: (User) -> Unit) {
                             shape = RoundedCornerShape(10.dp),
                             singleLine = true,
                             visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                            leadingIcon = {
+                                Icon(Icons.Default.Lock, contentDescription = null, tint = Gray400, modifier = Modifier.size(18.dp))
+                            },
                             trailingIcon = {
                                 IconButton(onClick = { showPassword = !showPassword }) {
                                     Icon(
@@ -157,7 +169,22 @@ fun LoginScreen(onLoginSuccess: (User) -> Unit) {
 
                     if (showError) {
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("Credenciales incorrectas. Intenta de nuevo.", fontSize = 14.sp, color = ErrorRed, fontWeight = FontWeight.Medium)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .background(ErrorRed.copy(alpha = 0.1f), shape = RoundedCornerShape(8.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("!", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = ErrorRed)
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(errorMessage, fontSize = 14.sp, color = ErrorRed, fontWeight = FontWeight.Medium)
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
@@ -167,16 +194,25 @@ fun LoginScreen(onLoginSuccess: (User) -> Unit) {
                         onClick = {
                             if (email.isNotBlank() && password.isNotBlank()) {
                                 isLoading = true
-                                val role = if (email.contains("admin", ignoreCase = true)) "ADMIN" else "USER"
-                                val name = email.substringBefore("@").replaceFirstChar { it.uppercase() }
-                                val user = User(name = name, email = email, role = role, password = password)
-                                // Simulate brief auth
-                                kotlinx.coroutines.MainScope().launch {
-                                    delay(300)
+                                scope.launch {
+                                    delay(500) // Brief delay for UX feedback
+                                    val user = AuthManager.validateLogin(email.trim(), password)
                                     isLoading = false
-                                    onLoginSuccess(user)
+                                    if (user != null) {
+                                        showError = false
+                                        onLoginSuccess(user)
+                                    } else {
+                                        attempts++
+                                        errorMessage = if (attempts >= 3) {
+                                            "Demasiados intentos. Verifica tus credenciales."
+                                        } else {
+                                            "Credenciales incorrectas. Intenta de nuevo."
+                                        }
+                                        showError = true
+                                    }
                                 }
                             } else {
+                                errorMessage = "Completa todos los campos."
                                 showError = true
                             }
                         },
@@ -201,7 +237,14 @@ fun LoginScreen(onLoginSuccess: (User) -> Unit) {
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.Check, contentDescription = null, tint = SuccessGreen, modifier = Modifier.size(14.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(20.dp)
+                                .background(ComplianceGreen.copy(alpha = 0.15f), shape = RoundedCornerShape(6.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.Check, contentDescription = null, tint = ComplianceGreen, modifier = Modifier.size(12.dp))
+                        }
                         Spacer(modifier = Modifier.width(6.dp))
                         Text("Cumple con la STPS · Art. 153-A LFT", fontSize = 12.sp, color = Gray400)
                     }
