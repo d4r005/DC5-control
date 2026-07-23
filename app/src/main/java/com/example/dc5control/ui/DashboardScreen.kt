@@ -16,7 +16,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -24,10 +23,6 @@ import com.example.dc5control.Screen
 import com.example.dc5control.data.model.*
 import com.example.dc5control.data.repository.SupabaseRepository
 import com.example.dc5control.ui.theme.*
-import com.example.dc5control.util.ExcelHelper
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import kotlinx.coroutines.launch
 
 @Composable
 fun DashboardScreen(
@@ -51,27 +46,6 @@ fun DashboardScreen(
         SupabaseRepository.fetchData("companies", Company.serializer()) { companiesCount = it.size.toString() }
     }
 
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri ->
-        uri?.let {
-            scope.launch {
-                try {
-                    val workers = ExcelHelper.readWorkersFromExcel(context, it)
-                    val workersWithEmail = workers.map { w -> w.copy(creatorEmail = user.email) }
-                    SupabaseRepository.insertWorkers(workersWithEmail) { success -> 
-                        if (success) {
-                            SupabaseRepository.fetchData("workers", Employee.serializer()) { fetched ->
-                                val count = if (user.role == "ADMIN") fetched.size else fetched.count { it.creatorEmail == user.email }
-                                workersCount = count.toString()
-                            }
-                        }
-                    }
-                } catch (e: Exception) {}
-            }
-        }
-    }
-
     val isExpanded = LocalConfiguration.current.screenWidthDp >= 600
     val mainPadding = if (isExpanded) 24.dp else 16.dp
     val spacing = if (isExpanded) 24.dp else 16.dp
@@ -88,8 +62,6 @@ fun DashboardScreen(
         DashboardHeader(
             user = user,
             isExpanded = isExpanded,
-            onImportExcel = { launcher.launch("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") },
-            onAdd = { onNavigate(Screen.Workers) },
             onLogout = onLogout
         )
 
@@ -204,112 +176,32 @@ fun DashboardScreen(
 fun DashboardHeader(
     user: User,
     isExpanded: Boolean,
-    onImportExcel: () -> Unit,
-    onAdd: () -> Unit,
     onLogout: () -> Unit
 ) {
-    if (isExpanded) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(
-                    text = "Dashboard",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Gray900
-                )
-                Text(
-                    text = "Bienvenido al sistema, ${user.name}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Gray500
-                )
-            }
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedButton(
-                    onClick = onImportExcel,
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = NavyPrimary),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
-                ) {
-                    Text("⬆ Importar Excel", fontWeight = FontWeight.SemiBold)
-                }
-                Button(
-                    onClick = onAdd,
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
-                ) {
-                    Text("+ Agregar", fontWeight = FontWeight.SemiBold)
-                }
-                IconButton(onClick = onLogout) {
-                    Icon(
-                        imageVector = Icons.Default.Logout,
-                        contentDescription = "Cerrar Sesión",
-                        tint = Gray500
-                    )
-                }
-            }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column {
+            Text(
+                text = "Dashboard",
+                style = if (isExpanded) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = Gray900
+            )
+            Text(
+                text = "Bienvenido al sistema, ${user.name}",
+                style = MaterialTheme.typography.bodySmall,
+                color = Gray500
+            )
         }
-    } else {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "Dashboard",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = Gray900
-                    )
-                    Text(
-                        text = "Bienvenido al sistema",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Gray500
-                    )
-                }
-                IconButton(onClick = onLogout) {
-                    Icon(
-                        imageVector = Icons.Default.Logout,
-                        contentDescription = "Cerrar Sesión",
-                        tint = Gray500
-                    )
-                }
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedButton(
-                    onClick = onImportExcel,
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = NavyPrimary),
-                    contentPadding = PaddingValues(vertical = 10.dp)
-                ) {
-                    Text("Importar Excel", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                }
-                Button(
-                    onClick = onAdd,
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
-                    contentPadding = PaddingValues(vertical = 10.dp)
-                ) {
-                    Text("+ Agregar", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                }
-            }
+        IconButton(onClick = onLogout) {
+            Icon(
+                imageVector = Icons.Default.Logout,
+                contentDescription = "Cerrar Sesión",
+                tint = Gray500
+            )
         }
     }
 }

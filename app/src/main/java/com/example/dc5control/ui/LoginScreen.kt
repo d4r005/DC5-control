@@ -23,6 +23,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.VisualTransformation
 import android.content.Context
 import androidx.compose.ui.platform.LocalContext
@@ -138,12 +142,13 @@ fun LoginScreen(onLoginSuccess: (User, Boolean) -> Unit) {
                         Spacer(modifier = Modifier.height(6.dp))
                         OutlinedTextField(
                             value = password,
-                            onValueChange = { password = it; showError = false },
+                            onValueChange = { password = it.trimEnd(); showError = false },
                             placeholder = { Text("••••••••", color = Gray400) },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(10.dp),
                             singleLine = true,
                             visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
                             leadingIcon = {
                                 Icon(Icons.Default.Lock, contentDescription = null, tint = Gray400, modifier = Modifier.size(18.dp))
                             },
@@ -210,7 +215,7 @@ fun LoginScreen(onLoginSuccess: (User, Boolean) -> Unit) {
                                 isLoading = true
                                 scope.launch {
                                     delay(500) // Brief delay for UX feedback
-                                    val user = AuthManager.validateLogin(email.trim(), password)
+                                    val user = AuthManager.validateLogin(email.trim(), password.trim())
                                     isLoading = false
                                     if (user != null) {
                                         showError = false

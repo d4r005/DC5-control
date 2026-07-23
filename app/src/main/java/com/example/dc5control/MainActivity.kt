@@ -39,21 +39,21 @@ data class NavItem(
     val icon: ImageVector
 )
 
+// Primeros 5 se muestran en bottom bar para usuarios normales
 val navItems = listOf(
     NavItem(Screen.Dashboard, "Dashboard", Icons.Default.Dashboard),
     NavItem(Screen.Workers, "Personal", Icons.Default.People),
     NavItem(Screen.Companies, "Empresas", Icons.Default.Business),
     NavItem(Screen.Courses, "Cursos", Icons.Default.MenuBook),
-    NavItem(Screen.DC3, "Constancias", Icons.Default.Description),
+    NavItem(Screen.DC3, "DC-3", Icons.Default.Description),
     NavItem(Screen.DC3History, "Historial", Icons.Default.History),
     NavItem(Screen.Agents, "Agentes", Icons.Default.Schedule),
-    NavItem(Screen.DC3Design, "Diseño DC-3", Icons.Default.Palette)
-)
-
-// Items visible only for ADMIN
-val adminNavItems = listOf(
+    NavItem(Screen.DC3Design, "Diseño DC-3", Icons.Default.Palette),
     NavItem(Screen.Users, "Usuarios", Icons.Default.AdminPanelSettings)
 )
+
+// No se usan adminNavItems por separado — se controla por rol en la barra
+val adminNavItems = emptyList<NavItem>()
 
 class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
@@ -146,12 +146,30 @@ fun MainApp(windowSizeClass: WindowSizeClass) {
                         containerColor = SurfaceWhite,
                         tonalElevation = 2.dp
                     ) {
-                        navItems.take(5).forEach { item ->
+                        // Seleccionar items según rol
+                        val bottomItems = if (user.role == "ADMIN") {
+                            listOf(
+                                NavItem(Screen.Dashboard, "Inicio", Icons.Default.Dashboard),
+                                NavItem(Screen.Workers, "Personal", Icons.Default.People),
+                                NavItem(Screen.DC3, "DC-3", Icons.Default.Description),
+                                NavItem(Screen.DC3Design, "Diseño", Icons.Default.Palette),
+                                NavItem(Screen.Users, "Usuarios", Icons.Default.AdminPanelSettings)
+                            )
+                        } else {
+                            listOf(
+                                NavItem(Screen.Dashboard, "Inicio", Icons.Default.Dashboard),
+                                NavItem(Screen.Workers, "Personal", Icons.Default.People),
+                                NavItem(Screen.Companies, "Empresas", Icons.Default.Business),
+                                NavItem(Screen.Courses, "Cursos", Icons.Default.MenuBook),
+                                NavItem(Screen.DC3, "DC-3", Icons.Default.Description)
+                            )
+                        }
+                        bottomItems.forEach { item ->
                             NavigationBarItem(
                                 selected = currentScreen == item.screen,
                                 onClick = { currentScreen = item.screen },
                                 icon = { Icon(item.icon, contentDescription = item.label) },
-                                label = { Text(item.label, fontSize = 10.sp) },
+                                label = { Text(item.label, fontSize = 10.sp, maxLines = 1) },
                                 colors = NavigationBarItemDefaults.colors(
                                     selectedIconColor = NavyPrimary,
                                     selectedTextColor = NavyPrimary,

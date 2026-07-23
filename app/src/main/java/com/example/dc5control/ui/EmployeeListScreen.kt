@@ -125,39 +125,49 @@ fun EmployeeListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                 .fillMaxSize()
                 .padding(16.dp)
         ) {
-            // Header Row
-            Row(
+            // Header — título en fila propia, botones abajo en mobile
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(bottom = 12.dp)
             ) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = Gray900)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = Gray900)
+                        }
+                        Column {
+                            Text(
+                                text = "Personal",
+                                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold, color = Gray900)
+                            )
+                            Text(
+                                text = "Gestión de trabajadores",
+                                style = MaterialTheme.typography.bodySmall.copy(color = Gray500)
+                            )
+                        }
+                    }
                 }
-                Spacer(modifier = Modifier.width(8.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Personal",
-                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold, color = Gray900)
-                    )
-                    Text(
-                        text = "Gestión de trabajadores",
-                        style = MaterialTheme.typography.bodySmall.copy(color = Gray500)
-                    )
-                }
-                
-                // Topbar Buttons matching web
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Spacer(modifier = Modifier.height(8.dp))
+                // Botones en fila completa debajo del título
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     Button(
                         onClick = { excelLauncher.launch("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") },
+                        modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.buttonColors(containerColor = NavySurface, contentColor = NavyPrimary),
                         shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
                     ) {
                         Icon(Icons.Default.FilePresent, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Importar Excel", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Importar Excel", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                     
                     Button(
@@ -165,12 +175,13 @@ fun EmployeeListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                             employeeToEdit = null
                             showAddEditDialog = true 
                         },
+                        modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary, contentColor = Color.White),
                         shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
                     ) {
                         Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text("Agregar", fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
                 }
