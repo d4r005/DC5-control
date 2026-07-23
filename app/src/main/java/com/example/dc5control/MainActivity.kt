@@ -84,13 +84,9 @@ fun MainApp(windowSizeClass: WindowSizeClass) {
         val savedEmail = prefs.getString("email", null)
         val savedName = prefs.getString("name", null)
         val savedRole = prefs.getString("role", null)
-        val expires = prefs.getLong("expires", 0)
-        if (savedEmail != null && savedName != null && savedRole != null && System.currentTimeMillis() < expires) {
+        if (savedEmail != null && savedName != null && savedRole != null) {
             currentUser = User(name = savedName, email = savedEmail, role = savedRole)
             currentScreen = Screen.Dashboard
-        } else if (savedEmail != null) {
-            // Session expired — clear it
-            prefs.edit().clear().apply()
         }
     }
 
@@ -107,7 +103,6 @@ fun MainApp(windowSizeClass: WindowSizeClass) {
                     .putString("email", user.email)
                     .putString("name", user.name)
                     .putString("role", user.role)
-                    .putLong("expires", System.currentTimeMillis() + 24 * 60 * 60 * 1000) // 24 hours
                     .apply()
             }
             currentUser = user

@@ -726,18 +726,16 @@ function checkExistingSession() {
     if (sessionStr) {
         try {
             const session = JSON.parse(sessionStr);
-            if (session.expires && Date.now() < session.expires) {
-                currentUser = DATA.users.find(u => u.email === session.email);
-                if (currentUser) {
-                    initApp();
-                    return true;
-                }
+            currentUser = DATA.users.find(u => u.email === session.email);
+            if (currentUser) {
+                initApp();
+                return true;
             } else {
-                // Session expired — clean up both stores
+                // User not found — clean up
                 localStorage.removeItem('ace_session');
                 sessionStorage.removeItem('ace_session');
             }
-        } catch(e) { 
+        } catch(e) {
             localStorage.removeItem('ace_session');
             sessionStorage.removeItem('ace_session');
         }
@@ -977,14 +975,13 @@ async function login(e) {
             localStorage.removeItem('rememberedEmail');
         }
 
-        // Store session with expiration (24 hours)
+        // Store session — no expiration, only cleared on logout
         // If "remember me" is checked, use localStorage (persists across browser restarts)
         // Otherwise use sessionStorage (persists F5 but cleared on tab close)
         const session = {
             email: user.email,
             name: user.name,
-            role: user.role,
-            expires: Date.now() + (24 * 60 * 60 * 1000)
+            role: user.role
         };
         if (document.getElementById('remember-me').checked) {
             localStorage.setItem('ace_session', JSON.stringify(session));
