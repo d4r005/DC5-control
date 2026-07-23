@@ -24,6 +24,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import android.content.Context
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dc5control.data.AuthManager
@@ -33,11 +35,15 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
-fun LoginScreen(onLoginSuccess: (User) -> Unit) {
-    var email by rememberSaveable { mutableStateOf("") }
+fun LoginScreen(onLoginSuccess: (User, Boolean) -> Unit) {
+    val context = LocalContext.current
+    // Pre-fill email if "recordar usuario" was previously checked
+    val prefs = context.getSharedPreferences("ace_session", Context.MODE_PRIVATE)
+    val savedEmail = prefs.getString("saved_email", null)
+    var email by rememberSaveable { mutableStateOf(savedEmail ?: "") }
+    var rememberMe by rememberSaveable { mutableStateOf(savedEmail != null) }
     var password by rememberSaveable { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
-    var rememberMe by rememberSaveable { mutableStateOf(false) }
     var showError by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("Credenciales incorrectas. Intenta de nuevo.") }
     var isLoading by remember { mutableStateOf(false) }
@@ -200,7 +206,13 @@ fun LoginScreen(onLoginSuccess: (User) -> Unit) {
                                     isLoading = false
                                     if (user != null) {
                                         showError = false
-                                        onLoginSuccess(user)
+                                        // Save email if remember me is checked
+                                        if (rememberMe) {
+                                            prefs.edit().putString("saved_email", email.trim()).apply()
+                                        } else {
+                                            prefs.edit().remove("saved_email").apply()
+                                        }
+                                        onLoginSuccess(user, rememberMe)
                                     } else {
                                         attempts++
                                         errorMessage = if (attempts >= 3) {

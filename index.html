@@ -721,7 +721,8 @@ try {
 
 // Check for existing valid session on page load
 function checkExistingSession() {
-    const sessionStr = sessionStorage.getItem('ace_session');
+    // Check localStorage first (persistent "remember me" session), then sessionStorage
+    let sessionStr = localStorage.getItem('ace_session') || sessionStorage.getItem('ace_session');
     if (sessionStr) {
         try {
             const session = JSON.parse(sessionStr);
@@ -732,9 +733,14 @@ function checkExistingSession() {
                     return true;
                 }
             } else {
+                // Session expired — clean up both stores
+                localStorage.removeItem('ace_session');
                 sessionStorage.removeItem('ace_session');
             }
-        } catch(e) { /* invalid session, ignore */ }
+        } catch(e) { 
+            localStorage.removeItem('ace_session');
+            sessionStorage.removeItem('ace_session');
+        }
     }
     return false;
 }
@@ -831,6 +837,8 @@ let currentUser = null, currentView = 'dashboard', selectedWorker = null, editin
 window.onload = () => {
     const rem = localStorage.getItem('rememberedEmail');
     if (rem) document.getElementById('email').value = rem;
+    // Restore session if valid — prevents F5 from kicking you out
+    checkExistingSession();
 };
 
 // ─── API ──────────────────────────────────────────────
@@ -970,13 +978,21 @@ async function login(e) {
         }
 
         // Store session with expiration (24 hours)
+        // If "remember me" is checked, use localStorage (persists across browser restarts)
+        // Otherwise use sessionStorage (persists F5 but cleared on tab close)
         const session = {
             email: user.email,
             name: user.name,
             role: user.role,
             expires: Date.now() + (24 * 60 * 60 * 1000)
         };
-        sessionStorage.setItem('ace_session', JSON.stringify(session));
+        if (document.getElementById('remember-me').checked) {
+            localStorage.setItem('ace_session', JSON.stringify(session));
+            sessionStorage.removeItem('ace_session'); // avoid duplicate
+        } else {
+            sessionStorage.setItem('ace_session', JSON.stringify(session));
+            localStorage.removeItem('ace_session'); // avoid duplicate
+        }
 
         currentUser = user;
         await initApp();
@@ -1012,6 +1028,7 @@ async function initApp() {
 
 function logout() {
     currentUser = null;
+    localStorage.removeItem('ace_session');
     sessionStorage.removeItem('ace_session');
     document.getElementById('view-login').style.display = '';
     document.getElementById('view-app').style.display = 'none';

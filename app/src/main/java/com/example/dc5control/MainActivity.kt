@@ -1,5 +1,6 @@
 package com.example.dc5control
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -76,12 +77,39 @@ fun MainApp(windowSizeClass: WindowSizeClass) {
     var currentUser by remember { mutableStateOf<User?>(null) }
     var currentScreen by remember { mutableStateOf(Screen.Dashboard) }
 
+    // Restore session from SharedPreferences on startup
+    val context = androidx.compose.ui.platform.LocalContext.current
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        val prefs = context.getSharedPreferences("ace_session", Context.MODE_PRIVATE)
+        val savedEmail = prefs.getString("email", null)
+        val savedName = prefs.getString("name", null)
+        val savedRole = prefs.getString("role", null)
+        val expires = prefs.getLong("expires", 0)
+        if (savedEmail != null && savedName != null && savedRole != null && System.currentTimeMillis() < expires) {
+            currentUser = User(name = savedName, email = savedEmail, role = savedRole)
+            currentScreen = Screen.Dashboard
+        } else if (savedEmail != null) {
+            // Session expired — clear it
+            prefs.edit().clear().apply()
+        }
+    }
+
     val widthSizeClass = windowSizeClass.widthSizeClass
     val isExpanded = widthSizeClass == WindowWidthSizeClass.Expanded
     val isMedium = widthSizeClass == WindowWidthSizeClass.Medium
 
     if (currentUser == null) {
-        LoginScreen(onLoginSuccess = { user ->
+        LoginScreen(onLoginSuccess = { user, rememberMe ->
+            // Save session if "recordar usuario" is checked
+            if (rememberMe) {
+                val prefs = context.getSharedPreferences("ace_session", Context.MODE_PRIVATE)
+                prefs.edit()
+                    .putString("email", user.email)
+                    .putString("name", user.name)
+                    .putString("role", user.role)
+                    .putLong("expires", System.currentTimeMillis() + 24 * 60 * 60 * 1000) // 24 hours
+                    .apply()
+            }
             currentUser = user
             currentScreen = Screen.Dashboard
         })
@@ -90,7 +118,11 @@ fun MainApp(windowSizeClass: WindowSizeClass) {
 
     val user = currentUser!!
     val navigateTo: (Screen) -> Unit = { currentScreen = it }
-    val logout: () -> Unit = { currentUser = null }
+    val logout: () -> Unit = {
+        val prefs = context.getSharedPreferences("ace_session", Context.MODE_PRIVATE)
+        prefs.edit().clear().apply()
+        currentUser = null
+    }
     val goBack: () -> Unit = { currentScreen = Screen.Dashboard }
 
     when {
