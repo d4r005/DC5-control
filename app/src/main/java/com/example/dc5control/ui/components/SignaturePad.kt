@@ -1,5 +1,6 @@
 package com.example.dc5control.ui.components
 
+import androidx.compose.ui.graphics.Color
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color

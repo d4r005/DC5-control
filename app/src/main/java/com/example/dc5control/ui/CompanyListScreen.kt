@@ -146,7 +146,7 @@ fun CompanyListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                 } else if (filteredCompanies.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.BusinessCenter, contentDescription = null, size = 48.dp, tint = Gray400)
+                            Icon(Icons.Default.BusinessCenter, contentDescription = null, modifier = Modifier.size(48.dp), tint = Gray400)
                             Spacer(modifier = Modifier.height(8.dp))
                             Text("No se encontraron resultados", color = Gray500)
                         }
@@ -385,7 +385,7 @@ fun CompanyListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                     }
                 } else {
                     // Update existing company
-                    SupabaseRepository.updateData("companies", companyToEdit!!.id, updated, Company.serializer()) { success ->
+                    SupabaseRepository.updateData("companies", companyToEdit!!.id ?: return@Button, updated, Company.serializer()) { success ->
                         if (success) {
                             Toast.makeText(context, "Empresa actualizada exitosamente", Toast.LENGTH_SHORT).show()
                             loadData()
@@ -409,7 +409,7 @@ fun CompanyListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                 val comp = companyToDelete!!
                 companyToDelete = null
                 isLoading = true
-                SupabaseRepository.deleteData("companies", comp.id) { success ->
+                SupabaseRepository.deleteData("companies", comp.id ?: return@launch) { success ->
                     if (success) {
                         Toast.makeText(context, "Empresa eliminada", Toast.LENGTH_SHORT).show()
                         loadData()

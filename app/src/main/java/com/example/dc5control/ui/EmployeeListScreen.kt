@@ -243,7 +243,7 @@ fun EmployeeListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                 } else if (filteredEmployees.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.PeopleOutline, contentDescription = null, size = 48.dp, tint = Gray400)
+                            Icon(Icons.Default.PeopleOutline, contentDescription = null, modifier = Modifier.size(48.dp), tint = Gray400)
                             Spacer(modifier = Modifier.height(8.dp))
                             Text("No se encontraron resultados", color = Gray500)
                         }
@@ -261,14 +261,14 @@ fun EmployeeListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                                     .padding(vertical = 12.dp, horizontal = 16.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                val allSelected = filteredEmployees.isNotEmpty() && filteredEmployees.all { selectedIds.contains(it.id) }
+                                val allSelected = filteredEmployees.isNotEmpty() && filteredEmployees.all { it.id != null && selectedIds.contains(it.id) }
                                 Checkbox(
                                     checked = allSelected,
                                     onCheckedChange = { checked ->
                                         selectedIds = if (checked) {
-                                            selectedIds + filteredEmployees.map { it.id }.toSet()
+                                            selectedIds + filteredEmployees.mapNotNull { it.id }.toSet()
                                         } else {
-                                            selectedIds - filteredEmployees.map { it.id }.toSet()
+                                            selectedIds - filteredEmployees.mapNotNull { it.id }.toSet()
                                         }
                                     },
                                     colors = CheckboxDefaults.colors(checkedColor = NavyPrimary)
@@ -283,7 +283,7 @@ fun EmployeeListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                             
                             LazyColumn(modifier = Modifier.fillMaxSize()) {
                                 items(filteredEmployees) { employee ->
-                                    val isSelected = selectedIds.contains(employee.id)
+                                    val isSelected = employee.id != null && selectedIds.contains(employee.id)
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -294,7 +294,7 @@ fun EmployeeListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                                         Checkbox(
                                             checked = isSelected,
                                             onCheckedChange = {
-                                                val idStr = employee.id
+                                                val idStr = employee.id ?: ""
                                                 selectedIds = if (isSelected) selectedIds - idStr else selectedIds + idStr
                                             },
                                             colors = CheckboxDefaults.colors(checkedColor = NavyPrimary)
@@ -438,7 +438,7 @@ fun EmployeeListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                             contentPadding = PaddingValues(vertical = 4.dp)
                         ) {
                             items(filteredEmployees) { employee ->
-                                val isSelected = selectedIds.contains(employee.id)
+                                val isSelected = employee.id != null && selectedIds.contains(employee.id)
                                 Card(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -452,7 +452,7 @@ fun EmployeeListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                                             Checkbox(
                                                 checked = isSelected,
                                                 onCheckedChange = {
-                                                    val idStr = employee.id
+                                                    val idStr = employee.id ?: ""
                                                     selectedIds = if (isSelected) selectedIds - idStr else selectedIds + idStr
                                                 },
                                                 colors = CheckboxDefaults.colors(checkedColor = NavyPrimary)
@@ -618,7 +618,7 @@ fun EmployeeListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                     }
                 } else {
                     // Update existing employee
-                    SupabaseRepository.updateData("workers", employeeToEdit!!.id, updated, Employee.serializer()) { success ->
+                    SupabaseRepository.updateData("workers", employeeToEdit!!.id ?: return@Button, updated, Employee.serializer()) { success ->
                         if (success) {
                             Toast.makeText(context, "Empleado actualizado exitosamente", Toast.LENGTH_SHORT).show()
                             loadData()
@@ -642,7 +642,7 @@ fun EmployeeListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                 val emp = employeeToDelete!!
                 employeeToDelete = null
                 isLoading = true
-                SupabaseRepository.deleteData("workers", emp.id) { success ->
+                SupabaseRepository.deleteData("workers", emp.id ?: return@launch) { success ->
                     if (success) {
                         Toast.makeText(context, "Empleado eliminado", Toast.LENGTH_SHORT).show()
                         loadData()
