@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -37,21 +38,28 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
 
     Column(modifier = Modifier.fillMaxSize().background(BackgroundLight)) {
         // Header
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(SurfaceWhite)
-                .border(bottom = BorderStroke(1.dp, Gray200))
-                .padding(horizontal = if (isExpanded) 32.dp else 16.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
+        Surface(
+            color = SurfaceWhite,
+            shadowElevation = 0.dp,
+            modifier = Modifier.fillMaxWidth()
         ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = Gray900)
-            }
-            Spacer(modifier = Modifier.width(8.dp))
             Column {
-                Text("Constancias DC-3", fontSize = if (isExpanded) 20.sp else 18.sp, fontWeight = FontWeight.Bold, color = Gray900)
-                Text("Historial de constancias generadas", fontSize = 14.sp, color = Gray400)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = if (isExpanded) 32.dp else 16.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = Gray900)
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column {
+                        Text("Constancias DC-3", fontSize = if (isExpanded) 20.sp else 18.sp, fontWeight = FontWeight.Bold, color = Gray900)
+                        Text("Historial de constancias generadas", fontSize = 14.sp, color = Gray400)
+                    }
+                }
+                HorizontalDivider(color = Gray200)
             }
         }
 

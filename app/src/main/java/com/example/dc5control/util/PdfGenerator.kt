@@ -152,7 +152,7 @@ object PdfGenerator {
             duracionHoras = course.durationHours,
             fechaInicio = startDate,
             fechaFin = endDate,
-            areaTematica = course.thematicArea,
+            areaTematica = course.thematicArea ?: "",
             agenteCapacitador = agent.name,
             instructor = agent.name,
             representanteLegal = companyPatron,

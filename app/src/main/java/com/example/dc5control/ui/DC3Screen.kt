@@ -167,8 +167,8 @@ fun DC3Screen() {
                             areaTematica     = areaTematica,
                             agenteCapacitador = agente,
                             instructor       = instructor,
-                            patron           = patron,
-                            representante    = representante.ifBlank { null }
+                            representanteLegal = patron,
+                            representanteTrabajadores = representante.ifBlank { null }
                         )
 
                         val file = PdfGenerator.generate(context, data)

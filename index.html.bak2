@@ -1,0 +1,2491 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ACE-Control | Generador de Constancias DC-3</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        body { background: #f8f9ff; }
+
+        /* ── LOGIN ── */
+        .login-page { min-height: 100vh; background: linear-gradient(135deg,#eef2ff 0%,#f0f4ff 50%,#ede9fe 100%); }
+        .login-card { background: white; border-radius: 20px; box-shadow: 0 20px 60px rgba(99,102,241,.12); padding: 48px 40px; width: 420px; }
+        .login-logo { width: 48px; height: 48px; }
+        .btn-primary { background: #4f46e5; color: white; border-radius: 10px; padding: 12px 24px; font-weight: 600; font-size: 15px; border: none; cursor: pointer; width: 100%; transition: background .2s; }
+        .btn-primary:hover { background: #4338ca; }
+        .input-field { width: 100%; border: 1.5px solid #e5e7eb; border-radius: 10px; padding: 11px 14px; font-size: 14px; color: #111827; outline: none; transition: border-color .2s; box-sizing: border-box; }
+        .input-field:focus { border-color: #4f46e5; }
+
+        /* ── LAYOUT ── */
+        #view-app { display: none; }
+        .sidebar { width: 240px; min-height: 100vh; background: white; border-right: 1px solid #e5e7eb; position: fixed; top: 0; left: 0; padding: 24px 16px; }
+        .main-content { margin-left: 240px; min-height: 100vh; padding: 32px; }
+        .nav-link { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; font-size: 14px; font-weight: 500; color: #6b7280; cursor: pointer; transition: all .15s; margin-bottom: 2px; }
+        .nav-link:hover { background: #f3f4f6; color: #111827; }
+        .nav-link.active { background: #eef2ff; color: #4f46e5; font-weight: 600; }
+        .nav-link svg { width: 18px; height: 18px; }
+
+        /* ── CARDS ── */
+        .stat-card { background: white; border-radius: 14px; padding: 24px; border: 1px solid #e5e7eb; }
+        .card { background: white; border-radius: 14px; border: 1px solid #e5e7eb; }
+
+        /* ── TABLE ── */
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 12px 20px; font-size: 11px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid #f3f4f6; }
+        td { padding: 14px 20px; font-size: 14px; color: #374151; border-bottom: 1px solid #f9fafb; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #fafafa; }
+
+        /* ── MODAL ── */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); backdrop-filter: blur(4px); z-index: 100; align-items: center; justify-content: center; }
+        .modal-overlay.open { display: flex; }
+        .modal-box { background: white; border-radius: 20px; padding: 36px; width: 520px; max-width: 95vw; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 60px rgba(0,0,0,.2); }
+
+        /* ── BADGE ── */
+        .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+        .badge-admin { background:#eef2ff; color:#4f46e5; }
+        .badge-user { background:#f0fdf4; color:#16a34a; }
+
+        /* ── BTN VARIANTS ── */
+        .btn-sm { padding: 6px 14px; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all .15s; }
+        .btn-indigo { background: #4f46e5; color: white; }
+        .btn-indigo:hover { background: #4338ca; }
+        .btn-red { background: #fee2e2; color: #dc2626; }
+        .btn-red:hover { background: #fecaca; }
+        .btn-outline { background: white; color: #374151; border: 1.5px solid #e5e7eb; }
+        .btn-outline:hover { border-color: #4f46e5; color: #4f46e5; }
+
+        /* ── TOP BAR ── */
+        .topbar { background: white; border-bottom: 1px solid #e5e7eb; padding: 16px 32px; margin: -32px -32px 32px -32px; display: flex; align-items: center; justify-content: space-between; }
+
+        /* ── DC3 PDF PREVIEW overlay ── */
+        .dc3-preview { font-family: Arial, sans-serif; }
+
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 5px; }
+    </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════
+     LOGIN
+══════════════════════════════════════════════════════ -->
+<div id="view-login" class="login-page flex items-center justify-center px-4">
+    <div>
+        <!-- Logo & Brand -->
+        <div class="flex flex-col items-center mb-8">
+            <div class="flex items-center justify-center w-14 h-14 rounded-2xl mb-3" style="background:linear-gradient(135deg,#4f46e5,#7c3aed)">
+                <svg viewBox="0 0 24 24" fill="none" class="w-7 h-7 text-white" stroke="currentColor" stroke-width="2">
+                    <path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+                </svg>
+            </div>
+            <h1 class="text-2xl font-black text-gray-900">ACE-Control</h1>
+            <p class="text-sm text-gray-400 mt-1">Sistema de Gestión DC-3 · STPS v1.0.5</p>
+        </div>
+
+        <div class="login-card">
+            <h2 class="text-xl font-bold text-gray-900 mb-1">Iniciar sesión</h2>
+            <p class="text-sm text-gray-400 mb-7">Ingresa tus credenciales para continuar</p>
+
+            <form onsubmit="login(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Correo electrónico</label>
+                    <input id="email" type="email" class="input-field" placeholder="usuario@correo.com" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Contraseña</label>
+                    <div class="relative">
+                        <input id="password" type="password" class="input-field pr-10" placeholder="••••••••" required>
+                        <button type="button" onclick="togglePassword()" class="absolute right-3 top-3 text-gray-400 hover:text-gray-600">
+                            <svg id="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5">
+                                <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.478 0 8.268 2.943 9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" id="remember-me" class="w-4 h-4 accent-indigo-600 rounded">
+                    <label for="remember-me" class="text-sm text-gray-600 cursor-pointer">Recordar usuario</label>
+                </div>
+                <p id="login-error" class="text-red-500 text-sm font-medium hidden">Credenciales incorrectas. Intenta de nuevo.</p>
+                <button type="submit" class="btn-primary mt-2">Entrar al sistema</button>
+            </form>
+
+            <div class="mt-6 pt-5 border-t border-gray-100 text-center">
+                <span class="inline-flex items-center gap-1.5 text-xs text-gray-400">
+                    <svg class="w-3.5 h-3.5 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                    Cumple con la STPS · Art. 153-A LFT
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     APP
+══════════════════════════════════════════════════════ -->
+<div id="view-app">
+
+    <!-- Sidebar -->
+    <aside class="sidebar flex flex-col">
+        <div class="flex items-center gap-2.5 mb-8 px-1">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style="background:linear-gradient(135deg,#4f46e5,#7c3aed)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" class="w-4 h-4">
+                    <path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+                </svg>
+            </div>
+            <span class="font-bold text-gray-900 text-sm">ACE-Control</span>
+        </div>
+
+        <nav class="flex-1">
+            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">Principal</p>
+            <div class="nav-link active" onclick="setView('dashboard')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                Dashboard
+            </div>
+            <div class="nav-link" onclick="setView('workers')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+                Personal
+            </div>
+            <div class="nav-link" onclick="setView('companies')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                Empresas
+            </div>
+            <div class="nav-link" onclick="setView('courses')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+                Cursos
+            </div>
+            <div class="nav-link" onclick="setView('dc3')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                Constancias DC-3
+            </div>
+            <div class="nav-link" onclick="setView('dc3design')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
+                Diseño DC-3
+            </div>
+            <div class="nav-link" id="btn-agents" onclick="setView('agents')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+                Agentes Cap.
+            </div>
+            <div class="nav-link hidden" id="btn-users" onclick="setView('users')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                Usuarios
+            </div>
+        </nav>
+
+        <div class="mt-auto pt-4 border-t border-gray-100">
+            <div class="flex items-center gap-3 px-2 mb-3">
+                <div id="user-avatar" class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 text-xs font-bold flex items-center justify-center flex-shrink-0">--</div>
+                <div class="min-w-0">
+                    <p id="user-name-display" class="text-sm font-semibold text-gray-800 truncate">–</p>
+                    <p id="user-role-display" class="text-xs text-gray-400">–</p>
+                </div>
+            </div>
+            <button onclick="logout()" class="nav-link w-full text-red-500 hover:bg-red-50 hover:text-red-600">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+                Cerrar sesión
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main-content">
+        <div class="topbar">
+            <div>
+                <h2 id="page-title" class="text-lg font-bold text-gray-900">Dashboard</h2>
+                <p id="page-subtitle" class="text-sm text-gray-400">Bienvenido al sistema</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <!-- Excel import -->
+                <label id="btn-excel" class="hidden btn-sm btn-outline cursor-pointer">
+                    <input type="file" accept=".xlsx,.xls" class="hidden" onchange="handleExcel(this)">
+                    ⬆ Importar Excel
+                </label>
+                <button id="btn-add" class="hidden btn-sm btn-indigo" onclick="openModal()">+ Agregar</button>
+            </div>
+        </div>
+
+        <!-- Dashboard -->
+        <div id="section-dashboard">
+            <div class="grid grid-cols-3 gap-5 mb-6">
+                <div class="stat-card">
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Personal registrado</p>
+                    <p id="stat-workers" class="text-4xl font-black text-gray-900">–</p>
+                    <p class="text-xs text-gray-400 mt-1">Trabajadores</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Constancias DC-3</p>
+                    <p id="stat-dc3" class="text-4xl font-black text-indigo-600">–</p>
+                    <p class="text-xs text-gray-400 mt-1">Generadas</p>
+                </div>
+                <div class="stat-card">
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Empresas</p>
+                    <p id="stat-companies" class="text-4xl font-black text-gray-900">–</p>
+                    <p class="text-xs text-gray-400 mt-1">Registradas</p>
+                </div>
+            </div>
+            <div class="card p-6">
+                <h3 class="font-bold text-gray-800 mb-1">Cómo funciona</h3>
+                <p class="text-sm text-gray-500 mb-5">Genera constancias DC-3 válidas ante la STPS en 3 pasos</p>
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="bg-indigo-50 rounded-xl p-4">
+                        <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-sm mb-3">1</div>
+                        <p class="font-semibold text-gray-800 text-sm">Registra el personal</p>
+                        <p class="text-xs text-gray-500 mt-1">Carga manual o importa desde Excel con nombre, CURP y puesto.</p>
+                    </div>
+                    <div class="bg-purple-50 rounded-xl p-4">
+                        <div class="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-sm mb-3">2</div>
+                        <p class="font-semibold text-gray-800 text-sm">Selecciona el curso</p>
+                        <p class="text-xs text-gray-500 mt-1">Elige empresa, agente capacitador, curso, fechas y duración.</p>
+                    </div>
+                    <div class="bg-green-50 rounded-xl p-4">
+                        <div class="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center text-white font-bold text-sm mb-3">3</div>
+                        <p class="font-semibold text-gray-800 text-sm">Genera el DC-3 PDF</p>
+                        <p class="text-xs text-gray-500 mt-1">Formato oficial STPS con todos los campos requeridos.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Workers -->
+        <div id="section-workers" class="hidden">
+            <!-- Barra de DC-3 masivo -->
+            <div id="bulk-dc3-bar" class="hidden mb-3 flex items-center gap-3 bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3">
+                <span id="bulk-count-label" class="text-sm font-semibold text-indigo-700">0 trabajadores seleccionados</span>
+                <button onclick="openBulkDC3Modal()" class="btn-sm btn-indigo ml-auto">
+                    ⬇ Generar PDF masivo DC-3
+                </button>
+                <button onclick="clearWorkerSelection()" class="text-xs text-indigo-400 hover:text-indigo-600">✕ Limpiar selección</button>
+            </div>
+            <div class="card overflow-hidden">
+                <table>
+                    <thead><tr id="th-workers">
+                        <th style="width:36px"><input type="checkbox" id="chk-all-workers" onchange="toggleAllWorkers(this)" class="w-4 h-4 accent-indigo-600 rounded"></th>
+                        <th>Nombre</th><th>CURP</th><th>Ocupación</th><th>Puesto</th><th>Acciones</th>
+                    </tr></thead>
+                    <tbody id="tb-workers"><tr><td colspan="5" class="text-center py-12 text-gray-300">Cargando…</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Companies -->
+        <div id="section-companies" class="hidden">
+            <div class="card overflow-hidden">
+                <table>
+                    <thead><tr>
+                        <th>Razón Social</th>
+                        <th>RFC</th>
+                        <th>Patrón o Representante Legal</th>
+                        <th>Representante de los Trabajadores</th>
+                        <th></th>
+                    </tr></thead>
+                    <tbody id="tb-companies"><tr><td colspan="5" class="text-center py-12 text-gray-300">Cargando…</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Courses -->
+        <div id="section-courses" class="hidden">
+            <div class="card overflow-hidden">
+                <table>
+                    <thead><tr><th>Nombre del Curso</th><th>Duración</th><th>Área Temática</th><th>Acciones</th></tr></thead>
+                    <tbody id="tb-courses"><tr><td colspan="4" class="text-center py-12 text-gray-300">Cargando…</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- DC3 History -->
+        <div id="section-dc3" class="hidden">
+            <div class="card overflow-hidden">
+                <table>
+                    <thead><tr><th>Trabajador (CURP)</th><th>Curso</th><th>Empresa</th><th>Periodo</th><th>Acciones</th></tr></thead>
+                    <tbody id="tb-dc3"><tr><td colspan="5" class="text-center py-12 text-gray-300">Cargando…</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- DC-3 Design -->
+        <div id="section-dc3design" class="hidden">
+            <div style="display:grid;grid-template-columns:400px 1fr;gap:18px;min-height:82vh;">
+
+                <!-- ── Panel izquierdo: controles ── -->
+                <div class="card p-5" style="overflow-y:auto;max-height:82vh;">
+                    <h3 class="text-sm font-bold text-indigo-600 uppercase tracking-wide mb-4">Diseño DC-3</h3>
+
+                    <!-- LOGO DE FIRMA -->
+                    <div class="border rounded-xl p-4 mb-4 space-y-3 bg-gray-50">
+                        <p class="text-xs font-bold text-gray-600 uppercase">Logo (sección de firmas)</p>
+                        <div class="flex gap-3 items-start">
+                            <div id="design-logo-preview" class="w-20 h-16 rounded border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-300 text-xs flex-shrink-0 overflow-hidden">Sin logo</div>
+                            <div class="flex-1">
+                                <label class="btn-sm btn-outline cursor-pointer block text-center text-xs">
+                                    Subir logo
+                                    <input type="file" accept="image/png,image/jpeg" class="hidden" onchange="handleDesignImage(this,'logo')">
+                                </label>
+                                <button onclick="clearDesignImage('logo')" class="mt-1 text-xs text-red-400 hover:text-red-600 w-full text-center">✕ Quitar</button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-4 gap-1">
+                            <div><label class="text-xs text-gray-400">X</label><input id="design-logo-x" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="58" oninput="schedulePreview()"></div>
+                            <div><label class="text-xs text-gray-400">Y</label><input id="design-logo-y" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="454" oninput="schedulePreview()"></div>
+                            <div><label class="text-xs text-gray-400">Ancho</label><input id="design-logo-w" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="115" oninput="schedulePreview()"></div>
+                            <div><label class="text-xs text-gray-400">Alto</label><input id="design-logo-h" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="65" oninput="schedulePreview()"></div>
+                        </div>
+                    </div>
+
+                    <!-- FIRMA -->
+                    <div class="border rounded-xl p-4 mb-4 space-y-3 bg-gray-50">
+                        <p class="text-xs font-bold text-gray-600 uppercase">Firma del instructor</p>
+                        <div class="flex gap-3 items-start">
+                            <div id="design-firma-preview" class="w-20 h-16 rounded border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-300 text-xs flex-shrink-0 overflow-hidden">Sin firma</div>
+                            <div class="flex-1">
+                                <label class="btn-sm btn-outline cursor-pointer block text-center text-xs">
+                                    Subir firma
+                                    <input type="file" accept="image/png,image/jpeg" class="hidden" onchange="handleDesignImage(this,'firma')">
+                                </label>
+                                <button onclick="clearDesignImage('firma')" class="mt-1 text-xs text-red-400 hover:text-red-600 w-full text-center">✕ Quitar</button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-4 gap-1">
+                            <div><label class="text-xs text-gray-400">X</label><input id="design-firma-x" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="88" oninput="schedulePreview()"></div>
+                            <div><label class="text-xs text-gray-400">Y</label><input id="design-firma-y" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="457" oninput="schedulePreview()"></div>
+                            <div><label class="text-xs text-gray-400">Ancho</label><input id="design-firma-w" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="85" oninput="schedulePreview()"></div>
+                            <div><label class="text-xs text-gray-400">Alto</label><input id="design-firma-h" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="60" oninput="schedulePreview()"></div>
+                        </div>
+                    </div>
+
+                    <!-- CABECERA: logo -->
+                    <div class="border rounded-xl p-4 mb-4 space-y-3 bg-indigo-50">
+                        <p class="text-xs font-bold text-indigo-600 uppercase">Cabecera — Logo</p>
+                        <div class="flex gap-3 items-start">
+                            <div id="design-header-logo-preview" class="w-20 h-14 rounded border-2 border-dashed border-indigo-200 flex items-center justify-center text-gray-300 text-xs flex-shrink-0 overflow-hidden">Sin logo</div>
+                            <div class="flex-1">
+                                <label class="btn-sm btn-outline cursor-pointer block text-center text-xs">
+                                    Subir logo cabecera
+                                    <input type="file" accept="image/png,image/jpeg" class="hidden" onchange="handleDesignImage(this,'headerLogo')">
+                                </label>
+                                <button onclick="clearDesignImage('headerLogo')" class="mt-1 text-xs text-red-400 hover:text-red-600 w-full text-center">✕ Quitar</button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-4 gap-1">
+                            <div><label class="text-xs text-gray-400">X</label><input id="design-header-logo-x" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="30" oninput="schedulePreview()"></div>
+                            <div><label class="text-xs text-gray-400">Y</label><input id="design-header-logo-y" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="10" oninput="schedulePreview()"></div>
+                            <div><label class="text-xs text-gray-400">Ancho</label><input id="design-header-logo-w" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="120" oninput="schedulePreview()"></div>
+                            <div><label class="text-xs text-gray-400">Alto</label><input id="design-header-logo-h" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="55" oninput="schedulePreview()"></div>
+                        </div>
+                    </div>
+
+                    <!-- CABECERA: slogan -->
+                    <div class="border rounded-xl p-4 mb-4 space-y-3 bg-indigo-50">
+                        <p class="text-xs font-bold text-indigo-600 uppercase">Cabecera — Slogan</p>
+                        <input id="design-header-slogan" class="input-field" placeholder="Ej. CONSULTING & TRAINING SAPI" oninput="schedulePreview()">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="text-xs text-gray-400">Fuente</label>
+                                <select id="design-header-slogan-font" class="input-field" style="padding:4px 6px;font-size:11px" onchange="schedulePreview()">
+                                    <option value="Helvetica">Helvetica (normal)</option>
+                                    <option value="Helvetica-Bold">Helvetica Negrita</option>
+                                    <option value="Helvetica-Oblique">Helvetica Cursiva</option>
+                                    <option value="Helvetica-BoldOblique">Helvetica Negrita+Cursiva</option>
+                                    <option value="Times-Roman">Times Roman</option>
+                                    <option value="Times-Bold">Times Negrita</option>
+                                    <option value="Times-Italic">Times Cursiva</option>
+                                    <option value="Courier">Courier</option>
+                                    <option value="Courier-Bold">Courier Negrita</option>
+                                    <option value="KunstlerScript">Kunstler Script</option>
+                                    <option value="GreatVibes">Great Vibes (Script)</option>
+                                    <option value="Pacifico">Pacifico</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-xs text-gray-400">Tamaño</label>
+                                <input id="design-header-slogan-size" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="9" min="6" max="30" oninput="schedulePreview()">
+                            </div>
+                            <div><label class="text-xs text-gray-400">X</label><input id="design-header-slogan-x" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="306" oninput="schedulePreview()"></div>
+                            <div><label class="text-xs text-gray-400">Y</label><input id="design-header-slogan-y" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="18" oninput="schedulePreview()"></div>
+                        </div>
+                    </div>
+
+                    <!-- Texto en sección de firmas eliminado por usuario -->
+
+                    <!-- NOMBRE AGENTE -->
+                    <div class="border rounded-xl p-4 mb-4 bg-gray-50">
+                        <label class="block text-xs font-bold text-gray-600 uppercase mb-2">Nombre del Agente</label>
+                        <input id="design-agent-name" class="input-field" placeholder="Ej. ING. CYNTHIA YADIRA GARZA LUGO" oninput="schedulePreview()">
+                    </div>
+
+                    <div class="flex gap-3 pt-2">
+                        <button onclick="saveDesign()" class="btn-sm btn-indigo flex-1 text-sm font-semibold">💾 Guardar diseño</button>
+                        <button onclick="updateDesignPreview()" class="btn-sm btn-outline flex-1 text-sm">🔄 Actualizar</button>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-2 text-center">💡 Arrastra logo/firma directo en la vista previa</p>
+                </div>
+
+                <!-- ── Panel derecho: preview interactivo ── -->
+                <div class="card p-4" style="display:flex;flex-direction:column;overflow:hidden;">
+                    <div class="flex justify-between items-center mb-2">
+                        <p class="text-xs font-bold text-gray-500 uppercase">Vista previa — DC-3 (arrastra los elementos)</p>
+                        <span id="design-drag-hint" class="text-xs text-indigo-500"></span>
+                    </div>
+                    <div id="design-preview-wrap" style="position:relative;overflow-y:auto;overflow-x:hidden;flex:1;min-height:0;border-radius:8px;background:#f3f4f6;">
+                        <canvas id="design-preview-canvas" style="display:block;width:100%;"></canvas>
+                        <!-- Overlay SVG para handles de arrastre -->
+                        <svg id="design-drag-overlay" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;" viewBox="0 0 918 1188" preserveAspectRatio="none"></svg>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Agentes Capacitadores -->
+        <div id="section-agents" class="hidden">
+            <div class="card overflow-hidden">
+                <table>
+                    <thead><tr><th>Nombre</th><th>Registro STPS</th><th>Acciones</th></tr></thead>
+                    <tbody id="tb-agents"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Users (admin only) -->
+        <div id="section-users" class="hidden">
+            <div class="card overflow-hidden">
+                <table>
+                    <thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Acciones</th></tr></thead>
+                    <tbody id="tb-users"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     MODAL AGREGAR
+══════════════════════════════════════════════════════ -->
+<div id="modal-add" class="modal-overlay">
+    <div class="modal-box">
+        <div class="flex items-center justify-between mb-6">
+            <h3 id="modal-title" class="text-xl font-bold text-gray-900">Agregar</h3>
+            <button onclick="closeModal('modal-add')" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div id="modal-fields" class="space-y-4"></div>
+        <div class="flex justify-end gap-3 mt-7">
+            <button onclick="closeModal('modal-add')" class="btn-sm btn-outline px-5">Cancelar</button>
+            <button onclick="saveItem()" class="btn-sm btn-indigo px-7">Guardar</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     MODAL GENERAR DC-3
+══════════════════════════════════════════════════════ -->
+<div id="modal-dc3" class="modal-overlay">
+    <div class="modal-box" style="width:580px">
+        <div class="flex items-center justify-between mb-5">
+            <div>
+                <h3 class="text-xl font-bold text-gray-900">Generar Constancia DC-3</h3>
+                <p class="text-sm text-gray-400 mt-0.5">Formato oficial STPS · Art. 153-A LFT</p>
+            </div>
+            <button onclick="closeModal('modal-dc3')" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+
+        <!-- Worker info -->
+        <div class="bg-indigo-50 rounded-xl p-4 mb-5">
+            <p class="text-xs font-semibold text-indigo-400 uppercase tracking-wide mb-0.5">Trabajador</p>
+            <p id="dc3-worker-name" class="text-base font-bold text-indigo-700">–</p>
+            <p id="dc3-worker-curp" class="text-xs text-indigo-400 font-mono">–</p>
+        </div>
+
+        <div class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Empresa</label>
+                    <select id="dc3-company" class="input-field"></select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Agente Capacitador</label>
+                    <select id="dc3-agent" class="input-field"></select>
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Curso</label>
+                <select id="dc3-course" class="input-field"></select>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Fecha inicio</label>
+                    <input type="date" id="dc3-start" class="input-field">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Fecha término</label>
+                    <input type="date" id="dc3-end" class="input-field">
+                </div>
+            </div>
+            <!-- Resultado de evaluación eliminado -->
+        </div>
+
+        <div class="flex justify-end gap-3 mt-7">
+            <button onclick="closeModal('modal-dc3')" class="btn-sm btn-outline px-5">Cancelar</button>
+            <button onclick="previewDC3()" class="btn-sm btn-outline px-5" style="border-color:#6366f1;color:#6366f1">
+                👁 Previsualizar
+            </button>
+            <button onclick="generateDC3()" class="btn-sm btn-indigo px-7">
+                ⬇ Generar PDF DC-3
+            </button>
+        </div>
+    </div>
+</div>
+
+
+<!-- Modal Previsualización DC-3 -->
+<div id="modal-dc3-preview" class="modal-overlay" style="z-index:1100">
+    <div class="modal-box" style="width:720px;max-width:95vw">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold text-gray-900">Previsualización DC-3</h3>
+            <button onclick="closeModal('modal-dc3-preview')" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div id="dc3-preview-container" style="width:100%;height:70vh;background:#f3f4f6;border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center;">
+            <p class="text-gray-400 text-sm">Generando previsualización…</p>
+        </div>
+        <div class="flex justify-end gap-3 mt-4">
+            <button onclick="closeModal('modal-dc3-preview')" class="btn-sm btn-outline px-5">Cerrar</button>
+            <button id="btn-download-preview" onclick="downloadFromPreview()" class="btn-sm btn-indigo px-7">⬇ Descargar PDF</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal DC-3 Masivo -->
+<div id="modal-bulk-dc3" class="modal-overlay" style="z-index:1050">
+    <div class="modal-box" style="width:640px;max-width:95vw">
+        <div class="flex items-center justify-between mb-5">
+            <div>
+                <h3 class="text-xl font-bold text-gray-900">Generar DC-3 Masivo</h3>
+                <p id="bulk-modal-subtitle" class="text-sm text-gray-400 mt-0.5">Selecciona los parámetros comunes para todos</p>
+            </div>
+            <button onclick="closeModal('modal-bulk-dc3')" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+
+        <!-- Lista de trabajadores seleccionados -->
+        <div class="bg-indigo-50 rounded-xl p-3 mb-5 max-h-32 overflow-y-auto">
+            <p class="text-xs font-semibold text-indigo-500 uppercase mb-2">Trabajadores seleccionados</p>
+            <div id="bulk-workers-list" class="space-y-1"></div>
+        </div>
+
+        <div class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Empresa</label>
+                    <select id="bulk-company" class="input-field"></select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Agente Capacitador</label>
+                    <select id="bulk-agent" class="input-field"></select>
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Curso</label>
+                <select id="bulk-course" class="input-field"></select>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Fecha inicio</label>
+                    <input type="date" id="bulk-start" class="input-field">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Fecha término</label>
+                    <input type="date" id="bulk-end" class="input-field">
+                </div>
+            </div>
+        </div>
+
+        <div id="bulk-progress" class="hidden mt-4">
+            <div class="bg-gray-100 rounded-full h-2 overflow-hidden">
+                <div id="bulk-progress-bar" class="bg-indigo-600 h-2 transition-all duration-300" style="width:0%"></div>
+            </div>
+            <p id="bulk-progress-label" class="text-xs text-gray-500 mt-1 text-center">Preparando…</p>
+        </div>
+
+        <div class="flex justify-end gap-3 mt-7">
+            <button onclick="closeModal('modal-bulk-dc3')" class="btn-sm btn-outline px-5">Cancelar</button>
+            <button onclick="generateBulkDC3()" class="btn-sm btn-indigo px-7">
+                ⬇ Generar PDF con todos los DC-3
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCRIPT
+══════════════════════════════════════════════════════ -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ─── CONFIG ───────────────────────────────────────────
+const SUPABASE_URL = "https://osgfwgedjdltrmvwycjd.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zZ2Z3Z2VkamRsdHJtdnd5Y2pkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyNDAxMzcsImV4cCI6MjA5OTgxNjEzN30.jeV98eAfhQzkXiGj88DUOLqLPLFr_IKPrcnTaefEgj0";
+
+let sb = null;
+try {
+    if (typeof supabase !== 'undefined') {
+        sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        console.log('[DEBUG] Supabase client created OK:', !!sb);
+    } else {
+        console.error("Supabase library not loaded. Check internet connection.");
+    }
+} catch (e) {
+    console.error("Error initializing Supabase:", e);
+}
+
+const CATALOGS = {
+    occupations: [
+        "01 Cultivo, crianza y aprovechamiento","01.1 Agricultura y silvicultura","01.2 Ganadería","01.3 Pesca y acuacultura",
+        "02 Extracción y suministro","02.1 Exploración","02.2 Extracción","02.3 Refinación y beneficio","02.4 Provisión de energía","02.5 Provisión de agua",
+        "03 Construcción","03.1 Planeación y dirección de obras","03.2 Edificación y urbanización","03.3 Acabado","03.4 Instalación y mantenimiento",
+        "04 Tecnología","04.1 Mecánica","04.2 Electricidad","04.3 Electrónica","04.4 Informática","04.5 Telecomunicaciones","04.6 Procesos industriales",
+        "05 Procesamiento y fabricación","05.1 Minerales no metálicos","05.2 Metales","05.3 Alimentos y bebidas","05.4 Textiles y prendas de vestir","05.5 Materia orgánica","05.6 Productos químicos","05.7 Productos metálicos y de hule y plástico","05.8 Productos eléctricos y electrónicos","05.9 Productos impresos",
+        "06 Transporte","06.1 Ferroviario","06.2 Autotransporte","06.3 Aéreo","06.4 Marítimo y fluvial","06.5 Servicios de apoyo",
+        "07 Provisión de bienes y servicios","07.1 Comercio","07.2 Alimentación y hospedaje","07.3 Turismo","07.4 Deporte y esparcimiento","07.5 Servicios personales","07.6 Reparación de artículos de uso doméstico","07.7 Limpieza","07.8 Servicio postal y mensajería",
+        "08 Gestión y soporte administrativo","08.1 Bolsa, banca y seguros","08.2 Administración","08.3 Servicios legales",
+        "09 Salud y protección social","09.1 Servicios médicos","09.2 Inspección sanitaria","09.3 Seguridad social","09.4 Protección de bienes y personas",
+        "10 Comunicación","10.1 Publicación","10.2 Radio, cine, televisión y teatro","10.3 Interpretación artística","10.4 Traducción e interpretación","10.5 Publicidad y relaciones públicas",
+        "11 Desarrollo y extensión del conocimiento","11.1 Investigación","11.2 Enseñanza","11.3 Difusión cultural"
+    ],
+    thematicAreas: [
+        "1000 Producción general","2000 Servicios","3000 Administración, contabilidad y economía",
+        "4000 Comercialización","5000 Mantenimiento y reparación","6000 Seguridad",
+        "7000 Desarrollo personal y familiar","8000 Uso de tecnologías de la información","9000 Participación social"
+    ]
+};
+
+const DATA = {
+    users: [
+        { name: "Dario Robles", email: "d4r005@gmail.com", role: "ADMIN", password: "Branco2025" },
+        { name: "Cynthia Garza Lugo", email: "lugga.advisors@gmail.com", role: "USER", password: "Cynthia123" }
+    ],
+    courses: [
+        { name: "SEGURIDAD EN TRABAJOS DE SOLDADURAS Y OXICORTE", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", creatorEmail: "lugga.advisors@gmail.com" },
+        { name: "MANEJO SEGURO DE MONTACARGAS", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", creatorEmail: "lugga.advisors@gmail.com" },
+        { name: "FORMACION DE BRIGADAS DE EMERGENCIA (EVACUACION, BUSQUEDA Y RESCATE, PRIMEROS AUXILIOS Y MANEJO DE EXTINTORES)", durationHours: "24 HORAS", thematicArea: "(6000) SEGURIDAD", creatorEmail: "lugga.advisors@gmail.com" },
+        { name: "SEGURIDAD EN EL USO Y MANEJO DE MAQUINARIA PESADA EN CONSTRUCCION", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", creatorEmail: "lugga.advisors@gmail.com" },
+        { name: "DISEÑO Y EVALUACION DE SIMULACROS PARA EVACUACION O REPLIEGUE EN SINIESTROS", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", creatorEmail: "lugga.advisors@gmail.com" },
+        { name: "FORMACION DE SUPERVISORES DE SEGURIDAD Y SALUD OCUPACIONAL", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", creatorEmail: "lugga.advisors@gmail.com" },
+        { name: "TALLER DE CORTE Y BARBERIA PROFESIONAL", durationHours: "24 HORAS", thematicArea: "(2000) SERVICIOS", creatorEmail: "lugga.advisors@gmail.com" },
+        { name: "TALLER DE MAQUILLAJE PROFESIONAL DIA, TARDE Y NOCHE", durationHours: "24 HORAS", thematicArea: "(2000) SERVICIOS", creatorEmail: "lugga.advisors@gmail.com" },
+        { name: "FORMACION DE INSTRUCTORES", durationHours: "8 HORAS", thematicArea: "(7000) DESARROLLO PERSONAL Y FAMILIAR", creatorEmail: "lugga.advisors@gmail.com" },
+        { name: "MEDIDAS DE SEGURIDAD EN TRABAJOS DE ALTURA (NOM-009-STPS-2011)", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", creatorEmail: "lugga.advisors@gmail.com" },
+        { name: "SEGURIDAD INDUSTRIAL EN LA CONSTRUCCION (NOM-031-STPS-2011)", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", creatorEmail: "lugga.advisors@gmail.com" },
+        { name: "OPERACION SEGURA DE EQUIPOS DE ELEVACION, MANLIFT Y PLATAFORMAS", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", creatorEmail: "lugga.advisors@gmail.com" },
+        { name: "TRABAJOS EN ESPACIOS CONFINADOS", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", creatorEmail: "lugga.advisors@gmail.com" },
+        { name: "OPERACION SEGURA DE ENGANCHE Y DESENGANCHE 5 RUEDA", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", creatorEmail: "lugga.advisors@gmail.com" },
+        { name: "FORMACION DE TECNICOS EN URGENCIAS MEDICAS NIVEL 1 (BASICO)", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", creatorEmail: "lugga.advisors@gmail.com" },
+        { name: "ASEGURAMIENTO DE ENERGIA (BLOQUEO Y ETIQUETADO LOTO)", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", creatorEmail: "lugga.advisors@gmail.com" },
+        { name: "MANEJO DE MATERIALES PELIGROSOS", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", creatorEmail: "lugga.advisors@gmail.com" },
+        { name: "OPERACION SEGURA DE VEHICULOS PESADOS 5 RUEDA", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", creatorEmail: "lugga.advisors@gmail.com" },
+        { name: "FORMACION DE TECNICOS EN INHALOTERAPIA", durationHours: "24 HORAS", thematicArea: "(6000) SEGURIDAD", creatorEmail: "lugga.advisors@gmail.com" }
+    ],
+    agents: [
+        { name: "ING. CYNTHIA YADIRA GARZA LUGO", stps: "STPS-GALC780523-MP3-005", creatorEmail: "lugga.advisors@gmail.com" }
+    ],
+    companies: []   // Cargado desde Supabase
+};
+
+// Cargar catálogos desde Supabase al iniciar
+async function loadCatalogs() {
+    console.log('[DEBUG] loadCatalogs called, sb =', !!sb);
+    const [coursesR, agentsR, companiesR] = await Promise.all([
+        api('find','courses',{ filter: {} }),
+        api('find','agents',{ filter: {} }),
+        api('find','companies',{ filter: {} })
+    ]);
+    console.log('[DEBUG] loadCatalogs results:', { courses: coursesR, agents: agentsR, companies: companiesR });
+
+    // Combinar cursos pre-cargados con los de la base de datos
+    const dbCourses = coursesR.documents || [];
+    dbCourses.forEach(dbc => {
+        // Filtrar cursos sin área temática
+        if (!dbc.thematicArea || dbc.thematicArea === '' || dbc.thematicArea === '–' || dbc.thematicArea === '-') return;
+
+        const exists = DATA.courses.find(c => c.name === dbc.name && c.creatorEmail === dbc.creatorEmail);
+        if (!exists) DATA.courses.push(dbc);
+    });
+
+    // Combinar agentes pre-cargados
+    const dbAgents = agentsR.documents || [];
+    dbAgents.forEach(dba => {
+        // Evitar duplicado de Cynthia (preferir versión con 'ING.')
+        if (dba.name === "CYNTHIA YADIRA GARZA LUGO") return;
+
+        const exists = DATA.agents.find(a => a.name === dba.name && a.stps === dba.stps);
+        if (!exists) DATA.agents.push(dba);
+    });
+
+    DATA.companies = companiesR.documents || [];
+}
+
+let currentUser = null, currentView = 'dashboard', selectedWorker = null, editingDC3Id = null, editingItemId = null;
+
+// ─── INIT ──────────────────────────────────────────────
+window.onload = () => {
+    const rem = localStorage.getItem('rememberedEmail');
+    if (rem) document.getElementById('email').value = rem;
+};
+
+// ─── API ──────────────────────────────────────────────
+// ─── SUPABASE API ──────────────────────────────────
+// Map frontend collection names to Supabase table names
+const TABLE_MAP = { workers:'workers', companies:'companies', courses:'courses', dc3_records:'dc3_records', agents:'agents', agent_designs:'agent_designs' };
+
+// Map camelCase fields to snake_case for DB
+function toSnake(obj) {
+    const map = {
+        workerId:'worker_id', workerName:'worker_name', workerPos:'worker_pos',
+        courseName:'course_name', companyName:'company_name', agentName:'agent_name', agentStps:'agent_stps',
+        startDate:'start_date', endDate:'end_date', resultText:'result_text', durationHours:'duration_hours',
+        thematicArea:'thematic_area',
+        creatorEmail:'creator_email', representanteLegal:'representante_legal', representanteTrabajadores:'representante_trabajadores',
+        headerSlogan:'header_slogan', headerSloganX:'header_slogan_x', headerSloganY:'header_slogan_y', headerSloganSize:'header_slogan_size',
+        headerLogoW:'header_logo_w', headerLogoH:'header_logo_h', headerLogoX:'header_logo_x', headerLogoY:'header_logo_y',
+        headerLogoBase64:'header_logo_base64',
+        logoBase64:'logo_base64', logoX:'logo_x', logoY:'logo_y', logoW:'logo_w', logoH:'logo_h',
+        firmaBase64:'firma_base64', firmaX:'firma_x', firmaY:'firma_y', firmaW:'firma_w', firmaH:'firma_h',
+        sloganX:'slogan_x', sloganY:'slogan_y', sloganSize:'slogan_size', sloganFont:'slogan_font',
+        headerSloganFont:'header_slogan_font',
+        updatedAt:'updated_at',
+        apellidoPaterno:'apellido_paterno', apellidoMaterno:'apellido_materno', nombres:'nombres'
+    };
+    const out = {};
+    for (const [k,v] of Object.entries(obj)) out[map[k]||k] = v;
+    return out;
+}
+
+// Map snake_case back to camelCase for frontend
+function toCamel(obj) {
+    const map = {
+        worker_id:'workerId', worker_name:'workerName', worker_pos:'workerPos',
+        course_name:'courseName', company_name:'companyName', agent_name:'agentName', agent_stps:'agentStps',
+        start_date:'startDate', end_date:'endDate', result_text:'resultText', duration_hours:'durationHours',
+        thematic_area:'thematicArea', created_at:'createdAt',
+        creator_email:'creatorEmail', representante_legal:'representanteLegal', representante_trabajadores:'representanteTrabajadores',
+        header_slogan:'headerSlogan', header_slogan_x:'headerSloganX', header_slogan_y:'headerSloganY', header_slogan_size:'headerSloganSize',
+        header_logo_w:'headerLogoW', header_logo_h:'headerLogoH', header_logo_x:'headerLogoX', header_logo_y:'headerLogoY',
+        header_logo_base64:'headerLogoBase64',
+        logo_base64:'logoBase64', logo_x:'logoX', logo_y:'logoY', logo_w:'logoW', logo_h:'logoH',
+        firma_base64:'firmaBase64', firma_x:'firmaX', firma_y:'firmaY', firma_w:'firmaW', firma_h:'firmaH',
+        slogan_x:'sloganX', slogan_y:'sloganY', slogan_size:'sloganSize', slogan_font:'sloganFont',
+        header_slogan_font:'headerSloganFont',
+        updated_at:'updatedAt',
+        apellido_paterno:'apellidoPaterno', apellido_materno:'apellidoMaterno', nombres:'nombres'
+    };
+    const out = {};
+    for (const [k,v] of Object.entries(obj)) out[map[k]||k] = v;
+    return out;
+}
+
+async function api(action, collection, payload = {}) {
+    console.log('[DEBUG] api called:', action, collection, 'sb =', !!sb);
+    if (!sb) { console.warn("Supabase not initialized, API call skipped:", action, collection); return { documents: [] }; }
+    const table = TABLE_MAP[collection] || collection;
+    try {
+        if (action === 'find') {
+            let q = sb.from(table).select('*');
+            if (payload.filter) {
+                for (const [k,v] of Object.entries(toSnake(payload.filter))) {
+                    if (v && v !== '') q = q.eq(k, v);
+                }
+            }
+            q = q.order('created_at', { ascending: false });
+            const { data, error } = await q;
+            console.log('[DEBUG] api find result for', table, ':', { data: data?.length, error });
+            if (error) { console.error('Supabase find error:', error); return { documents: [] }; }
+            return { documents: (data||[]).map(toCamel) };
+        }
+        if (action === 'insertOne') {
+            const row = toSnake(payload.document);
+            const { data, error } = await sb.from(table).insert(row).select();
+            if (error) { console.error('Supabase insert error:', error); return { error: error.message }; }
+            return { insertedId: data?.[0]?.id };
+        }
+        if (action === 'insertMany') {
+            const rows = (payload.documents||[]).map(toSnake);
+            const { data, error } = await sb.from(table).insert(rows).select();
+            if (error) { console.error('Supabase insertMany error:', error); return { error: error.message }; }
+            return { insertedCount: data?.length || 0 };
+        }
+        if (action === 'update') {
+            const id = payload.id;
+            const row = toSnake(payload.document);
+            const { data, error } = await sb.from(table).update(row).eq('id', id).select();
+            if (error) { console.error('Supabase update error:', error); return { error: error.message }; }
+            return { updatedId: data?.[0]?.id };
+        }
+        if (action === 'deleteOne') {
+            const id = payload.filter?.id || payload.id;
+            const { error } = await sb.from(table).delete().eq('id', id);
+            if (error) { console.error('Supabase delete error:', error); return { error: error.message }; }
+            return { deletedCount: 1 };
+        }
+        return { error: 'Unknown action: ' + action };
+    } catch(e) { console.error('API error:', e); return { documents: [] }; }
+}
+
+// ─── LOGIN ─────────────────────────────────────────────
+async function login(e) {
+    try {
+        e.preventDefault();
+        const email = document.getElementById('email').value.trim();
+        const pass = document.getElementById('password').value;
+        const user = DATA.users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === pass);
+
+        if (!user) {
+            document.getElementById('login-error').classList.remove('hidden');
+            return;
+        }
+
+        document.getElementById('login-error').classList.add('hidden');
+        if (document.getElementById('remember-me').checked) {
+            localStorage.setItem('rememberedEmail', email);
+        } else {
+            localStorage.removeItem('rememberedEmail');
+        }
+
+        currentUser = user;
+        await initApp();
+    } catch (err) {
+        console.error("Login error:", err);
+        alert("Error al intentar entrar: " + err.message);
+    }
+}
+
+async function initApp() {
+    try {
+        document.getElementById('view-login').style.display = 'none';
+        document.getElementById('view-app').style.display = 'block';
+
+        if (currentUser) {
+            document.getElementById('user-avatar').innerText = currentUser.name.substring(0,2).toUpperCase();
+            document.getElementById('user-name-display').innerText = currentUser.name;
+            document.getElementById('user-role-display').innerText = currentUser.role;
+
+            if (currentUser.role === 'ADMIN') {
+                document.getElementById('btn-users').classList.remove('hidden');
+            } else {
+                document.getElementById('btn-users').classList.add('hidden');
+            }
+        }
+
+        await loadCatalogs();
+        setView('dashboard');
+    } catch (err) {
+        console.error("App init error:", err);
+    }
+}
+
+function logout() {
+    currentUser = null;
+    document.getElementById('view-login').style.display = '';
+    document.getElementById('view-app').style.display = 'none';
+}
+
+// ─── NAVIGATION ────────────────────────────────────────
+const VIEWS = ['dashboard','workers','companies','courses','dc3','dc3design','agents','users'];
+const TITLES = {
+    dashboard: ['Dashboard', 'Resumen del sistema'],
+    workers:   ['Personal', 'Trabajadores registrados con su CURP y puesto'],
+    companies: ['Empresas', 'Empresas cliente registradas en el sistema'],
+    courses:   ['Cursos', 'Catálogo de cursos disponibles por agente'],
+    dc3:       ['Constancias DC-3', 'Historial de constancias generadas'],
+    dc3design: ['Diseno DC-3', 'Personaliza el logo, firma y texto de tu constancia'],
+    agents:    ['Agentes Capacitadores', 'Agentes Externos registrados ante la STPS'],
+    users:     ['Usuarios', 'Gestión de accesos al sistema'],
+};
+
+function setView(v) {
+    currentView = v;
+    VIEWS.forEach(x => {
+        document.getElementById(`section-${x}`).classList.toggle('hidden', x !== v);
+    });
+    document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+    const links = ['dashboard','workers','companies','courses','dc3','dc3design','agents','users'];
+    const idx = links.indexOf(v);
+    if (idx >= 0) document.querySelectorAll('.nav-link')[idx].classList.add('active');
+    document.getElementById('page-title').innerText = TITLES[v][0];
+    document.getElementById('page-subtitle').innerText = TITLES[v][1];
+    const addable = ['workers','companies','courses','agents'].includes(v);
+    document.getElementById('btn-add').classList.toggle('hidden', !addable);
+    document.getElementById('btn-excel').classList.toggle('hidden', v !== 'workers');
+    loadSection(v);
+}
+
+// ─── LOAD SECTIONS ─────────────────────────────────────
+async function loadSection(v) {
+    const f = (currentUser.role === 'ADMIN') ? {} : { creatorEmail: currentUser.email };
+
+    if (v === 'dashboard') {
+        console.log('[DEBUG] loadSection dashboard, sb =', !!sb, 'currentUser =', !!currentUser);
+        const [w, d, co] = await Promise.all([
+            api('find','workers',{ filter: f }),
+            api('find','dc3_records',{ filter: {} }),
+            api('find','companies',{ filter: {} })
+        ]);
+        console.log('[DEBUG] dashboard API results:', { workers: w, dc3: d, companies: co });
+        document.getElementById('stat-workers').innerText = (w.documents||[]).length;
+        document.getElementById('stat-dc3').innerText = (d.documents||[]).length;
+        document.getElementById('stat-companies').innerText = (co.documents||[]).length;
+
+    } else if (v === 'workers') {
+        const r = await api('find','workers',{ filter: f });
+        const rows = (r.documents||[]);
+        document.getElementById('tb-workers').innerHTML = rows.length
+            ? rows.map(x => {
+                const fullName = x.apellidoPaterno ? `${x.apellidoPaterno} ${x.apellidoMaterno || ''} ${x.nombres || ''}`.trim() : (x.name || '');
+                return `<tr>
+                <td><input type="checkbox" class="worker-chk w-4 h-4 accent-indigo-600 rounded" data-worker='${JSON.stringify(x).replace(/'/g,"&apos;")}' onchange="onWorkerCheckChange()"></td>
+                <td class="font-semibold">${fullName}</td>
+                <td class="font-mono text-xs text-gray-500">${x.curp||''}</td>
+                <td class="text-xs text-gray-500">${x.occupation||''}</td>
+                <td>${x.position||''}</td>
+                <td class="text-right">
+                    <div class="flex justify-end gap-2">
+                        <button onclick='openDC3(${JSON.stringify(x)})' class="btn-sm btn-indigo">Generar DC-3</button>
+                        <button onclick='openModal(${JSON.stringify(x)})' class="btn-sm btn-outline">✎</button>
+                        <button onclick="delItem('workers','${x.id}')" class="btn-sm btn-red">✕</button>
+                    </div>
+                </td>
+              </tr>`;
+            }).join('')
+            : `<tr><td colspan="5" class="text-center py-12 text-gray-300 text-sm">Sin personal registrado</td></tr>`;
+
+    } else if (v === 'companies') {
+        const r = await api('find','companies',{ filter: {} });
+        const rows = (r.documents||[]);
+        DATA.companies = rows;
+        document.getElementById('tb-companies').innerHTML = rows.length
+            ? rows.map(x => `<tr>
+                <td class="font-semibold">${x.name||''}</td>
+                <td class="font-mono text-xs text-gray-500">${x.rfc||''}</td>
+                <td class="text-sm">${x.representanteLegal||'–'}</td>
+                <td class="text-sm">${x.representanteTrabajadores||'–'}</td>
+                <td class="text-right">
+                    <div class="flex justify-end gap-2">
+                        <button onclick='openModal(${JSON.stringify(x)})' class="btn-sm btn-outline">✎</button>
+                        <button onclick="delItem('companies','${x.id}')" class="btn-sm btn-red">✕</button>
+                    </div>
+                </td>
+              </tr>`).join('')
+            : `<tr><td colspan="5" class="text-center py-12 text-gray-300 text-sm">Sin empresas registradas</td></tr>`;
+
+    } else if (v === 'courses') {
+        const list = (currentUser.role === 'ADMIN' ? DATA.courses : DATA.courses.filter(c => c.creatorEmail === currentUser.email))
+            .filter(c => c.thematicArea && c.thematicArea !== '' && c.thematicArea !== '–' && c.thematicArea !== '-');
+
+        document.getElementById('tb-courses').innerHTML = list.length
+            ? list.map(c => `<tr>
+                <td class="font-semibold">${c.name}</td>
+                <td><span class="badge badge-admin">${c.durationHours}</span></td>
+                <td class="text-xs text-gray-500">${c.thematicArea||'–'}</td>
+                <td class="text-right">
+                    <div class="flex justify-end gap-2">
+                        <button onclick='openModal(${JSON.stringify(c)})' class="btn-sm btn-outline">✎</button>
+                        <button onclick="delItem('courses','${c.id}')" class="btn-sm btn-red">✕</button>
+                    </div>
+                </td>
+              </tr>`).join('')
+            : `<tr><td colspan="3" class="text-center py-12 text-gray-300 text-sm">Sin cursos</td></tr>`;
+
+    } else if (v === 'dc3') {
+        const r = await api('find','dc3_records',{ filter: {} });
+        const rows = (r.documents||[]);
+        document.getElementById('tb-dc3').innerHTML = rows.length
+            ? rows.map(x => `<tr>
+                <td>
+                    <p class="font-semibold text-sm">${x.workerName||'–'}</p>
+                    <p class="font-mono text-xs text-gray-400">${x.workerId||''}</p>
+                </td>
+                <td class="text-sm">${x.courseName||''}</td>
+                <td class="text-sm text-gray-500">${x.companyName||''}</td>
+                <td class="text-xs text-gray-400">${x.startDate||''} – ${x.endDate||''}</td>
+                <td class="text-right">
+                    <div class="flex justify-end gap-2">
+                        <button onclick='previewDC3FromRecord(${JSON.stringify(x)})' title="Previsualizar DC-3" class="btn-sm btn-outline" style="border-color:#6366f1;color:#6366f1">👁 Ver</button>
+                        <button onclick='regenDC3(${JSON.stringify(x)})' title="Descargar PDF" class="btn-sm btn-indigo">⬇ PDF</button>
+                        <button onclick='prepareEditDC3(${JSON.stringify(x)})' title="Editar Registro" class="btn-sm btn-outline">✎</button>
+                        <button onclick="delItem('dc3_records','${x.id}')" title="Eliminar" class="btn-sm btn-red">✕</button>
+                    </div>
+                </td>
+              </tr>`).join('')
+            : `<tr><td colspan="5" class="text-center py-12 text-gray-300 text-sm">Sin historial de constancias</td></tr>`;
+
+    } else if (v === 'dc3design') {
+        await loadDesign();
+
+    } else if (v === 'agents') {
+        const r = await api('find','agents',{ filter: {} });
+        const rows = (r.documents||[]);
+        document.getElementById('tb-agents').innerHTML = rows.length
+            ? rows.map(a => `<tr>
+                <td class="font-semibold">${a.name}</td>
+                <td class="font-mono text-indigo-600">${a.stps}</td>
+                <td class="text-right">
+                    <div class="flex justify-end gap-2">
+                        <button onclick='openModal(${JSON.stringify(a)})' class="btn-sm btn-outline">✎</button>
+                        <button onclick="delItem('agents','${a.id}')" class="btn-sm btn-red">✕</button>
+                    </div>
+                </td>
+              </tr>`).join('')
+            : `<tr><td colspan="3" class="text-center py-12 text-gray-300 text-sm">Sin agentes</td></tr>`;
+
+    } else if (v === 'users') {
+        document.getElementById('tb-users').innerHTML = DATA.users.map(u => `<tr>
+            <td class="font-semibold">${u.name}</td>
+            <td class="text-gray-500 text-sm">${u.email}</td>
+            <td><span class="badge ${u.role==='ADMIN'?'badge-admin':'badge-user'}">${u.role}</span></td>
+            <td class="text-right">
+                <button onclick="alert('Edición de usuarios protegida')" class="btn-sm btn-outline">✎</button>
+            </td>
+          </tr>`).join('');
+    }
+}
+
+// ─── MODAL AGREGAR ─────────────────────────────────────
+function openModal(item = null) {
+    editingItemId = item ? item.id : null;
+    document.getElementById('modal-add').classList.add('open');
+    const f = document.getElementById('modal-fields');
+
+    if (currentView === 'companies') {
+        document.getElementById('modal-title').innerText = item ? 'Editar Empresa' : 'Nueva Empresa';
+        f.innerHTML = `
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Razón Social</label>
+                <input id="f1" class="input-field" value="${item ? item.name : ''}" placeholder="Ej. Industriales del Norte SA de CV">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">RFC</label>
+                <input id="f2" class="input-field" value="${item ? item.rfc : ''}" placeholder="Ej. INA930512AB3" style="text-transform:uppercase">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Patrón o Representante Legal</label>
+                <input id="f3" class="input-field" value="${item ? (item.representanteLegal || '') : ''}" placeholder="Nombre completo del patrón">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Representante de los Trabajadores</label>
+                <input id="f4" class="input-field" value="${item ? (item.representanteTrabajadores || '') : ''}" placeholder="Obligatorio para empresas con +50 trabajadores">
+            </div>`;
+    } else if (currentView === 'workers') {
+        document.getElementById('modal-title').innerText = item ? 'Editar Trabajador' : 'Nuevo Trabajador';
+        const opts = CATALOGS.occupations.map(o => `<option value="${o}" ${item && item.occupation === o ? 'selected' : ''}>${o}</option>`).join('');
+        f.innerHTML = `
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Apellido Paterno</label>
+                    <input id="f1_p" class="input-field" value="${item ? (item.apellidoPaterno || '') : ''}" placeholder="Paterno">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Apellido Materno</label>
+                    <input id="f1_m" class="input-field" value="${item ? (item.apellidoMaterno || '') : ''}" placeholder="Materno">
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nombre(s)</label>
+                <input id="f1_n" class="input-field" value="${item ? (item.nombres || '') : ''}" placeholder="Nombres">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">CURP</label>
+                <input id="f2" class="input-field" value="${item ? item.curp : ''}" placeholder="18 caracteres" style="text-transform:uppercase" maxlength="18">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Ocupación Específica</label>
+                <select id="f3" class="input-field"><option value="">Seleccionar…</option>${opts}</select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Puesto de trabajo</label>
+                <input id="f4" class="input-field" value="${item ? item.position : ''}" placeholder="Ej. Operador de Montacargas">
+            </div>`;
+    }
+else if (currentView === 'courses') {
+        document.getElementById('modal-title').innerText = item ? 'Editar Curso' : 'Nuevo Curso';
+        const areaOpts = CATALOGS.thematicAreas.map(a => `<option value="${a}" ${item && item.thematicArea && item.thematicArea.includes(a.substring(0,4)) ? 'selected' : ''}>${a}</option>`).join('');
+        f.innerHTML = `
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nombre del Curso</label>
+                <input id="f1" class="input-field" value="${item ? item.name : ''}" placeholder="Ej. MANEJO DE MONTACARGAS">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Duración (Horas)</label>
+                <input id="f2" class="input-field" value="${item ? item.durationHours.replace(' HORAS','') : ''}" placeholder="Ej. 8">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Área Temática</label>
+                <select id="f3" class="input-field"><option value="">Seleccionar…</option>${areaOpts}</select>
+            </div>`;
+    } else if (currentView === 'agents') {
+        document.getElementById('modal-title').innerText = item ? 'Editar Agente' : 'Nuevo Agente';
+        f.innerHTML = `
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nombre del Agente</label>
+                <input id="f1" class="input-field" value="${item ? item.name : ''}" placeholder="Nombre completo">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Registro STPS</label>
+                <input id="f2" class="input-field" value="${item ? item.stps : ''}" placeholder="Ej. STPS-XXXXX-001" style="text-transform:uppercase">
+            </div>`;
+    }
+}
+
+async function saveItem() {
+    const action = editingItemId ? 'update' : 'insertOne';
+    const payload = { id: editingItemId, document: {} };
+
+    if (currentView === 'companies') {
+        const name = document.getElementById('f1').value.trim();
+        const rfc = document.getElementById('f2').value.trim().toUpperCase();
+        const representanteLegal = document.getElementById('f3').value.trim();
+        const representanteTrabajadores = document.getElementById('f4').value.trim();
+        if (!name || !rfc || !representanteLegal) { alert('Completa los campos obligatorios'); return; }
+        payload.document = { name, rfc, representanteLegal, representanteTrabajadores, creatorEmail: currentUser.email };
+    } else if (currentView === 'workers') {
+        const apellidoPaterno = document.getElementById('f1_p').value.trim();
+        const apellidoMaterno = document.getElementById('f1_m').value.trim();
+        const nombres = document.getElementById('f1_n').value.trim();
+        const curp = document.getElementById('f2').value.trim().toUpperCase();
+        const occupation = document.getElementById('f3').value;
+        const position = document.getElementById('f4').value.trim();
+        if (!apellidoPaterno || !nombres || !curp) { alert('Nombre y CURP son requeridos'); return; }
+        payload.document = {
+            apellido_paterno: apellidoPaterno,
+            apellido_materno: apellidoMaterno,
+            nombres: nombres,
+            name: `${apellidoPaterno} ${apellidoMaterno} ${nombres}`.trim(),
+            curp, occupation, position, creatorEmail: currentUser.email
+        };
+    } else if (currentView === 'courses') {
+        const name = document.getElementById('f1').value.trim();
+        const hours = document.getElementById('f2').value.trim();
+        const area = document.getElementById('f3').value;
+        if (!name || !hours || !area) { alert('Completa todos los campos'); return; }
+        payload.document = { name, durationHours: hours + " HORAS", thematicArea: area, creatorEmail: currentUser.email };
+        // Actualizar DATA local
+        if (editingItemId) {
+            const idx = DATA.courses.findIndex(c => c.id === editingItemId);
+            if (idx >= 0) DATA.courses[idx] = { ...DATA.courses[idx], ...payload.document };
+        } else {
+            DATA.courses.push(payload.document);
+        }
+    } else if (currentView === 'agents') {
+        const name = document.getElementById('f1').value.trim();
+        const stps = document.getElementById('f2').value.trim().toUpperCase();
+        if (!name || !stps) { alert('Completa todos los campos'); return; }
+        payload.document = { name, stps, creatorEmail: currentUser.email };
+        if (editingItemId) {
+            const idx = DATA.agents.findIndex(a => a.id === editingItemId);
+            if (idx >= 0) DATA.agents[idx] = { ...DATA.agents[idx], ...payload.document };
+        } else {
+            DATA.agents.push(payload.document);
+        }
+    }
+
+    const res = await api(action, currentView, payload);
+    if (res.error) {
+        alert("Error al guardar: " + res.error);
+        return;
+    }
+    closeModal('modal-add');
+    loadSection(currentView);
+}
+
+function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+}
+
+// ─── DELETE ────────────────────────────────────────────
+async function delItem(coll, id) {
+    if (!confirm('¿Eliminar este registro?')) return;
+    await api('deleteOne', coll, { filter: { id } });
+    loadSection(currentView);
+}
+
+// ─── MODAL DC-3 ────────────────────────────────────────
+function openDC3(worker) {
+    editingDC3Id = null;
+    selectedWorker = worker;
+    document.getElementById('dc3-worker-name').innerText = worker.name;
+    document.getElementById('dc3-worker-curp').innerText = 'CURP: ' + (worker.curp || '–');
+
+    // Companies
+    const compSel = document.getElementById('dc3-company');
+    compSel.innerHTML = DATA.companies.length
+        ? DATA.companies.map(c => `<option value="${c.name}">${c.name}</option>`).join('')
+        : '<option>Sin empresas registradas</option>';
+
+    // Agents
+    const agentSel = document.getElementById('dc3-agent');
+    agentSel.innerHTML = DATA.agents.map(a => `<option value="${a.name}|${a.stps}">${a.name}</option>`).join('');
+
+    // Courses
+    const list = (currentUser.role === 'ADMIN' ? DATA.courses : DATA.courses.filter(c => c.creatorEmail === currentUser.email))
+        .filter(c => c.thematicArea && c.thematicArea !== '' && c.thematicArea !== '–' && c.thematicArea !== '-');
+    document.getElementById('dc3-course').innerHTML = list.map(c => `<option value="${c.name}|${c.durationHours}|${c.thematicArea}">${c.name}</option>`).join('');
+
+    document.getElementById('modal-dc3').classList.add('open');
+}
+
+function prepareEditDC3(record) {
+    editingDC3Id = record.id;
+    selectedWorker = { name: record.workerName, curp: record.workerId, position: record.workerPos };
+
+    document.getElementById('dc3-worker-name').innerText = record.workerName;
+    document.getElementById('dc3-worker-curp').innerText = 'CURP: ' + (record.workerId || '–');
+
+    // Load catalogs first
+    const compSel = document.getElementById('dc3-company');
+    compSel.innerHTML = DATA.companies.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+    compSel.value = record.companyName;
+
+    const agentSel = document.getElementById('dc3-agent');
+    agentSel.innerHTML = DATA.agents.map(a => `<option value="${a.name}|${a.stps}">${a.name}</option>`).join('');
+    // Try to find matching agent
+    const agentOption = [...agentSel.options].find(opt => opt.value.startsWith(record.agentName));
+    if (agentOption) agentSel.value = agentOption.value;
+
+    const courSel = document.getElementById('dc3-course');
+    const list = (currentUser.role === 'ADMIN' ? DATA.courses : DATA.courses.filter(c => c.creatorEmail === currentUser.email))
+        .filter(c => c.thematicArea && c.thematicArea !== '' && c.thematicArea !== '–' && c.thematicArea !== '-');
+    courSel.innerHTML = list.map(c => `<option value="${c.name}|${c.durationHours}|${c.thematicArea}">${c.name}</option>`).join('');
+    const courseOption = [...courSel.options].find(opt => opt.value.startsWith(record.courseName));
+    if (courseOption) courSel.value = courseOption.value;
+
+    document.getElementById('dc3-start').value = record.startDate;
+    document.getElementById('dc3-end').value = record.endDate;
+    // dc3-result field removed
+
+    document.getElementById('modal-dc3').classList.add('open');
+}
+
+async function generateDC3() {
+    const companyName = document.getElementById('dc3-company').value;
+    const agentVal    = document.getElementById('dc3-agent').value;
+    const courseVal   = document.getElementById('dc3-course').value;
+    const start       = document.getElementById('dc3-start').value;
+    const end         = document.getElementById('dc3-end').value;
+    const result      = 'Acreditado';  // campo eliminado del formulario
+
+    if (!start || !end) { alert('Selecciona las fechas de inicio y término'); return; }
+
+    // Buscar el objeto empresa completo para obtener RFC y representantes
+    const company = DATA.companies.find(c => c.name === companyName) || {
+        name: companyName,
+        rfc: '',
+        representante_legal: '',
+        representante_trabajadores: ''
+    };
+
+    const [agentName, agentStps] = agentVal.split('|');
+    const [courseName, courseDuration, courseArea] = courseVal.split('|');
+
+    const pdfBytes = await _buildDC3Core({
+        worker: selectedWorker,
+        company,
+        agent: { name: agentName, stps: agentStps },
+        course: { name: courseName, durationHours: courseDuration, thematicArea: courseArea },
+        start, end, result
+    });
+
+    if (!pdfBytes) return;
+
+    // Descargar PDF
+    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `DC3_${(function sp(s){return String(s||'').replace(/[áà]/g,'a').replace(/[éè]/g,'e').replace(/[íì]/g,'i').replace(/[óò]/g,'o').replace(/[úùü]/g,'u').replace(/ñ/g,'n').replace(/[ÁÀ]/g,'A').replace(/[ÉÈ]/g,'E').replace(/[ÍÌ]/g,'I').replace(/[ÓÒ]/g,'O').replace(/[ÚÙÜ]/g,'U').replace(/Ñ/g,'N');})(selectedWorker.name||'constancia').replace(/\s+/g,'_')}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    // Save to DB
+    const res = await api('insertOne','dc3_records',{ document: {
+        workerId:    selectedWorker.curp,
+        workerName:  selectedWorker.name,
+        workerPos:   selectedWorker.position,
+        courseName,
+        durationHours: courseDuration,
+        thematicArea:  courseArea,
+        companyName: companyName,
+        representanteLegal: company.representante_legal || company.representanteLegal,
+        representanteTrabajadores: company.representante_trabajadores || company.representanteTrabajadores,
+        agentName,
+        agentStps,
+        startDate:   start,
+        endDate:     end,
+        resultText:  'Acreditado',
+        creatorEmail: currentUser.email
+    }});
+
+    if (res.error) {
+        console.error("Error al guardar DC-3 en historial:", res.error);
+        alert("Atención: El PDF se generó pero no se pudo guardar en el historial: " + res.error);
+    }
+
+    closeModal('modal-dc3');
+    if (currentView === 'dc3') loadSection('dc3');
+    else { alert('DC-3 generado y guardado exitosamente.'); }
+}
+
+// Regenerar desde historial
+async function regenDC3(record) {
+    const worker  = { name: record.workerName, curp: record.workerId, position: record.workerPos };
+    const regenCompany = DATA.companies.find(c => c.name === record.companyName) || { name: record.companyName, rfc: '', representanteLegal: '', representanteTrabajadores: null };
+    await buildDC3PDF({
+        worker,
+        company: regenCompany,
+        agent:   { name: record.agentName || '–', stps: record.agentStps || '–' },
+        course:  { name: record.courseName, duration: record.durationHours, area: record.thematicArea },
+        start:   record.startDate,
+        end:     record.endDate,
+        result:  record.resultText || 'Aprobado'
+    });
+}
+
+// ─── PDF OFICIAL DC-3 STPS — rellena plantilla oficial ──────────
+// Usa pdf-lib para superponer texto sobre la plantilla PDF real.
+// La plantilla se carga desde /plantilla_dc3.pdf (mismo origen).
+
+async function _buildDC3Core({ worker, company, agent, course, start, end, result }) {
+    const { PDFDocument, StandardFonts, rgb } = PDFLib;
+
+    // ── Helpers de texto ───────────────────────────────────────────────────
+    function sp(s) {
+        return String(s||'')
+            .replace(/[áà]/g,'a').replace(/[éè]/g,'e').replace(/[íì]/g,'i')
+            .replace(/[óò]/g,'o').replace(/[úùü]/g,'u').replace(/ñ/g,'n')
+            .replace(/[ÁÀ]/g,'A').replace(/[ÉÈ]/g,'E').replace(/[ÍÌ]/g,'I')
+            .replace(/[ÓÒ]/g,'O').replace(/[ÚÙÜ]/g,'U').replace(/Ñ/g,'N');
+    }
+
+    // Parsear fecha "yyyy-mm-dd" o "dd/mm/yyyy"
+    function parseFecha(f) {
+        if (!f) return { a:'    ', m:'  ', d:'  ' };
+        let parts;
+        if (f.includes('-')) {
+            parts = f.split('-');
+            return { a: parts[0].padStart(4,'0'), m: parts[1].padStart(2,'0'), d: parts[2].padStart(2,'0') };
+        } else {
+            parts = f.split('/');
+            return { a: (parts[2]||'    ').padStart(4,'0'), m: (parts[1]||'  ').padStart(2,'0'), d: (parts[0]||'  ').padStart(2,'0') };
+        }
+    }
+
+    // Cargar plantilla oficial
+    let pdfBytes;
+    try {
+        const resp = await fetch('/plantilla_dc3.pdf');
+        if (!resp.ok) throw new Error('No se pudo cargar plantilla_dc3.pdf: ' + resp.status);
+        pdfBytes = await resp.arrayBuffer();
+    } catch(e) {
+        alert('Error cargando plantilla DC-3: ' + e.message);
+        return;
+    }
+
+    const pdfDoc = await PDFDocument.load(pdfBytes);
+    const font   = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const fontB  = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const fontI  = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
+    const page   = pdfDoc.getPage(0);
+    const PH     = 792;  // altura en puntos
+
+    // ── Helpers de dibujo ─────────────────────────────────────────────────
+    // T: texto en coordenadas Fitz (y desde arriba)
+    function T(x, yFitz, s, size, useBold) {
+        if (!s) return;
+        const sz = size || 9;
+        page.drawText(sp(String(s)), {
+            x, y: PH - yFitz,
+            size: sz, font: useBold ? fontB : font,
+            color: rgb(0,0,0)
+        });
+    }
+
+    // T_C: texto centrado en X
+    function T_C(xCenter, yFitz, s, size, useBold) {
+        if (!s) return;
+        const sz = size || 9;
+        const f  = useBold ? fontB : font;
+        const w  = f.widthOfTextAtSize(sp(String(s)), sz);
+        page.drawText(sp(String(s)), {
+            x: xCenter - w/2, y: PH - yFitz,
+            size: sz, font: f, color: rgb(0,0,0)
+        });
+    }
+
+    // drawInCell: un carácter centrado dentro de x0..x1
+    function drawInCell(ch, x0, x1, yFitz, sz) {
+        if (!ch || ch === ' ') return;
+        const w = font.widthOfTextAtSize(ch, sz||9);
+        const cx = (x0 + x1) / 2;
+        page.drawText(ch, {
+            x: cx - w/2, y: PH - yFitz,
+            size: sz||9, font, color: rgb(0,0,0)
+        });
+    }
+
+    // ── Cargar diseño personalizado del agente ────────────────────────────
+    let agentDesign = null;
+    try {
+        // Buscar diseño por email del agente capacitador específico
+        const agentRecord = (DATA.agents || []).find(a =>
+            a.name && agent.name && a.name.toUpperCase().trim() === agent.name.toUpperCase().trim()
+        );
+        const agentEmail = agentRecord?.creatorEmail || agentRecord?.email || currentUser?.email || '';
+        const dr = await api('find','agent_designs', { filter: { creatorEmail: agentEmail } });
+        agentDesign = (dr.documents && dr.documents.length > 0) ? dr.documents[0] : null;
+        // Fallback al diseño del usuario actual si no se encontró
+        if (!agentDesign && agentEmail !== (currentUser?.email || '')) {
+            const dr2 = await api('find','agent_designs', { filter: { creatorEmail: currentUser?.email || '' } });
+            agentDesign = (dr2.documents && dr2.documents.length > 0) ? dr2.documents[0] : null;
+        }
+    } catch(e) { console.warn('No se pudo cargar diseño del agente:', e); }
+
+    // ── Asegurar que compObj sea un objeto válido ──────────────────────────
+    const compObj = (typeof company === 'object' && company !== null) ? company : { name: String(company || ''), rfc: '', representante_legal: '', representante_trabajadores: '' };
+
+    const companyNameFinal = String(compObj.name || company || '').toUpperCase();
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 0. CABECERA: logo y slogan del agente (encima del formulario oficial)
+    // ══════════════════════════════════════════════════════════════════════
+    try {
+        const sloganFont = fontI;
+        const hlBase64 = agentDesign?.headerLogoBase64 || null;
+        if (hlBase64) {
+            const hlBytes = await fetch(hlBase64).then(r => r.arrayBuffer());
+            let hlImg;
+            try {
+                if (hlBase64.startsWith('data:image/jpeg') || hlBase64.startsWith('data:image/jpg')) {
+                    hlImg = await pdfDoc.embedJpg(hlBytes);
+                } else {
+                    try { hlImg = await pdfDoc.embedPng(hlBytes); } catch(e3) { hlImg = await pdfDoc.embedJpg(hlBytes); }
+                }
+            } catch(eImg) { console.warn('Header logo embed error:', eImg); hlImg = null; }
+            const hlw = agentDesign.headerLogoW || 120;
+            const hlh = agentDesign.headerLogoH || 65;
+            const hlx = agentDesign.headerLogoX || 240;
+            const hly = agentDesign.headerLogoY || 45;
+            page.drawImage(hlImg, { x: hlx, y: PH - (hly + hlh), width: hlw, height: hlh, opacity: 1.0 });
+        }
+        const hSlogan = agentDesign?.headerSlogan || '';
+        if (hSlogan) {
+            const hss = agentDesign.headerSloganSize || 14;
+            const hst = sp(hSlogan);
+            const hsw = sloganFont.widthOfTextAtSize(hst, hss);
+            const rawHsx = agentDesign.headerSloganX || 306;
+            const hsx = (rawHsx > 0 && rawHsx <= 200) ? 306 : rawHsx; // migrar default viejo 160→306
+            const hsy = agentDesign.headerSloganY || 40;
+            page.drawText(hst, { x: hsx - hsw/2, y: PH - hsy - hss/2, size: hss, font: sloganFont, color: rgb(0.1,0.1,0.1) });
+        }
+    } catch(e) { console.warn('Error cabecera:', e); }
+
+    // ── 1. NOMBRE DEL TRABAJADOR ───────────────────────────────────────────
+    // Formato: Apellido Paterno, Apellido Materno, Nombre(s)
+    let fullName = "";
+    if (worker.apellidoPaterno) {
+        fullName = `${worker.apellidoPaterno} ${worker.apellidoMaterno || ''} ${worker.nombres || ''}`.trim();
+    } else {
+        fullName = worker.name || '';
+    }
+    T(30, 172.5, fullName.toUpperCase(), 9, true);
+
+    // ── 2. CURP ────────────────────────────────────────────────────────────
+    const CURP_CENTERS = [32.0,47.4,62.8,78.2,93.5,108.8,124.2,139.6,
+                          155.0,170.3,185.8,201.2,216.6,231.9,247.2,262.6,278.0,293.3];
+    const curp = (worker.curp||'').toUpperCase().replace(/\s/g,'').slice(0,18);
+    const CURP_Y = 196;
+    for (let i = 0; i < curp.length && i < 18; i++) {
+        const w = font.widthOfTextAtSize(curp[i], 8);
+        page.drawText(curp[i], { x: CURP_CENTERS[i] - w/2, y: PH - CURP_Y, size: 8, font, color: rgb(0,0,0) });
+    }
+
+    // ── 3. OCUPACIÓN ───────────────────────────────────────────────────────
+    const occupationFinal = (worker.occupation || worker.position || '').toUpperCase().slice(0,50);
+    T(307, 199, occupationFinal, 7);
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 4. PUESTO — zona y_doc=201..226. Label en 201, texto en ~218
+    //    Rect solo sobre texto (evita label "Puesto*" en y=201..211)
+    // ══════════════════════════════════════════════════════════════════════
+    page.drawRectangle({ x:26, y: PH-226, width:559, height:13, color: rgb(1,1,1) });
+    T(30, 221, (worker.position||'').toUpperCase(), 9);
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 5. NOMBRE EMPRESA — zona y_doc=255.3..289.0
+    //    Label "Nombre o razón social" en y=260..270 (termina en 270)
+    //    Solo limpiar zona de escritura: y_doc=271..288
+    //    y_pdf_bot = PH-288 = 504, height = 17
+    // ══════════════════════════════════════════════════════════════════════
+    page.drawRectangle({ x:26, y: PH-288, width:559, height:17, color: rgb(1,1,1) });
+    T(30, 283, companyNameFinal.slice(0,80), 9, true);
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 6. RFC — 15 celdas medidas de la plantilla real
+    //    Centros calculados de bordes exactos del PDF
+    // ══════════════════════════════════════════════════════════════════════
+    const RFC_CENTERS = [34.9,52.1,66.0,80.8,95.4,109.8,124.0,138.3,
+                         152.8,167.0,181.2,195.5,209.8,227.4,245.1];
+    const rfcClean = (compObj.rfc||'').toUpperCase().replace(/\s/g,'').slice(0,15);
+    const RFC_Y = 311;
+    for (let i = 0; i < rfcClean.length && i < 15; i++) {
+        const w = font.widthOfTextAtSize(rfcClean[i], 8);
+        page.drawText(rfcClean[i], { x: RFC_CENTERS[i] - w/2, y: PH - RFC_Y, size: 8, font, color: rgb(0,0,0) });
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 7. NOMBRE DEL CURSO — zona y_doc=343.9..368.5
+    //    Label "Nombre del curso" en y=343.9..353.9
+    //    Solo limpiar zona de escritura: y_doc=355..368
+    // ══════════════════════════════════════════════════════════════════════
+    page.drawRectangle({ x:26, y: PH-366, width:559, height:11, color: rgb(1,1,1) });
+    T(30, 363, (String(course.name||course||'')).toUpperCase().slice(0,80), 9);
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 8. DURACIÓN — y_doc=364..393 (fila delgada)
+    //    Label "Duración en horas": x=29-89, y_doc=368.6-378.6 (preimpreso)
+    //    Campo de escritura: x=90..183 (ANTES de "Periodo de ejecución" en x=185)
+    //    Limpiar el campo y escribir SOLO el número dentro del espacio correcto
+    // ══════════════════════════════════════════════════════════════════════
+    // Escribir horas a la derecha del label "Duración en horas" (label termina en x=89)
+    T(30, 390, (course.durationHours||course.duration||'').toUpperCase(), 8);
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 9. FECHAS — Coordenadas medidas pixel-perfect de la plantilla real
+    //    Celdas en y_doc=380.4..393.9 (h=13.5)
+    //    Bordes verticales EXACTOS extraídos con PyMuPDF
+    // ══════════════════════════════════════════════════════════════════════
+    const fStart = parseFecha(start);
+    const fEnd   = parseFecha(end);
+
+    // Limpiar SOLO el interior de celdas de dígitos (NO la celda "De" ni la celda "a")
+    // Bordes medidos con PyMuPDF — separadores en: 252.3|268.1|284.0|300.4|316.3|337.4|359.1|380.2|401.2 ... 423.1|442.6|462.2|481.7|501.2|522.3|543.3|565.2|586.2
+    // Interior: x + 0.4 para evitar el borde izquierdo
+    // Las celdas de fechas están vacías en la plantilla — no se necesita limpiar
+    // Escribir dígitos directamente encima sin drawRectangle blancos
+
+    // Centros exactos calculados del promedio de bordes reales de la plantilla
+    const AÑO_INI = [260.2, 276.1, 292.2, 308.4];
+    const MES_INI = [326.9, 348.2];
+    const DIA_INI = [369.6, 390.7];
+    const AÑO_FIN = [432.9, 452.4, 471.9, 491.4];
+    const MES_FIN = [511.8, 532.8];
+    const DIA_FIN = [554.2, 575.7];
+
+    // Y baseline: centrado en celdas y_doc=380.4..393.9 → baseline y_doc≈389
+    const FY_digits = 389;
+
+    for (let i=0; i<4; i++) {
+        const ch = fStart.a[i]||'';
+        if (ch) { const w=font.widthOfTextAtSize(ch,8); page.drawText(ch,{x:AÑO_INI[i]-w/2,y:PH-FY_digits,size:8,font,color:rgb(0,0,0)}); }
+    }
+    for (let i=0; i<2; i++) {
+        const ch = fStart.m[i]||'';
+        if (ch) { const w=font.widthOfTextAtSize(ch,8); page.drawText(ch,{x:MES_INI[i]-w/2,y:PH-FY_digits,size:8,font,color:rgb(0,0,0)}); }
+        const ch2 = fStart.d[i]||'';
+        if (ch2) { const w=font.widthOfTextAtSize(ch2,8); page.drawText(ch2,{x:DIA_INI[i]-w/2,y:PH-FY_digits,size:8,font,color:rgb(0,0,0)}); }
+    }
+    for (let i=0; i<4; i++) {
+        const ch = fEnd.a[i]||'';
+        if (ch) { const w=font.widthOfTextAtSize(ch,8); page.drawText(ch,{x:AÑO_FIN[i]-w/2,y:PH-FY_digits,size:8,font,color:rgb(0,0,0)}); }
+    }
+    for (let i=0; i<2; i++) {
+        const ch = fEnd.m[i]||'';
+        if (ch) { const w=font.widthOfTextAtSize(ch,8); page.drawText(ch,{x:MES_FIN[i]-w/2,y:PH-FY_digits,size:8,font,color:rgb(0,0,0)}); }
+        const ch2 = fEnd.d[i]||'';
+        if (ch2) { const w=font.widthOfTextAtSize(ch2,8); page.drawText(ch2,{x:DIA_FIN[i]-w/2,y:PH-FY_digits,size:8,font,color:rgb(0,0,0)}); }
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 10. ÁREA TEMÁTICA — zona y_doc=394.6..418.6
+    //     Label "Área temática del curso" en y=394.9..404.9
+    //     Solo limpiar zona de texto: y_doc=406..418
+    // ══════════════════════════════════════════════════════════════════════
+    page.drawRectangle({ x:26, y: PH-416, width:559, height:9, color: rgb(1,1,1) });
+    T(30, 413, (course.thematicArea||course.area||'').toUpperCase().slice(0,80), 8);
+
+    // ══════════════════════════════════════════════════════════════════════
+    // 11. NOMBRE AGENTE CAPACITADOR — zona y_doc=419.4..443.5
+    //     Label "Nombre del agente" en y=418.8..428.8
+    //     Solo limpiar zona de texto: y_doc=430..443
+    // ══════════════════════════════════════════════════════════════════════
+    page.drawRectangle({ x:26, y: PH-442.25, width:559, height:11, color: rgb(1,1,1) });
+    const agentLine = sp(((agent.name||'') + '   STPS-' + (agent.stps||'')).toUpperCase().trim());
+    T(30, 440, agentLine.slice(0,80), 8);
+
+    // ── 12. SECCIÓN FIRMAS — Reconstrucción total personalizada ──────
+    // Centros de columnas (calculados de bordes exactos de la plantilla)
+    const SIG_INS_X  = 132;  // centro col instructor: (61.9+201.6)/2 = 131.8
+    const SIG_PAT_X  = 295;  // centro col patron: (216.8+372.9)/2 = 294.9
+    const SIG_REP_X  = 465;  // centro col rep: (387.2+542.7)/2 = 464.9
+    // Zona limpia: y_doc=491..538
+    const SIG_IMG_Y  = 512;  // top de imagen (zona limpia: y_doc=511..538)
+    const SIG_NAME_Y1= 522;  // primera línea de nombre (dentro de zona 511..538)
+    const SIG_NAME_Y2= 532;  // segunda línea de nombre
+
+    // Limpiar SOLO la zona de imagen/firma (debajo de labels de columna)
+    // Labels "Instructor o tutor", "Patrón...", "Representante" en y_doc=497..510
+    // Línea "Nombre y firma" en y_doc=539.9 → terminar en y_doc=538
+    // Zona limpia: y_doc=511..538 → height=27
+    // Columna Instructor: x=61.9..201.6
+    page.drawRectangle({ x:63,  y: PH-538, width:137, height:27, color: rgb(1,1,1) });
+    // Columna Patrón: x=216.8..372.9
+    page.drawRectangle({ x:218, y: PH-538, width:153, height:27, color: rgb(1,1,1) });
+    // Columna Rep: x=387.2..542.7
+    page.drawRectangle({ x:389, y: PH-538, width:153, height:27, color: rgb(1,1,1) });
+
+    // ── Helper: embeber imagen (dataURL o URL relativa) ────────────────
+    async function embedSig(src) {
+        if (!src) return null;
+        try {
+            const bytes = await fetch(src).then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); });
+            try { return await pdfDoc.embedPng(bytes); } catch(e) { return await pdfDoc.embedJpg(bytes); }
+        } catch(e) { console.warn('embedSig error:', src?.slice(0,40), e.message); return null; }
+    }
+
+    // ── Logo LUBER (Fondo Instructor) ─────────────────────────────────
+    const lImg = await embedSig(agentDesign?.logoBase64 || '/signatures/logo_luber.png');
+    if (lImg) {
+        const lw = agentDesign?.logoW || 90;
+        const lh = agentDesign?.logoH || 50;
+        const lx = agentDesign?.logoX !== undefined ? agentDesign.logoX : (SIG_INS_X - lw/2);
+        const ly = agentDesign?.logoY !== undefined ? agentDesign.logoY : SIG_IMG_Y;
+        page.drawImage(lImg, { x:lx, y:PH-(ly+lh), width:lw, height:lh, opacity:0.85 });
+    }
+
+    // ── Firma Instructor (Sobrepuesta) ────────────────────────────────
+    const fImg = await embedSig(agentDesign?.firmaBase64 || '/signatures/cynthia_firma_oficial.png');
+    if (fImg) {
+        const fw = agentDesign?.firmaW || 95;
+        const fh = agentDesign?.firmaH || 55;
+        const fx = agentDesign?.firmaX !== undefined ? agentDesign.firmaX : (SIG_INS_X - fw/2);
+        const fy = agentDesign?.firmaY !== undefined ? agentDesign.firmaY : (SIG_IMG_Y + 5);
+        page.drawImage(fImg, { x:fx, y:PH-(fy+fh), width:fw, height:fh });
+    }
+
+    // ── Nombres y Títulos reconstruidos ──────────────────────────────────
+    // No reescribir labels — la plantilla ya los tiene ("Instructor o tutor", etc.)
+    // Solo escribir nombres encima de la zona limpia
+    let insName = sp((agentDesign?.agentName || agent.name || '').toUpperCase());
+    if (insName.includes("CYNTHIA YADIRA GARZA LUGO") && !insName.includes("ING.")) {
+        insName = "ING. " + insName;
+    }
+    const insLines = splitNameJS(insName, 26);
+    T_C(SIG_INS_X, SIG_NAME_Y1, insLines[0], 8);
+    if (insLines[1]) T_C(SIG_INS_X, SIG_NAME_Y2, insLines[1], 8);
+
+    // Línea Instructor
+    // línea firma instructor: ya existe en plantilla
+    // "Nombre y firma": ya existe en plantilla
+
+    // --- Columna PATRÓN ---
+    // Patron label: ya existe en plantilla
+    const patName = sp((compObj.representante_legal || compObj.representanteLegal || '').toUpperCase());
+    const patLines = splitNameJS(patName, 28);
+    T_C(SIG_PAT_X, SIG_NAME_Y1, patLines[0], 8);
+    if (patLines[1]) T_C(SIG_PAT_X, SIG_NAME_Y2, patLines[1], 8);
+
+    // Línea Patrón
+    // línea firma patron: ya existe en plantilla
+    // "Nombre y firma": ya existe en plantilla
+
+    // --- Columna REPRESENTANTE ---
+    // Rep label: ya existe en plantilla
+    const repName = sp((compObj.representante_trabajadores || compObj.representanteTrabajadores || '').toUpperCase());
+    if (repName) {
+        const repLines = splitNameJS(repName, 26);
+        T_C(SIG_REP_X, SIG_NAME_Y1, repLines[0], 8);
+        if (repLines[1]) T_C(SIG_REP_X, SIG_NAME_Y2, repLines[1], 8);
+    }
+
+    // Línea Representante
+    // línea firma rep: ya existe en plantilla
+    // "Nombre y firma": ya existe en plantilla
+
+    // ── Slogan extra en sección de firmas (si está configurado) ─────────
+    if (agentDesign && agentDesign.slogan) {
+        T(agentDesign.sloganX||30, agentDesign.sloganY||445, agentDesign.slogan, agentDesign.sloganSize||7);
+    }
+
+    // Retornar bytes (quien llama decide qué hacer)
+    return await pdfDoc.save();
+}
+
+// Wrapper que descarga directamente
+async function buildDC3PDF(opts) {
+    const outBytes = await _buildDC3Core(opts);
+    if (!outBytes) { alert('Error: No se pudo generar el PDF. Verifica que la plantilla DC-3 esté disponible.'); return; }
+    const blob = new Blob([outBytes], { type: 'application/pdf' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `DC3_${(function sp(s){return String(s||'').replace(/[áà]/g,'a').replace(/[éè]/g,'e').replace(/[íì]/g,'i').replace(/[óò]/g,'o').replace(/[úùü]/g,'u').replace(/ñ/g,'n').replace(/[ÁÀ]/g,'A').replace(/[ÉÈ]/g,'E').replace(/[ÍÌ]/g,'I').replace(/[ÓÒ]/g,'O').replace(/[ÚÙÜ]/g,'U').replace(/Ñ/g,'N');})(opts.worker?.name||'trabajador').replace(/\s+/g,'_')}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+
+// ─── EXCEL IMPORT ──────────────────────────────────────
+function handleExcel(input) {
+    const r = new FileReader();
+    r.onload = async (e) => {
+        const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+        if (!rows.length) { alert('El archivo está vacío'); return; }
+        const workers = rows.map(row => ({
+            name:       (row.Nombre || row.NOMBRE || row.nombre || '').trim(),
+            curp:       (row.CURP   || row.curp   || '').trim().toUpperCase(),
+            position:   (row.Puesto || row.PUESTO  || row.puesto || '').trim(),
+            occupation: (row.Ocupacion || row.OCUPACION || '').trim(),
+            creatorEmail: currentUser.email
+        })).filter(w => w.name && w.curp);
+        if (!workers.length) { alert('No se encontraron filas válidas (requiere columnas: Nombre, CURP, Puesto)'); return; }
+        await api('insertMany','workers',{ documents: workers });
+        alert(`${workers.length} trabajadores importados correctamente.`);
+        loadSection('workers');
+    };
+    r.readAsArrayBuffer(input.files[0]);
+    input.value = '';
+}
+
+// ─── UTILITIES ─────────────────────────────────────────
+function togglePassword() {
+    const p = document.getElementById('password');
+    p.type = p.type === 'password' ? 'text' : 'password';
+}
+
+// ─── DISEÑO DC-3 — funciones del panel ────────────────────────────────────────
+//  • Preview reactivo: cualquier cambio de input dispara schedulePreview()
+//  • Drag & Drop en canvas: arrastra logo, firma, logo-cabecera, slogan-cabecera
+//  • Tipografía seleccionable por cada texto
+// ─────────────────────────────────────────────────────────────────────────────
+
+const designState = {
+    logo_base64: null, firma_base64: null, header_logo_base64: null,
+    _previewTimer: null, _pdfTemplateBytes: null, _scale: 1.0
+};
+
+// Dimensiones internas del PDF (US Letter portrait)
+const PDF_W = 612, PDF_H = 792;
+
+// ── Fuentes disponibles en pdf-lib ────────────────────────────────────────────
+const FONT_MAP = {
+    'Helvetica':            'Helvetica',
+    'Helvetica-Bold':       'HelveticaBold',
+    'Helvetica-Oblique':    'HelveticaOblique',
+    'Helvetica-BoldOblique':'HelveticaBoldOblique',
+    'Times-Roman':          'TimesRoman',
+    'Times-Bold':           'TimesBold',
+    'Times-Italic':         'TimesRomanItalic',
+    'Times-BoldItalic':     'TimesRomanBoldItalic',
+    'Courier':              'Courier',
+    'Courier-Bold':         'CourierBold',
+    'Courier-Oblique':      'CourierOblique',
+};
+
+function fileToDataUrl(file) {
+    return new Promise((res,rej) => {
+        const r = new FileReader();
+        r.onload = e => res(e.target.result);
+        r.onerror = rej;
+        r.readAsDataURL(file);
+    });
+}
+
+/** Dispara el preview con debounce (evita renders en cada tecla) */
+function schedulePreview() {
+    clearTimeout(designState._previewTimer);
+    designState._previewTimer = setTimeout(() => updateDesignPreview(), 120);
+}
+
+async function loadDesign() {
+    try {
+        let d = null;
+        try {
+            const r = await api('find','agent_designs', { filter: { creatorEmail: currentUser?.email || '' } });
+            if (r.documents && r.documents.length > 0) d = toCamel(r.documents[0]);
+        } catch(e) {}
+        if (!d) {
+            const saved = localStorage.getItem('dc3_design');
+            if (saved) d = JSON.parse(saved);
+        }
+        if (!d) { await updateDesignPreview(); return; }
+
+        const setV = (id, val) => { if (val !== null && val !== undefined) { const el = document.getElementById(id); if (el) el.value = val; } };
+
+        if (d.logoBase64)        { designState.logo_base64 = d.logoBase64;             showDesignThumb('logo', d.logoBase64); }
+        if (d.firmaBase64)       { designState.firma_base64 = d.firmaBase64;           showDesignThumb('firma', d.firmaBase64); }
+        if (d.headerLogoBase64)  { designState.header_logo_base64 = d.headerLogoBase64; showDesignThumb('headerLogo', d.headerLogoBase64); }
+
+        setV('design-agent-name', d.agentName);
+        setV('design-slogan', d.slogan);
+        setV('design-slogan-x', d.sloganX ?? 30);
+        setV('design-slogan-y', d.sloganY ?? 445);
+        setV('design-slogan-size', d.sloganSize ?? 7);
+        setV('design-slogan-font', d.sloganFont ?? 'Helvetica');
+        setV('design-logo-x', d.logoX ?? 58);
+        setV('design-logo-y', d.logoY ?? 454);
+        setV('design-logo-w', d.logoW ?? 115);
+        setV('design-logo-h', d.logoH ?? 65);
+        setV('design-firma-x', d.firmaX ?? 88);
+        setV('design-firma-y', d.firmaY ?? 457);
+        setV('design-firma-w', d.firmaW ?? 85);
+        setV('design-firma-h', d.firmaH ?? 60);
+        setV('design-header-slogan', d.headerSlogan);
+        setV('design-header-slogan-x', (d.headerSloganX && d.headerSloganX > 200) ? d.headerSloganX : 306);
+        setV('design-header-slogan-y', d.headerSloganY ?? 18);
+        setV('design-header-slogan-size', d.headerSloganSize ?? 9);
+        setV('design-header-slogan-font', d.headerSloganFont ?? 'Times-Italic');
+        setV('design-header-logo-w', d.headerLogoW ?? 120);
+        setV('design-header-logo-h', d.headerLogoH ?? 55);
+        setV('design-header-logo-x', d.headerLogoX ?? 30);
+        setV('design-header-logo-y', d.headerLogoY ?? 10);
+
+        await updateDesignPreview();
+    } catch(e) { console.warn('loadDesign error:', e); }
+}
+
+function showDesignThumb(type, src) {
+    const idMap = { logo: 'design-logo-preview', firma: 'design-firma-preview', headerLogo: 'design-header-logo-preview' };
+    const el = document.getElementById(idMap[type]);
+    if (!el) return;
+    el.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:contain;border-radius:4px">`;
+}
+
+async function handleDesignImage(input, type) {
+    const file = input.files[0];
+    if (!file) return;
+    const dataUrl = await fileToDataUrl(file);
+    if (type === 'logo')             designState.logo_base64 = dataUrl;
+    else if (type === 'firma')       designState.firma_base64 = dataUrl;
+    else if (type === 'headerLogo')  designState.header_logo_base64 = dataUrl;
+    showDesignThumb(type, dataUrl);
+    updateDesignPreview();
+}
+
+function clearDesignImage(type) {
+    if (type === 'logo')             designState.logo_base64 = null;
+    else if (type === 'firma')       designState.firma_base64 = null;
+    else if (type === 'headerLogo')  designState.header_logo_base64 = null;
+    const idMap = { logo: 'design-logo-preview', firma: 'design-firma-preview', headerLogo: 'design-header-logo-preview' };
+    const el = document.getElementById(idMap[type]);
+    if (el) el.innerHTML = type === 'firma' ? 'Sin firma' : 'Sin logo';
+    updateDesignPreview();
+}
+
+function gv(id, def=0) { return +(document.getElementById(id)?.value ?? def) || def; }
+function gs(id, def='') { return document.getElementById(id)?.value ?? def; }
+
+/** Recopila todos los parámetros actuales del diseño */
+function getDesignParams() {
+    return {
+        logoBase64:       designState.logo_base64,
+        logoX: gv('design-logo-x',58), logoY: gv('design-logo-y',454),
+        logoW: gv('design-logo-w',115), logoH: gv('design-logo-h',65),
+        firmaBase64:      designState.firma_base64,
+        firmaX: gv('design-firma-x',88), firmaY: gv('design-firma-y',457),
+        firmaW: gv('design-firma-w',85), firmaH: gv('design-firma-h',60),
+        headerLogoBase64: designState.header_logo_base64,
+        headerLogoX: gv('design-header-logo-x',30), headerLogoY: gv('design-header-logo-y',10),
+        headerLogoW: gv('design-header-logo-w',120), headerLogoH: gv('design-header-logo-h',55),
+        headerSlogan: gs('design-header-slogan'),
+        headerSloganX: gv('design-header-slogan-x',306), headerSloganY: gv('design-header-slogan-y',18),
+        headerSloganSize: gv('design-header-slogan-size',9),
+        headerSloganFont: gs('design-header-slogan-font','Times-Italic'),
+        slogan: gs('design-slogan'),
+        sloganX: gv('design-slogan-x',30), sloganY: gv('design-slogan-y',445),
+        sloganSize: gv('design-slogan-size',7),
+        sloganFont: gs('design-slogan-font','Helvetica'),
+        agentName: gs('design-agent-name'),
+        creatorEmail: currentUser?.email || ''
+    };
+}
+
+// ── Guardar diseño ─────────────────────────────────────────────────────────────
+async function saveDesign() {
+    const btn = document.querySelector('[onclick="saveDesign()"]');
+    if (btn) { btn.disabled=true; btn.textContent='Guardando…'; }
+    try {
+        const p = getDesignParams();
+
+        // Mapeo manual para asegurar que NO se envíen nombres camelCase ni columnas inexistentes
+        const payload = {
+            creator_email: p.creatorEmail,
+            logo_base64: p.logoBase64,
+            logo_x: p.logoX,
+            logo_y: p.logoY,
+            logo_w: p.logoW,
+            logo_h: p.logoH,
+            firma_base64: p.firmaBase64,
+            firma_x: p.firmaX,
+            firma_y: p.firmaY,
+            firma_w: p.firmaW,
+            firma_h: p.firmaH,
+            header_logo_base64: p.headerLogoBase64,
+            header_logo_x: p.headerLogoX,
+            header_logo_y: p.headerLogoY,
+            header_logo_w: p.headerLogoW,
+            header_logo_h: p.headerLogoH,
+            header_slogan: p.headerSlogan,
+            header_slogan_x: p.headerSloganX,
+            header_slogan_y: p.headerSloganY,
+            header_slogan_size: p.headerSloganSize,
+            slogan: p.slogan,
+            slogan_x: p.sloganX,
+            slogan_y: p.sloganY,
+            slogan_size: p.sloganSize,
+            agent_name: p.agentName,
+            updated_at: new Date().toISOString()
+        };
+
+        // Save fonts to localStorage (not in DB - no those columns)
+        const localPayload = { ...payload, slogan_font: p.sloganFont || 'Helvetica', header_slogan_font: p.headerSloganFont || 'Times-Italic' };
+        localStorage.setItem('dc3_design', JSON.stringify(localPayload));
+
+        const existing = await api('find','agent_designs', { filter: { creatorEmail: p.creatorEmail } });
+        if (existing.documents?.length > 0) {
+            // Usar api('update') para que pase por toSnake() y evitar errores de columnas camelCase
+            const res = await api('update','agent_designs', { id: existing.documents[0].id, document: payload });
+            if (res.error) throw new Error(res.error);
+        } else {
+            const res = await api('insertOne','agent_designs', { document: payload });
+            if (res.error) throw new Error(res.error);
+        }
+        alert('✓ Diseño guardado');
+    } catch(e) {
+        console.error('Error saving design:', e);
+        alert('Error: ' + e.message);
+    }
+    finally { if (btn) { btn.disabled=false; btn.textContent='💾 Guardar diseño'; } }
+}
+
+async function previewDesign() { await updateDesignPreview(); }
+
+// ── Preview principal ──────────────────────────────────────────────────────────
+let _previewRendering = false;
+async function updateDesignPreview() {
+    if (_previewRendering) { schedulePreview(); return; }
+    _previewRendering = true;
+    try {
+        await _renderPreview();
+    } finally { _previewRendering = false; }
+}
+
+async function _renderPreview() {
+    const canvas = document.getElementById('design-preview-canvas');
+    if (!canvas) return;
+
+    // Cargar librerías si no están
+    if (!window.PDFLib) {
+        await new Promise((res,rej)=>{
+            const s=document.createElement('script');
+            s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js';
+            s.onload=res; s.onerror=rej; document.head.appendChild(s);
+        });
+    }
+    if (!window.pdfjsLib) {
+        await new Promise((res,rej)=>{
+            const s=document.createElement('script');
+            s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+            s.onload=()=>{ pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; res(); };
+            s.onerror=rej; document.head.appendChild(s);
+        });
+    }
+
+    const { PDFDocument, StandardFonts, rgb } = PDFLib;
+
+    // Cargar plantilla (cacheada)
+    if (!designState._pdfTemplateBytes) {
+        try {
+            const resp = await fetch('/plantilla_dc3.pdf');
+            if (!resp.ok) throw new Error('HTTP '+resp.status);
+            designState._pdfTemplateBytes = await resp.arrayBuffer();
+        } catch(e) {
+            _showCanvasError(canvas, 'No se pudo cargar /plantilla_dc3.pdf: '+e.message);
+            return;
+        }
+    }
+
+    const pdfDoc = await PDFDocument.load(designState._pdfTemplateBytes.slice(0));
+    const page   = pdfDoc.getPage(0);
+
+    const p = getDesignParams();
+
+    // Helper: embedir imagen desde base64
+    async function di(base64, x, y, w, h) {
+        if (!base64) return;
+        try {
+            const img = await embedBase64Img(pdfDoc, base64);
+            // Y invertido: PDF origin = bottom-left
+            page.drawImage(img, { x, y: PDF_H - y - h, width: w, height: h });
+        } catch(e) { console.warn('img embed:', e); }
+    }
+
+    // Dibujar imágenes
+    await di(p.logoBase64,       p.logoX,       p.logoY,       p.logoW,       p.logoH);
+    await di(p.firmaBase64,      p.firmaX,      p.firmaY,      p.firmaW,      p.firmaH);
+    await di(p.headerLogoBase64, p.headerLogoX, p.headerLogoY, p.headerLogoW, p.headerLogoH);
+
+    // Helper: embedir fuente por nombre (soporta fuentes custom via CDN)
+    const CUSTOM_FONT_URLS = {
+        'KunstlerScript': 'https://fonts.gstatic.com/s/greatvibes/v19/RWmMoKWR9v4ksMfaWd_JN9XFiaQ.woff2',
+        'GreatVibes':     'https://fonts.gstatic.com/s/greatvibes/v19/RWmMoKWR9v4ksMfaWd_JN9XFiaQ.woff2',
+        'Pacifico':       'https://fonts.gstatic.com/s/pacifico/v22/FwZY7-Qmy14u9lezJ96A4sijpFu_.woff2',
+    };
+    async function embedFont(name) {
+        if (CUSTOM_FONT_URLS[name]) {
+            try {
+                const fontBytes = await fetch(CUSTOM_FONT_URLS[name]).then(r => r.arrayBuffer());
+                return pdfDoc.embedFont(fontBytes);
+            } catch(e) {
+                console.warn('Custom font load failed, fallback to Helvetica:', e);
+            }
+        }
+        const sfName = FONT_MAP[name] || 'Helvetica';
+        const sfKey  = StandardFonts[sfName] || StandardFonts.Helvetica;
+        return pdfDoc.embedFont(sfKey);
+    }
+
+    // Dibujar textos — headerSloganX es el CENTRO del texto (igual que en buildDC3PDF)
+    if (p.headerSlogan?.trim()) {
+        const font = await embedFont(p.headerSloganFont);
+        const txt  = p.headerSlogan.slice(0,80);
+        const tw   = font.widthOfTextAtSize(txt, p.headerSloganSize);
+        page.drawText(txt, {
+            x: ((p.headerSloganX > 0 && p.headerSloganX <= 200) ? 306 : p.headerSloganX) - tw / 2,
+            y: PDF_H - p.headerSloganY - p.headerSloganSize,
+            size: p.headerSloganSize, font, color: rgb(0.05,0.05,0.35)
+        });
+    }
+    if (p.slogan?.trim()) {
+        const font = await embedFont(p.sloganFont);
+        page.drawText(p.slogan.slice(0,80), {
+            x: p.sloganX,
+            y: PDF_H - p.sloganY - p.sloganSize,
+            size: p.sloganSize, font, color: rgb(0.1,0.1,0.1)
+        });
+    }
+
+    const outBytes = await pdfDoc.save();
+
+    // Renderizar con pdf.js
+    const loadTask = pdfjsLib.getDocument({ data: outBytes });
+    const pdf = await loadTask.promise;
+    const pg  = await pdf.getPage(1);
+    const vp  = pg.getViewport({ scale: 1.5 });
+    canvas.width  = vp.width;
+    canvas.height = vp.height;
+    await pg.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+
+    // Escala canvas→PDF para drag
+    designState._scale = vp.width / PDF_W;
+
+    // Actualizar handles de arrastre sobre el SVG overlay
+    _updateDragHandles(p);
+}
+
+function _showCanvasError(canvas, msg) {
+    const ctx = canvas.getContext('2d');
+    canvas.width=500; canvas.height=60;
+    ctx.fillStyle='#fee2e2'; ctx.fillRect(0,0,500,60);
+    ctx.fillStyle='#991b1b'; ctx.font='12px sans-serif';
+    ctx.fillText(msg, 10, 30);
+}
+
+// ── Drag & Drop en el canvas ───────────────────────────────────────────────────
+// Cada "handle" es un rectángulo semitransparente sobre el overlay SVG que
+// se puede arrastrar. Al soltar, actualiza los inputs y redibuja.
+
+const DRAG_ITEMS = [
+    { key:'logo',       xId:'design-logo-x',        yId:'design-logo-y',        wId:'design-logo-w',        hId:'design-logo-h',        label:'LOGO',        color:'#6366f1' },
+    { key:'firma',      xId:'design-firma-x',        yId:'design-firma-y',        wId:'design-firma-w',        hId:'design-firma-h',        label:'FIRMA',       color:'#0891b2' },
+    { key:'headerLogo', xId:'design-header-logo-x',  yId:'design-header-logo-y',  wId:'design-header-logo-w',  hId:'design-header-logo-h',  label:'CAB.LOGO',    color:'#7c3aed' },
+    { key:'hslogan',    xId:'design-header-slogan-x', yId:'design-header-slogan-y', wId:null, hId:null,         label:'CAB.SLOGAN',  color:'#0d9488', isText:true },
+    { key:'slogan',     xId:'design-slogan-x',        yId:'design-slogan-y',        wId:null, hId:null,         label:'SLOGAN',      color:'#ea580c', isText:true },
+];
+
+let _dragState = null;
+
+function _updateDragHandles(p) {
+    const svg    = document.getElementById('design-drag-overlay');
+    const canvas = document.getElementById('design-preview-canvas');
+    if (!svg || !canvas) return;
+
+    // sc: factor de escala PDF→canvas (pdf.js renderiza a scale 1.5)
+    const sc = canvas.width / PDF_W;   // = 1.5 siempre
+    svg.setAttribute('viewBox', `0 0 ${canvas.width} ${canvas.height}`);
+    designState._scale = sc;
+    svg.innerHTML = '';
+
+    // pdfY es top-down (di() ya invierte eje internamente), solo escalar
+    const cy = (pdfY, h) => pdfY * sc;
+
+    const items = [
+        { key:'logo',       x:p.logoX*sc,        y:cy(p.logoY, p.logoH),              w:p.logoW*sc,        h:p.logoH*sc,        label:'LOGO',       color:'#6366f1', xId:'design-logo-x', yId:'design-logo-y' },
+        { key:'firma',      x:p.firmaX*sc,        y:cy(p.firmaY, p.firmaH),            w:p.firmaW*sc,       h:p.firmaH*sc,       label:'FIRMA',      color:'#0891b2', xId:'design-firma-x', yId:'design-firma-y' },
+        { key:'headerLogo', x:p.headerLogoX*sc,   y:cy(p.headerLogoY, p.headerLogoH),  w:p.headerLogoW*sc,  h:p.headerLogoH*sc,  label:'CAB.LOGO',   color:'#7c3aed', xId:'design-header-logo-x', yId:'design-header-logo-y' },
+        { key:'hslogan',    x:(p.headerSloganX - Math.max(40,p.headerSloganSize*(p.headerSlogan||'').length*0.28))*sc, y:cy(p.headerSloganY, p.headerSloganSize), w:Math.max(80,p.headerSloganSize*(p.headerSlogan||'').length*0.55)*sc, h:(p.headerSloganSize+4)*sc, label:'CAB.SLOGAN', color:'#0d9488', xId:'design-header-slogan-x', yId:'design-header-slogan-y', isText:true, isCentered:true },
+        { key:'slogan',     x:p.sloganX*sc,       y:cy(p.sloganY, p.sloganSize),       w:Math.max(60,p.sloganSize*(p.slogan||'SLOGAN').length*0.55)*sc, h:(p.sloganSize+4)*sc, label:'SLOGAN', color:'#ea580c', xId:'design-slogan-x', yId:'design-slogan-y', isText:true },
+    ];
+
+    items.forEach(item => {
+        const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+        g.setAttribute('class','drag-handle');
+        g.style.cursor = 'move';
+        g.style.pointerEvents = 'all';
+
+        // Solo mostrar si hay contenido
+        // Always show drag handles — even without content uploaded — so user can position them
+        const hasContent = (item.key==='logo' && p.logoBase64) ||
+                           (item.key==='firma' && p.firmaBase64) ||
+                           (item.key==='headerLogo' && p.headerLogoBase64) ||
+                           (item.key==='hslogan' && p.headerSlogan?.trim()) ||
+                           (item.key==='slogan' && p.slogan?.trim());
+
+        const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+        rect.setAttribute('x', item.x);
+        rect.setAttribute('y', item.y);
+        rect.setAttribute('width', item.w);
+        rect.setAttribute('height', item.h);
+        rect.setAttribute('fill', hasContent ? item.color+'22' : item.color+'10');
+        rect.setAttribute('stroke', item.color);
+        rect.setAttribute('stroke-width', hasContent ? '1.5' : '1');
+        rect.setAttribute('stroke-dasharray', hasContent ? '' : '4,3');
+        rect.setAttribute('rx', '3');
+
+        const text = document.createElementNS('http://www.w3.org/2000/svg','text');
+        text.setAttribute('x', item.x + 4);
+        text.setAttribute('y', item.y + 10);
+        text.setAttribute('fill', item.color);
+        text.setAttribute('font-size', '9');
+        text.setAttribute('font-weight', 'bold');
+        text.setAttribute('font-family', 'sans-serif');
+        text.textContent = item.label;
+
+        g.appendChild(rect);
+        g.appendChild(text);
+        svg.appendChild(g);
+
+        // Drag events
+        g.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            const wrap = document.getElementById('design-preview-wrap');
+            const wRect = wrap.getBoundingClientRect();
+            const scrollTop = wrap.scrollTop;
+            _dragState = {
+                item,
+                startMouseX: e.clientX,
+                startMouseY: e.clientY,
+                startPdfX: gv(item.xId),
+                startPdfY: gv(item.yId),
+                sc: designState._scale
+            };
+            e.stopPropagation();
+            document.getElementById('design-drag-hint').textContent = '⟢ Arrastrando: ' + item.label;
+
+            const onMove = (ev) => {
+                if (!_dragState) return;
+                // sc_css: ratio entre tamaño CSS del canvas y su resolución interna
+                const canvasEl = document.getElementById('design-preview-canvas');
+                const cssW = canvasEl.getBoundingClientRect().width;
+                // Ratio pantalla→PDF: cssW corresponde a PDF_W puntos
+                const pxPerPt = cssW / PDF_W;
+                const dxPdf = (ev.clientX - _dragState.startMouseX) / pxPerPt;
+                // PDF Y bottom-up: arrastrar abajo (clientY+) debe aumentar pdfY (top-down stored)
+                const dyPdf = (ev.clientY - _dragState.startMouseY) / pxPerPt;
+                const elX = document.getElementById(item.xId);
+                const elY = document.getElementById(item.yId);
+                if (elX) elX.value = Math.max(0, Math.round(_dragState.startPdfX + dxPdf));
+                if (elY) elY.value = Math.max(0, Math.round(_dragState.startPdfY + dyPdf));
+                schedulePreview();
+            };
+            const onUp = () => {
+                _dragState = null;
+                document.getElementById('design-drag-hint').textContent = '';
+                document.removeEventListener('mousemove', onMove);
+                document.removeEventListener('mouseup', onUp);
+            };
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onUp);
+        });
+
+        // Touch drag
+        g.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const t = e.touches[0];
+            _dragState = { item, startMouseX:t.clientX, startMouseY:t.clientY, startPdfX:gv(item.xId), startPdfY:gv(item.yId), sc:designState._scale };
+        }, { passive:false });
+        g.addEventListener('touchmove', (e) => {
+            if (!_dragState) return;
+            e.preventDefault();
+            const t = e.touches[0];
+            const canvasEl = document.getElementById('design-preview-canvas');
+            const cssW = canvasEl.getBoundingClientRect().width;
+            const pxPerPt = cssW / PDF_W;
+            const dxPdf = (t.clientX - _dragState.startMouseX) / pxPerPt;
+            const dyPdf = (t.clientY - _dragState.startMouseY) / pxPerPt;
+            const elX = document.getElementById(item.xId);
+            const elY = document.getElementById(item.yId);
+            if (elX) elX.value = Math.max(0, Math.round(_dragState.startPdfX + dxPdf));
+            if (elY) elY.value = Math.max(0, Math.round(_dragState.startPdfY + dyPdf));
+            schedulePreview();
+        }, { passive:false });
+        g.addEventListener('touchend', () => { _dragState = null; });
+    });
+}
+
+async function embedBase64Img(pdfDoc, dataUrl) {
+    const b64   = dataUrl.split(',')[1];
+    const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    if (dataUrl.toLowerCase().startsWith('data:image/png')) return pdfDoc.embedPng(bytes);
+    return pdfDoc.embedJpg(bytes);
+}
+
+
+
+
+// ─── SELECCIÓN MASIVA DE TRABAJADORES ─────────────────────────────────
+let selectedWorkers = [];
+
+function toggleAllWorkers(masterChk) {
+    const chks = document.querySelectorAll('.worker-chk');
+    chks.forEach(c => { c.checked = masterChk.checked; });
+    onWorkerCheckChange();
+}
+
+function onWorkerCheckChange() {
+    const chks = document.querySelectorAll('.worker-chk');
+    selectedWorkers = [];
+    chks.forEach(c => {
+        if (c.checked) {
+            try { selectedWorkers.push(JSON.parse(c.getAttribute('data-worker').replace(/&apos;/g,"'"))); }
+            catch(e) {}
+        }
+    });
+    const bar = document.getElementById('bulk-dc3-bar');
+    const lbl = document.getElementById('bulk-count-label');
+    if (selectedWorkers.length > 0) {
+        bar.classList.remove('hidden');
+        lbl.textContent = `${selectedWorkers.length} trabajador${selectedWorkers.length>1?'es':''} seleccionado${selectedWorkers.length>1?'s':''}`;
+    } else {
+        bar.classList.add('hidden');
+    }
+    // Update master checkbox state
+    const masterChk = document.getElementById('chk-all-workers');
+    if (masterChk) {
+        if (selectedWorkers.length === 0) masterChk.indeterminate = false, masterChk.checked = false;
+        else if (selectedWorkers.length === chks.length) masterChk.indeterminate = false, masterChk.checked = true;
+        else masterChk.indeterminate = true;
+    }
+}
+
+function clearWorkerSelection() {
+    selectedWorkers = [];
+    document.querySelectorAll('.worker-chk').forEach(c => c.checked = false);
+    const masterChk = document.getElementById('chk-all-workers');
+    if (masterChk) { masterChk.checked = false; masterChk.indeterminate = false; }
+    document.getElementById('bulk-dc3-bar')?.classList.add('hidden');
+}
+
+// ─── MODAL DC-3 MASIVO ────────────────────────────────────────────────
+function openBulkDC3Modal() {
+    if (!selectedWorkers.length) return;
+    document.getElementById('bulk-modal-subtitle').textContent =
+        `${selectedWorkers.length} trabajador${selectedWorkers.length>1?'es':''} — se generará un PDF con todos sus DC-3`;
+
+    // Llenar lista de trabajadores
+    document.getElementById('bulk-workers-list').innerHTML = selectedWorkers.map(w =>
+        `<p class="text-xs text-indigo-700 font-medium">• ${w.name||w.curp||'–'}</p>`
+    ).join('');
+
+    // Poblar selects con misma data que modal individual
+    const compSel = document.getElementById('bulk-company');
+    const agentSel = document.getElementById('bulk-agent');
+    const courseSel = document.getElementById('bulk-course');
+    compSel.innerHTML = (DATA.companies||[]).map(c => `<option value="${(c.name||'').replace(/"/g,'&quot;')}">${c.name||''}</option>`).join('');
+    agentSel.innerHTML = (DATA.agents||[]).map(a => `<option value="${(a.name||'')}|${(a.stps||'')}">  ${a.name||''}</option>`).join('');
+    courseSel.innerHTML = (DATA.courses||[]).map(c => `<option value="${(c.name||'')}|${(c.durationHours||'')}|${(c.thematicArea||'')}">${c.name||''}</option>`).join('');
+
+    // Reset progress
+    document.getElementById('bulk-progress').classList.add('hidden');
+    document.getElementById('bulk-progress-bar').style.width = '0%';
+    document.getElementById('modal-bulk-dc3').classList.add('open');
+}
+
+async function generateBulkDC3() {
+    const companyName = document.getElementById('bulk-company').value;
+    const agentVal    = document.getElementById('bulk-agent').value;
+    const courseVal   = document.getElementById('bulk-course').value;
+    const start       = document.getElementById('bulk-start').value;
+    const end         = document.getElementById('bulk-end').value;
+
+    if (!start || !end) { alert('Selecciona las fechas de inicio y término'); return; }
+    if (!selectedWorkers.length) { alert('No hay trabajadores seleccionados'); return; }
+
+    const company = DATA.companies.find(c => c.name === companyName) || { name: companyName, rfc: '', representanteLegal: '', representanteTrabajadores: null };
+    const [agentName, agentStps] = agentVal.split('|');
+    const [courseName, courseDuration, courseArea] = courseVal.split('|');
+
+    // Mostrar progreso
+    const progressDiv = document.getElementById('bulk-progress');
+    const progressBar = document.getElementById('bulk-progress-bar');
+    const progressLbl = document.getElementById('bulk-progress-label');
+    progressDiv.classList.remove('hidden');
+
+    const { PDFDocument } = PDFLib;
+    const mergedPdf = await PDFDocument.create();
+
+    for (let i = 0; i < selectedWorkers.length; i++) {
+        const worker = selectedWorkers[i];
+        progressLbl.textContent = `Generando DC-3 ${i+1} de ${selectedWorkers.length}: ${worker.name||worker.curp||'–'}`;
+        progressBar.style.width = `${Math.round(((i+0.5)/selectedWorkers.length)*100)}%`;
+
+        try {
+            const pdfBytes = await buildDC3PDFBytes({
+                worker, company,
+                agent: { name: agentName, stps: agentStps },
+                course: { name: courseName, duration: courseDuration, area: courseArea },
+                start, end, result: 'Acreditado'
+            });
+            const srcDoc = await PDFDocument.load(pdfBytes);
+            const [page] = await mergedPdf.copyPages(srcDoc, [0]);
+            mergedPdf.addPage(page);
+
+            // Guardar en historial
+            await api('insertOne','dc3_records',{ document: {
+                workerId: worker.curp, workerName: worker.name, workerPos: worker.position,
+                courseName, companyName: company.name, agentName, agentStps,
+                startDate: start, endDate: end, resultText: 'Acreditado',
+                creatorEmail: currentUser?.email || ''
+            }});
+        } catch(e) {
+            console.warn('Error DC-3 para', worker.name, e);
+        }
+        progressBar.style.width = `${Math.round(((i+1)/selectedWorkers.length)*100)}%`;
+    }
+
+    progressLbl.textContent = 'Preparando descarga…';
+    const finalBytes = await mergedPdf.save();
+    const blob = new Blob([finalBytes], { type: 'application/pdf' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `DC3_Masivo_${selectedWorkers.length}_trabajadores.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    closeModal('modal-bulk-dc3');
+    clearWorkerSelection();
+    if (currentView === 'dc3') loadSection('dc3');
+    alert(`✓ PDF masivo generado con ${selectedWorkers.length} DC-3`);
+}
+
+// ─── PREVISUALIZACIÓN DC-3 ────────────────────────────────────────────
+let _previewPdfBytes = null;
+
+async function previewDC3() {
+    const companyName = document.getElementById('dc3-company').value;
+    const agentVal    = document.getElementById('dc3-agent').value;
+    const courseVal   = document.getElementById('dc3-course').value;
+    const start       = document.getElementById('dc3-start').value;
+    const end         = document.getElementById('dc3-end').value;
+
+    if (!start || !end) { alert('Selecciona las fechas de inicio y término para previsualizar'); return; }
+
+    const company = DATA.companies.find(c => c.name === companyName) || { name: companyName, rfc: '' };
+    const [agentName, agentStps] = agentVal.split('|');
+    const [courseName, courseDuration, courseArea] = courseVal.split('|');
+
+    document.getElementById('modal-dc3-preview').classList.add('open');
+    const container = document.getElementById('dc3-preview-container');
+    container.innerHTML = '<p class="text-gray-400 text-sm">Generando previsualización…</p>';
+
+    try {
+        _previewPdfBytes = await buildDC3PDFBytes({
+            worker: selectedWorker, company,
+            agent: { name: agentName, stps: agentStps },
+            course: { name: courseName, duration: courseDuration, area: courseArea },
+            start, end, result: 'Acreditado'
+        });
+        showPDFInContainer(_previewPdfBytes, container);
+    } catch(e) {
+        container.innerHTML = `<p class="text-red-500 text-sm">Error: ${e.message}</p>`;
+    }
+}
+
+async function previewDC3FromRecord(record) {
+    const worker  = { name: record.workerName, curp: record.workerId, position: record.workerPos };
+    const regenCompany = DATA.companies.find(c => c.name === record.companyName) || { name: record.companyName, rfc: '' };
+
+    document.getElementById('modal-dc3-preview').classList.add('open');
+    const container = document.getElementById('dc3-preview-container');
+    container.innerHTML = '<p class="text-gray-400 text-sm">Cargando DC-3…</p>';
+
+    try {
+        _previewPdfBytes = await buildDC3PDFBytes({
+            worker, company: regenCompany,
+            agent:  { name: record.agentName || '–', stps: record.agentStps || '–' },
+            course: { name: record.courseName, duration: record.durationHours, area: record.thematicArea },
+            start: record.startDate, end: record.endDate, result: record.resultText || 'Acreditado'
+        });
+        showPDFInContainer(_previewPdfBytes, container);
+    } catch(e) {
+        container.innerHTML = `<p class="text-red-500 text-sm">Error: ${e.message}</p>`;
+    }
+}
+
+function showPDFInContainer(pdfBytes, container) {
+    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    const url  = URL.createObjectURL(blob);
+    container.innerHTML = `<iframe src="${url}" style="width:100%;height:100%;border:none;border-radius:8px" title="DC-3 Preview"></iframe>`;
+}
+
+function downloadFromPreview() {
+    if (!_previewPdfBytes) return;
+    const blob = new Blob([_previewPdfBytes], { type: 'application/pdf' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `DC3_preview.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+// ─── buildDC3PDFBytes: igual que buildDC3PDF pero retorna bytes en vez de descargar ──
+async function buildDC3PDFBytes(opts) {
+    return await _buildDC3Core(opts);
+}
+
+function splitNameJS(name, maxChars) {
+    if (!name || name.length <= maxChars) return [name || ''];
+    const mid = name.lastIndexOf(' ', maxChars);
+    if (mid > 0) return [name.substring(0, mid), name.substring(mid + 1)];
+    return [name.substring(0, maxChars), name.substring(maxChars)];
+}
+
+</script>
+</body>
+</html>
