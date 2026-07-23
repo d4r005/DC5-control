@@ -618,7 +618,9 @@ fun EmployeeListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                     }
                 } else {
                     // Update existing employee
-                    SupabaseRepository.updateData("workers", employeeToEdit!!.id ?: return@Button, updated, Employee.serializer()) { success ->
+                    val editId = employeeToEdit!!.id ?: ""
+                    if (editId.isBlank()) { showAddEditDialog = false; return@onConfirm }
+                    SupabaseRepository.updateData("workers", editId, updated, Employee.serializer()) { success ->
                         if (success) {
                             Toast.makeText(context, "Empleado actualizado exitosamente", Toast.LENGTH_SHORT).show()
                             loadData()
@@ -642,7 +644,9 @@ fun EmployeeListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                 val emp = employeeToDelete!!
                 employeeToDelete = null
                 isLoading = true
-                SupabaseRepository.deleteData("workers", emp.id ?: return@launch) { success ->
+                val delId = emp.id ?: ""
+                if (delId.isBlank()) { isLoading = false; return@onConfirm }
+                SupabaseRepository.deleteData("workers", delId) { success ->
                     if (success) {
                         Toast.makeText(context, "Empleado eliminado", Toast.LENGTH_SHORT).show()
                         loadData()

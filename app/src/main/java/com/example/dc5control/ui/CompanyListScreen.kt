@@ -385,7 +385,9 @@ fun CompanyListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                     }
                 } else {
                     // Update existing company
-                    SupabaseRepository.updateData("companies", companyToEdit!!.id ?: return@Button, updated, Company.serializer()) { success ->
+                    val editId = companyToEdit!!.id ?: ""
+                    if (editId.isBlank()) { showAddEditDialog = false; return@onConfirm }
+                    SupabaseRepository.updateData("companies", editId, updated, Company.serializer()) { success ->
                         if (success) {
                             Toast.makeText(context, "Empresa actualizada exitosamente", Toast.LENGTH_SHORT).show()
                             loadData()
@@ -409,7 +411,9 @@ fun CompanyListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                 val comp = companyToDelete!!
                 companyToDelete = null
                 isLoading = true
-                SupabaseRepository.deleteData("companies", comp.id ?: return@launch) { success ->
+                val delId = comp.id ?: ""
+                if (delId.isBlank()) { isLoading = false; return@onConfirm }
+                SupabaseRepository.deleteData("companies", delId) { success ->
                     if (success) {
                         Toast.makeText(context, "Empresa eliminada", Toast.LENGTH_SHORT).show()
                         loadData()
