@@ -1,5 +1,7 @@
 package com.example.dc5control.data.repository
 
+import android.content.Context
+import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import com.example.dc5control.data.model.*
@@ -166,4 +168,74 @@ object SupabaseRepository {
             }
         })
     }
+
+
+    // ─── FETCH WITH FILTER ────────────────────────────────────────────
+    fun <T> fetchDataFiltered(table: String, query: String, serializer: kotlinx.serialization.KSerializer<T>, onResult: (List<T>) -> Unit) {
+        val request = getBaseRequest(table, "select=*&$query")
+            .get()
+            .build()
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) { mainHandler.post { onResult(emptyList()) } }
+            override fun onResponse(call: Call, response: Response) {
+                response.use {
+                    val body = it.body?.string() ?: "[]"
+                    if (it.isSuccessful) {
+                        try {
+                            val arr = json.parseToJsonElement(body) as? JsonArray ?: JsonArray(emptyList())
+                            mainHandler.post { onResult(arr.map { el -> json.decodeFromJsonElement(serializer, el) }) }
+                        } catch (e: Exception) { mainHandler.post { onResult(emptyList()) } }
+                    } else { mainHandler.post { onResult(emptyList()) } }
+                }
+            }
+        })
+    }
+
+    // ─── UPLOAD PHOTO TO SUPABASE STORAGE ─────────────────────────────
+    private const val SUPABASE_STORAGE_URL = "https://osgfwgedjdltrmvwycjd.supabase.co/storage/v1/object/worker-photos"
+
+    fun uploadWorkerPhoto(context: Context, uri: Uri, workerId: String, onResult: (String?) -> Unit) {
+        Thread {
+            try {
+                val stream = context.contentResolver.openInputStream(uri) ?: run {
+                    mainHandler.post { onResult(null) }
+                    return@Thread
+                }
+                val bytes = stream.readBytes()
+                stream.close()
+
+                val ext = when {
+                    uri.toString().contains(".png", true) -> "png"
+                    uri.toString().contains(".webp", true) -> "webp"
+                    else -> "jpg"
+                }
+                val fileName = "$workerId.$ext"
+                val mimeType = if (ext == "png") "image/png" else "image/jpeg"
+
+                val requestBody = bytes.toRequestBody(mimeType.toMediaType())
+                val request = Request.Builder()
+                    .url("$SUPABASE_STORAGE_URL/$fileName")
+                    .addHeader("apikey", SUPABASE_KEY)
+                    .addHeader("Authorization", "Bearer $SUPABASE_KEY")
+                    .addHeader("Content-Type", mimeType)
+                    .addHeader("x-upsert", "true")
+                    .put(requestBody)
+                    .build()
+
+                client.newCall(request).execute().use { response ->
+                    if (response.isSuccessful) {
+                        val publicUrl = "https://osgfwgedjdltrmvwycjd.supabase.co/storage/v1/object/public/worker-photos/$fileName"
+                        mainHandler.post { onResult(publicUrl) }
+                    } else {
+                        android.util.Log.e("Supabase", "Upload failed: ${response.code} ${response.body?.string()}")
+                        mainHandler.post { onResult(null) }
+                    }
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("Supabase", "Upload exception: ${e.message}")
+                mainHandler.post { onResult(null) }
+            }
+        }.start()
+    }
+
 }

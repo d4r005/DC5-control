@@ -38,7 +38,8 @@ import kotlinx.coroutines.withContext
 fun DC3GenerationScreen(
     user: User = User("Admin", "admin@example.com", "ADMIN"),
     isExpanded: Boolean,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    preselectedEmployee: com.example.dc5control.data.model.Employee? = null
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -57,7 +58,7 @@ fun DC3GenerationScreen(
     val agents = remember { mutableStateListOf<Agent>() }
     val employees = remember { mutableStateListOf<Employee>() }
     val companies = remember { mutableStateListOf<Company>() }
-    var selectedEmployees by remember { mutableStateOf(setOf<Employee>()) }
+    var selectedEmployees by remember { mutableStateOf(if (preselectedEmployee != null) setOf(preselectedEmployee) else setOf<Employee>()) }
 
     LaunchedEffect(Unit) {
         SupabaseRepository.fetchData("courses", Course.serializer()) { fetched ->

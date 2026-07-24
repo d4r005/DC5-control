@@ -42,7 +42,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EmployeeListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
+fun EmployeeListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit, onGenerateDC3: (Employee) -> Unit = {}, onViewCourses: (Employee) -> Unit = {}) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     
@@ -407,9 +407,7 @@ fun EmployeeListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                                         ) {
                                             // DC-3 Button
                                             Button(
-                                                onClick = { 
-                                                    Toast.makeText(context, "Generar DC-3 para ${employee.nombres}", Toast.LENGTH_SHORT).show()
-                                                },
+                                                onClick = { onGenerateDC3(employee) },
                                                 colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary, contentColor = Color.White),
                                                 shape = RoundedCornerShape(6.dp),
                                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
@@ -420,9 +418,7 @@ fun EmployeeListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                                             
                                             // +Cursos Button
                                             Button(
-                                                onClick = { 
-                                                    Toast.makeText(context, "Ver cursos de ${employee.nombres}", Toast.LENGTH_SHORT).show()
-                                                },
+                                                onClick = { onViewCourses(employee) },
                                                 colors = ButtonDefaults.buttonColors(containerColor = Gray100, contentColor = Gray700),
                                                 shape = RoundedCornerShape(6.dp),
                                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
@@ -564,9 +560,7 @@ fun EmployeeListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Button(
-                                                onClick = { 
-                                                    Toast.makeText(context, "Generar DC-3 para ${employee.nombres}", Toast.LENGTH_SHORT).show()
-                                                },
+                                                onClick = { onGenerateDC3(employee) },
                                                 colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary, contentColor = Color.White),
                                                 shape = RoundedCornerShape(6.dp),
                                                 contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
@@ -576,9 +570,7 @@ fun EmployeeListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                                             }
                                             Spacer(modifier = Modifier.width(6.dp))
                                             Button(
-                                                onClick = { 
-                                                    Toast.makeText(context, "Ver cursos de ${employee.nombres}", Toast.LENGTH_SHORT).show()
-                                                },
+                                                onClick = { onViewCourses(employee) },
                                                 colors = ButtonDefaults.buttonColors(containerColor = Gray100, contentColor = Gray700),
                                                 shape = RoundedCornerShape(6.dp),
                                                 contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
@@ -710,6 +702,7 @@ fun AddEditEmployeeDialog(
     onDismiss: () -> Unit,
     onConfirm: (Employee) -> Unit
 ) {
+    val context = LocalContext.current
     var nombres by remember { mutableStateOf(employee?.nombres ?: "") }
     var apellidoPaterno by remember { mutableStateOf(employee?.apellidoPaterno ?: "") }
     var apellidoMaterno by remember { mutableStateOf(employee?.apellidoMaterno ?: "") }
@@ -719,11 +712,25 @@ fun AddEditEmployeeDialog(
     var photoUrl by remember { mutableStateOf(employee?.photoUrl ?: "") }
     var active by remember { mutableStateOf(employee?.active ?: true) }
 
+    var isUploadingPhoto by remember { mutableStateOf(false) }
     val photoLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
-        uri?.let {
-            photoUrl = it.toString()
+        uri?.let { selectedUri ->
+            isUploadingPhoto = true
+            val tempId = employee?.id ?: "new_${System.currentTimeMillis()}"
+            com.example.dc5control.data.repository.SupabaseRepository.uploadWorkerPhoto(
+                context, selectedUri, tempId
+            ) { uploadedUrl ->
+                isUploadingPhoto = false
+                if (uploadedUrl != null) {
+                    photoUrl = uploadedUrl
+                } else {
+                    // fallback — usar URI local temporalmente
+                    photoUrl = selectedUri.toString()
+                    android.widget.Toast.makeText(context, "No se pudo subir la foto al servidor", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
         }
     }
 
@@ -800,19 +807,14 @@ fun AddEditEmployeeDialog(
                         Spacer(modifier = Modifier.width(6.dp))
                         Text("Subir Foto", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
-                    if (photoUrl.isNotEmpty()) {
-                        Text(
-                            text = "Seleccionada",
-                            color = SuccessGreen,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    } else {
-                        Text(
-                            text = "Sin foto",
-                            color = Gray400,
-                            fontSize = 12.sp
-                        )
+                    when {
+                        isUploadingPhoto -> {
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = NavyPrimary)
+                            Spacer(Modifier.width(4.dp))
+                            Text("Subiendo...", color = NavyPrimary, fontSize = 12.sp)
+                        }
+                        photoUrl.isNotEmpty() -> Text("✓ Foto cargada", color = SuccessGreen, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        else -> Text("Sin foto", color = Gray400, fontSize = 12.sp)
                     }
                 }
 

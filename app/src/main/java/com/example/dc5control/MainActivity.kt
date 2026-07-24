@@ -30,7 +30,7 @@ import com.example.dc5control.ui.*
 import com.example.dc5control.ui.theme.*
 
 enum class Screen {
-    Dashboard, Workers, Companies, Courses, DC3, DC3History, Agents, DC3Design, Users
+    Dashboard, Workers, Companies, Courses, DC3, DC3History, Agents, DC3Design, Users, CoursesForEmployee
 }
 
 data class NavItem(
@@ -77,6 +77,7 @@ class MainActivity : ComponentActivity() {
 fun MainApp(windowSizeClass: WindowSizeClass) {
     var currentUser by remember { mutableStateOf<User?>(null) }
     var currentScreen by remember { mutableStateOf(Screen.Dashboard) }
+    var selectedEmployee by remember { mutableStateOf<com.example.dc5control.data.model.Employee?>(null) }
 
     // Restore session from SharedPreferences on startup
     val context = LocalContext.current
@@ -126,7 +127,7 @@ fun MainApp(windowSizeClass: WindowSizeClass) {
             Row(modifier = Modifier.fillMaxSize()) {
                 PermanentNavDrawer(user = user, currentScreen = currentScreen, onNavigate = navigateTo, onLogout = logout)
                 Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                    ScreenContent(currentScreen, user, isExpanded, goBack, navigateTo, logout)
+                    ScreenContent(currentScreen, user, isExpanded, goBack, navigateTo, logout, selectedEmployee, onSelectEmployee = { selectedEmployee = it })
                 }
             }
         }
@@ -134,7 +135,7 @@ fun MainApp(windowSizeClass: WindowSizeClass) {
             Row(modifier = Modifier.fillMaxSize()) {
                 CompactNavRail(currentScreen = currentScreen, onNavigate = navigateTo)
                 Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                    ScreenContent(currentScreen, user, isExpanded, goBack, navigateTo, logout)
+                    ScreenContent(currentScreen, user, isExpanded, goBack, navigateTo, logout, selectedEmployee, onSelectEmployee = { selectedEmployee = it })
                 }
             }
         }
@@ -147,23 +148,13 @@ fun MainApp(windowSizeClass: WindowSizeClass) {
                         tonalElevation = 2.dp
                     ) {
                         // Seleccionar items según rol
-                        val bottomItems = if (user.role == "ADMIN") {
-                            listOf(
-                                NavItem(Screen.Dashboard, "Inicio", Icons.Default.Dashboard),
-                                NavItem(Screen.Workers, "Personal", Icons.Default.People),
-                                NavItem(Screen.DC3, "DC-3", Icons.Default.Description),
-                                NavItem(Screen.DC3Design, "Diseño", Icons.Default.Palette),
-                                NavItem(Screen.Users, "Usuarios", Icons.Default.AdminPanelSettings)
-                            )
-                        } else {
-                            listOf(
-                                NavItem(Screen.Dashboard, "Inicio", Icons.Default.Dashboard),
-                                NavItem(Screen.Workers, "Personal", Icons.Default.People),
-                                NavItem(Screen.Companies, "Empresas", Icons.Default.Business),
-                                NavItem(Screen.Courses, "Cursos", Icons.Default.MenuBook),
-                                NavItem(Screen.DC3, "DC-3", Icons.Default.Description)
-                            )
-                        }
+                        val bottomItems = listOf(
+                            NavItem(Screen.Dashboard, "Inicio", Icons.Default.Dashboard),
+                            NavItem(Screen.Workers, "Personal", Icons.Default.People),
+                            NavItem(Screen.Companies, "Empresas", Icons.Default.Business),
+                            NavItem(Screen.DC3, "DC-3", Icons.Default.Description),
+                            NavItem(Screen.DC3History, "Historial", Icons.Default.History)
+                        )
                         bottomItems.forEach { item ->
                             NavigationBarItem(
                                 selected = currentScreen == item.screen,
@@ -183,7 +174,7 @@ fun MainApp(windowSizeClass: WindowSizeClass) {
                 }
             ) { padding ->
                 Box(modifier = Modifier.padding(padding).fillMaxSize()) {
-                    ScreenContent(currentScreen, user, isExpanded, goBack, navigateTo, logout)
+                    ScreenContent(currentScreen, user, isExpanded, goBack, navigateTo, logout, selectedEmployee, onSelectEmployee = { selectedEmployee = it })
                 }
             }
         }
@@ -197,18 +188,30 @@ fun ScreenContent(
     isExpanded: Boolean,
     onBack: () -> Unit,
     onNavigate: (Screen) -> Unit,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    selectedEmployee: com.example.dc5control.data.model.Employee? = null,
+    onSelectEmployee: (com.example.dc5control.data.model.Employee) -> Unit = {}
 ) {
     when (screen) {
         Screen.Dashboard -> DashboardScreen(user = user, onNavigate = onNavigate, onLogout = onLogout)
-        Screen.Workers -> EmployeeListScreen(user = user, isExpanded = isExpanded, onBack = onBack)
+        Screen.Workers -> EmployeeListScreen(
+            user = user, isExpanded = isExpanded, onBack = onBack,
+            onGenerateDC3 = { emp -> onSelectEmployee(emp); onNavigate(Screen.DC3) },
+            onViewCourses = { emp -> onSelectEmployee(emp); onNavigate(Screen.CoursesForEmployee) }
+        )
         Screen.Companies -> CompanyListScreen(user = user, isExpanded = isExpanded, onBack = onBack)
         Screen.Courses -> CourseListScreen(user = user, isExpanded = isExpanded, onBack = onBack)
-        Screen.DC3 -> DC3GenerationScreen(user = user, isExpanded = isExpanded, onBack = onBack)
+        Screen.DC3 -> DC3GenerationScreen(user = user, isExpanded = isExpanded, onBack = onBack, preselectedEmployee = selectedEmployee)
         Screen.DC3History -> DC3HistoryScreen(user = user, isExpanded = isExpanded, onBack = onBack)
         Screen.Agents -> AgentListScreen(user = user, isExpanded = isExpanded, onBack = onBack)
         Screen.DC3Design -> DC3DesignScreen(user = user, isExpanded = isExpanded, onBack = onBack)
         Screen.Users -> UsersScreen(user = user, isExpanded = isExpanded, onBack = onBack)
+        Screen.CoursesForEmployee -> if (selectedEmployee != null) {
+            CoursesForEmployeeScreen(
+                employee = selectedEmployee, user = user, onBack = onBack,
+                onGenerateDC3 = { emp -> onSelectEmployee(emp); onNavigate(Screen.DC3) }
+            )
+        } else { onNavigate(Screen.Workers) }
     }
 }
 
