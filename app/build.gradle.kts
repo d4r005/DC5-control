@@ -92,8 +92,8 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.kotlinx.serialization.json)
 
-    // Apache PDFBox 3.0.1 — generación de DC-3 sobre plantilla PDF
-    implementation(libs.apache.pdfbox)
+    // Apache PDFBox (Port para Android) — generación de DC-3 sobre plantilla PDF
+    implementation(libs.pdfbox.android)
 
     // Coil — carga de imágenes desde URL (fotos de trabajadores)
     implementation(libs.coil.compose)

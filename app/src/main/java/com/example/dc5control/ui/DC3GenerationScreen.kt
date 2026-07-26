@@ -8,6 +8,9 @@ import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -115,25 +118,26 @@ fun DC3GenerationScreen(
     suspend fun generateOrPreview(isPreview: Boolean) {
         val agent = selectedAgent ?: return
         val company = selectedCompany ?: return
-        val design = SupabaseRepository.fetchDataFilteredSuspend("agent_designs", "creator_email=eq.${agent.creatorEmail ?: user.email}", AgentDesign.serializer()).firstOrNull()
         
-        val signature = loadBitmap(context, design?.firmaBase64)
-        val logo = loadBitmap(context, design?.logoBase64)
-        val hLogo = loadBitmap(context, design?.headerLogoBase64)
+        try {
+            val design = SupabaseRepository.fetchDataFilteredSuspend("agent_designs", "creator_email=eq.${agent.creatorEmail ?: user.email}", AgentDesign.serializer()).firstOrNull()
+            
+            val signature = loadBitmap(context, design?.firmaBase64)
+            val logo = loadBitmap(context, design?.logoBase64)
+            val hLogo = loadBitmap(context, design?.headerLogoBase64)
 
-        if (isPreview) {
-            val employee = selectedEmployees.firstOrNull() ?: return
-            val course = selectedCourses.firstOrNull() ?: return
-            val photo = loadBitmap(context, employee.photoUrl)
-            val file = PdfGenerator.generateDC3(
-                context, employee, course, agent, company.name, company.rfc,
-                company.representanteLegal, company.representanteTrabajadores,
-                startDate, endDate, signature, logo, photo, hLogo, design?.headerSlogan
-            )
-            PdfGenerator.openPdf(context, file)
-        } else {
-            isGenerating = true
-            try {
+            if (isPreview) {
+                val employee = selectedEmployees.firstOrNull() ?: return
+                val course = selectedCourses.firstOrNull() ?: return
+                val photo = loadBitmap(context, employee.photoUrl)
+                val file = PdfGenerator.generateDC3(
+                    context, employee, course, agent, company.name, company.rfc,
+                    company.representanteLegal, company.representanteTrabajadores,
+                    startDate, endDate, signature, logo, photo, hLogo, design?.headerSlogan
+                )
+                PdfGenerator.openPdf(context, file)
+            } else {
+                isGenerating = true
                 var currentDoc = 0
                 val totalDocs = selectedEmployees.size * selectedCourses.size
                 selectedEmployees.forEach { employee ->
@@ -171,8 +175,13 @@ fun DC3GenerationScreen(
                     Toast.makeText(context, "Documentos guardados en Descargas", Toast.LENGTH_LONG).show()
                     onBack()
                 }
-            } catch (e: Exception) {
-            } finally { isGenerating = false }
+            }
+        } catch (e: Exception) {
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        } finally {
+            isGenerating = false
         }
     }
 
@@ -325,15 +334,58 @@ fun AgentSelectionSection(agents: List<Agent>, selectedAgent: Agent?, onAgentSel
 fun DatesSelectionSection(startDate: String, onStart: (String) -> Unit, endDate: String, onEnd: (String) -> Unit) {
     var showStart by remember { mutableStateOf(false) }
     var showEnd by remember { mutableStateOf(false) }
+
+    val startInteractionSource = remember { MutableInteractionSource() }
+    val endInteractionSource = remember { MutableInteractionSource() }
+
+    val isStartPressed by startInteractionSource.collectIsPressedAsState()
+    val isEndPressed by endInteractionSource.collectIsPressedAsState()
+
+    LaunchedEffect(isStartPressed) { if (isStartPressed) showStart = true }
+    LaunchedEffect(isEndPressed) { if (isEndPressed) showEnd = true }
+
     if (showStart) MyDatePickerDialog(onStart) { showStart = false }
     if (showEnd) MyDatePickerDialog(onEnd) { showEnd = false }
-    Card(colors = CardDefaults.cardColors(containerColor = SurfaceWhite), border = BorderStroke(1.dp, Gray200), shape = RoundedCornerShape(12.dp)) {
+
+    Card(
+        colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
+        border = BorderStroke(1.dp, Gray200),
+        shape = RoundedCornerShape(12.dp)
+    ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text("Período de Ejecución", fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = startDate, onValueChange = {}, readOnly = true, label = { Text("Inicio") }, modifier = Modifier.weight(1f).clickable { showStart = true }, shape = RoundedCornerShape(8.dp))
-                OutlinedTextField(value = endDate, onValueChange = {}, readOnly = true, label = { Text("Fin") }, modifier = Modifier.weight(1f).clickable { showEnd = true }, shape = RoundedCornerShape(8.dp))
+                OutlinedTextField(
+                    value = startDate,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Inicio") },
+                    placeholder = { Text("dd/MM/yyyy") },
+                    trailingIcon = { Icon(Icons.Default.CalendarToday, null, tint = Gray500, modifier = Modifier.size(18.dp)) },
+                    interactionSource = startInteractionSource,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = NavyPrimary,
+                        unfocusedBorderColor = Gray200
+                    )
+                )
+                OutlinedTextField(
+                    value = endDate,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Fin") },
+                    placeholder = { Text("dd/MM/yyyy") },
+                    trailingIcon = { Icon(Icons.Default.CalendarToday, null, tint = Gray500, modifier = Modifier.size(18.dp)) },
+                    interactionSource = endInteractionSource,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = NavyPrimary,
+                        unfocusedBorderColor = Gray200
+                    )
+                )
             }
         }
     }

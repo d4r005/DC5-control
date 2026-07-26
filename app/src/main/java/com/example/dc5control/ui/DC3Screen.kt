@@ -166,6 +166,7 @@ fun DC3Screen() {
                             fechaFin         = fechaFin,
                             areaTematica     = areaTematica,
                             agenteCapacitador = agente,
+                            stpsAgente       = "", // No disponible en este formulario simplificado
                             instructor       = instructor,
                             representanteLegal = patron,
                             representanteTrabajadores = representante.ifBlank { null }

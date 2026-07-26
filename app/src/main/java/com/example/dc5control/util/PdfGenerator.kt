@@ -1,28 +1,26 @@
-// ============================================================
-// PdfGenerator.kt
-// Genera el DC-3 usando Android PdfRenderer + Canvas + PdfDocument.
-// Coordenadas milimétricas sincronizadas con la versión Web.
-// ============================================================
-
 package com.example.dc5control.util
 
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
-import android.graphics.*
-import android.graphics.pdf.PdfDocument
-import android.graphics.pdf.PdfRenderer
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
-import android.os.ParcelFileDescriptor
 import android.provider.MediaStore
 import android.util.Log
 import androidx.core.content.FileProvider
+import com.example.dc5control.data.model.Agent
+import com.example.dc5control.data.model.Course
+import com.example.dc5control.data.model.Employee
+import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
+import com.tom_roush.pdfbox.pdmodel.PDDocument
+import com.tom_roush.pdfbox.pdmodel.PDPageContentStream
+import com.tom_roush.pdfbox.pdmodel.font.PDType1Font
+import com.tom_roush.pdfbox.pdmodel.graphics.image.PDImageXObject
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
-import java.io.OutputStream
-import com.example.dc5control.data.model.*
 
 data class DC3FormData(
     val nombreTrabajador: String,
@@ -33,10 +31,11 @@ data class DC3FormData(
     val rfc: String,
     val nombreCurso: String,
     val duracionHoras: String,
-    val fechaInicio: String,   // "dd/MM/yyyy"
-    val fechaFin: String,      // "dd/MM/yyyy"
+    val fechaInicio: String,
+    val fechaFin: String,
     val areaTematica: String,
     val agenteCapacitador: String,
+    val stpsAgente: String,
     val instructor: String,
     val representanteLegal: String = "",
     val representanteTrabajadores: String? = null,
@@ -44,101 +43,13 @@ data class DC3FormData(
     val logoBitmap: Bitmap? = null,
     val photoBitmap: Bitmap? = null,
     val headerLogoBitmap: Bitmap? = null,
-    val headerSlogan: String? = null,
-    val headerSloganX: Float = 306f,
-    val headerSloganY: Float = 40f,
-    val headerSloganSize: Float = 14f
+    val headerSlogan: String? = null
 )
 
 object PdfGenerator {
-
     private const val TAG = "PdfGenerator"
     private const val TEMPLATE_ASSET = "plantilla_dc3.pdf"
-    private const val LOGO_ASSET     = "logo_luber.png"
-    private const val FIRMA_ASSET    = "cynthia_firma_oficial.png"
-
-    private const val PDF_W  = 612f
-    private const val PDF_H  = 792f
-    private const val SCALE  = 2f
-    private val BMP_W get() = (PDF_W * SCALE).toInt()
-    private val BMP_H get() = (PDF_H * SCALE).toInt()
-
-    private val CURP_CENTERS = floatArrayOf(
-        32.0f,47.4f,62.8f,78.2f,93.5f,108.8f,124.2f,139.6f,
-        155.0f,170.3f,185.8f,201.2f,216.6f,231.9f,247.2f,262.6f,278.0f,293.3f
-    )
-    private const val CURP_Y = 196f
-
-    private val RFC_CENTERS = floatArrayOf(
-        34.9f,52.1f,66.0f,80.8f,95.4f,109.8f,124.0f,138.3f,
-        152.8f,167.0f,181.2f,195.5f,209.8f,227.4f,245.1f
-    )
-    private const val RFC_Y = 311f
-
-    private val AÑO_INI_CENTERS = floatArrayOf(260.2f, 276.1f, 292.2f, 308.3f)
-    private val MES_INI_CENTERS = floatArrayOf(348.2f, 369.7f)
-    private val DIA_INI_CENTERS = floatArrayOf(390.7f, 412.1f)
-    private val AÑO_FIN_CENTERS = floatArrayOf(452.4f, 471.9f, 491.4f, 511.8f)
-    private val MES_FIN_CENTERS = floatArrayOf(532.8f, 554.3f)
-    private val DIA_FIN_CENTERS = floatArrayOf(575.7f, 595.9f)
-    private const val FECHA_Y = 393f
-
-    private const val Y_NOMBRE_TRAB = 172.5f
-    private const val Y_PUESTO      = 220.0f
-    private const val Y_EMPRESA     = 272.0f
-    private const val Y_CURSO       = 362.0f
-    private const val Y_DURACION    = 378.0f
-    private const val Y_AREA        = 412.0f
-    private const val Y_AGENTE      = 437.0f
-
-    private const val SIG_INS_X  = 132f
-    private const val SIG_PAT_X  = 295f
-    private const val SIG_REP_X  = 464f
-    private const val SIG_IMG_Y  = 473f
-    private const val SIG_NAME_Y1 = 516f
-    private const val SIG_NAME_Y2 = 526f
-
-    private fun paintText(size: Float, bold: Boolean = false, center: Boolean = false) = Paint().apply {
-        color = Color.BLACK
-        textSize = size * SCALE
-        typeface = if (bold) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
-        textAlign = if (center) Paint.Align.CENTER else Paint.Align.LEFT
-        isAntiAlias = true
-    }
-
-    fun generate(context: Context, data: DC3FormData): File {
-        val tmpFile = File(context.cacheDir, "dc3_template_tmp.pdf")
-        context.assets.open(TEMPLATE_ASSET).use { input ->
-            FileOutputStream(tmpFile).use { output -> input.copyTo(output) }
-        }
-
-        val pfd = ParcelFileDescriptor.open(tmpFile, ParcelFileDescriptor.MODE_READ_ONLY)
-        val renderer = PdfRenderer(pfd)
-        val pdfPage = renderer.openPage(0)
-
-        val bmp = Bitmap.createBitmap(BMP_W, BMP_H, Bitmap.Config.ARGB_8888)
-        bmp.eraseColor(Color.WHITE)
-        pdfPage.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-        pdfPage.close()
-        renderer.close()
-        pfd.close()
-
-        val canvas = Canvas(bmp)
-        drawContent(context, canvas, data)
-
-        val pdfDoc = PdfDocument()
-        val pageInfo = PdfDocument.PageInfo.Builder(BMP_W, BMP_H, 1).create()
-        val page = pdfDoc.startPage(pageInfo)
-        page.canvas.drawBitmap(bmp, 0f, 0f, null)
-        pdfDoc.finishPage(page)
-
-        val name = "DC3_${sanitize(data.nombreTrabajador.replace(" ","_"))}.pdf"
-        val out = File(context.getExternalFilesDir(null), name)
-        FileOutputStream(out).use { pdfDoc.writeTo(it) }
-        pdfDoc.close()
-
-        return out
-    }
+    private const val PH = 792f // Altura en puntos (Letter)
 
     fun generateDC3(
         context: Context,
@@ -155,14 +66,12 @@ object PdfGenerator {
         logoBitmap: Bitmap?,
         photoBitmap: Bitmap? = null,
         headerLogoBitmap: Bitmap? = null,
-        headerSlogan: String? = null,
-        headerSloganX: Float = 306f,
-        headerSloganY: Float = 40f
+        headerSlogan: String? = null
     ): File {
         val data = DC3FormData(
             nombreTrabajador = "${employee.apellidoPaterno} ${employee.apellidoMaterno} ${employee.nombres}".trim(),
             curp = employee.curp,
-            ocupacion = employee.occupation,
+            ocupacion = employee.occupation.ifBlank { employee.position },
             puesto = employee.position,
             razonSocial = companyName,
             rfc = companyRfc,
@@ -172,6 +81,7 @@ object PdfGenerator {
             fechaFin = endDate,
             areaTematica = course.thematicArea ?: "",
             agenteCapacitador = agent.name,
+            stpsAgente = agent.stps,
             instructor = agent.name,
             representanteLegal = companyPatron,
             representanteTrabajadores = companyRepresentante,
@@ -179,173 +89,187 @@ object PdfGenerator {
             logoBitmap = logoBitmap,
             photoBitmap = photoBitmap,
             headerLogoBitmap = headerLogoBitmap,
-            headerSlogan = headerSlogan,
-            headerSloganX = headerSloganX,
-            headerSloganY = headerSloganY
+            headerSlogan = headerSlogan
         )
         return generate(context, data)
     }
 
-    private fun drawContent(context: Context, canvas: Canvas, d: DC3FormData) {
-        val pNormal = paintText(9f)
-        val pBold   = paintText(9f, bold = true)
-        val pBox    = paintText(8f, center = true)
-        val whitePaint = Paint().apply { color = Color.WHITE; style = Paint.Style.FILL }
+    private fun bitmapToJpeg(bitmap: Bitmap): ByteArray {
+        val stream = ByteArrayOutputStream()
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 90, stream)
+        return stream.toByteArray()
+    }
 
-        fun text(p: Paint, x: Float, y: Float, t: String) {
+    fun generate(context: Context, d: DC3FormData): File {
+        PDFBoxResourceLoader.init(context)
+        val inputStream = context.assets.open(TEMPLATE_ASSET)
+        val document = PDDocument.load(inputStream)
+        inputStream.close()
+
+        val font = PDType1Font.HELVETICA
+        val fontB = PDType1Font.HELVETICA_BOLD
+        val fontI = PDType1Font.TIMES_ITALIC
+
+        // --- PÁGINA 1 ---
+        val page = document.getPage(0)
+        val cs = PDPageContentStream(document, page, PDPageContentStream.AppendMode.APPEND, true, true)
+
+        fun rect(x: Float, yFitz: Float, w: Float, h: Float) {
+            cs.setNonStrokingColor(1f, 1f, 1f)
+            cs.addRect(x, PH - yFitz - h, w, h)
+            cs.fill()
+            cs.setNonStrokingColor(0f, 0f, 0f)
+        }
+
+        fun text(x: Float, yFitz: Float, t: String, sz: Float = 9f, bold: Boolean = false) {
             if (t.isBlank()) return
-            canvas.drawText(sanitize(t), x * SCALE, y * SCALE, p)
+            cs.beginText()
+            cs.setFont(if (bold) fontB else font, sz)
+            cs.newLineAtOffset(x, PH - yFitz)
+            cs.showText(sanitize(t).uppercase())
+            cs.endText()
         }
 
-        fun charInCell(x: Float, y: Float, ch: String) {
-            val w = pBox.measureText(ch)
-            canvas.drawText(ch, (x * SCALE) - (w/2f), y * SCALE, pBox)
+        fun textCentered(xC: Float, yF: Float, t: String, sz: Float = 9f, bold: Boolean = false, italic: Boolean = false) {
+            if (t.isBlank()) return
+            val f = when { italic -> fontI; bold -> fontB; else -> font }
+            val st = sanitize(t).uppercase()
+            val w = f.getStringWidth(st) / 1000 * sz
+            cs.beginText()
+            cs.setFont(f, sz)
+            cs.newLineAtOffset(xC - (w/2f), PH - yF)
+            cs.showText(st)
+            cs.endText()
         }
 
-        fun parseFecha(f: String): Triple<String, String, String> {
-            val p = f.split("/")
-            return Triple(
-                p.getOrElse(2) { "" }.padStart(4, '0'),
-                p.getOrElse(1) { "" }.padStart(2, '0'),
-                p.getOrElse(0) { "" }.padStart(2, '0')
-            )
+        fun cell(ch: String, xC: Float, yF: Float, sz: Float = 8f) {
+            if (ch.isBlank()) return
+            val w = font.getStringWidth(ch) / 1000 * sz
+            cs.beginText()
+            cs.setFont(font, sz)
+            cs.newLineAtOffset(xC - (w/2f), PH - yF)
+            cs.showText(ch.uppercase())
+            cs.endText()
         }
 
-        // --- 0. CABECERA (Logo y Slogan) ---
+        // 0. Cabecera (Slogan Arriba, Logo Abajo)
+        d.headerSlogan?.let { textCentered(306f, 15f, it, 11f, italic = true) }
         d.headerLogoBitmap?.let {
-            val dst = RectF(240f * SCALE, 20f * SCALE, 360f * SCALE, 85f * SCALE)
-            canvas.drawBitmap(it, null, dst, null)
-        }
-        d.headerSlogan?.let {
-            val pSlogan = paintText(14f, center = true).apply { 
-                typeface = Typeface.create(Typeface.SERIF, Typeface.ITALIC)
-                color = Color.parseColor("#0D0D59")
-            }
-            canvas.drawText(it, d.headerSloganX * SCALE, (d.headerSloganY + 10f) * SCALE, pSlogan)
+            val img = PDImageXObject.createFromByteArray(document, bitmapToJpeg(it), "h")
+            cs.drawImage(img, 246f, PH - 90f, 120f, 65f)
         }
 
-        // --- -1. FOTO DEL TRABAJADOR ---
+        // -1. Foto Trabajador
         d.photoBitmap?.let {
-            val dst = RectF(24f * SCALE, 36f * SCALE, (24f + 72f) * SCALE, (36f + 90f) * SCALE)
-            canvas.drawBitmap(it, null, dst, null)
+            val img = PDImageXObject.createFromByteArray(document, bitmapToJpeg(it), "p")
+            cs.drawImage(img, 24f, PH - 126f, 72f, 90f)
         }
 
-        text(pBold, 30f, Y_NOMBRE_TRAB, d.nombreTrabajador.uppercase())
-        d.curp.uppercase().replace(" ","").take(18).forEachIndexed { i, c ->
-            if (i < CURP_CENTERS.size) charInCell(CURP_CENTERS[i], CURP_Y, c.toString())
+        // 1. Nombre
+        text(30f, 172.5f, d.nombreTrabajador, 9f, true)
+
+        // 2. CURP
+        val curpC = floatArrayOf(32.0f,47.4f,62.8f,78.2f,93.5f,108.8f,124.2f,139.6f,155.0f,170.3f,185.8f,201.2f,216.6f,231.9f,247.2f,262.6f,278.0f,293.3f)
+        d.curp.replace(" ","").take(18).forEachIndexed { i, c -> if (i < curpC.size) cell(c.toString(), curpC[i], 196f) }
+
+        // 3. Ocupación
+        text(307f, 199f, d.ocupacion.take(50), 9f)
+
+        // 4. Puesto (Limpiar etiqueta)
+        rect(26f, 210f, 559f, 16f)
+        text(30f, 221f, d.puesto, 9f)
+
+        // 5. Empresa (Limpiar etiqueta)
+        rect(26f, 270f, 559f, 18f)
+        text(30f, 283f, d.razonSocial, 9f, true)
+
+        // 6. RFC
+        val rfcC = floatArrayOf(34.9f,52.1f,66.0f,80.8f,95.4f,109.8f,124.0f,138.3f,152.8f,167.0f,181.2f,195.5f,209.8f,227.4f,245.1f)
+        d.rfc.replace(" ","").take(15).forEachIndexed { i, c -> if (i < rfcC.size) cell(c.toString(), rfcC[i], 311f) }
+
+        // 7. Curso (Limpiar etiqueta)
+        rect(26f, 355f, 559f, 12f)
+        text(30f, 363f, d.nombreCurso, 9f)
+
+        // 8. Duración
+        text(30f, 390f, d.duracionHoras, 8f)
+
+        // 9. Fechas
+        val p = d.fechaInicio.split("/"); val p2 = d.fechaFin.split("/")
+        val yi = p.getOrElse(2){"    "}; val mi = p.getOrElse(1){"  "}; val di = p.getOrElse(0){"  "}
+        val yf = p2.getOrElse(2){"    "}; val mf = p2.getOrElse(1){"  "}; val df = p2.getOrElse(0){"  "}
+        val aI = floatArrayOf(260.2f, 276.1f, 292.2f, 308.4f); val mI = floatArrayOf(326.9f, 348.2f); val dI = floatArrayOf(369.6f, 390.7f)
+        val aF = floatArrayOf(432.9f, 452.4f, 471.9f, 491.4f); val mF = floatArrayOf(511.8f, 532.8f); val dF = floatArrayOf(554.2f, 575.7f)
+        yi.forEachIndexed { i,c -> if(i<4) cell(c.toString(), aI[i], 389f) }
+        mi.forEachIndexed { i,c -> if(i<2) cell(c.toString(), mI[i], 389f) }
+        di.forEachIndexed { i,c -> if(i<2) cell(c.toString(), dI[i], 389f) }
+        yf.forEachIndexed { i,c -> if(i<4) cell(c.toString(), aF[i], 389f) }
+        mf.forEachIndexed { i,c -> if(i<2) cell(c.toString(), mF[i], 389f) }
+        df.forEachIndexed { i,c -> if(i<2) cell(c.toString(), dF[i], 389f) }
+
+        // 10. Área Temática (Limpiar etiqueta)
+        rect(26f, 405f, 559f, 10f)
+        text(30f, 413f, d.areaTematica, 8f)
+
+        // 11. Agente (Limpiar etiqueta)
+        rect(26f, 430f, 559f, 12f)
+        text(30f, 440f, "${d.agenteCapacitador}  STPS-${d.stpsAgente}", 8f)
+
+        // 12. Firmas (Limpiar Zonas)
+        rect(63f, 511f, 137f, 27f); rect(218f, 511f, 153f, 27f); rect(389f, 511f, 153f, 27f)
+
+        val sIX = 132f; val sPX = 295f; val sRX = 465f; val sY1 = 522f; val sY2 = 532f
+        d.logoBitmap?.let { cs.drawImage(PDImageXObject.createFromByteArray(document, bitmapToJpeg(it), "l"), sIX-45f, PH-562f, 90f, 50f) }
+        d.signatureBitmap?.let { cs.drawImage(PDImageXObject.createFromByteArray(document, bitmapToJpeg(it), "s"), sIX-47.5f, PH-572f, 95f, 55f) }
+
+        val insL = splitName(d.instructor, 26); textCentered(sIX, sY1, insL[0], 8f)
+        if (insL.size > 1) textCentered(sIX, sY2, insL[1], 8f)
+
+        val patL = splitName(d.representanteLegal, 28); textCentered(sPX, sY1, patL[0], 8f)
+        if (patL.size > 1) textCentered(sPX, sY2, patL[1], 8f)
+
+        d.representanteTrabajadores?.let { r ->
+            val repL = splitName(r, 26); textCentered(sRX, sY1, repL[0], 8f)
+            if (repL.size > 1) textCentered(sRX, sY2, repL[1], 8f)
         }
-        text(paintText(7f), 30f, 183f, d.ocupacion.uppercase()) // Se ajustó X y se quitó take
-        canvas.drawRect(26f*SCALE, 208f*SCALE, 584f*SCALE, 226f*SCALE, whitePaint)
-        text(pNormal, 30f, Y_PUESTO, d.puesto.uppercase())
-        text(pBold, 30f, Y_EMPRESA, d.razonSocial.uppercase())
-        d.rfc.uppercase().replace(" ","").take(15).forEachIndexed { i, c ->
-            if (i < RFC_CENTERS.size) charInCell(RFC_CENTERS[i], RFC_Y, c.toString())
-        }
-        text(pBold, 30f, Y_CURSO, d.nombreCurso.uppercase())
-        text(pNormal, 30f, Y_DURACION, d.duracionHoras)
+        cs.close()
 
-        val (yi, mi, di) = parseFecha(d.fechaInicio)
-        val (yf, mf, df) = parseFecha(d.fechaFin)
-        fun drawDate(s: String, centers: FloatArray) {
-            s.forEachIndexed { i, c -> if (i < centers.size) charInCell(centers[i], FECHA_Y, c.toString()) }
-        }
-        drawDate(yi, AÑO_INI_CENTERS); drawDate(mi, MES_INI_CENTERS); drawDate(di, DIA_INI_CENTERS)
-        drawDate(yf, AÑO_FIN_CENTERS); drawDate(mf, MES_FIN_CENTERS); drawDate(df, DIA_FIN_CENTERS)
-
-        text(paintText(8f), 30f, Y_AREA, d.areaTematica.uppercase())
-        text(paintText(8f), 30f, Y_AGENTE, d.agenteCapacitador.uppercase())
-
-        canvas.drawRect(63f*SCALE,  472f*SCALE, 201f*SCALE, 540f*SCALE, whitePaint)
-        canvas.drawRect(218f*SCALE, 472f*SCALE, 372f*SCALE, 540f*SCALE, whitePaint)
-        canvas.drawRect(388f*SCALE, 472f*SCALE, 542f*SCALE, 540f*SCALE, whitePaint)
-
-        val logo = d.logoBitmap ?: loadAssetBitmap(context, LOGO_ASSET)
-        logo?.let {
-            val dst = RectF((SIG_INS_X-50f)*SCALE, (SIG_IMG_Y)*SCALE, (SIG_INS_X+50f)*SCALE, (SIG_IMG_Y+60f)*SCALE)
-            canvas.drawBitmap(it, null, dst, null)
-        }
-        val firma = d.signatureBitmap ?: loadAssetBitmap(context, FIRMA_ASSET)
-        firma?.let {
-            val dst = RectF((SIG_INS_X-47f)*SCALE, (SIG_IMG_Y)*SCALE, (SIG_INS_X+48f)*SCALE, (SIG_IMG_Y+65f)*SCALE)
-            canvas.drawBitmap(it, null, dst, null)
+        // --- PÁGINA 2 (Reverso) ---
+        if (document.numberOfPages > 1) {
+            val csR = PDPageContentStream(document, document.getPage(1), PDPageContentStream.AppendMode.APPEND, true, true)
+            d.headerSlogan?.let { textCentered(306f, 15f, it, 11f, italic = true) }
+            d.headerLogoBitmap?.let { csR.drawImage(PDImageXObject.createFromByteArray(document, bitmapToJpeg(it), "hR"), 246f, PH-80f, 120f, 48f) }
+            csR.close()
         }
 
-        val pSmallName  = paintText(8f, center = true)
-        val insLines = splitName(d.instructor.uppercase(), 26)
-        canvas.drawText(insLines[0], SIG_INS_X*SCALE, SIG_NAME_Y1*SCALE, pSmallName)
-        if (insLines.size > 1) canvas.drawText(insLines[1], SIG_INS_X*SCALE, SIG_NAME_Y2*SCALE, pSmallName)
-
-        val patLines = splitName(d.representanteLegal.uppercase(), 28)
-        canvas.drawText(patLines[0], SIG_PAT_X*SCALE, SIG_NAME_Y1*SCALE, pSmallName)
-        if (patLines.size > 1) canvas.drawText(patLines[1], SIG_PAT_X*SCALE, SIG_NAME_Y2*SCALE, pSmallName)
-
-        d.representanteTrabajadores?.let {
-            val repLines = splitName(it.uppercase(), 26)
-            canvas.drawText(repLines[0], SIG_REP_X*SCALE, SIG_NAME_Y1*SCALE, pSmallName)
-            if (repLines.size > 1) canvas.drawText(repLines[1], SIG_REP_X*SCALE, SIG_NAME_Y2*SCALE, pSmallName)
-        }
+        val name = "DC3_${sanitize(d.nombreTrabajador.replace(" ","_"))}.pdf"
+        val out = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), name)
+        document.save(out)
+        document.close()
+        return out
     }
 
-    private fun splitName(name: String, maxChars: Int): List<String> {
-        if (name.length <= maxChars) return listOf(name)
-        val mid = name.lastIndexOf(' ', maxChars)
-        return if (mid > 0) listOf(name.substring(0, mid), name.substring(mid + 1))
-        else listOf(name.take(maxChars), name.drop(maxChars))
+    private fun splitName(n: String, m: Int): List<String> {
+        if (n.length <= m) return listOf(n)
+        val idx = n.lastIndexOf(' ', m)
+        return if (idx > 0) listOf(n.substring(0, idx), n.substring(idx + 1)) else listOf(n.take(m), n.drop(m))
     }
 
-    private fun loadAssetBitmap(context: Context, assetName: String): Bitmap? = try {
-        context.assets.open(assetName).use { BitmapFactory.decodeStream(it) }
-    } catch (e: Exception) { null }
-
-    fun openPdf(context: Context, file: File) {
+    fun openPdf(c: Context, f: File) {
         try {
-            val uri = FileProvider.getUriForFile(
-                context,
-                "${context.packageName}.fileprovider",
-                file
-            )
-            val intent = Intent(Intent.ACTION_VIEW)
-            intent.setDataAndType(uri, "application/pdf")
-            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            context.startActivity(intent)
-        } catch (e: Exception) {
-            Log.e(TAG, "Error opening PDF: ${e.message}")
-        }
+            val uri = FileProvider.getUriForFile(c, "${c.packageName}.fileprovider", f)
+            c.startActivity(Intent(Intent.ACTION_VIEW).apply { setDataAndType(uri, "application/pdf"); addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION); addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) })
+        } catch (e: Exception) { Log.e(TAG, "Error: ${e.message}") }
     }
 
-    fun saveToDownloads(context: Context, sourceFile: File): Boolean {
+    fun saveToDownloads(c: Context, sf: File): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return false
         return try {
-            val fileName = sourceFile.name
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                val contentValues = ContentValues().apply {
-                    put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-                    put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf")
-                    put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
-                }
-                val resolver = context.contentResolver
-                val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
-                if (uri != null) {
-                    resolver.openOutputStream(uri)?.use { outputStream ->
-                        sourceFile.inputStream().use { it.copyTo(outputStream) }
-                    }
-                    true
-                } else false
-            } else {
-                @Suppress("DEPRECATION")
-                val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-                val targetFile = File(downloadsDir, fileName)
-                sourceFile.inputStream().use { input ->
-                    targetFile.outputStream().use { output ->
-                        input.copyTo(output)
-                    }
-                }
-                true
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error saving to Downloads: ${e.message}")
-            false
-        }
+            val resolver = c.contentResolver
+            val values = ContentValues().apply { put(MediaStore.MediaColumns.DISPLAY_NAME, sf.name); put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf"); put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS) }
+            val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+            if (uri != null) { resolver.openOutputStream(uri)?.use { sf.inputStream().use { input -> it.write(input.readBytes()) } }; true } else false
+        } catch (e: Exception) { false }
     }
 
     private fun sanitize(s: String): String {
