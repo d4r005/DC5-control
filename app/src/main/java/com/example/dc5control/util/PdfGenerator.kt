@@ -6,14 +6,22 @@
 
 package com.example.dc5control.util
 
+import android.content.ContentValues
 import android.content.Context
+import android.content.Intent
 import android.graphics.*
 import android.graphics.pdf.PdfDocument
 import android.graphics.pdf.PdfRenderer
+import android.net.Uri
+import android.os.Build
+import android.os.Environment
 import android.os.ParcelFileDescriptor
+import android.provider.MediaStore
 import android.util.Log
+import androidx.core.content.FileProvider
 import java.io.File
 import java.io.FileOutputStream
+import java.io.OutputStream
 import com.example.dc5control.data.model.*
 
 data class DC3FormData(
@@ -34,7 +42,12 @@ data class DC3FormData(
     val representanteTrabajadores: String? = null,
     val signatureBitmap: Bitmap? = null,
     val logoBitmap: Bitmap? = null,
-    val photoBitmap: Bitmap? = null
+    val photoBitmap: Bitmap? = null,
+    val headerLogoBitmap: Bitmap? = null,
+    val headerSlogan: String? = null,
+    val headerSloganX: Float = 306f,
+    val headerSloganY: Float = 40f,
+    val headerSloganSize: Float = 14f
 )
 
 object PdfGenerator {
@@ -139,7 +152,12 @@ object PdfGenerator {
         startDate: String,
         endDate: String,
         signatureBitmap: Bitmap?,
-        logoBitmap: Bitmap?
+        logoBitmap: Bitmap?,
+        photoBitmap: Bitmap? = null,
+        headerLogoBitmap: Bitmap? = null,
+        headerSlogan: String? = null,
+        headerSloganX: Float = 306f,
+        headerSloganY: Float = 40f
     ): File {
         val data = DC3FormData(
             nombreTrabajador = "${employee.apellidoPaterno} ${employee.apellidoMaterno} ${employee.nombres}".trim(),
@@ -158,7 +176,12 @@ object PdfGenerator {
             representanteLegal = companyPatron,
             representanteTrabajadores = companyRepresentante,
             signatureBitmap = signatureBitmap,
-            logoBitmap = logoBitmap
+            logoBitmap = logoBitmap,
+            photoBitmap = photoBitmap,
+            headerLogoBitmap = headerLogoBitmap,
+            headerSlogan = headerSlogan,
+            headerSloganX = headerSloganX,
+            headerSloganY = headerSloganY
         )
         return generate(context, data)
     }
@@ -188,18 +211,37 @@ object PdfGenerator {
             )
         }
 
+        // --- 0. CABECERA (Logo y Slogan) ---
+        d.headerLogoBitmap?.let {
+            val dst = RectF(240f * SCALE, 20f * SCALE, 360f * SCALE, 85f * SCALE)
+            canvas.drawBitmap(it, null, dst, null)
+        }
+        d.headerSlogan?.let {
+            val pSlogan = paintText(14f, center = true).apply { 
+                typeface = Typeface.create(Typeface.SERIF, Typeface.ITALIC)
+                color = Color.parseColor("#0D0D59")
+            }
+            canvas.drawText(it, d.headerSloganX * SCALE, (d.headerSloganY + 10f) * SCALE, pSlogan)
+        }
+
+        // --- -1. FOTO DEL TRABAJADOR ---
+        d.photoBitmap?.let {
+            val dst = RectF(24f * SCALE, 36f * SCALE, (24f + 72f) * SCALE, (36f + 90f) * SCALE)
+            canvas.drawBitmap(it, null, dst, null)
+        }
+
         text(pBold, 30f, Y_NOMBRE_TRAB, d.nombreTrabajador.uppercase())
         d.curp.uppercase().replace(" ","").take(18).forEachIndexed { i, c ->
             if (i < CURP_CENTERS.size) charInCell(CURP_CENTERS[i], CURP_Y, c.toString())
         }
-        text(paintText(7f), 307f, 183f, d.ocupacion.uppercase().take(50))
+        text(paintText(7f), 30f, 183f, d.ocupacion.uppercase()) // Se ajustó X y se quitó take
         canvas.drawRect(26f*SCALE, 208f*SCALE, 584f*SCALE, 226f*SCALE, whitePaint)
         text(pNormal, 30f, Y_PUESTO, d.puesto.uppercase())
-        text(pBold, 30f, Y_EMPRESA, d.razonSocial.uppercase().take(70))
+        text(pBold, 30f, Y_EMPRESA, d.razonSocial.uppercase())
         d.rfc.uppercase().replace(" ","").take(15).forEachIndexed { i, c ->
             if (i < RFC_CENTERS.size) charInCell(RFC_CENTERS[i], RFC_Y, c.toString())
         }
-        text(pBold, 30f, Y_CURSO, d.nombreCurso.uppercase().take(80))
+        text(pBold, 30f, Y_CURSO, d.nombreCurso.uppercase())
         text(pNormal, 30f, Y_DURACION, d.duracionHoras)
 
         val (yi, mi, di) = parseFecha(d.fechaInicio)
@@ -210,8 +252,8 @@ object PdfGenerator {
         drawDate(yi, AÑO_INI_CENTERS); drawDate(mi, MES_INI_CENTERS); drawDate(di, DIA_INI_CENTERS)
         drawDate(yf, AÑO_FIN_CENTERS); drawDate(mf, MES_FIN_CENTERS); drawDate(df, DIA_FIN_CENTERS)
 
-        text(paintText(8f), 30f, Y_AREA, d.areaTematica.uppercase().take(80))
-        text(paintText(8f), 30f, Y_AGENTE, d.agenteCapacitador.uppercase().take(80))
+        text(paintText(8f), 30f, Y_AREA, d.areaTematica.uppercase())
+        text(paintText(8f), 30f, Y_AGENTE, d.agenteCapacitador.uppercase())
 
         canvas.drawRect(63f*SCALE,  472f*SCALE, 201f*SCALE, 540f*SCALE, whitePaint)
         canvas.drawRect(218f*SCALE, 472f*SCALE, 372f*SCALE, 540f*SCALE, whitePaint)
@@ -254,6 +296,57 @@ object PdfGenerator {
     private fun loadAssetBitmap(context: Context, assetName: String): Bitmap? = try {
         context.assets.open(assetName).use { BitmapFactory.decodeStream(it) }
     } catch (e: Exception) { null }
+
+    fun openPdf(context: Context, file: File) {
+        try {
+            val uri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                file
+            )
+            val intent = Intent(Intent.ACTION_VIEW)
+            intent.setDataAndType(uri, "application/pdf")
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error opening PDF: ${e.message}")
+        }
+    }
+
+    fun saveToDownloads(context: Context, sourceFile: File): Boolean {
+        return try {
+            val fileName = sourceFile.name
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val contentValues = ContentValues().apply {
+                    put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                    put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf")
+                    put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                }
+                val resolver = context.contentResolver
+                val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+                if (uri != null) {
+                    resolver.openOutputStream(uri)?.use { outputStream ->
+                        sourceFile.inputStream().use { it.copyTo(outputStream) }
+                    }
+                    true
+                } else false
+            } else {
+                @Suppress("DEPRECATION")
+                val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                val targetFile = File(downloadsDir, fileName)
+                sourceFile.inputStream().use { input ->
+                    targetFile.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                true
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error saving to Downloads: ${e.message}")
+            false
+        }
+    }
 
     private fun sanitize(s: String): String {
         val map = mapOf('á' to 'a', 'é' to 'e', 'í' to 'i', 'ó' to 'o', 'ú' to 'u', 'ü' to 'u', 'ñ' to 'n', 'Á' to 'A', 'É' to 'E', 'Í' to 'I', 'Ó' to 'O', 'Ú' to 'U', 'Ü' to 'U', 'Ñ' to 'N')

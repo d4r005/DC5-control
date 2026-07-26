@@ -85,9 +85,21 @@ val dc3Records = remember { mutableStateListOf<DC3Record>() }
             ) {
                 Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                     if (!employee.photoUrl.isNullOrBlank()) {
+                        val model = remember(employee.photoUrl) {
+                            if (employee.photoUrl?.startsWith("data:image", ignoreCase = true) == true) {
+                                try {
+                                    val base64String = employee.photoUrl.substringAfter("base64,")
+                                    android.util.Base64.decode(base64String, android.util.Base64.DEFAULT)
+                                } catch (e: Exception) {
+                                    employee.photoUrl
+                                }
+                            } else {
+                                employee.photoUrl
+                            }
+                        }
                         AsyncImage(
                             model = ImageRequest.Builder(LocalContext.current)
-                                .data(employee.photoUrl).crossfade(true).build(),
+                                .data(model).crossfade(true).build(),
                             contentDescription = null,
                             modifier = Modifier.size(56.dp)
                                 .then(Modifier.padding(end = 12.dp))

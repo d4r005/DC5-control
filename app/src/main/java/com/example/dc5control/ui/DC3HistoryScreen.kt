@@ -1,5 +1,6 @@
 package com.example.dc5control.ui
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
@@ -15,25 +16,100 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.dc5control.data.model.DC3Record
-import com.example.dc5control.data.model.User
+import com.example.dc5control.data.model.*
 import com.example.dc5control.data.repository.SupabaseRepository
 import com.example.dc5control.ui.theme.*
+import com.example.dc5control.util.PdfGenerator
+import kotlinx.coroutines.launch
 
 @Composable
 fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val records = remember { mutableStateListOf<DC3Record>() }
     var isLoading by remember { mutableStateOf(true) }
 
-    LaunchedEffect(Unit) {
+    fun refresh() {
+        isLoading = true
         SupabaseRepository.fetchData("dc3_records", DC3Record.serializer()) { fetched ->
             records.clear()
             records.addAll(fetched)
             isLoading = false
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        refresh()
+    }
+
+    fun handleView(record: DC3Record) {
+        scope.launch {
+            try {
+                // We need to fetch details to reconstruct PDF or use a URL if available
+                // For now, let's assume we can generate it again from record data
+                // This is a bit simplified, ideally we fetch the Employee/Agent object
+                // but let's use a simplified generator if needed or fetch them.
+                
+                // For a quick fix, we'll try to find the data
+                SupabaseRepository.fetchData("workers", Employee.serializer()) { employees ->
+                    val employee = employees.find { it.curp == record.workerId }
+                    SupabaseRepository.fetchData("agents", Agent.serializer()) { agents ->
+                        val agent = agents.find { it.name == record.agentName }
+                        
+                        if (employee != null && agent != null) {
+                            val file = PdfGenerator.generateDC3(
+                                context = context,
+                                employee = employee,
+                                course = Course(name = record.courseName, durationHours = record.durationHours, thematicArea = record.thematicArea),
+                                agent = agent,
+                                companyName = record.companyName,
+                                companyRfc = "", // Need RFC in record really
+                                companyPatron = "",
+                                companyRepresentante = null,
+                                startDate = record.startDate,
+                                endDate = record.endDate,
+                                signatureBitmap = null,
+                                logoBitmap = null
+                            )
+                            PdfGenerator.openPdf(context, file)
+                        }
+                    }
+                }
+            } catch (e: Exception) { }
+        }
+    }
+
+    fun handleDownload(record: DC3Record) {
+        scope.launch {
+            SupabaseRepository.fetchData("workers", Employee.serializer()) { employees ->
+                val employee = employees.find { it.curp == record.workerId }
+                SupabaseRepository.fetchData("agents", Agent.serializer()) { agents ->
+                    val agent = agents.find { it.name == record.agentName }
+                    if (employee != null && agent != null) {
+                        val file = PdfGenerator.generateDC3(
+                            context = context,
+                            employee = employee,
+                            course = Course(name = record.courseName, durationHours = record.durationHours, thematicArea = record.thematicArea),
+                            agent = agent,
+                            companyName = record.companyName,
+                            companyRfc = "",
+                            companyPatron = "",
+                            companyRepresentante = null,
+                            startDate = record.startDate,
+                            endDate = record.endDate,
+                            signatureBitmap = null,
+                            logoBitmap = null
+                        )
+                        PdfGenerator.saveToDownloads(context, file)
+                        android.widget.Toast.makeText(context, "Archivo guardado en Descargas", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
         }
     }
 
@@ -107,9 +183,9 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
             LazyColumn {
                 items(records) { record ->
                     if (isExpanded) {
-                        DC3RecordRow(record)
+                        DC3RecordRow(record, onView = { handleView(it) }, onDownload = { handleDownload(it) }, onDelete = { refresh() })
                     } else {
-                        DC3RecordCard(record)
+                        DC3RecordCard(record, onView = { handleView(it) }, onDownload = { handleDownload(it) }, onDelete = { refresh() })
                     }
                     HorizontalDivider(color = Gray50, modifier = Modifier.padding(horizontal = if (isExpanded) 0.dp else 16.dp))
                 }
@@ -119,7 +195,7 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
 }
 
 @Composable
-fun DC3RecordRow(record: DC3Record) {
+fun DC3RecordRow(record: DC3Record, onView: (DC3Record) -> Unit, onDownload: (DC3Record) -> Unit, onDelete: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -139,7 +215,7 @@ fun DC3RecordRow(record: DC3Record) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             AssistChip(
-                onClick = { },
+                onClick = { onView(record) },
                 label = { Text("Ver", fontSize = 12.sp) },
                 colors = AssistChipDefaults.assistChipColors(
                     containerColor = NavySurface,
@@ -148,7 +224,7 @@ fun DC3RecordRow(record: DC3Record) {
                 modifier = Modifier.padding(end = 4.dp)
             )
             AssistChip(
-                onClick = { },
+                onClick = { onDownload(record) },
                 label = { Text("PDF", fontSize = 12.sp) },
                 colors = AssistChipDefaults.assistChipColors(
                     containerColor = NavyPrimary,
@@ -161,7 +237,7 @@ fun DC3RecordRow(record: DC3Record) {
             }
             IconButton(onClick = {
                 record.id?.let { id ->
-                    SupabaseRepository.deleteData("dc3_records", id.toString()) { }
+                    SupabaseRepository.deleteData("dc3_records", id.toString()) { onDelete() }
                 }
             }, modifier = Modifier.size(32.dp)) {
                 Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = ErrorRed, modifier = Modifier.size(16.dp))
@@ -171,7 +247,7 @@ fun DC3RecordRow(record: DC3Record) {
 }
 
 @Composable
-fun DC3RecordCard(record: DC3Record) {
+fun DC3RecordCard(record: DC3Record, onView: (DC3Record) -> Unit, onDownload: (DC3Record) -> Unit, onDelete: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -223,14 +299,14 @@ fun DC3RecordCard(record: DC3Record) {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End
         ) {
-            TextButton(onClick = { }) {
+            TextButton(onClick = { onView(record) }) {
                 Text("Ver", color = NavyPrimary, fontSize = 13.sp)
             }
-            TextButton(onClick = { }) {
+            TextButton(onClick = { onDownload(record) }) {
                 Text("PDF", color = NavyPrimary, fontSize = 13.sp, fontWeight = FontWeight.Bold)
             }
             record.id?.let { id ->
-                IconButton(onClick = { SupabaseRepository.deleteData("dc3_records", id.toString()) { } }, modifier = Modifier.size(32.dp)) {
+                IconButton(onClick = { SupabaseRepository.deleteData("dc3_records", id.toString()) { onDelete() } }, modifier = Modifier.size(32.dp)) {
                     Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = ErrorRed, modifier = Modifier.size(16.dp))
                 }
             }

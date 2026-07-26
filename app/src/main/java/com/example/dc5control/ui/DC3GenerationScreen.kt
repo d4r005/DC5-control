@@ -2,6 +2,8 @@ package com.example.dc5control.ui
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.util.Base64
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -24,14 +26,40 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.imageLoader
+import coil.request.ImageRequest
+import coil.request.SuccessResult
 import com.example.dc5control.data.model.*
 import com.example.dc5control.data.repository.SupabaseRepository
 import com.example.dc5control.ui.theme.*
 import com.example.dc5control.util.CloudflareHelper
+import com.example.dc5control.util.CourseDefaults
 import com.example.dc5control.util.PdfGenerator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+// Helper to load bitmap from URL or Base64
+suspend fun loadBitmap(context: Context, source: String?): Bitmap? {
+    if (source.isNullOrBlank()) return null
+    return try {
+        if (source.startsWith("data:image")) {
+            val base64String = source.substringAfter("base64,")
+            val decodedBytes = Base64.decode(base64String, Base64.DEFAULT)
+            BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
+        } else {
+            val loader = context.imageLoader
+            val request = ImageRequest.Builder(context)
+                .data(source)
+                .allowHardware(false) // Required for PDF drawing
+                .build()
+            val result = (loader.execute(request) as? SuccessResult)?.drawable
+            (result as? android.graphics.drawable.BitmapDrawable)?.bitmap
+        }
+    } catch (e: Exception) {
+        null
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,12 +67,12 @@ fun DC3GenerationScreen(
     user: User = User("Admin", "admin@example.com", "ADMIN"),
     isExpanded: Boolean,
     onBack: () -> Unit,
-    preselectedEmployee: com.example.dc5control.data.model.Employee? = null
+    preselectedEmployees: List<Employee>? = null
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    var selectedCourse by remember { mutableStateOf<Course?>(null) }
+    var selectedCourses by remember { mutableStateOf(setOf<Course>()) }
     var selectedAgent by remember { mutableStateOf<Agent?>(null) }
     var selectedCompany by remember { mutableStateOf<Company?>(null) }
 
@@ -58,13 +86,16 @@ fun DC3GenerationScreen(
     val agents = remember { mutableStateListOf<Agent>() }
     val employees = remember { mutableStateListOf<Employee>() }
     val companies = remember { mutableStateListOf<Company>() }
-    var selectedEmployees by remember { mutableStateOf(if (preselectedEmployee != null) setOf(preselectedEmployee) else setOf<Employee>()) }
+    var selectedEmployees by remember { mutableStateOf(preselectedEmployees?.toSet() ?: emptySet()) }
 
     LaunchedEffect(Unit) {
         SupabaseRepository.fetchData("courses", Course.serializer()) { fetched ->
-            val filtered = if (user.role == "ADMIN") fetched else fetched.filter { it.creatorEmail == user.email }
-            courses.clear()
-            courses.addAll(filtered)
+            CourseDefaults.cleanupDatabase(fetched) {
+                val merged = CourseDefaults.mergeWithDefaults(fetched, user.email)
+                val filtered = if (user.role == "ADMIN") merged else merged.filter { it.creatorEmail == user.email }
+                courses.clear()
+                courses.addAll(filtered)
+            }
         }
         SupabaseRepository.fetchData("agents", Agent.serializer()) { fetched ->
             agents.clear()
@@ -73,7 +104,6 @@ fun DC3GenerationScreen(
         SupabaseRepository.fetchData("workers", Employee.serializer()) { fetched ->
             val filtered = if (user.role == "ADMIN") fetched else fetched.filter { it.creatorEmail == user.email }
             employees.clear()
-            // Active employees only
             employees.addAll(filtered.filter { it.active })
         }
         SupabaseRepository.fetchData("companies", Company.serializer()) { fetched ->
@@ -82,313 +112,115 @@ fun DC3GenerationScreen(
         }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(BackgroundLight)
-            .padding(16.dp)
-    ) {
+    suspend fun generateOrPreview(isPreview: Boolean) {
+        val agent = selectedAgent ?: return
+        val company = selectedCompany ?: return
+        val design = SupabaseRepository.fetchDataFilteredSuspend("agent_designs", "creator_email=eq.${agent.creatorEmail ?: user.email}", AgentDesign.serializer()).firstOrNull()
+        
+        val signature = loadBitmap(context, design?.firmaBase64)
+        val logo = loadBitmap(context, design?.logoBase64)
+        val hLogo = loadBitmap(context, design?.headerLogoBase64)
+
+        if (isPreview) {
+            val employee = selectedEmployees.firstOrNull() ?: return
+            val course = selectedCourses.firstOrNull() ?: return
+            val photo = loadBitmap(context, employee.photoUrl)
+            val file = PdfGenerator.generateDC3(
+                context, employee, course, agent, company.name, company.rfc,
+                company.representanteLegal, company.representanteTrabajadores,
+                startDate, endDate, signature, logo, photo, hLogo, design?.headerSlogan
+            )
+            PdfGenerator.openPdf(context, file)
+        } else {
+            isGenerating = true
+            try {
+                var currentDoc = 0
+                val totalDocs = selectedEmployees.size * selectedCourses.size
+                selectedEmployees.forEach { employee ->
+                    val photo = loadBitmap(context, employee.photoUrl)
+                    selectedCourses.forEach { course ->
+                        currentDoc++
+                        statusText = "Procesando $currentDoc de $totalDocs: ${employee.nombres}..."
+                        val file = PdfGenerator.generateDC3(
+                            context, employee, course, agent, company.name, company.rfc,
+                            company.representanteLegal, company.representanteTrabajadores,
+                            startDate, endDate, signature, logo, photo, hLogo, design?.headerSlogan
+                        )
+                        PdfGenerator.saveToDownloads(context, file)
+                        if (totalDocs == 1) PdfGenerator.openPdf(context, file)
+
+                        val record = DC3Record(
+                            workerId = employee.curp,
+                            workerName = "${employee.apellidoPaterno} ${employee.nombres}".trim(),
+                            workerPos = employee.position,
+                            courseName = course.name,
+                            durationHours = course.durationHours,
+                            thematicArea = course.thematicArea ?: "",
+                            companyName = company.name,
+                            agentName = agent.name,
+                            agentStps = agent.stps,
+                            startDate = startDate,
+                            endDate = endDate,
+                            creatorEmail = employee.creatorEmail ?: user.email
+                        )
+                        SupabaseRepository.insertDataSuspend("dc3_records", record, DC3Record.serializer())
+                        try { CloudflareHelper.uploadPdfSuspend(file) } catch(e: Exception) {}
+                    }
+                }
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Documentos guardados en Descargas", Toast.LENGTH_LONG).show()
+                    onBack()
+                }
+            } catch (e: Exception) {
+            } finally { isGenerating = false }
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize().background(BackgroundLight).padding(16.dp)) {
         if (isGenerating) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.White)
-                    .padding(24.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        "Generando Constancias DC-3...",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = NavyPrimary
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        "Por favor espera mientras creamos y subimos los archivos.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Gray500
-                    )
+            Box(modifier = Modifier.fillMaxSize().background(Color.White).padding(24.dp), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Generando Constancias DC-3...", fontWeight = FontWeight.Bold, color = NavyPrimary)
                     Spacer(modifier = Modifier.height(16.dp))
-                    LinearProgressIndicator(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(8.dp),
-                        color = Violet600,
-                        trackColor = Gray200
-                    )
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth().height(8.dp), color = Violet600)
                     Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        statusText,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Gray700
-                    )
+                    Text(statusText, style = MaterialTheme.typography.bodySmall, color = Gray700)
                 }
             }
         } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Header with custom title & subtitle
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Regresar",
-                            tint = Gray900
-                        )
-                    }
+            Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null) }
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
-                        Text(
-                            text = "Generar Constancia DC-3",
-                            style = MaterialTheme.typography.titleLarge.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = Gray900,
-                                fontSize = 20.sp
-                            )
-                        )
-                        Text(
-                            text = "Formato oficial STPS · Art. 153-A LFT",
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                color = Gray500,
-                                fontSize = 14.sp
-                            )
-                        )
+                        Text("Generar Constancia DC-3", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                        Text("Formato oficial STPS · Art. 153-A LFT", color = Gray500, fontSize = 14.sp)
                     }
                 }
-
                 if (isExpanded) {
-                    // Two-column layout for Tablet/Landscape
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        // Left Column: worker selection + company
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            WorkerSelectionSection(
-                                employees = employees,
-                                selectedEmployees = selectedEmployees,
-                                onSelectionChanged = { selectedEmployees = it }
-                            )
-
-                            CompanySelectionSection(
-                                companies = companies,
-                                selectedCompany = selectedCompany,
-                                onCompanySelected = { selectedCompany = it }
-                            )
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                            WorkerSelectionSection(employees, selectedEmployees) { selectedEmployees = it }
+                            CompanySelectionSection(companies, selectedCompany) { selectedCompany = it }
                         }
-
-                        // Right Column: agent + course + dates + generate button
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            AgentSelectionSection(
-                                agents = agents,
-                                selectedAgent = selectedAgent,
-                                onAgentSelected = { selectedAgent = it }
-                            )
-
-                            CourseSelectionSection(
-                                courses = courses,
-                                selectedCourse = selectedCourse,
-                                onCourseSelected = { selectedCourse = it }
-                            )
-
-                            DatesSelectionSection(
-                                startDate = startDate,
-                                onStartDateSelected = { startDate = it },
-                                endDate = endDate,
-                                onEndDateSelected = { endDate = it }
-                            )
-
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                            AgentSelectionSection(agents, selectedAgent) { selectedAgent = it }
+                            CourseSelectionSection(courses, selectedCourses) { selectedCourses = it }
+                            DatesSelectionSection(startDate, { startDate = it }, endDate, { endDate = it })
                             Spacer(modifier = Modifier.height(8.dp))
-
-                            ActionButtonsSection(
-                                onBack = onBack,
-                                onGenerate = {
-                                    scope.launch {
-                                        isGenerating = true
-                                        try {
-                                            val total = selectedEmployees.size
-                                            selectedEmployees.forEachIndexed { index, employee ->
-                                                statusText = "Procesando ${index + 1} de $total: ${employee.nombres}..."
-                                                
-                                                try {
-                                                    val file = PdfGenerator.generateDC3(
-                                                        context = context,
-                                                        employee = employee,
-                                                        course = selectedCourse!!,
-                                                        agent = selectedAgent!!,
-                                                        companyName = selectedCompany!!.name,
-                                                        companyRfc = selectedCompany!!.rfc,
-                                                        companyPatron = selectedCompany!!.representanteLegal,
-                                                        companyRepresentante = selectedCompany!!.representanteTrabajadores,
-                                                        startDate = startDate,
-                                                        endDate = endDate,
-                                                        signatureBitmap = null,
-                                                        logoBitmap = null
-                                                    )
-                                                    
-                                                    try {
-                                                        CloudflareHelper.uploadPdfSuspend(file)
-                                                    } catch (cfEx: Exception) {
-                                                        android.util.Log.e("DC3", "Error upload: ${cfEx.message}")
-                                                    }
-                                                } catch (pdfEx: Exception) {
-                                                    android.util.Log.e("DC3", "Error PDF: ${pdfEx.message}")
-                                                }
-
-                                                val record = DC3Record(
-                                                    workerId = employee.curp,
-                                                    workerName = "${employee.apellidoPaterno} ${employee.nombres}".trim(),
-                                                    workerPos = employee.position,
-                                                    courseName = selectedCourse!!.name,
-                                                    durationHours = selectedCourse!!.durationHours,
-                                                    thematicArea = selectedCourse!!.thematicArea ?: "",
-                                                    companyName = selectedCompany!!.name,
-                                                    agentName = selectedAgent!!.name,
-                                                    agentStps = selectedAgent!!.stps,
-                                                    startDate = startDate,
-                                                    endDate = endDate,
-                                                    creatorEmail = employee.creatorEmail ?: user.email
-                                                )
-                                                SupabaseRepository.insertDataSuspend("dc3_records", record, DC3Record.serializer())
-                                            }
-                                            
-                                            withContext(Dispatchers.Main) {
-                                                Toast.makeText(context, "Constancias DC-3 generadas con éxito", Toast.LENGTH_LONG).show()
-                                                onBack()
-                                            }
-                                        } catch (e: Exception) {
-                                            android.util.Log.e("DC3", "Error general: ${e.message}")
-                                        } finally {
-                                            isGenerating = false
-                                        }
-                                    }
-                                },
-                                enabled = selectedEmployees.isNotEmpty() && selectedCompany != null && selectedAgent != null && selectedCourse != null && startDate.isNotEmpty() && endDate.isNotEmpty()
-                            )
+                            ActionButtonsSection(onBack, onPreview = { scope.launch { generateOrPreview(true) } }, onGenerate = { scope.launch { generateOrPreview(false) } },
+                                enabled = selectedEmployees.isNotEmpty() && selectedCompany != null && selectedAgent != null && selectedCourses.isNotEmpty() && startDate.isNotEmpty() && endDate.isNotEmpty())
                         }
                     }
                 } else {
-                    // Compact Single Column layout for Portrait/Phone
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        WorkerSelectionSection(
-                            employees = employees,
-                            selectedEmployees = selectedEmployees,
-                            onSelectionChanged = { selectedEmployees = it }
-                        )
-
-                        CompanySelectionSection(
-                            companies = companies,
-                            selectedCompany = selectedCompany,
-                            onCompanySelected = { selectedCompany = it }
-                        )
-
-                        AgentSelectionSection(
-                            agents = agents,
-                            selectedAgent = selectedAgent,
-                            onAgentSelected = { selectedAgent = it }
-                        )
-
-                        CourseSelectionSection(
-                            courses = courses,
-                            selectedCourse = selectedCourse,
-                            onCourseSelected = { selectedCourse = it }
-                        )
-
-                        DatesSelectionSection(
-                            startDate = startDate,
-                            onStartDateSelected = { startDate = it },
-                            endDate = endDate,
-                            onEndDateSelected = { endDate = it }
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        ActionButtonsSection(
-                            onBack = onBack,
-                            onGenerate = {
-                                scope.launch {
-                                    isGenerating = true
-                                    try {
-                                        val total = selectedEmployees.size
-                                        selectedEmployees.forEachIndexed { index, employee ->
-                                            statusText = "Procesando ${index + 1} de $total: ${employee.nombres}..."
-                                            
-                                            try {
-                                                val file = PdfGenerator.generateDC3(
-                                                    context = context,
-                                                    employee = employee,
-                                                    course = selectedCourse!!,
-                                                    agent = selectedAgent!!,
-                                                    companyName = selectedCompany!!.name,
-                                                    companyRfc = selectedCompany!!.rfc,
-                                                    companyPatron = selectedCompany!!.representanteLegal,
-                                                    companyRepresentante = selectedCompany!!.representanteTrabajadores,
-                                                    startDate = startDate,
-                                                    endDate = endDate,
-                                                    signatureBitmap = null,
-                                                    logoBitmap = null
-                                                )
-                                                
-                                                try {
-                                                    CloudflareHelper.uploadPdfSuspend(file)
-                                                } catch (cfEx: Exception) {
-                                                    android.util.Log.e("DC3", "Error upload: ${cfEx.message}")
-                                                }
-                                            } catch (pdfEx: Exception) {
-                                                android.util.Log.e("DC3", "Error PDF: ${pdfEx.message}")
-                                            }
-
-                                            val record = DC3Record(
-                                                workerId = employee.curp,
-                                                workerName = "${employee.apellidoPaterno} ${employee.nombres}".trim(),
-                                                workerPos = employee.position,
-                                                courseName = selectedCourse!!.name,
-                                                durationHours = selectedCourse!!.durationHours,
-                                                thematicArea = selectedCourse!!.thematicArea ?: "",
-                                                companyName = selectedCompany!!.name,
-                                                agentName = selectedAgent!!.name,
-                                                agentStps = selectedAgent!!.stps,
-                                                startDate = startDate,
-                                                endDate = endDate,
-                                                creatorEmail = employee.creatorEmail ?: user.email
-                                            )
-                                            SupabaseRepository.insertDataSuspend("dc3_records", record, DC3Record.serializer())
-                                        }
-                                        
-                                        withContext(Dispatchers.Main) {
-                                            Toast.makeText(context, "Constancias DC-3 generadas con éxito", Toast.LENGTH_LONG).show()
-                                            onBack()
-                                        }
-                                    } catch (e: Exception) {
-                                        android.util.Log.e("DC3", "Error general: ${e.message}")
-                                    } finally {
-                                        isGenerating = false
-                                    }
-                                }
-                            },
-                            enabled = selectedEmployees.isNotEmpty() && selectedCompany != null && selectedAgent != null && selectedCourse != null && startDate.isNotEmpty() && endDate.isNotEmpty()
-                        )
-                    }
+                    WorkerSelectionSection(employees, selectedEmployees) { selectedEmployees = it }
+                    CompanySelectionSection(companies, selectedCompany) { selectedCompany = it }
+                    AgentSelectionSection(agents, selectedAgent) { selectedAgent = it }
+                    CourseSelectionSection(courses, selectedCourses) { selectedCourses = it }
+                    DatesSelectionSection(startDate, { startDate = it }, endDate, { endDate = it })
+                    Spacer(modifier = Modifier.height(8.dp))
+                    ActionButtonsSection(onBack, onPreview = { scope.launch { generateOrPreview(true) } }, onGenerate = { scope.launch { generateOrPreview(false) } },
+                        enabled = selectedEmployees.isNotEmpty() && selectedCompany != null && selectedAgent != null && selectedCourses.isNotEmpty() && startDate.isNotEmpty() && endDate.isNotEmpty())
                 }
             }
         }
@@ -396,188 +228,72 @@ fun DC3GenerationScreen(
 }
 
 @Composable
-fun WorkerSelectionSection(
-    employees: List<Employee>,
-    selectedEmployees: Set<Employee>,
-    onSelectionChanged: (Set<Employee>) -> Unit
-) {
+fun WorkerSelectionSection(employees: List<Employee>, selectedEmployees: Set<Employee>, onSelectionChanged: (Set<Employee>) -> Unit) {
     var searchQuery by remember { mutableStateOf("") }
-    val filteredEmployees = employees.filter {
-        it.nombres.contains(searchQuery, ignoreCase = true) ||
-        it.apellidoPaterno.contains(searchQuery, ignoreCase = true) ||
-        it.curp.contains(searchQuery, ignoreCase = true)
-    }
-
-    Card(
-        colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
-        border = BorderStroke(1.dp, Gray200),
-        shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
+    val filtered = employees.filter { it.nombres.contains(searchQuery, ignoreCase = true) || it.apellidoPaterno.contains(searchQuery, ignoreCase = true) || it.curp.contains(searchQuery, ignoreCase = true) }
+    Card(colors = CardDefaults.cardColors(containerColor = SurfaceWhite), border = BorderStroke(1.dp, Gray200), shape = RoundedCornerShape(12.dp)) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "Seleccionar Trabajadores",
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold, color = Gray900)
-            )
+            Text("Seleccionar Trabajadores", fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
-
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                placeholder = { Text("Buscar trabajador...", color = Gray400) },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp),
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Gray400) },
-                colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = Gray200,
-                    focusedBorderColor = NavyPrimary,
-                    focusedContainerColor = SurfaceWhite,
-                    unfocusedContainerColor = SurfaceWhite
-                ),
-                singleLine = true
-            )
-
+            OutlinedTextField(value = searchQuery, onValueChange = { searchQuery = it }, placeholder = { Text("Buscar...") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp), singleLine = true)
             Spacer(modifier = Modifier.height(12.dp))
-
-            Surface(
-                color = Gray100,
-                shape = RoundedCornerShape(8.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 180.dp)
-            ) {
-                if (filteredEmployees.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
-                        Text("No se encontraron trabajadores activos", color = Gray500, fontSize = 13.sp)
-                    }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.padding(4.dp)
-                    ) {
-                        items(filteredEmployees) { employee ->
-                            val isChecked = selectedEmployees.contains(employee)
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        onSelectionChanged(
-                                            if (isChecked) selectedEmployees - employee else selectedEmployees + employee
-                                        )
-                                    }
-                                    .padding(vertical = 4.dp, horizontal = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Checkbox(
-                                    checked = isChecked,
-                                    onCheckedChange = { checked ->
-                                        onSelectionChanged(
-                                            if (checked == true) selectedEmployees + employee else selectedEmployees - employee
-                                        )
-                                    },
-                                    colors = CheckboxDefaults.colors(checkedColor = NavyPrimary)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Column {
-                                    Text(
-                                        "${employee.apellidoPaterno} ${employee.apellidoMaterno} ${employee.nombres}".trim(),
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = Gray900
-                                    )
-                                    Text(
-                                        "CURP: ${employee.curp}",
-                                        fontSize = 11.sp,
-                                        color = Gray500
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (selectedEmployees.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(12.dp))
-                if (selectedEmployees.size == 1) {
-                    val worker = selectedEmployees.first()
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = Blue50),
-                        border = BorderStroke(1.dp, Color(0xFFBFDBFE)),
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(10.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Surface(
-                                color = Color(0xFFDBEAFE),
-                                shape = RoundedCornerShape(6.dp),
-                                modifier = Modifier.size(36.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        Icons.Default.Person,
-                                        contentDescription = null,
-                                        tint = NavyPrimary,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-                            }
-                            Spacer(modifier = Modifier.width(10.dp))
+            Surface(color = Gray100, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth().heightIn(max = 180.dp)) {
+                LazyColumn(modifier = Modifier.padding(4.dp)) {
+                    items(filtered) { emp ->
+                        val checked = selectedEmployees.contains(emp)
+                        Row(modifier = Modifier.fillMaxWidth().clickable { onSelectionChanged(if (checked) selectedEmployees - emp else selectedEmployees + emp) }.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(checked = checked, onCheckedChange = { onSelectionChanged(if (it == true) selectedEmployees + emp else selectedEmployees - emp) })
+                            Spacer(modifier = Modifier.width(8.dp))
                             Column {
-                                Text(
-                                    "${worker.apellidoPaterno} ${worker.nombres}".trim(),
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = NavyPrimary
-                                )
-                                Text(
-                                    "CURP: ${worker.curp}",
-                                    fontSize = 11.sp,
-                                    color = Gray700
-                                )
+                                Text("${emp.apellidoPaterno} ${emp.nombres}", fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                                Text("CURP: ${emp.curp}", fontSize = 11.sp, color = Gray500)
                             }
                         }
                     }
-                } else {
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = Blue50),
-                        border = BorderStroke(1.dp, Color(0xFFBFDBFE)),
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(10.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Surface(
-                                color = Color(0xFFDBEAFE),
-                                shape = RoundedCornerShape(6.dp),
-                                modifier = Modifier.size(36.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        Icons.Default.Group,
-                                        contentDescription = null,
-                                        tint = NavyPrimary,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-                            }
-                            Spacer(modifier = Modifier.width(10.dp))
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CompanySelectionSection(companies: List<Company>, selectedCompany: Company?, onCompanySelected: (Company) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Card(colors = CardDefaults.cardColors(containerColor = SurfaceWhite), border = BorderStroke(1.dp, Gray200), shape = RoundedCornerShape(12.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("Empresa", fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
+            ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+                OutlinedTextField(value = selectedCompany?.name ?: "", onValueChange = {}, readOnly = true, placeholder = { Text("Selecciona...") }, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) }, modifier = Modifier.fillMaxWidth().menuAnchor(), shape = RoundedCornerShape(8.dp))
+                ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    companies.forEach { DropdownMenuItem(text = { Text(it.name) }, onClick = { onCompanySelected(it); expanded = false }) }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CourseSelectionSection(courses: List<Course>, selectedCourses: Set<Course>, onSelectionChanged: (Set<Course>) -> Unit) {
+    var searchQuery by remember { mutableStateOf("") }
+    val filtered = courses.filter { it.name.contains(searchQuery, ignoreCase = true) }
+    Card(colors = CardDefaults.cardColors(containerColor = SurfaceWhite), border = BorderStroke(1.dp, Gray200), shape = RoundedCornerShape(12.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("Seleccionar Cursos", fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(value = searchQuery, onValueChange = { searchQuery = it }, placeholder = { Text("Buscar curso...") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp), singleLine = true)
+            Spacer(modifier = Modifier.height(12.dp))
+            Surface(color = Gray100, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth().heightIn(max = 180.dp)) {
+                LazyColumn(modifier = Modifier.padding(4.dp)) {
+                    items(filtered) { crs ->
+                        val checked = selectedCourses.contains(crs)
+                        Row(modifier = Modifier.fillMaxWidth().clickable { onSelectionChanged(if (checked) selectedCourses - crs else selectedCourses + crs) }.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(checked = checked, onCheckedChange = { onSelectionChanged(if (it == true) selectedCourses + crs else selectedCourses - crs) })
+                            Spacer(modifier = Modifier.width(8.dp))
                             Column {
-                                Text(
-                                    "Generación Masiva",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = NavyPrimary
-                                )
-                                Text(
-                                    "${selectedEmployees.size} trabajadores seleccionados",
-                                    fontSize = 11.sp,
-                                    color = Gray700
-                                )
+                                Text(crs.name, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                                Text("${crs.durationHours} | ${crs.thematicArea ?: ""}", fontSize = 11.sp, color = Gray500)
                             }
                         }
                     }
@@ -589,235 +305,16 @@ fun WorkerSelectionSection(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CompanySelectionSection(
-    companies: List<Company>,
-    selectedCompany: Company?,
-    onCompanySelected: (Company) -> Unit
-) {
+fun AgentSelectionSection(agents: List<Agent>, selectedAgent: Agent?, onAgentSelected: (Agent) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
-
-    Card(
-        colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
-        border = BorderStroke(1.dp, Gray200),
-        shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
+    Card(colors = CardDefaults.cardColors(containerColor = SurfaceWhite), border = BorderStroke(1.dp, Gray200), shape = RoundedCornerShape(12.dp)) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "Empresa",
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold, color = Gray900)
-            )
+            Text("Agente Capacitador", fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
-
-            ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = { expanded = it }
-            ) {
-                OutlinedTextField(
-                    value = selectedCompany?.name ?: "",
-                    onValueChange = {},
-                    readOnly = true,
-                    placeholder = { Text("Selecciona empresa...", color = Gray400) },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = Gray200,
-                        focusedBorderColor = NavyPrimary,
-                        focusedContainerColor = SurfaceWhite,
-                        unfocusedContainerColor = SurfaceWhite
-                    ),
-                    shape = RoundedCornerShape(8.dp)
-                )
-                ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
-                ) {
-                    if (companies.isEmpty()) {
-                        DropdownMenuItem(
-                            text = { Text("No hay empresas registradas") },
-                            onClick = { expanded = false }
-                        )
-                    } else {
-                        companies.forEach { company ->
-                            DropdownMenuItem(
-                                text = {
-                                    Column {
-                                        Text(company.name, fontWeight = FontWeight.Medium)
-                                        Text("RFC: ${company.rfc}", style = MaterialTheme.typography.bodySmall, color = Gray500)
-                                    }
-                                },
-                                onClick = {
-                                    onCompanySelected(company)
-                                    expanded = false
-                                }
-                            )
-                        }
-                    }
-                }
-            }
-
-            if (selectedCompany != null) {
-                Spacer(modifier = Modifier.height(10.dp))
-                Surface(
-                    color = Gray100,
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(10.dp)) {
-                        Text(
-                            "Patrón / Representante:",
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, color = Gray700)
-                        )
-                        Text(
-                            selectedCompany.representanteLegal.ifBlank { "No especificado" },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Gray900
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun CourseSelectionSection(
-    courses: List<Course>,
-    selectedCourse: Course?,
-    onCourseSelected: (Course) -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-
-    Card(
-        colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
-        border = BorderStroke(1.dp, Gray200),
-        shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "Curso",
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold, color = Gray900)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-
-            ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = { expanded = it }
-            ) {
-                OutlinedTextField(
-                    value = selectedCourse?.let { "${it.name} (${it.durationHours} hrs)" } ?: "",
-                    onValueChange = {},
-                    readOnly = true,
-                    placeholder = { Text("Selecciona curso...", color = Gray400) },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = Gray200,
-                        focusedBorderColor = NavyPrimary,
-                        focusedContainerColor = SurfaceWhite,
-                        unfocusedContainerColor = SurfaceWhite
-                    ),
-                    shape = RoundedCornerShape(8.dp)
-                )
-                ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
-                ) {
-                    if (courses.isEmpty()) {
-                        DropdownMenuItem(
-                            text = { Text("No hay cursos registrados") },
-                            onClick = { expanded = false }
-                        )
-                    } else {
-                        courses.forEach { course ->
-                            DropdownMenuItem(
-                                text = {
-                                    Column {
-                                        Text(course.name, fontWeight = FontWeight.Medium)
-                                        Text("Duración: ${course.durationHours} hrs | Área: ${course.thematicArea ?: "–"}", style = MaterialTheme.typography.bodySmall, color = Gray500)
-                                    }
-                                },
-                                onClick = {
-                                    onCourseSelected(course)
-                                    expanded = false
-                                }
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun AgentSelectionSection(
-    agents: List<Agent>,
-    selectedAgent: Agent?,
-    onAgentSelected: (Agent) -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-
-    Card(
-        colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
-        border = BorderStroke(1.dp, Gray200),
-        shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "Agente Capacitador / Instructor",
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold, color = Gray900)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-
-            ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = { expanded = it }
-            ) {
-                OutlinedTextField(
-                    value = selectedAgent?.let { "${it.name} (${it.stps})" } ?: "",
-                    onValueChange = {},
-                    readOnly = true,
-                    placeholder = { Text("Selecciona agente...", color = Gray400) },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = Gray200,
-                        focusedBorderColor = NavyPrimary,
-                        focusedContainerColor = SurfaceWhite,
-                        unfocusedContainerColor = SurfaceWhite
-                    ),
-                    shape = RoundedCornerShape(8.dp)
-                )
-                ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
-                ) {
-                    if (agents.isEmpty()) {
-                        DropdownMenuItem(
-                            text = { Text("No hay agentes registrados") },
-                            onClick = { expanded = false }
-                        )
-                    } else {
-                        agents.forEach { agent ->
-                            DropdownMenuItem(
-                                text = {
-                                    Column {
-                                        Text(agent.name, fontWeight = FontWeight.Medium)
-                                        Text("STPS: ${agent.stps}", style = MaterialTheme.typography.bodySmall, color = Gray500)
-                                    }
-                                },
-                                onClick = {
-                                    onAgentSelected(agent)
-                                    expanded = false
-                                }
-                            )
-                        }
-                    }
+            ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+                OutlinedTextField(value = selectedAgent?.name ?: "", onValueChange = {}, readOnly = true, placeholder = { Text("Selecciona...") }, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) }, modifier = Modifier.fillMaxWidth().menuAnchor(), shape = RoundedCornerShape(8.dp))
+                ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    agents.forEach { DropdownMenuItem(text = { Text(it.name) }, onClick = { onAgentSelected(it); expanded = false }) }
                 }
             }
         }
@@ -825,171 +322,38 @@ fun AgentSelectionSection(
 }
 
 @Composable
-fun DatesSelectionSection(
-    startDate: String,
-    onStartDateSelected: (String) -> Unit,
-    endDate: String,
-    onEndDateSelected: (String) -> Unit
-) {
-    var showStartDatePicker by remember { mutableStateOf(false) }
-    var showEndDatePicker by remember { mutableStateOf(false) }
-
-    if (showStartDatePicker) {
-        MyDatePickerDialog(
-            onDateSelected = onStartDateSelected,
-            onDismiss = { showStartDatePicker = false }
-        )
-    }
-
-    if (showEndDatePicker) {
-        MyDatePickerDialog(
-            onDateSelected = onEndDateSelected,
-            onDismiss = { showEndDatePicker = false }
-        )
-    }
-
-    Card(
-        colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
-        border = BorderStroke(1.dp, Gray200),
-        shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
+fun DatesSelectionSection(startDate: String, onStart: (String) -> Unit, endDate: String, onEnd: (String) -> Unit) {
+    var showStart by remember { mutableStateOf(false) }
+    var showEnd by remember { mutableStateOf(false) }
+    if (showStart) MyDatePickerDialog(onStart) { showStart = false }
+    if (showEnd) MyDatePickerDialog(onEnd) { showEnd = false }
+    Card(colors = CardDefaults.cardColors(containerColor = SurfaceWhite), border = BorderStroke(1.dp, Gray200), shape = RoundedCornerShape(12.dp)) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "Período de Ejecución",
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold, color = Gray900)
-            )
+            Text("Período de Ejecución", fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedTextField(
-                    value = startDate,
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Fecha Inicio", fontSize = 11.sp) },
-                    placeholder = { Text("dd/MM/yyyy", fontSize = 12.sp, color = Gray400) },
-                    trailingIcon = {
-                        IconButton(onClick = { showStartDatePicker = true }) {
-                            Icon(Icons.Default.DateRange, contentDescription = "Fecha Inicio", tint = Gray500)
-                        }
-                    },
-                    modifier = Modifier.weight(1f).clickable { showStartDatePicker = true },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = Gray200,
-                        focusedBorderColor = NavyPrimary,
-                        focusedContainerColor = SurfaceWhite,
-                        unfocusedContainerColor = SurfaceWhite
-                    ),
-                    shape = RoundedCornerShape(8.dp)
-                )
-
-                OutlinedTextField(
-                    value = endDate,
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Fecha Fin", fontSize = 11.sp) },
-                    placeholder = { Text("dd/MM/yyyy", fontSize = 12.sp, color = Gray400) },
-                    trailingIcon = {
-                        IconButton(onClick = { showEndDatePicker = true }) {
-                            Icon(Icons.Default.DateRange, contentDescription = "Fecha Fin", tint = Gray500)
-                        }
-                    },
-                    modifier = Modifier.weight(1f).clickable { showEndDatePicker = true },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = Gray200,
-                        focusedBorderColor = NavyPrimary,
-                        focusedContainerColor = SurfaceWhite,
-                        unfocusedContainerColor = SurfaceWhite
-                    ),
-                    shape = RoundedCornerShape(8.dp)
-                )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(value = startDate, onValueChange = {}, readOnly = true, label = { Text("Inicio") }, modifier = Modifier.weight(1f).clickable { showStart = true }, shape = RoundedCornerShape(8.dp))
+                OutlinedTextField(value = endDate, onValueChange = {}, readOnly = true, label = { Text("Fin") }, modifier = Modifier.weight(1f).clickable { showEnd = true }, shape = RoundedCornerShape(8.dp))
             }
         }
     }
 }
 
 @Composable
-fun ActionButtonsSection(
-    onBack: () -> Unit,
-    onGenerate: () -> Unit,
-    enabled: Boolean
-) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            OutlinedButton(
-                onClick = onBack,
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = Gray700),
-                border = BorderStroke(1.dp, Gray300),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text("Cancelar")
-            }
-
-            Button(
-                onClick = { /* Previsualizar */ },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = NavySurface, contentColor = NavyPrimary),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text("Previsualizar")
-            }
+fun ActionButtonsSection(onBack: () -> Unit, onPreview: () -> Unit, onGenerate: () -> Unit, enabled: Boolean) {
+    Column {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(onClick = onBack, modifier = Modifier.weight(1f), shape = RoundedCornerShape(8.dp)) { Text("Cancelar") }
+            Button(onClick = onPreview, modifier = Modifier.weight(1f), enabled = enabled, colors = ButtonDefaults.buttonColors(containerColor = NavySurface, contentColor = NavyPrimary), shape = RoundedCornerShape(8.dp)) { Text("Previsualizar") }
         }
-
         Spacer(modifier = Modifier.height(12.dp))
-
-        Button(
-            onClick = onGenerate,
-            modifier = Modifier.fillMaxWidth().height(48.dp),
-            enabled = enabled,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = NavyPrimary,
-                disabledContainerColor = Gray200,
-                disabledContentColor = Gray400
-            ),
-            shape = RoundedCornerShape(8.dp)
-        ) {
-            Text("Generar PDF DC-3", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-        }
+        Button(onClick = onGenerate, modifier = Modifier.fillMaxWidth().height(48.dp), enabled = enabled, shape = RoundedCornerShape(8.dp), colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary)) { Text("Generar PDF DC-3", fontWeight = FontWeight.Bold) }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MyDatePickerDialog(
-    onDateSelected: (String) -> Unit,
-    onDismiss: () -> Unit
-) {
-    val datePickerState = rememberDatePickerState()
-    DatePickerDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    datePickerState.selectedDateMillis?.let { millis ->
-                        val formatter = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault())
-                        formatter.timeZone = java.util.TimeZone.getTimeZone("UTC")
-                        val dateStr = formatter.format(java.util.Date(millis))
-                        onDateSelected(dateStr)
-                    }
-                    onDismiss()
-                }
-            ) {
-                Text("Aceptar")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancelar")
-            }
-        }
-    ) {
-        DatePicker(state = datePickerState)
-    }
+fun MyDatePickerDialog(onDateSelected: (String) -> Unit, onDismiss: () -> Unit) {
+    val state = rememberDatePickerState()
+    DatePickerDialog(onDismissRequest = onDismiss, confirmButton = { TextButton(onClick = { state.selectedDateMillis?.let { val f = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()); f.timeZone = java.util.TimeZone.getTimeZone("UTC"); onDateSelected(f.format(java.util.Date(it))) }; onDismiss() }) { Text("OK") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }) { DatePicker(state) }
 }

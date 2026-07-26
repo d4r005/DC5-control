@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.dc5control.util.CourseDefaults
 import com.example.dc5control.data.model.Course
 import com.example.dc5control.data.model.User
 import com.example.dc5control.data.repository.SupabaseRepository
@@ -37,9 +38,14 @@ fun CourseListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
     fun refreshCourses() {
         isLoading = true
         SupabaseRepository.fetchData("courses", Course.serializer()) { fetchedCourses ->
-            courses.clear()
-            courses.addAll(fetchedCourses)
-            isLoading = false
+            // Ejecutar limpieza de nombres cortos en segundo plano la primera vez
+            CourseDefaults.cleanupDatabase(fetchedCourses) {
+                // Una vez limpio el servidor, actualizamos la UI con los nombres oficiales
+                val merged = CourseDefaults.mergeWithDefaults(fetchedCourses, user.email)
+                courses.clear()
+                courses.addAll(merged)
+                isLoading = false
+            }
         }
     }
 
@@ -262,54 +268,53 @@ fun CourseListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                             contentPadding = PaddingValues(8.dp)
                         ) {
                             items(filteredCourses) { course ->
-                                Column(
+                                Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(8.dp)
+                                        .padding(vertical = 12.dp, horizontal = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(
-                                        text = course.name,
-                                        fontWeight = FontWeight.Bold,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = Gray900
-                                    )
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(CircleShape)
-                                                .background(NavySurface)
-                                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = course.name,
+                                            fontWeight = FontWeight.Bold,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = Gray900,
+                                            lineHeight = 20.sp
+                                        )
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                                         ) {
-                                            Text(
-                                                text = course.durationHours,
-                                                color = NavyPrimary,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
-                                        if (!course.thematicArea.isNullOrBlank() && course.thematicArea != "–" && course.thematicArea != "-") {
-                                            Surface(
-                                                color = NavySurface,
-                                                shape = RoundedCornerShape(6.dp)
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(4.dp))
+                                                    .background(NavySurface)
+                                                    .padding(horizontal = 8.dp, vertical = 2.dp)
                                             ) {
+                                                val durationText = if (course.durationHours.uppercase().contains("HORA")) {
+                                                    course.durationHours
+                                                } else {
+                                                    "${course.durationHours} HORAS"
+                                                }
+                                                Text(
+                                                    text = durationText.uppercase(),
+                                                    color = NavyPrimary,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
+                                            if (!course.thematicArea.isNullOrBlank() && course.thematicArea != "–") {
                                                 Text(
                                                     text = course.thematicArea,
                                                     style = MaterialTheme.typography.bodySmall,
-                                                    color = NavyPrimary,
-                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                                    color = Gray500
                                                 )
                                             }
                                         }
                                     }
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.End
-                                    ) {
+                                    Row {
                                         IconButton(onClick = { editingCourse = course }) {
                                             Icon(
                                                 imageVector = Icons.Default.Edit,
@@ -334,7 +339,7 @@ fun CourseListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                                         }
                                     }
                                 }
-                                HorizontalDivider(color = Gray200)
+                                HorizontalDivider(color = Gray100)
                             }
                         }
                     }
@@ -413,7 +418,7 @@ fun CourseAddEditDialog(
     onSave: (name: String, hours: String, area: String) -> Unit
 ) {
     var name by remember { mutableStateOf(course?.name ?: "") }
-    var hours by remember { mutableStateOf(course?.durationHours?.replace(" HORAS", "")?.replace(" hrs", "")?.trim() ?: "") }
+    var hours by remember { mutableStateOf(course?.durationHours ?: "") }
     var area by remember { mutableStateOf(course?.thematicArea ?: "") }
 
     AlertDialog(
@@ -471,8 +476,7 @@ fun CourseAddEditDialog(
             Button(
                 onClick = {
                     if (name.isNotBlank() && hours.isNotBlank() && area.isNotBlank()) {
-                        val formattedHours = if (hours.contains("HORAS", ignoreCase = true)) hours else "$hours HORAS"
-                        onSave(name, formattedHours, area)
+                        onSave(name, hours, area)
                     }
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),

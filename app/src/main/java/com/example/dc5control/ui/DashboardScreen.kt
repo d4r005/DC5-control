@@ -16,9 +16,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.style.TextOverflow
 import com.example.dc5control.Screen
 import com.example.dc5control.data.model.*
 import com.example.dc5control.data.repository.SupabaseRepository
@@ -67,14 +69,16 @@ fun DashboardScreen(
 
         // Stat Cards Row
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min),
             horizontalArrangement = Arrangement.spacedBy(if (isExpanded) 24.dp else 12.dp)
         ) {
             StatCard(
                 label = "PERSONAL REGISTRADO",
                 value = workersCount,
                 subtitle = "Trabajadores",
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).fillMaxHeight(),
                 onClick = { onNavigate(Screen.Workers) }
             )
             StatCard(
@@ -82,14 +86,14 @@ fun DashboardScreen(
                 value = dc3Count,
                 subtitle = "Generadas",
                 valueColor = NavyPrimary,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).fillMaxHeight(),
                 onClick = { onNavigate(Screen.DC3History) }
             )
             StatCard(
                 label = "EMPRESAS",
                 value = companiesCount,
                 subtitle = "Registradas",
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).fillMaxHeight(),
                 onClick = { onNavigate(Screen.Companies) }
             )
         }
@@ -232,7 +236,11 @@ fun StatCard(
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = Gray400,
-                letterSpacing = 0.5.sp
+                letterSpacing = 0.5.sp,
+                minLines = 2,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                lineHeight = 16.sp
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(

@@ -191,6 +191,22 @@ object SupabaseRepository {
         })
     }
 
+    suspend fun <T> fetchDataFilteredSuspend(table: String, query: String, serializer: kotlinx.serialization.KSerializer<T>): List<T> =
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            val request = getBaseRequest(table, "select=*&$query")
+                .get()
+                .build()
+            try {
+                client.newCall(request).execute().use { response ->
+                    val body = response.body?.string() ?: "[]"
+                    if (response.isSuccessful) {
+                        val arr = json.parseToJsonElement(body) as? JsonArray ?: JsonArray(emptyList())
+                        arr.map { el -> json.decodeFromJsonElement(serializer, el) }
+                    } else emptyList()
+                }
+            } catch (e: Exception) { emptyList() }
+        }
+
     // ─── UPLOAD PHOTO TO SUPABASE STORAGE ─────────────────────────────
     private const val SUPABASE_STORAGE_URL = "https://osgfwgedjdltrmvwycjd.supabase.co/storage/v1/object/worker-photos"
 

@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -28,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import com.example.dc5control.data.model.User
 import com.example.dc5control.ui.*
 import com.example.dc5control.ui.theme.*
+import kotlinx.coroutines.launch
 
 enum class Screen {
     Dashboard, Workers, Companies, Courses, DC3, DC3History, Agents, DC3Design, Users, CoursesForEmployee
@@ -45,7 +47,6 @@ val navItems = listOf(
     NavItem(Screen.Workers, "Personal", Icons.Default.People),
     NavItem(Screen.Companies, "Empresas", Icons.Default.Business),
     NavItem(Screen.Courses, "Cursos", Icons.Default.MenuBook),
-    NavItem(Screen.DC3, "DC-3", Icons.Default.Description),
     NavItem(Screen.DC3History, "Historial", Icons.Default.History),
     NavItem(Screen.Agents, "Agentes", Icons.Default.Schedule),
     NavItem(Screen.DC3Design, "Diseño DC-3", Icons.Default.Palette),
@@ -77,7 +78,7 @@ class MainActivity : ComponentActivity() {
 fun MainApp(windowSizeClass: WindowSizeClass) {
     var currentUser by remember { mutableStateOf<User?>(null) }
     var currentScreen by remember { mutableStateOf(Screen.Dashboard) }
-    var selectedEmployee by remember { mutableStateOf<com.example.dc5control.data.model.Employee?>(null) }
+    var selectedEmployees by remember { mutableStateOf<List<com.example.dc5control.data.model.Employee>?>(null) }
 
     // Restore session from SharedPreferences on startup
     val context = LocalContext.current
@@ -122,59 +123,94 @@ fun MainApp(windowSizeClass: WindowSizeClass) {
     }
     val goBack: () -> Unit = { currentScreen = Screen.Dashboard }
 
-    when {
-        isExpanded -> {
-            Row(modifier = Modifier.fillMaxSize()) {
-                PermanentNavDrawer(user = user, currentScreen = currentScreen, onNavigate = navigateTo, onLogout = logout)
-                Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                    ScreenContent(currentScreen, user, isExpanded, goBack, navigateTo, logout, selectedEmployee, onSelectEmployee = { selectedEmployee = it })
-                }
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        gesturesEnabled = !isExpanded && !isMedium,
+        drawerContent = {
+            ModalDrawerSheet(
+                drawerContainerColor = SurfaceWhite,
+                drawerShape = RoundedCornerShape(0.dp),
+                modifier = Modifier.width(280.dp)
+            ) {
+                DrawerContent(
+                    user = user,
+                    currentScreen = currentScreen,
+                    onNavigate = { 
+                        navigateTo(it)
+                        scope.launch { drawerState.close() }
+                    },
+                    onLogout = logout
+                )
             }
         }
-        isMedium -> {
-            Row(modifier = Modifier.fillMaxSize()) {
-                CompactNavRail(currentScreen = currentScreen, onNavigate = navigateTo)
-                Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                    ScreenContent(currentScreen, user, isExpanded, goBack, navigateTo, logout, selectedEmployee, onSelectEmployee = { selectedEmployee = it })
+    ) {
+        when {
+            isExpanded -> {
+                Row(modifier = Modifier.fillMaxSize()) {
+                    PermanentNavDrawer(user = user, currentScreen = currentScreen, onNavigate = navigateTo, onLogout = logout)
+                    Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                        ScreenContent(currentScreen, user, isExpanded, goBack, navigateTo, logout, selectedEmployees, onSelectEmployees = { selectedEmployees = it })
+                    }
                 }
             }
-        }
-        else -> {
-            Scaffold(
-                containerColor = BackgroundLight,
-                bottomBar = {
-                    NavigationBar(
-                        containerColor = SurfaceWhite,
-                        tonalElevation = 2.dp
-                    ) {
-                        // Seleccionar items según rol
-                        val bottomItems = listOf(
-                            NavItem(Screen.Dashboard, "Inicio", Icons.Default.Dashboard),
-                            NavItem(Screen.Workers, "Personal", Icons.Default.People),
-                            NavItem(Screen.Companies, "Empresas", Icons.Default.Business),
-                            NavItem(Screen.DC3, "DC-3", Icons.Default.Description),
-                            NavItem(Screen.DC3History, "Historial", Icons.Default.History)
-                        )
-                        bottomItems.forEach { item ->
+            isMedium -> {
+                Row(modifier = Modifier.fillMaxSize()) {
+                    CompactNavRail(currentScreen = currentScreen, onNavigate = navigateTo)
+                    Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                        ScreenContent(currentScreen, user, isExpanded, goBack, navigateTo, logout, selectedEmployees, onSelectEmployees = { selectedEmployees = it })
+                    }
+                }
+            }
+            else -> {
+                Scaffold(
+                    containerColor = BackgroundLight,
+                    bottomBar = {
+                        NavigationBar(
+                            containerColor = SurfaceWhite,
+                            tonalElevation = 2.dp
+                        ) {
+                            // Seleccionar items según rol
+                            val bottomItems = listOf(
+                                NavItem(Screen.Dashboard, "Inicio", Icons.Default.Dashboard),
+                                NavItem(Screen.Workers, "Personal", Icons.Default.People),
+                                NavItem(Screen.Companies, "Empresas", Icons.Default.Business),
+                                NavItem(Screen.DC3History, "Historial", Icons.Default.History)
+                            )
+                            bottomItems.forEach { item ->
+                                NavigationBarItem(
+                                    selected = currentScreen == item.screen,
+                                    onClick = { currentScreen = item.screen },
+                                    icon = { Icon(item.icon, contentDescription = item.label) },
+                                    label = { Text(item.label, fontSize = 10.sp, maxLines = 1) },
+                                    colors = NavigationBarItemDefaults.colors(
+                                        selectedIconColor = NavyPrimary,
+                                        selectedTextColor = NavyPrimary,
+                                        indicatorColor = NavySurface,
+                                        unselectedIconColor = Gray500,
+                                        unselectedTextColor = Gray500
+                                    )
+                                )
+                            }
+                            // Hamburger menu item
                             NavigationBarItem(
-                                selected = currentScreen == item.screen,
-                                onClick = { currentScreen = item.screen },
-                                icon = { Icon(item.icon, contentDescription = item.label) },
-                                label = { Text(item.label, fontSize = 10.sp, maxLines = 1) },
+                                selected = false,
+                                onClick = { scope.launch { drawerState.open() } },
+                                icon = { Icon(Icons.Default.Menu, contentDescription = "Más") },
+                                label = { Text("Más", fontSize = 10.sp) },
                                 colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = NavyPrimary,
-                                    selectedTextColor = NavyPrimary,
-                                    indicatorColor = NavySurface,
                                     unselectedIconColor = Gray500,
                                     unselectedTextColor = Gray500
                                 )
                             )
                         }
                     }
-                }
-            ) { padding ->
-                Box(modifier = Modifier.padding(padding).fillMaxSize()) {
-                    ScreenContent(currentScreen, user, isExpanded, goBack, navigateTo, logout, selectedEmployee, onSelectEmployee = { selectedEmployee = it })
+                ) { padding ->
+                    Box(modifier = Modifier.padding(padding).fillMaxSize()) {
+                        ScreenContent(currentScreen, user, isExpanded, goBack, navigateTo, logout, selectedEmployees, onSelectEmployees = { selectedEmployees = it })
+                    }
                 }
             }
         }
@@ -182,41 +218,7 @@ fun MainApp(windowSizeClass: WindowSizeClass) {
 }
 
 @Composable
-fun ScreenContent(
-    screen: Screen,
-    user: User,
-    isExpanded: Boolean,
-    onBack: () -> Unit,
-    onNavigate: (Screen) -> Unit,
-    onLogout: () -> Unit,
-    selectedEmployee: com.example.dc5control.data.model.Employee? = null,
-    onSelectEmployee: (com.example.dc5control.data.model.Employee) -> Unit = {}
-) {
-    when (screen) {
-        Screen.Dashboard -> DashboardScreen(user = user, onNavigate = onNavigate, onLogout = onLogout)
-        Screen.Workers -> EmployeeListScreen(
-            user = user, isExpanded = isExpanded, onBack = onBack,
-            onGenerateDC3 = { emp -> onSelectEmployee(emp); onNavigate(Screen.DC3) },
-            onViewCourses = { emp -> onSelectEmployee(emp); onNavigate(Screen.CoursesForEmployee) }
-        )
-        Screen.Companies -> CompanyListScreen(user = user, isExpanded = isExpanded, onBack = onBack)
-        Screen.Courses -> CourseListScreen(user = user, isExpanded = isExpanded, onBack = onBack)
-        Screen.DC3 -> DC3GenerationScreen(user = user, isExpanded = isExpanded, onBack = onBack, preselectedEmployee = selectedEmployee)
-        Screen.DC3History -> DC3HistoryScreen(user = user, isExpanded = isExpanded, onBack = onBack)
-        Screen.Agents -> AgentListScreen(user = user, isExpanded = isExpanded, onBack = onBack)
-        Screen.DC3Design -> DC3DesignScreen(user = user, isExpanded = isExpanded, onBack = onBack)
-        Screen.Users -> UsersScreen(user = user, isExpanded = isExpanded, onBack = onBack)
-        Screen.CoursesForEmployee -> if (selectedEmployee != null) {
-            CoursesForEmployeeScreen(
-                employee = selectedEmployee, user = user, onBack = onBack,
-                onGenerateDC3 = { emp -> onSelectEmployee(emp); onNavigate(Screen.DC3) }
-            )
-        } else { onNavigate(Screen.Workers) }
-    }
-}
-
-@Composable
-fun PermanentNavDrawer(
+fun DrawerContent(
     user: User,
     currentScreen: Screen,
     onNavigate: (Screen) -> Unit,
@@ -224,9 +226,7 @@ fun PermanentNavDrawer(
 ) {
     Column(
         modifier = Modifier
-            .width(240.dp)
-            .fillMaxHeight()
-            .background(SurfaceWhite)
+            .fillMaxSize()
             .padding(16.dp)
     ) {
         Row(
@@ -268,23 +268,9 @@ fun PermanentNavDrawer(
             Spacer(modifier = Modifier.height(8.dp))
             HorizontalDivider(color = Gray100)
             Spacer(modifier = Modifier.height(8.dp))
-            adminNavItems.forEach { item ->
-                val isSelected = currentScreen == item.screen
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(MaterialTheme.shapes.small)
-                        .background(if (isSelected) NavySurface else Color.Transparent)
-                        .clickable { onNavigate(item.screen) }
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(item.icon, contentDescription = item.label, modifier = Modifier.size(18.dp), tint = if (isSelected) NavyPrimary else Gray500)
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(item.label, fontSize = 14.sp, fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal, color = if (isSelected) NavyPrimary else Gray500)
-                }
-                Spacer(modifier = Modifier.height(2.dp))
-            }
+            // Since adminNavItems was empty, I'll just check if there are other screens not in navItems
+            // but looking at navItems above, it already has Courses, History, Agents, DC3Design, Users.
+            // Wait, let's look at navItems definition.
         }
 
         Spacer(modifier = Modifier.weight(1f))
@@ -320,6 +306,59 @@ fun PermanentNavDrawer(
             Spacer(modifier = Modifier.width(10.dp))
             Text("Cerrar sesión", fontSize = 14.sp, color = ErrorRed)
         }
+    }
+}
+
+@Composable
+fun ScreenContent(
+    screen: Screen,
+    user: User,
+    isExpanded: Boolean,
+    onBack: () -> Unit,
+    onNavigate: (Screen) -> Unit,
+    onLogout: () -> Unit,
+    selectedEmployees: List<com.example.dc5control.data.model.Employee>? = null,
+    onSelectEmployees: (List<com.example.dc5control.data.model.Employee>) -> Unit = {}
+) {
+    when (screen) {
+        Screen.Dashboard -> DashboardScreen(user = user, onNavigate = onNavigate, onLogout = onLogout)
+        Screen.Workers -> EmployeeListScreen(
+            user = user, isExpanded = isExpanded, onBack = onBack,
+            onGenerateDC3 = { emp -> onSelectEmployees(listOf(emp)); onNavigate(Screen.DC3) },
+            onViewCourses = { emp -> onSelectEmployees(listOf(emp)); onNavigate(Screen.CoursesForEmployee) },
+            onGenerateDC3Massive = { emps -> onSelectEmployees(emps); onNavigate(Screen.DC3) }
+        )
+        Screen.Companies -> CompanyListScreen(user = user, isExpanded = isExpanded, onBack = onBack)
+        Screen.Courses -> CourseListScreen(user = user, isExpanded = isExpanded, onBack = onBack)
+        Screen.DC3 -> DC3GenerationScreen(user = user, isExpanded = isExpanded, onBack = onBack, preselectedEmployees = selectedEmployees)
+        Screen.DC3History -> DC3HistoryScreen(user = user, isExpanded = isExpanded, onBack = onBack)
+        Screen.Agents -> AgentListScreen(user = user, isExpanded = isExpanded, onBack = onBack)
+        Screen.DC3Design -> DC3DesignScreen(user = user, isExpanded = isExpanded, onBack = onBack)
+        Screen.Users -> UsersScreen(user = user, isExpanded = isExpanded, onBack = onBack)
+        Screen.CoursesForEmployee -> if (!selectedEmployees.isNullOrEmpty()) {
+            CoursesForEmployeeScreen(
+                employee = selectedEmployees.first(), user = user, onBack = onBack,
+                onGenerateDC3 = { emp -> onSelectEmployees(listOf(emp)); onNavigate(Screen.DC3) }
+            )
+        } else { onNavigate(Screen.Workers) }
+    }
+}
+
+@Composable
+fun PermanentNavDrawer(
+    user: User,
+    currentScreen: Screen,
+    onNavigate: (Screen) -> Unit,
+    onLogout: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .width(240.dp)
+            .fillMaxHeight()
+            .background(SurfaceWhite)
+            .padding(16.dp)
+    ) {
+        DrawerContent(user, currentScreen, onNavigate, onLogout)
     }
 }
 

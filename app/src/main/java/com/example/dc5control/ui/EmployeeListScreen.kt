@@ -42,7 +42,14 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EmployeeListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit, onGenerateDC3: (Employee) -> Unit = {}, onViewCourses: (Employee) -> Unit = {}) {
+fun EmployeeListScreen(
+    user: User, 
+    isExpanded: Boolean, 
+    onBack: () -> Unit, 
+    onGenerateDC3: (Employee) -> Unit = {}, 
+    onViewCourses: (Employee) -> Unit = {},
+    onGenerateDC3Massive: (List<Employee>) -> Unit = {}
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     
@@ -59,6 +66,10 @@ fun EmployeeListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit, onGe
     fun loadData() {
         isLoading = true
         SupabaseRepository.fetchData("workers", Employee.serializer()) { fetched ->
+            android.util.Log.d("EmployeeList", "Fetched ${fetched.size} employees")
+            fetched.forEach { 
+                android.util.Log.d("EmployeeList", "Emp: ${it.name}, Photo: ${it.photoUrl?.take(30)}...")
+            }
             val filtered = if (user.role == "ADMIN") fetched else fetched.filter { it.creatorEmail == user.email }
             employees.clear()
             employees.addAll(filtered)
@@ -210,7 +221,8 @@ fun EmployeeListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit, onGe
                         Spacer(modifier = Modifier.weight(1f))
                         Button(
                             onClick = { 
-                                Toast.makeText(context, "Generando PDF Masivo para ${selectedIds.size} trabajadores...", Toast.LENGTH_SHORT).show()
+                                val selectedEmployees = employees.filter { it.id != null && selectedIds.contains(it.id) }
+                                onGenerateDC3Massive(selectedEmployees)
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
                             shape = RoundedCornerShape(8.dp),
@@ -329,14 +341,28 @@ fun EmployeeListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit, onGe
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 if (!employee.photoUrl.isNullOrBlank()) {
+                                                    val model = remember(employee.photoUrl) {
+                                                        if (employee.photoUrl?.startsWith("data:image", ignoreCase = true) == true) {
+                                                            try {
+                                                                val base64String = employee.photoUrl.substringAfter("base64,")
+                                                                android.util.Base64.decode(base64String, android.util.Base64.DEFAULT)
+                                                            } catch (e: Exception) {
+                                                                employee.photoUrl
+                                                            }
+                                                        } else {
+                                                            employee.photoUrl
+                                                        }
+                                                    }
                                                     AsyncImage(
                                                         model = ImageRequest.Builder(LocalContext.current)
-                                                            .data(employee.photoUrl)
+                                                            .data(model)
                                                             .crossfade(true)
                                                             .build(),
                                                         contentDescription = "Foto",
                                                         modifier = Modifier.fillMaxSize().clip(CircleShape),
-                                                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                                        error = androidx.compose.ui.graphics.vector.rememberVectorPainter(Icons.Default.AccountCircle),
+                                                        placeholder = androidx.compose.ui.graphics.vector.rememberVectorPainter(Icons.Default.AccountCircle)
                                                     )
                                                 } else {
                                                     Icon(Icons.Default.Person, contentDescription = null, tint = Gray500, modifier = Modifier.size(18.dp))
@@ -489,14 +515,28 @@ fun EmployeeListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit, onGe
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 if (!employee.photoUrl.isNullOrBlank()) {
+                                                    val model = remember(employee.photoUrl) {
+                                                        if (employee.photoUrl?.startsWith("data:image", ignoreCase = true) == true) {
+                                                            try {
+                                                                val base64String = employee.photoUrl.substringAfter("base64,")
+                                                                android.util.Base64.decode(base64String, android.util.Base64.DEFAULT)
+                                                            } catch (e: Exception) {
+                                                                employee.photoUrl
+                                                            }
+                                                        } else {
+                                                            employee.photoUrl
+                                                        }
+                                                    }
                                                     AsyncImage(
                                                         model = ImageRequest.Builder(LocalContext.current)
-                                                            .data(employee.photoUrl)
+                                                            .data(model)
                                                             .crossfade(true)
                                                             .build(),
                                                         contentDescription = "Foto",
                                                         modifier = Modifier.fillMaxSize().clip(CircleShape),
-                                                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                                        error = androidx.compose.ui.graphics.vector.rememberVectorPainter(Icons.Default.AccountCircle),
+                                                        placeholder = androidx.compose.ui.graphics.vector.rememberVectorPainter(Icons.Default.AccountCircle)
                                                     )
                                                 } else {
                                                     Icon(Icons.Default.Person, contentDescription = null, tint = Gray500, modifier = Modifier.size(16.dp))
