@@ -45,8 +45,28 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
             isLoading = false
         }
         SupabaseRepository.fetchData("agents", Agent.serializer()) { fetchedAgents ->
+            // Normalización para evitar duplicados en el filtro por orden de nombres o prefijos
+            fun normalize(s: String): String = s.uppercase()
+                .replace("ING.", "")
+                .trim()
+                .split(" ")
+                .filter { it.isNotBlank() }
+                .sorted()
+                .joinToString(" ")
+
+            val uniqueAgents = mutableListOf<Agent>()
+            val seenNorms = mutableSetOf<String>()
+
+            fetchedAgents.forEach { agent ->
+                val norm = normalize(agent.name)
+                if (norm !in seenNorms) {
+                    uniqueAgents.add(agent)
+                    seenNorms.add(norm)
+                }
+            }
+
             agents.clear()
-            agents.addAll(fetchedAgents)
+            agents.addAll(uniqueAgents)
         }
     }
 
