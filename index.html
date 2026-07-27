@@ -869,10 +869,8 @@ async function loadCatalogs() {
         if (existsIdx === -1) {
             DATA.agents.push(dba);
         } else if (dba.name.toUpperCase().includes('JESUS')) {
-            // Si la versión de la DB tiene "JESUS", reemplazamos la local (que podría estar desordenada)
+            // Prioridad a la versión con el nombre correcto
             DATA.agents[existsIdx] = dba;
-        } else {
-            console.log('[DEBUG] Agent already exists (normalized match), skipping:', dba.name);
         }
     });
 
@@ -3173,24 +3171,6 @@ function setDesignTab(tab) {
             tabDiploma.className = "px-6 py-3 text-sm font-bold text-blue-900 border-b-2 border-blue-900";
             tabDc3.className = "px-6 py-3 text-sm font-medium text-gray-500 hover:text-blue-900 transition-colors";
         }
-    }
-}
-
-function setDesignTab(tab) {
-    const isDc3 = tab === 'dc3';
-    document.getElementById('design-content-dc3').classList.toggle('hidden', !isDc3);
-    document.getElementById('design-content-diploma').classList.toggle('hidden', isDc3);
-
-    // Update tab styles
-    const tabDc3 = document.getElementById('tab-design-dc3');
-    const tabDiploma = document.getElementById('tab-design-diploma');
-
-    if (isDc3) {
-        tabDc3.className = "px-6 py-3 text-sm font-bold text-blue-900 border-b-2 border-blue-900";
-        tabDiploma.className = "px-6 py-3 text-sm font-medium text-gray-500 hover:text-blue-900 transition-colors";
-    } else {
-        tabDiploma.className = "px-6 py-3 text-sm font-bold text-blue-900 border-b-2 border-blue-900";
-        tabDc3.className = "px-6 py-3 text-sm font-medium text-gray-500 hover:text-blue-900 transition-colors";
     }
 }
 
