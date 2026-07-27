@@ -172,7 +172,7 @@
             </div>
             <div class="nav-link" onclick="setView('dc3design')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
-                Diseño DC-3
+                Diseño
             </div>
             <div class="nav-link" id="btn-agents" onclick="setView('agents')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
@@ -321,7 +321,14 @@
 
         <!-- DC-3 Design -->
         <div id="section-dc3design" class="hidden">
-            <div style="display:grid;grid-template-columns:400px 1fr;gap:18px;min-height:82vh;">
+            <!-- Tabs -->
+            <div class="flex border-b border-gray-200 mb-6 bg-white rounded-t-xl overflow-hidden">
+                <button onclick="setDesignTab('dc3')" id="tab-design-dc3" class="px-6 py-3 text-sm font-bold text-blue-900 border-b-2 border-blue-900">DC-3</button>
+                <button onclick="setDesignTab('diploma')" id="tab-design-diploma" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-blue-900 transition-colors">Diploma</button>
+            </div>
+
+            <div id="design-content-dc3">
+                <div style="display:grid;grid-template-columns:400px 1fr;gap:18px;min-height:82vh;">
 
                 <!-- ── Panel izquierdo: controles ── -->
                 <div class="card p-5" style="overflow-y:auto;max-height:82vh;">
@@ -493,6 +500,8 @@
         </div>
     </div>
 </div>
+    </div>
+</div>
 
 
 <!-- ══════════════════════════════════════════════════════
@@ -624,6 +633,17 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Fecha término</label>
                     <input type="date" id="bulk-end" class="input-field">
+                </div>
+            </div>
+
+            <!-- Diploma Design Content -->
+            <div id="design-content-diploma" class="hidden">
+                <div class="card p-12 text-center">
+                    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path></svg>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-900">Diseño de Diploma</h3>
+                    <p class="text-gray-500 mt-1">Próximamente disponible para personalización.</p>
                 </div>
             </div>
         </div>
@@ -805,7 +825,7 @@ const DATA = {
     ],
     agents: [
         { name: "ING. CYNTHIA YADIRA GARZA LUGO", stps: "STPS-GALC780523-MP3-005", creatorEmail: "lugga.advisors@gmail.com" },
-        { name: "ROBLES TRUJILLO JESUS DARIO", stps: "STPS-ROTJ920320-IP4", creatorEmail: "d4r005@gmail.com" }
+        { name: "Jesus Dario Robles Trujillo", stps: "STPS-ROTJ920320-IP4", creatorEmail: "d4r005@gmail.com" }
     ],
     companies: []   // Cargado desde Supabase
 };
@@ -1070,7 +1090,7 @@ const TITLES = {
     companies: ['Empresas', 'Empresas cliente registradas en el sistema'],
     courses:   ['Cursos', 'Catálogo de cursos disponibles por agente'],
     dc3:       ['Constancias DC-3', 'Historial de constancias generadas'],
-    dc3design: ['Diseno DC-3', 'Personaliza el logo, firma y texto de tu constancia'],
+    dc3design: ['Diseño', 'Personaliza el formato de tus documentos'],
     agents:    ['Agentes Capacitadores', 'Agentes Externos registrados ante la STPS'],
     users:     ['Usuarios', 'Gestión de accesos al sistema'],
 };
@@ -1462,10 +1482,21 @@ function openDC3(worker) {
     const agentSel = document.getElementById('dc3-agent');
     agentSel.innerHTML = DATA.agents.map(a => `<option value="${a.name}|${a.stps}">${a.name}</option>`).join('');
 
-    // Courses
-    const list = (currentUser.role === 'ADMIN' ? DATA.courses : DATA.courses.filter(c => c.creatorEmail === currentUser.email))
-        .filter(c => c.thematicArea && c.thematicArea !== '' && c.thematicArea !== '–' && c.thematicArea !== '-');
-    document.getElementById('dc3-course').innerHTML = list.map(c => `<option value="${c.name}|${c.durationHours}|${c.thematicArea}|${c.stpsId||''}">${c.name}</option>`).join('');
+    // Courses (Filtrado dinámico por agente)
+    const courSel = document.getElementById('dc3-course');
+    const updateCoursesList = () => {
+        const [selName] = agentSel.value.split('|');
+        const agent = DATA.agents.find(a => a.name === selName);
+        if (agent) {
+            // Filtrar cursos que pertenecen al agente seleccionado
+            const filtered = DATA.courses.filter(c => c.creatorEmail === agent.creatorEmail)
+                .filter(c => c.thematicArea && c.thematicArea !== '' && c.thematicArea !== '–' && c.thematicArea !== '-');
+            courSel.innerHTML = filtered.map(c => `<option value="${c.name}|${c.durationHours}|${c.thematicArea}|${c.stpsId||''}">${c.name}</option>`).join('');
+        }
+    };
+
+    agentSel.onchange = updateCoursesList;
+    updateCoursesList();
 
     document.getElementById('modal-dc3').classList.add('open');
 }
@@ -2988,6 +3019,29 @@ function splitNameJS(name, maxChars) {
     const mid = name.lastIndexOf(' ', maxChars);
     if (mid > 0) return [name.substring(0, mid), name.substring(mid + 1)];
     return [name.substring(0, maxChars), name.substring(maxChars)];
+}
+
+function setDesignTab(tab) {
+    const isDc3 = tab === 'dc3';
+    const dc3Content = document.getElementById('design-content-dc3');
+    const diplomaContent = document.getElementById('design-content-diploma');
+
+    if (dc3Content) dc3Content.classList.toggle('hidden', !isDc3);
+    if (diplomaContent) diplomaContent.classList.toggle('hidden', isDc3);
+
+    // Update tab styles
+    const tabDc3 = document.getElementById('tab-design-dc3');
+    const tabDiploma = document.getElementById('tab-design-diploma');
+
+    if (tabDc3 && tabDiploma) {
+        if (isDc3) {
+            tabDc3.className = "px-6 py-3 text-sm font-bold text-blue-900 border-b-2 border-blue-900";
+            tabDiploma.className = "px-6 py-3 text-sm font-medium text-gray-500 hover:text-blue-900 transition-colors";
+        } else {
+            tabDiploma.className = "px-6 py-3 text-sm font-bold text-blue-900 border-b-2 border-blue-900";
+            tabDc3.className = "px-6 py-3 text-sm font-medium text-gray-500 hover:text-blue-900 transition-colors";
+        }
+    }
 }
 
 </script>
