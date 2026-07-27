@@ -32,7 +32,10 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val records = remember { mutableStateListOf<DC3Record>() }
+    val agents = remember { mutableStateListOf<Agent>() }
+    var selectedAgentFilter by remember { mutableStateOf<Agent?>(null) }
     var isLoading by remember { mutableStateOf(true) }
+    var isAgentsExpanded by remember { mutableStateOf(false) }
 
     fun refresh() {
         isLoading = true
@@ -40,6 +43,10 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
             records.clear()
             records.addAll(fetched)
             isLoading = false
+        }
+        SupabaseRepository.fetchData("agents", Agent.serializer()) { fetchedAgents ->
+            agents.clear()
+            agents.addAll(fetchedAgents)
         }
     }
 
@@ -135,6 +142,47 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                         Text("Constancias DC-3", fontSize = if (isExpanded) 20.sp else 18.sp, fontWeight = FontWeight.Bold, color = Gray900)
                         Text("Historial de constancias generadas", fontSize = 14.sp, color = Gray400)
                     }
+                    
+                    if (agents.isNotEmpty()) {
+                        Spacer(modifier = Modifier.weight(1f))
+                        Box(modifier = Modifier.width(250.dp)) {
+                            @OptIn(ExperimentalMaterial3Api::class)
+                            ExposedDropdownMenuBox(
+                                expanded = isAgentsExpanded,
+                                onExpandedChange = { isAgentsExpanded = it }
+                            ) {
+                                OutlinedTextField(
+                                    value = selectedAgentFilter?.name ?: "Todos los Agentes",
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    placeholder = { Text("Filtrar por agente") },
+                                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(isAgentsExpanded) },
+                                    modifier = Modifier.menuAnchor().fillMaxWidth(),
+                                    shape = RoundedCornerShape(8.dp),
+                                    textStyle = MaterialTheme.typography.bodySmall,
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = NavyPrimary,
+                                        unfocusedBorderColor = Gray200
+                                    )
+                                )
+                                ExposedDropdownMenu(
+                                    expanded = isAgentsExpanded,
+                                    onDismissRequest = { isAgentsExpanded = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("Todos los Agentes") },
+                                        onClick = { selectedAgentFilter = null; isAgentsExpanded = false }
+                                    )
+                                    agents.forEach { agent ->
+                                        DropdownMenuItem(
+                                            text = { Text(agent.name) },
+                                            onClick = { selectedAgentFilter = agent; isAgentsExpanded = false }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
                 HorizontalDivider(color = Gray200)
             }
@@ -153,6 +201,11 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                 Text("Sin historial de constancias", color = Gray300, fontSize = 14.sp)
             }
             return@Column
+        }
+        
+        val filteredRecords = remember(records, selectedAgentFilter) {
+            if (selectedAgentFilter == null) records
+            else records.filter { it.agentName == selectedAgentFilter?.name }
         }
 
         Card(
@@ -181,7 +234,7 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
             }
 
             LazyColumn {
-                items(records) { record ->
+                items(filteredRecords) { record ->
                     if (isExpanded) {
                         DC3RecordRow(record, onView = { handleView(it) }, onDownload = { handleDownload(it) }, onDelete = { refresh() })
                     } else {

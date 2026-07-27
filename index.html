@@ -207,6 +207,10 @@
                 <p id="page-subtitle" class="text-sm text-gray-400">Bienvenido al sistema</p>
             </div>
             <div class="flex items-center gap-3">
+                <!-- Agent Filter -->
+                <select id="filter-agent" class="hidden input-field text-sm" style="width:200px" onchange="loadSection(currentView)">
+                    <option value="">Todos los Agentes</option>
+                </select>
                 <!-- Excel import -->
                 <label id="btn-excel" class="hidden btn-sm btn-outline cursor-pointer">
                     <input type="file" accept=".xlsx,.xls" class="hidden" onchange="handleExcel(this)">
@@ -788,10 +792,20 @@ const DATA = {
         { name: "ASEGURAMIENTO DE ENERGIA (BLOQUEO Y ETIQUETADO LOTO)", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", stpsId: "016", creatorEmail: "lugga.advisors@gmail.com" },
         { name: "MANEJO DE MATERIALES PELIGROSOS", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", stpsId: "017", creatorEmail: "lugga.advisors@gmail.com" },
         { name: "OPERACION SEGURA DE VEHICULOS PESADOS 5 RUEDA", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", stpsId: "018", creatorEmail: "lugga.advisors@gmail.com" },
-        { name: "FORMACION DE TECNICOS EN INHALOTERAPIA", durationHours: "24 HORAS", thematicArea: "(6000) SEGURIDAD", stpsId: "019", creatorEmail: "lugga.advisors@gmail.com" }
+        { name: "FORMACION DE TECNICOS EN INHALOTERAPIA", durationHours: "24 HORAS", thematicArea: "(6000) SEGURIDAD", stpsId: "019", creatorEmail: "lugga.advisors@gmail.com" },
+
+        // Cursos de Dario Robles
+        { name: "SEGURIDAD EN TRABAJOS EN ALTURAS", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", stpsId: "001", creatorEmail: "d4r005@gmail.com" },
+        { name: "SEGURIDAD EN TRABAJOS DE SOLDADURA Y OXICORTE", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", stpsId: "002", creatorEmail: "d4r005@gmail.com" },
+        { name: "FORMACION DE BRIGADAS DE EMERGENCIA (EVACUACION, BUSQUEDA Y RESCATE , CONTRA INCENDIOS, PRIMEROS AUXILIOS )", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", stpsId: "003", creatorEmail: "d4r005@gmail.com" },
+        { name: "SEGURIDAD EN ESPACIOS CONFINADOS", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", stpsId: "004", creatorEmail: "d4r005@gmail.com" },
+        { name: "ASEGURAMIENTO DE ENERGIA (LOTO)", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", stpsId: "005", creatorEmail: "d4r005@gmail.com" },
+        { name: "FORMACION DE INSTRUCTORES", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", stpsId: "006", creatorEmail: "d4r005@gmail.com" },
+        { name: "FORMACION DE SUPERVISORES DE SEGURIDAD Y SALUD OCUPACIONAL", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", stpsId: "007", creatorEmail: "d4r005@gmail.com" }
     ],
     agents: [
-        { name: "ING. CYNTHIA YADIRA GARZA LUGO", stps: "STPS-GALC780523-MP3-005", creatorEmail: "lugga.advisors@gmail.com" }
+        { name: "ING. CYNTHIA YADIRA GARZA LUGO", stps: "STPS-GALC780523-MP3-005", creatorEmail: "lugga.advisors@gmail.com" },
+        { name: "ROBLES TRUJILLO JESUS DARIO", stps: "STPS-ROTJ920320-IP4", creatorEmail: "d4r005@gmail.com" }
     ],
     companies: []   // Cargado desde Supabase
 };
@@ -1058,6 +1072,21 @@ function setView(v) {
     const addable = ['workers','companies','courses','agents'].includes(v);
     document.getElementById('btn-add').classList.toggle('hidden', !addable);
     document.getElementById('btn-excel').classList.toggle('hidden', v !== 'workers');
+
+    // Show/Hide Agent Filter
+    const filterAgent = document.getElementById('filter-agent');
+    if (filterAgent) {
+        const filterable = ['courses','dc3'].includes(v);
+        filterAgent.classList.toggle('hidden', !filterable);
+        if (filterable) {
+            // Populate if empty
+            if (filterAgent.options.length <= 1) {
+                filterAgent.innerHTML = '<option value="">Todos los Agentes</option>' +
+                    DATA.agents.map(a => `<option value="${a.name}">${a.name}</option>`).join('');
+            }
+        }
+    }
+
     loadSection(v);
 }
 
@@ -1127,8 +1156,15 @@ async function loadSection(v) {
             : `<tr><td colspan="5" class="text-center py-12 text-gray-300 text-sm">Sin empresas registradas</td></tr>`;
 
     } else if (v === 'courses') {
-        const list = (currentUser.role === 'ADMIN' ? DATA.courses : DATA.courses.filter(c => c.creatorEmail === currentUser.email))
+        const selectedAgentName = document.getElementById('filter-agent')?.value;
+        const selectedAgent = DATA.agents.find(a => a.name === selectedAgentName);
+
+        let list = (currentUser.role === 'ADMIN' ? DATA.courses : DATA.courses.filter(c => c.creatorEmail === currentUser.email))
             .filter(c => c.thematicArea && c.thematicArea !== '' && c.thematicArea !== '–' && c.thematicArea !== '-');
+
+        if (selectedAgent) {
+            list = list.filter(c => c.creatorEmail === selectedAgent.creatorEmail);
+        }
 
         document.getElementById('tb-courses').innerHTML = list.length
             ? list.map(c => `<tr>
@@ -1145,8 +1181,14 @@ async function loadSection(v) {
             : `<tr><td colspan="3" class="text-center py-12 text-gray-300 text-sm">Sin cursos</td></tr>`;
 
     } else if (v === 'dc3') {
+        const selectedAgentName = document.getElementById('filter-agent')?.value;
         const r = await api('find','dc3_records',{ filter: {} });
-        const rows = (r.documents||[]);
+        let rows = (r.documents||[]);
+
+        if (selectedAgentName) {
+            rows = rows.filter(x => x.agentName === selectedAgentName);
+        }
+
         document.getElementById('tb-dc3').innerHTML = rows.length
             ? rows.map(x => `<tr>
                 <td>

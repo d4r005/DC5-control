@@ -1,45 +1,41 @@
-# Plan de Corrección: Claves de Registro STPS por Curso
+# Plan de Implementación: Cursos Nuevos y Filtrado por Agente
 
-Este plan detalla los cambios necesarios para que la clave de registro del Agente Capacitador (STPS) cambie dinámicamente según el curso seleccionado en el formato DC-3, corrigiendo además el error de doble prefijo "STPS-STPS-".
-
-## Problemas Identificados
-
-1.  **Sufijo Incorrecto:** Actualmente se usa una clave fija para el agente (ej. terminada en `-005`) sin importar el curso. Según la normativa, cada curso tiene un número de registro específico (ej. `-002` para Montacargas).
-2.  **Doble Prefijo:** El generador de PDF añade `"STPS-"` al principio de una cadena que ya contiene `"STPS-"`, resultando en `"STPS-STPS-..."`.
+Este plan detalla la adición de nuevos cursos oficiales asociados al Agente Capacitador **Dario Robles** (`STPS-ROTJ920320-IP4`) y la implementación de filtrado por agente en los paneles correspondientes tanto en Android como en la versión Web.
 
 ## Cambios Propuestos
 
-### Componente: Modelos de Datos
-
-#### [MODIFY] [Models.kt](file:///C:/Users/dtruj/AndroidStudioProjects/DC5-control/app/src/main/java/com/example/dc5control/data/model/Models.kt)
-- Añadir el campo opcional `stpsId: String? = null` a la clase `Course` para almacenar el sufijo de registro (ej. "001", "002").
-
-### Componente: Datos Predeterminados
+### 1. Actualización de Datos (Android y Web)
 
 #### [MODIFY] [CourseDefaults.kt](file:///C:/Users/dtruj/AndroidStudioProjects/DC5-control/app/src/main/java/com/example/dc5control/util/CourseDefaults.kt)
-- Actualizar la lista `defaultCourses` para incluir los sufijos conocidos:
-    - MANEJO SEGURO DE MONTACARGAS -> `"002"`
-    - DISEÑO Y EVALUACION DE SIMULACROS... -> `"005"`
-    - (Se asignarán otros sufijos de manera secuencial para completar la lista oficial de la instructora).
+Añadir los nuevos cursos a la lista `defaultCourses` con su respectivo `stpsId` y `creatorEmail` ("d4r005@gmail.com"):
+1. SEGURIDAD EN TRABAJOS EN ALTURAS (8h, Seguridad, 001)
+2. SEGURIDAD EN TRABAJOS DE SOLDADURA Y OXICORTE (8h, Seguridad, 002)
+3. FORMACION DE BRIGADAS DE EMERGENCIA (EVACUACION, BUSQUEDA Y RESCATE , CONTRA INCENDIOS, PRIMEROS AUXILIOS ) (8h, Seguridad, 003)
+4. SEGURIDAD EN ESPACIOS CONFINADOS (8h, Seguridad, 004)
+5. ASEGURAMIENTO DE ENERGIA (LOTO) (8h, Seguridad, 005)
+6. FORMACION DE INSTRUCTORES (8h, Seguridad, 006)
+7. FORMACION DE SUPERVISORES DE SEGURIDAD Y SALUD OCUPACIONAL (8h, Seguridad, 007)
 
-### Componente: Interfaz de Usuario
+#### [MODIFY] [index.html](file:///C:/Users/dtruj/AndroidStudioProjects/DC5-control/index.html)
+Actualizar el arreglo `courses` en la versión web para incluir estos mismos cursos.
 
-#### [MODIFY] [DC3GenerationScreen.kt](file:///C:/Users/dtruj/AndroidStudioProjects/DC5-control/app/src/main/java/com/example/dc5control/ui/DC3GenerationScreen.kt)
-- Implementar la lógica para calcular la "Clave Final":
-    - Si el curso tiene un `stpsId`, se reemplaza el último segmento de la clave del agente (ej. `...-005` por `...-002`).
-    - Si no tiene, se usa la clave del agente tal cual.
-- Asegurar que la clave no tenga el prefijo duplicado antes de enviarla al generador.
+### 2. Filtrado por Agente (Android)
 
-### Componente: Utilidades
+#### [MODIFY] [CourseListScreen.kt](file:///C:/Users/dtruj/AndroidStudioProjects/DC5-control/app/src/main/java/com/example/dc5control/ui/CourseListScreen.kt)
+- Añadir un selector de Agente Capacitador en la parte superior.
+- Filtrar la lista de cursos mostrada según el agente seleccionado.
 
-#### [MODIFY] [PdfGenerator.kt](file:///C:/Users/dtruj/AndroidStudioProjects/DC5-control/app/src/main/java/com/example/dc5control/util/PdfGenerator.kt)
-- Eliminar el prefijo estático `"STPS-"` en la línea 243 para evitar la duplicidad. La cadena recibida ya debe estar formateada correctamente.
+#### [MODIFY] [DC3HistoryScreen.kt](file:///C:/Users/dtruj/AndroidStudioProjects/DC5-control/app/src/main/java/com/example/dc5control/ui/DC3HistoryScreen.kt)
+- Añadir filtro por Agente Capacitador para facilitar la búsqueda de constancias específicas.
 
-## Plan de Verificación
+### 3. Filtrado por Agente (Web)
 
-### Verificación Manual
-1. Generar un DC-3 para "MANEJO SEGURO DE MONTACARGAS":
-    - Verificar que la clave termine en `-002`.
-    - Verificar que no diga `"STPS-STPS-"`.
-2. Generar un DC-3 para "DISEÑO Y EVALUACIÓN DE SIMULACROS...":
-    - Verificar que la clave termine en `-005`.
+#### [MODIFY] [index.html](file:///C:/Users/dtruj/AndroidStudioProjects/DC5-control/index.html)
+- Agregar un `<select>` en la vista de Cursos y en la de Historial para filtrar por agente.
+
+## Verificación
+
+### Manual
+1. Abrir el panel de Cursos y verificar que aparezcan los 7 nuevos cursos de Dario Robles.
+2. Cambiar el filtro de agente y confirmar que la lista se actualiza correctamente.
+3. Generar un DC-3 con uno de los nuevos cursos y verificar que la clave STPS termine con el sufijo correcto (ej. -001, -002).

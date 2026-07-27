@@ -23,7 +23,16 @@ object CourseDefaults {
         Course(name = "ASEGURAMIENTO DE ENERGIA (BLOQUEO Y ETIQUETADO LOTO)", durationHours = "8", thematicArea = "(6000) SEGURIDAD", stpsId = "016", creatorEmail = "lugga.advisors@gmail.com"),
         Course(name = "MANEJO DE MATERIALES PELIGROSOS", durationHours = "8", thematicArea = "(6000) SEGURIDAD", stpsId = "017", creatorEmail = "lugga.advisors@gmail.com"),
         Course(name = "OPERACION SEGURA DE VEHICULOS PESADOS 5 RUEDA", durationHours = "8", thematicArea = "(6000) SEGURIDAD", stpsId = "018", creatorEmail = "lugga.advisors@gmail.com"),
-        Course(name = "FORMACION DE TECNICOS EN INHALOTERAPIA", durationHours = "24", thematicArea = "(6000) SEGURIDAD", stpsId = "019", creatorEmail = "lugga.advisors@gmail.com")
+        Course(name = "FORMACION DE TECNICOS EN INHALOTERAPIA", durationHours = "24", thematicArea = "(6000) SEGURIDAD", stpsId = "019", creatorEmail = "lugga.advisors@gmail.com"),
+        
+        // Cursos de Dario Robles
+        Course(name = "SEGURIDAD EN TRABAJOS EN ALTURAS", durationHours = "8", thematicArea = "(6000) SEGURIDAD", stpsId = "001", creatorEmail = "d4r005@gmail.com"),
+        Course(name = "SEGURIDAD EN TRABAJOS DE SOLDADURA Y OXICORTE", durationHours = "8", thematicArea = "(6000) SEGURIDAD", stpsId = "002", creatorEmail = "d4r005@gmail.com"),
+        Course(name = "FORMACION DE BRIGADAS DE EMERGENCIA (EVACUACION, BUSQUEDA Y RESCATE , CONTRA INCENDIOS, PRIMEROS AUXILIOS )", durationHours = "8", thematicArea = "(6000) SEGURIDAD", stpsId = "003", creatorEmail = "d4r005@gmail.com"),
+        Course(name = "SEGURIDAD EN ESPACIOS CONFINADOS", durationHours = "8", thematicArea = "(6000) SEGURIDAD", stpsId = "004", creatorEmail = "d4r005@gmail.com"),
+        Course(name = "ASEGURAMIENTO DE ENERGIA (LOTO)", durationHours = "8", thematicArea = "(6000) SEGURIDAD", stpsId = "005", creatorEmail = "d4r005@gmail.com"),
+        Course(name = "FORMACION DE INSTRUCTORES", durationHours = "8", thematicArea = "(6000) SEGURIDAD", stpsId = "006", creatorEmail = "d4r005@gmail.com"),
+        Course(name = "FORMACION DE SUPERVISORES DE SEGURIDAD Y SALUD OCUPACIONAL", durationHours = "8", thematicArea = "(6000) SEGURIDAD", stpsId = "007", creatorEmail = "d4r005@gmail.com")
     )
 
     private val keywordsMap = mapOf(

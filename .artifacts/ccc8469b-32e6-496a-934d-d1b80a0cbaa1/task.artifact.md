@@ -1,9 +1,7 @@
-- [/] Aplicar corrección de claves STPS (Android)
-    - [ ] Modificar `Models.kt` (añadir `stpsId`)
-    - [ ] Modificar `CourseDefaults.kt` (asignar IDs oficiales)
-    - [ ] Modificar `DC3GenerationScreen.kt` (lógica de clave dinámica)
-    - [ ] Modificar `PdfGenerator.kt` (quitar prefijo duplicado)
-- [ ] Aplicar corrección de claves STPS (Web)
-    - [ ] Revisar `dc3_generador.html` e `index.html`
-    - [ ] Corregir lógica de clave y prefijo
-- [ ] Enviar cambios a GitHub (Commit & Push)
+- [/] Aplicar cambios de Cursos y Filtrado
+    - [ ] Actualizar `CourseDefaults.kt` con nuevos cursos (Dario Robles)
+    - [ ] Implementar filtro por agente en `CourseListScreen.kt` (Android)
+    - [ ] Implementar filtro por agente en `DC3HistoryScreen.kt` (Android)
+    - [ ] Actualizar `index.html` con cursos y filtros (Web)
+- [ ] Enviar commits a GitHub
+- [ ] Desplegar a Cloudflare (si aplica)

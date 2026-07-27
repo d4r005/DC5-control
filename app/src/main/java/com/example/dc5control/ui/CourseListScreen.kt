@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dc5control.util.CourseDefaults
 import com.example.dc5control.data.model.Course
+import com.example.dc5control.data.model.Agent
 import com.example.dc5control.data.model.User
 import com.example.dc5control.data.repository.SupabaseRepository
 import com.example.dc5control.ui.theme.*
@@ -31,9 +32,12 @@ import com.example.dc5control.ui.theme.*
 @Composable
 fun CourseListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
     val courses = remember { mutableStateListOf<Course>() }
+    val agents = remember { mutableStateListOf<Agent>() }
+    var selectedAgentFilter by remember { mutableStateOf<Agent?>(null) }
     var showAddDialog by remember { mutableStateOf(false) }
     var editingCourse by remember { mutableStateOf<Course?>(null) }
     var isLoading by remember { mutableStateOf(false) }
+    var isAgentsExpanded by remember { mutableStateOf(false) }
 
     fun refreshCourses() {
         isLoading = true
@@ -47,6 +51,10 @@ fun CourseListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                 isLoading = false
             }
         }
+        SupabaseRepository.fetchData("agents", Agent.serializer()) { fetchedAgents ->
+            agents.clear()
+            agents.addAll(fetchedAgents)
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -54,12 +62,17 @@ fun CourseListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
     }
 
     // Filter courses: ADMIN sees all, USER sees only their creatorEmail courses
-    val filteredCourses = remember(courses, user) {
+    val baseFiltered = remember(courses, user) {
         if (user.role == "ADMIN") {
             courses
         } else {
             courses.filter { it.creatorEmail == user.email }
         }
+    }
+
+    val filteredCourses = remember(baseFiltered, selectedAgentFilter) {
+        if (selectedAgentFilter == null) baseFiltered
+        else baseFiltered.filter { it.creatorEmail == selectedAgentFilter?.creatorEmail }
     }
 
     Box(
@@ -101,6 +114,46 @@ fun CourseListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                             style = MaterialTheme.typography.bodyMedium,
                             color = Gray500
                         )
+                    }
+                }
+
+                // Filter by Agent (if more than 1 agent exists)
+                if (agents.isNotEmpty()) {
+                    Box(modifier = Modifier.width(250.dp)) {
+                        ExposedDropdownMenuBox(
+                            expanded = isAgentsExpanded,
+                            onExpandedChange = { isAgentsExpanded = it }
+                        ) {
+                            OutlinedTextField(
+                                value = selectedAgentFilter?.name ?: "Todos los Agentes",
+                                onValueChange = {},
+                                readOnly = true,
+                                placeholder = { Text("Filtrar por agente") },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(isAgentsExpanded) },
+                                modifier = Modifier.menuAnchor().fillMaxWidth(),
+                                shape = RoundedCornerShape(8.dp),
+                                textStyle = MaterialTheme.typography.bodySmall,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = NavyPrimary,
+                                    unfocusedBorderColor = Gray200
+                                )
+                            )
+                            ExposedDropdownMenu(
+                                expanded = isAgentsExpanded,
+                                onDismissRequest = { isAgentsExpanded = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Todos los Agentes") },
+                                    onClick = { selectedAgentFilter = null; isAgentsExpanded = false }
+                                )
+                                agents.forEach { agent ->
+                                    DropdownMenuItem(
+                                        text = { Text(agent.name) },
+                                        onClick = { selectedAgentFilter = agent; isAgentsExpanded = false }
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
 
