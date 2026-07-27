@@ -37,6 +37,7 @@ import com.example.dc5control.data.repository.SupabaseRepository
 import com.example.dc5control.ui.theme.*
 import com.example.dc5control.util.CloudflareHelper
 import com.example.dc5control.util.CourseDefaults
+import com.example.dc5control.util.DiplomaGenerator
 import com.example.dc5control.util.PdfGenerator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -220,6 +221,36 @@ fun DC3GenerationScreen(
         }
     }
 
+    suspend fun generateDiplomas() {
+        val agent = selectedAgent ?: return
+        isGenerating = true
+        try {
+            var currentDoc = 0
+            val totalDocs = selectedEmployees.size * selectedCourses.size
+            selectedEmployees.forEach { employee ->
+                selectedCourses.forEach { course ->
+                    currentDoc++
+                    statusText = "Generando Diploma $currentDoc de $totalDocs..."
+                    val file = DiplomaGenerator.generateDiploma(
+                        context, employee, course, agent, startDate, endDate
+                    )
+                    PdfGenerator.saveToDownloads(context, file)
+                    if (totalDocs == 1) PdfGenerator.openPdf(context, file)
+                }
+            }
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, "Diplomas guardados en Descargas", Toast.LENGTH_LONG).show()
+                onBack()
+            }
+        } catch (e: Exception) {
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        } finally {
+            isGenerating = false
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize().background(BackgroundLight).padding(16.dp)) {
         if (isGenerating) {
             Box(modifier = Modifier.fillMaxSize().background(Color.White).padding(24.dp), contentAlignment = Alignment.Center) {
@@ -258,8 +289,13 @@ fun DC3GenerationScreen(
                             CourseSelectionSection(filteredCoursesByAgent, selectedCourses) { selectedCourses = it }
                             DatesSelectionSection(startDate, { startDate = it }, endDate, { endDate = it })
                             Spacer(modifier = Modifier.height(8.dp))
-                            ActionButtonsSection(onBack, onPreview = { scope.launch { generateOrPreview(true) } }, onGenerate = { scope.launch { generateOrPreview(false) } },
-                                enabled = selectedEmployees.isNotEmpty() && selectedCompany != null && selectedAgent != null && selectedCourses.isNotEmpty() && startDate.isNotEmpty() && endDate.isNotEmpty())
+                            ActionButtonsSection(
+                                onBack, 
+                                onPreview = { scope.launch { generateOrPreview(true) } }, 
+                                onGenerate = { scope.launch { generateOrPreview(false) } },
+                                onGenerateDiploma = { scope.launch { generateDiplomas() } },
+                                enabled = selectedEmployees.isNotEmpty() && selectedCompany != null && selectedAgent != null && selectedCourses.isNotEmpty() && startDate.isNotEmpty() && endDate.isNotEmpty()
+                            )
                         }
                     }
                 } else {
@@ -275,8 +311,13 @@ fun DC3GenerationScreen(
                     CourseSelectionSection(filteredCoursesByAgent, selectedCourses) { selectedCourses = it }
                     DatesSelectionSection(startDate, { startDate = it }, endDate, { endDate = it })
                     Spacer(modifier = Modifier.height(8.dp))
-                    ActionButtonsSection(onBack, onPreview = { scope.launch { generateOrPreview(true) } }, onGenerate = { scope.launch { generateOrPreview(false) } },
-                        enabled = selectedEmployees.isNotEmpty() && selectedCompany != null && selectedAgent != null && selectedCourses.isNotEmpty() && startDate.isNotEmpty() && endDate.isNotEmpty())
+                    ActionButtonsSection(
+                        onBack, 
+                        onPreview = { scope.launch { generateOrPreview(true) } }, 
+                        onGenerate = { scope.launch { generateOrPreview(false) } },
+                        onGenerateDiploma = { scope.launch { generateDiplomas() } },
+                        enabled = selectedEmployees.isNotEmpty() && selectedCompany != null && selectedAgent != null && selectedCourses.isNotEmpty() && startDate.isNotEmpty() && endDate.isNotEmpty()
+                    )
                 }
             }
         }
@@ -439,14 +480,34 @@ fun DatesSelectionSection(startDate: String, onStart: (String) -> Unit, endDate:
 }
 
 @Composable
-fun ActionButtonsSection(onBack: () -> Unit, onPreview: () -> Unit, onGenerate: () -> Unit, enabled: Boolean) {
+fun ActionButtonsSection(onBack: () -> Unit, onPreview: () -> Unit, onGenerate: () -> Unit, onGenerateDiploma: () -> Unit, enabled: Boolean) {
     Column {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(onClick = onBack, modifier = Modifier.weight(1f), shape = RoundedCornerShape(8.dp)) { Text("Cancelar") }
             Button(onClick = onPreview, modifier = Modifier.weight(1f), enabled = enabled, colors = ButtonDefaults.buttonColors(containerColor = NavySurface, contentColor = NavyPrimary), shape = RoundedCornerShape(8.dp)) { Text("Previsualizar") }
         }
         Spacer(modifier = Modifier.height(12.dp))
-        Button(onClick = onGenerate, modifier = Modifier.fillMaxWidth().height(48.dp), enabled = enabled, shape = RoundedCornerShape(8.dp), colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary)) { Text("Generar PDF DC-3", fontWeight = FontWeight.Bold) }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(
+                onClick = onGenerate, 
+                modifier = Modifier.weight(1f).height(48.dp), 
+                enabled = enabled, 
+                shape = RoundedCornerShape(8.dp), 
+                colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary)
+            ) { 
+                Text("Generar DC-3", fontWeight = FontWeight.Bold, fontSize = 13.sp) 
+            }
+            
+            Button(
+                onClick = onGenerateDiploma, 
+                modifier = Modifier.weight(1f).height(48.dp), 
+                enabled = enabled, 
+                shape = RoundedCornerShape(8.dp), 
+                colors = ButtonDefaults.buttonColors(containerColor = ComplianceGreen)
+            ) { 
+                Text("Generar Diploma", fontWeight = FontWeight.Bold, fontSize = 13.sp) 
+            }
+        }
     }
 }
 

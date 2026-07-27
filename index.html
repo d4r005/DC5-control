@@ -571,6 +571,9 @@
             <button onclick="previewDC3()" class="btn-sm btn-outline px-5" style="border-color:#1e3a8a;color:#1e3a8a">
                 👁 Previsualizar
             </button>
+            <button onclick="generateDiploma()" class="btn-sm btn-outline px-5" style="border-color:#16a34a;color:#16a34a">
+                🎓 Diploma
+            </button>
             <button onclick="generateDC3()" class="btn-sm btn-indigo px-7">
                 ⬇ Generar PDF DC-3
             </button>
@@ -1585,6 +1588,110 @@ async function generateDC3() {
     closeModal('modal-dc3');
     if (currentView === 'dc3') loadSection('dc3');
     else { alert('DC-3 generado y guardado exitosamente.'); }
+}
+
+async function generateDiploma() {
+    const companyName = document.getElementById('dc3-company').value;
+    const agentVal    = document.getElementById('dc3-agent').value;
+    const courseVal   = document.getElementById('dc3-course').value;
+    const start       = document.getElementById('dc3-start').value;
+    const end         = document.getElementById('dc3-end').value;
+
+    if (!start || !end) { alert('Selecciona las fechas de inicio y término'); return; }
+
+    const [agentName, agentStps] = agentVal.split('|');
+    const [courseName, courseDuration, courseArea, courseStpsId] = courseVal.split('|');
+
+    const pdfBytes = await _buildDiplomaCore({
+        worker: selectedWorker,
+        agent: { name: agentName, stps: agentStps },
+        course: { name: courseName, durationHours: courseDuration },
+        start, end
+    });
+
+    if (!pdfBytes) return;
+
+    // Descargar PDF
+    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `Diploma_${(function sp(s){return String(s||'').replace(/[áà]/g,'a').replace(/[éè]/g,'e').replace(/[íì]/g,'i').replace(/[óò]/g,'o').replace(/[úùü]/g,'u').replace(/ñ/g,'n').replace(/[ÁÀ]/g,'A').replace(/[ÉÈ]/g,'E').replace(/[ÍÌ]/g,'I').replace(/[ÓÒ]/g,'O').replace(/[ÚÙÜ]/g,'U').replace(/Ñ/g,'N');})(selectedWorker.name||'reconocimiento').replace(/\s+/g,'_')}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+async function _buildDiplomaCore({ worker, agent, course, start, end }) {
+    const { PDFDocument, StandardFonts, rgb, degrees } = PDFLib;
+
+    function sp(s) {
+        return String(s||'')
+            .replace(/[áà]/g,'a').replace(/[éè]/g,'e').replace(/[íì]/g,'i')
+            .replace(/[óò]/g,'o').replace(/[úùü]/g,'u').replace(/ñ/g,'n')
+            .replace(/[ÁÀ]/g,'A').replace(/[ÉÈ]/g,'E').replace(/[ÍÌ]/g,'I')
+            .replace(/[ÓÒ]/g,'O').replace(/[ÚÙÜ]/g,'U').replace(/Ñ/g,'N');
+    }
+
+    const MONTHS = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
+    function fmtDate(f) {
+        try {
+            const parts = f.includes('-') ? f.split('-') : f.split('/');
+            // yyyy-mm-dd vs dd/mm/yyyy
+            let d, m, y;
+            if (f.includes('-')) { [y, m, d] = parts; } else { [d, m, y] = parts; }
+            return `${parseInt(d)} DE ${MONTHS[parseInt(m)-1]} DEL ${y}`;
+        } catch(e) { return f.toUpperCase(); }
+    }
+
+    // Cargar plantilla diploma PNG
+    let imgBytes;
+    try {
+        const resp = await fetch('/Plantilla diploma.png');
+        if (!resp.ok) throw new Error('Plantilla no encontrada');
+        imgBytes = await resp.arrayBuffer();
+    } catch(e) {
+        alert('Error: Asegúrate de que /Plantilla diploma.png esté en el servidor.');
+        return;
+    }
+
+    const pdfDoc = await PDFDocument.create();
+    const page   = pdfDoc.addPage([792, 612]); // Horizontal (Landscape Letter)
+    const font   = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const fontB  = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+    const templateImg = await pdfDoc.embedPng(imgBytes);
+    page.drawImage(templateImg, { x: 0, y: 0, width: 792, height: 612 });
+
+    const PW = 792;
+    const PH = 612;
+
+    function TC(xC, yF, t, sz, useBold) {
+        if (!t) return;
+        const f = useBold ? fontB : font;
+        const st = sp(String(t)).toUpperCase();
+        const w = f.widthOfTextAtSize(st, sz);
+        page.drawText(st, { x: xC - w/2, y: PH - yF, size: sz, font: f, color: rgb(0,0,0) });
+    }
+
+    // 1. Limpiar zona Cynthia
+    page.drawRectangle({ x: 330, y: PH - 585, width: 220, height: 100, color: rgb(1,1,1) });
+
+    // 2. Datos Dinámicos
+    const fullName = worker.apellidoPaterno
+        ? `${worker.nombres} ${worker.apellidoPaterno} ${worker.apellidoMaterno || ''}`.trim()
+        : worker.name;
+
+    TC(PW/2, 325, fullName, 28, true);
+    TC(PW/2, 445, course.name, 18, true);
+
+    const dateLine = `CON DURACION DE ${course.durationHours} DEL ${fmtDate(end)}`;
+    TC(PW/2, 480, dateLine, 11, false);
+
+    // 3. Datos Dario
+    TC(440, 540, "Jesus Dario Robles Trujillo", 10, true);
+    TC(440, 555, `REGISTRO STPS ${agent.stps}`, 8, false);
+
+    return await pdfDoc.save();
 }
 
 // Regenerar desde historial
