@@ -1,7 +1,7 @@
-- [/] Aplicar cambios de Cursos y Filtrado
-    - [ ] Actualizar `CourseDefaults.kt` con nuevos cursos (Dario Robles)
-    - [ ] Implementar filtro por agente en `CourseListScreen.kt` (Android)
-    - [ ] Implementar filtro por agente en `DC3HistoryScreen.kt` (Android)
-    - [ ] Actualizar `index.html` con cursos y filtros (Web)
+- [x] Corregir formato de nombres y filtrado de cursos
+    - [x] Actualizar `CourseListScreen.kt` (nombres y filtro)
+    - [x] Actualizar `DC3HistoryScreen.kt` (nombres y filtro)
+    - [x] Actualizar `DC3GenerationScreen.kt` (filtrado dinámico en diálogo)
+    - [x] Actualizar `index.html` (normalización de nombres Web)
+- [ ] Verificar cambios en el emulador
 - [ ] Enviar commits a GitHub
-- [ ] Desplegar a Cloudflare (si aplica)

@@ -112,8 +112,26 @@ fun DC3GenerationScreen(
             }
         }
         SupabaseRepository.fetchData("agents", Agent.serializer()) { fetched ->
+            fun normalize(s: String): String = s.uppercase()
+                .replace("ING.", "")
+                .replace(Regex("\\s+"), " ")
+                .trim()
+
+            val uniqueAgents = mutableListOf<Agent>()
+            val seenNorms = mutableSetOf<String>()
+
+            fetched.forEach { agent ->
+                val norm = normalize(agent.name)
+                if (norm !in seenNorms) {
+                    uniqueAgents.add(agent)
+                    seenNorms.add(norm)
+                } else if (agent.name.contains("Jesus", ignoreCase = true)) {
+                    uniqueAgents.removeAll { normalize(it.name) == norm }
+                    uniqueAgents.add(agent)
+                }
+            }
             agents.clear()
-            agents.addAll(fetched)
+            agents.addAll(uniqueAgents)
         }
         SupabaseRepository.fetchData("workers", Employee.serializer()) { fetched ->
             val filtered = if (user.role == "ADMIN") fetched else fetched.filter { it.creatorEmail == user.email }
@@ -231,7 +249,13 @@ fun DC3GenerationScreen(
                         }
                         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                             AgentSelectionSection(agents, selectedAgent) { selectedAgent = it }
-                            CourseSelectionSection(courses, selectedCourses) { selectedCourses = it }
+                            
+                            val filteredCoursesByAgent = remember(courses, selectedAgent) {
+                                if (selectedAgent == null) courses
+                                else courses.filter { it.creatorEmail == selectedAgent?.creatorEmail }
+                            }
+                            
+                            CourseSelectionSection(filteredCoursesByAgent, selectedCourses) { selectedCourses = it }
                             DatesSelectionSection(startDate, { startDate = it }, endDate, { endDate = it })
                             Spacer(modifier = Modifier.height(8.dp))
                             ActionButtonsSection(onBack, onPreview = { scope.launch { generateOrPreview(true) } }, onGenerate = { scope.launch { generateOrPreview(false) } },
@@ -242,7 +266,13 @@ fun DC3GenerationScreen(
                     WorkerSelectionSection(employees, selectedEmployees) { selectedEmployees = it }
                     CompanySelectionSection(companies, selectedCompany) { selectedCompany = it }
                     AgentSelectionSection(agents, selectedAgent) { selectedAgent = it }
-                    CourseSelectionSection(courses, selectedCourses) { selectedCourses = it }
+                    
+                    val filteredCoursesByAgent = remember(courses, selectedAgent) {
+                        if (selectedAgent == null) courses
+                        else courses.filter { it.creatorEmail == selectedAgent?.creatorEmail }
+                    }
+                    
+                    CourseSelectionSection(filteredCoursesByAgent, selectedCourses) { selectedCourses = it }
                     DatesSelectionSection(startDate, { startDate = it }, endDate, { endDate = it })
                     Spacer(modifier = Modifier.height(8.dp))
                     ActionButtonsSection(onBack, onPreview = { scope.launch { generateOrPreview(true) } }, onGenerate = { scope.launch { generateOrPreview(false) } },

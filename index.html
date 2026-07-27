@@ -833,25 +833,25 @@ async function loadCatalogs() {
     // Combinar agentes pre-cargados
     const dbAgents = agentsR.documents || [];
     dbAgents.forEach(dba => {
-        // Normalización muy agresiva para evitar duplicados por orden de nombres o prefijos
+        // Normalización para evitar duplicados sin alterar el orden del nombre
         const norm = (s) => {
             if (!s) return '';
             return s.toUpperCase()
                 .replace('ING.', ' ')
                 .replace(/\s+/g, ' ')
-                .trim()
-                .split(' ')
-                .sort()
-                .join(' ');
+                .trim();
         };
 
         const dbaNorm = norm(dba.name);
 
         // Buscar si ya existe un agente con el mismo nombre normalizado o mismo STPS
-        const exists = DATA.agents.find(a => norm(a.name) === dbaNorm || a.stps === dba.stps);
+        const existsIdx = DATA.agents.findIndex(a => norm(a.name) === dbaNorm || a.stps === dba.stps);
 
-        if (!exists) {
+        if (existsIdx === -1) {
             DATA.agents.push(dba);
+        } else if (dba.name.toUpperCase().includes('JESUS')) {
+            // Si la versión de la DB tiene "JESUS", reemplazamos la local (que podría estar desordenada)
+            DATA.agents[existsIdx] = dba;
         } else {
             console.log('[DEBUG] Agent already exists (normalized match), skipping:', dba.name);
         }

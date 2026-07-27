@@ -1,22 +1,24 @@
-# Corrección de Errores: PDF y Sincronización
+# Mejora de Filtrado y Formato de Nombres
 
-Se han aplicado correcciones críticas para resolver los fallos reportados en la generación de PDF y en la comunicación con Supabase.
+Se han aplicado correcciones para asegurar que los nombres de los Agentes Capacitadores aparezcan en el orden correcto y que el filtrado de cursos sea preciso en todas las pantallas.
 
 ## Cambios Realizados
 
-### 1. Robustez en la Generación de PDF
-- **Ruta de Archivos:** Se añadió una ruta de respaldo (`cacheDir`) en caso de que el sistema no pueda acceder al directorio de descargas externo.
-- **Manejo de Memoria:** Se renombraron las variables internas de los flujos de datos (`outputStream`, `inputStream`) para evitar que el compilador use referencias nulas por error de visibilidad (`it`).
-- **Trazas de Log:** Se agregaron registros (Logs) para rastrear dónde se guarda el PDF temporal y cuántos bytes se escriben realmente.
+### 1. Formato de Nombre de Agente
+- **Normalización Inteligente:** Se eliminó el ordenamiento alfabético de las palabras. Ahora el sistema reconoce que son la misma persona pero respeta el formato original (ej. **"Jesus Dario Robles Trujillo"**).
+- **Preferencia de Datos:** Si existen versiones duplicadas en la base de datos, el sistema ahora prioriza la versión que contiene el nombre completo "Jesus Dario".
 
-### 2. Compatibilidad con Supabase
-- **Tipos de Datos:** Se corrigieron los valores de duración de cursos en `CourseDefaults.kt`. Ahora se envían como números puros (`"8"`, `"24"`) en lugar de incluir texto (`"8 HORAS"`), lo que cumple con el tipo `integer` esperado por la base de datos y elimina los errores 400.
+### 2. Filtrado Dinámico en DC-3 (Android)
+- **Cursos por Agente:** Se implementó una lógica de filtrado en tiempo real en el diálogo de generación de DC-3. Al seleccionar un Agente Capacitador, la lista de cursos se reduce automáticamente para mostrar **solo los cursos que pertenecen a ese agente** (basado en su correo de creador).
 
-## Verificación
+### 3. Consistencia en Paneles
+- Se actualizó el filtrado en el panel general de **Cursos** y en el de **Historial** para usar la misma lógica de normalización de nombres, asegurando que no haya duplicados visuales en los menús desplegables.
 
-> [!TIP]
-> Por favor, **reinstala o reinicia la aplicación** en el emulador para que los cambios en los datos de los cursos se apliquen correctamente a la base de datos de Supabase.
+### 4. Versión Web
+- Se actualizó `index.html` con la misma lógica de normalización para que la experiencia sea idéntica a la aplicación Android.
 
-1. Intenta previsualizar un DC-3 de nuevo.
-2. Verifica que ya no aparezca el mensaje de error de `OutputStream`.
-3. Confirma que los cursos se cargan sin generar errores en la consola (Logcat).
+## Verificación Recomendada
+
+1.  **Pantalla de Cursos**: Verifica que el filtro superior muestre tu nombre correctamente.
+2.  **Generar DC-3**: Selecciona a "Jesus Dario Robles Trujillo" y confirma que el menú de cursos solo muestra tus 7 cursos oficiales.
+3.  **Versión Web**: Refresca la página y verifica que los filtros estén limpios.
