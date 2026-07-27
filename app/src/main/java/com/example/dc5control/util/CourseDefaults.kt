@@ -5,25 +5,25 @@ import com.example.dc5control.data.repository.SupabaseRepository
 
 object CourseDefaults {
     val defaultCourses = listOf(
-        Course(name = "SEGURIDAD EN TRABAJOS DE SOLDADURAS Y OXICORTE", durationHours = "8 HORAS", thematicArea = "(6000) SEGURIDAD", creatorEmail = "lugga.advisors@gmail.com"),
-        Course(name = "MANEJO SEGURO DE MONTACARGAS", durationHours = "8 HORAS", thematicArea = "(6000) SEGURIDAD", creatorEmail = "lugga.advisors@gmail.com"),
-        Course(name = "FORMACION DE BRIGADAS DE EMERGENCIA (EVACUACION, BUSQUEDA Y RESCATE, PRIMEROS AUXILIOS Y MANEJO DE EXTINTORES)", durationHours = "24 HORAS", thematicArea = "(6000) SEGURIDAD", creatorEmail = "lugga.advisors@gmail.com"),
-        Course(name = "SEGURIDAD EN EL USO Y MANEJO DE MAQUINARIA PESADA EN CONSTRUCCION", durationHours = "8 HORAS", thematicArea = "(6000) SEGURIDAD", creatorEmail = "lugga.advisors@gmail.com"),
-        Course(name = "DISEÑO Y EVALUACION DE SIMULACROS PARA EVACUACION O REPLIEGUE EN SINIESTROS", durationHours = "8 HORAS", thematicArea = "(6000) SEGURIDAD", creatorEmail = "lugga.advisors@gmail.com"),
-        Course(name = "FORMACION DE SUPERVISORES DE SEGURIDAD Y SALUD OCUPACIONAL", durationHours = "8 HORAS", thematicArea = "(6000) SEGURIDAD", creatorEmail = "lugga.advisors@gmail.com"),
-        Course(name = "TALLER DE CORTE Y BARBERIA PROFESIONAL", durationHours = "24 HORAS", thematicArea = "(2000) SERVICIOS", creatorEmail = "lugga.advisors@gmail.com"),
-        Course(name = "TALLER DE MAQUILLAJE PROFESIONAL DIA, TARDE Y NOCHE", durationHours = "24 HORAS", thematicArea = "(2000) SERVICIOS", creatorEmail = "lugga.advisors@gmail.com"),
-        Course(name = "FORMACION DE INSTRUCTORES", durationHours = "8 HORAS", thematicArea = "(7000) DESARROLLO PERSONAL Y FAMILIAR", creatorEmail = "lugga.advisors@gmail.com"),
-        Course(name = "MEDIDAS DE SEGURIDAD EN TRABAJOS DE ALTURA (NOM-009-STPS-2011)", durationHours = "8 HORAS", thematicArea = "(6000) SEGURIDAD", creatorEmail = "lugga.advisors@gmail.com"),
-        Course(name = "SEGURIDAD INDUSTRIAL EN LA CONSTRUCCION (NOM-031-STPS-2011)", durationHours = "8 HORAS", thematicArea = "(6000) SEGURIDAD", creatorEmail = "lugga.advisors@gmail.com"),
-        Course(name = "OPERACION SEGURA DE EQUIPOS DE ELEVACION, MANLIFT Y PLATAFORMAS", durationHours = "8 HORAS", thematicArea = "(6000) SEGURIDAD", creatorEmail = "lugga.advisors@gmail.com"),
-        Course(name = "TRABAJOS EN ESPACIOS CONFINADOS", durationHours = "8 HORAS", thematicArea = "(6000) SEGURIDAD", creatorEmail = "lugga.advisors@gmail.com"),
-        Course(name = "OPERACION SEGURA DE ENGANCHE Y DESENGANCHE 5 RUEDA", durationHours = "8 HORAS", thematicArea = "(6000) SEGURIDAD", creatorEmail = "lugga.advisors@gmail.com"),
-        Course(name = "FORMACION DE TECNICOS EN URGENCIAS MEDICAS NIVEL 1 (BASICO)", durationHours = "8 HORAS", thematicArea = "(6000) SEGURIDAD", creatorEmail = "lugga.advisors@gmail.com"),
-        Course(name = "ASEGURAMIENTO DE ENERGIA (BLOQUEO Y ETIQUETADO LOTO)", durationHours = "8 HORAS", thematicArea = "(6000) SEGURIDAD", creatorEmail = "lugga.advisors@gmail.com"),
-        Course(name = "MANEJO DE MATERIALES PELIGROSOS", durationHours = "8 HORAS", thematicArea = "(6000) SEGURIDAD", creatorEmail = "lugga.advisors@gmail.com"),
-        Course(name = "OPERACION SEGURA DE VEHICULOS PESADOS 5 RUEDA", durationHours = "8 HORAS", thematicArea = "(6000) SEGURIDAD", creatorEmail = "lugga.advisors@gmail.com"),
-        Course(name = "FORMACION DE TECNICOS EN INHALOTERAPIA", durationHours = "24 HORAS", thematicArea = "(6000) SEGURIDAD", creatorEmail = "lugga.advisors@gmail.com")
+        Course(name = "SEGURIDAD EN TRABAJOS DE SOLDADURAS Y OXICORTE", durationHours = "8", thematicArea = "(6000) SEGURIDAD", stpsId = "001", creatorEmail = "lugga.advisors@gmail.com"),
+        Course(name = "MANEJO SEGURO DE MONTACARGAS", durationHours = "8", thematicArea = "(6000) SEGURIDAD", stpsId = "002", creatorEmail = "lugga.advisors@gmail.com"),
+        Course(name = "FORMACION DE BRIGADAS DE EMERGENCIA (EVACUACION, BUSQUEDA Y RESCATE, PRIMEROS AUXILIOS Y MANEJO DE EXTINTORES)", durationHours = "24", thematicArea = "(6000) SEGURIDAD", stpsId = "003", creatorEmail = "lugga.advisors@gmail.com"),
+        Course(name = "SEGURIDAD EN EL USO Y MANEJO DE MAQUINARIA PESADA EN CONSTRUCCION", durationHours = "8", thematicArea = "(6000) SEGURIDAD", stpsId = "004", creatorEmail = "lugga.advisors@gmail.com"),
+        Course(name = "DISEÑO Y EVALUACION DE SIMULACROS PARA EVACUACION O REPLIEGUE EN SINIESTROS", durationHours = "8", thematicArea = "(6000) SEGURIDAD", stpsId = "005", creatorEmail = "lugga.advisors@gmail.com"),
+        Course(name = "FORMACION DE SUPERVISORES DE SEGURIDAD Y SALUD OCUPACIONAL", durationHours = "8", thematicArea = "(6000) SEGURIDAD", stpsId = "006", creatorEmail = "lugga.advisors@gmail.com"),
+        Course(name = "TALLER DE CORTE Y BARBERIA PROFESIONAL", durationHours = "24", thematicArea = "(2000) SERVICIOS", stpsId = "007", creatorEmail = "lugga.advisors@gmail.com"),
+        Course(name = "TALLER DE MAQUILLAJE PROFESIONAL DIA, TARDE Y NOCHE", durationHours = "24", thematicArea = "(2000) SERVICIOS", stpsId = "008", creatorEmail = "lugga.advisors@gmail.com"),
+        Course(name = "FORMACION DE INSTRUCTORES", durationHours = "8", thematicArea = "(7000) DESARROLLO PERSONAL Y FAMILIAR", stpsId = "009", creatorEmail = "lugga.advisors@gmail.com"),
+        Course(name = "MEDIDAS DE SEGURIDAD EN TRABAJOS DE ALTURA (NOM-009-STPS-2011)", durationHours = "8", thematicArea = "(6000) SEGURIDAD", stpsId = "010", creatorEmail = "lugga.advisors@gmail.com"),
+        Course(name = "SEGURIDAD INDUSTRIAL EN LA CONSTRUCCION (NOM-031-STPS-2011)", durationHours = "8", thematicArea = "(6000) SEGURIDAD", stpsId = "011", creatorEmail = "lugga.advisors@gmail.com"),
+        Course(name = "OPERACION SEGURA DE EQUIPOS DE ELEVACION, MANLIFT Y PLATAFORMAS", durationHours = "8", thematicArea = "(6000) SEGURIDAD", stpsId = "012", creatorEmail = "lugga.advisors@gmail.com"),
+        Course(name = "TRABAJOS EN ESPACIOS CONFINADOS", durationHours = "8", thematicArea = "(6000) SEGURIDAD", stpsId = "013", creatorEmail = "lugga.advisors@gmail.com"),
+        Course(name = "OPERACION SEGURA DE ENGANCHE Y DESENGANCHE 5 RUEDA", durationHours = "8", thematicArea = "(6000) SEGURIDAD", stpsId = "014", creatorEmail = "lugga.advisors@gmail.com"),
+        Course(name = "FORMACION DE TECNICOS EN URGENCIAS MEDICAS NIVEL 1 (BASICO)", durationHours = "8", thematicArea = "(6000) SEGURIDAD", stpsId = "015", creatorEmail = "lugga.advisors@gmail.com"),
+        Course(name = "ASEGURAMIENTO DE ENERGIA (BLOQUEO Y ETIQUETADO LOTO)", durationHours = "8", thematicArea = "(6000) SEGURIDAD", stpsId = "016", creatorEmail = "lugga.advisors@gmail.com"),
+        Course(name = "MANEJO DE MATERIALES PELIGROSOS", durationHours = "8", thematicArea = "(6000) SEGURIDAD", stpsId = "017", creatorEmail = "lugga.advisors@gmail.com"),
+        Course(name = "OPERACION SEGURA DE VEHICULOS PESADOS 5 RUEDA", durationHours = "8", thematicArea = "(6000) SEGURIDAD", stpsId = "018", creatorEmail = "lugga.advisors@gmail.com"),
+        Course(name = "FORMACION DE TECNICOS EN INHALOTERAPIA", durationHours = "24", thematicArea = "(6000) SEGURIDAD", stpsId = "019", creatorEmail = "lugga.advisors@gmail.com")
     )
 
     private val keywordsMap = mapOf(

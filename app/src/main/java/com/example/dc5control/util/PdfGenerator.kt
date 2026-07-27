@@ -213,7 +213,7 @@ object PdfGenerator {
 
         // 11. Agente (Limpiar etiqueta)
         rect(26f, 430f, 559f, 12f)
-        text(30f, 440f, "${d.agenteCapacitador}  STPS-${d.stpsAgente}", 8f)
+        text(30f, 440f, "${d.agenteCapacitador}  ${d.stpsAgente}", 8f)
 
         // 12. Firmas (Limpiar Zonas)
         rect(63f, 511f, 137f, 27f); rect(218f, 511f, 153f, 27f); rect(389f, 511f, 153f, 27f)
@@ -243,7 +243,10 @@ object PdfGenerator {
         }
 
         val name = "DC3_${sanitize(d.nombreTrabajador.replace(" ","_"))}.pdf"
-        val out = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), name)
+        val downloadsDir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: context.cacheDir
+        val out = File(downloadsDir, name)
+        
+        Log.d(TAG, "Saving temporary PDF to: ${out.absolutePath}")
         document.save(out)
         document.close()
         return out
@@ -257,19 +260,45 @@ object PdfGenerator {
 
     fun openPdf(c: Context, f: File) {
         try {
+            Log.d(TAG, "Opening PDF: ${f.absolutePath}")
             val uri = FileProvider.getUriForFile(c, "${c.packageName}.fileprovider", f)
-            c.startActivity(Intent(Intent.ACTION_VIEW).apply { setDataAndType(uri, "application/pdf"); addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION); addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) })
-        } catch (e: Exception) { Log.e(TAG, "Error: ${e.message}") }
+            c.startActivity(Intent(Intent.ACTION_VIEW).apply { 
+                setDataAndType(uri, "application/pdf")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) 
+            })
+        } catch (e: Exception) { 
+            Log.e(TAG, "Error opening PDF: ${e.message}", e) 
+        }
     }
 
     fun saveToDownloads(c: Context, sf: File): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return false
         return try {
             val resolver = c.contentResolver
-            val values = ContentValues().apply { put(MediaStore.MediaColumns.DISPLAY_NAME, sf.name); put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf"); put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS) }
+            val values = ContentValues().apply { 
+                put(MediaStore.MediaColumns.DISPLAY_NAME, sf.name)
+                put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf")
+                put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS) 
+            }
             val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
-            if (uri != null) { resolver.openOutputStream(uri)?.use { sf.inputStream().use { input -> it.write(input.readBytes()) } }; true } else false
-        } catch (e: Exception) { false }
+            if (uri != null) { 
+                resolver.openOutputStream(uri)?.use { outputStream -> 
+                    sf.inputStream().use { inputStream -> 
+                        val bytes = inputStream.readBytes()
+                        Log.d(TAG, "Writing ${bytes.size} bytes to Downloads via Uri: $uri")
+                        outputStream.write(bytes) 
+                    } 
+                }
+                true 
+            } else {
+                Log.e(TAG, "Failed to insert record into MediaStore.Downloads")
+                false
+            }
+        } catch (e: Exception) { 
+            Log.e(TAG, "Error saving to Downloads: ${e.message}", e)
+            false 
+        }
     }
 
     private fun sanitize(s: String): String {

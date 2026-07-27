@@ -64,6 +64,17 @@ suspend fun loadBitmap(context: Context, source: String?): Bitmap? {
     }
 }
 
+fun calculateStps(agentStps: String, courseStpsId: String?): String {
+    val base = agentStps.removePrefix("STPS-").removePrefix("STPS-").trim()
+    if (courseStpsId.isNullOrBlank()) return "STPS-$base"
+    
+    val parts = base.split("-")
+    if (parts.size < 2) return "STPS-$base-$courseStpsId"
+    
+    val baseWithoutSuffix = parts.dropLast(1).joinToString("-")
+    return "STPS-$baseWithoutSuffix-$courseStpsId"
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DC3GenerationScreen(
@@ -130,8 +141,11 @@ fun DC3GenerationScreen(
                 val employee = selectedEmployees.firstOrNull() ?: return
                 val course = selectedCourses.firstOrNull() ?: return
                 val photo = loadBitmap(context, employee.photoUrl)
+                
+                val finalStps = calculateStps(agent.stps, course.stpsId)
+                
                 val file = PdfGenerator.generateDC3(
-                    context, employee, course, agent, company.name, company.rfc,
+                    context, employee, course, agent.copy(stps = finalStps), company.name, company.rfc,
                     company.representanteLegal, company.representanteTrabajadores,
                     startDate, endDate, signature, logo, photo, hLogo, design?.headerSlogan
                 )
@@ -145,8 +159,11 @@ fun DC3GenerationScreen(
                     selectedCourses.forEach { course ->
                         currentDoc++
                         statusText = "Procesando $currentDoc de $totalDocs: ${employee.nombres}..."
+                        
+                        val finalStps = calculateStps(agent.stps, course.stpsId)
+                        
                         val file = PdfGenerator.generateDC3(
-                            context, employee, course, agent, company.name, company.rfc,
+                            context, employee, course, agent.copy(stps = finalStps), company.name, company.rfc,
                             company.representanteLegal, company.representanteTrabajadores,
                             startDate, endDate, signature, logo, photo, hLogo, design?.headerSlogan
                         )
@@ -162,7 +179,7 @@ fun DC3GenerationScreen(
                             thematicArea = course.thematicArea ?: "",
                             companyName = company.name,
                             agentName = agent.name,
-                            agentStps = agent.stps,
+                            agentStps = finalStps,
                             startDate = startDate,
                             endDate = endDate,
                             creatorEmail = employee.creatorEmail ?: user.email

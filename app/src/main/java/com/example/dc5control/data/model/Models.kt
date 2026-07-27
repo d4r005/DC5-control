@@ -72,6 +72,7 @@ data class Course(
     @Serializable(with = AnyToStringSerializer::class)
     @SerialName("duration_hours") val durationHours: String = "",
     @SerialName("thematic_area") val thematicArea: String? = null,
+    @SerialName("stps_id") val stpsId: String? = null,
     @SerialName("creator_email") val creatorEmail: String? = null
 )
 
