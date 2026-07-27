@@ -1481,21 +1481,10 @@ function openDC3(worker) {
     const agentSel = document.getElementById('dc3-agent');
     agentSel.innerHTML = DATA.agents.map(a => `<option value="${a.name}|${a.stps}">${a.name}</option>`).join('');
 
-    // Courses (Filtrado dinámico por agente)
-    const courSel = document.getElementById('dc3-course');
-    const updateCoursesList = () => {
-        const [selName] = agentSel.value.split('|');
-        const agent = DATA.agents.find(a => a.name === selName);
-        if (agent) {
-            // Filtrar cursos que pertenecen al agente seleccionado
-            const filtered = DATA.courses.filter(c => c.creatorEmail === agent.creatorEmail)
-                .filter(c => c.thematicArea && c.thematicArea !== '' && c.thematicArea !== '–' && c.thematicArea !== '-');
-            courSel.innerHTML = filtered.map(c => `<option value="${c.name}|${c.durationHours}|${c.thematicArea}|${c.stpsId||''}">${c.name}</option>`).join('');
-        }
-    };
-
-    agentSel.onchange = updateCoursesList;
-    updateCoursesList();
+    // Courses
+    const list = (currentUser.role === 'ADMIN' ? DATA.courses : DATA.courses.filter(c => c.creatorEmail === currentUser.email))
+        .filter(c => c.thematicArea && c.thematicArea !== '' && c.thematicArea !== '–' && c.thematicArea !== '-');
+    document.getElementById('dc3-course').innerHTML = list.map(c => `<option value="${c.name}|${c.durationHours}|${c.thematicArea}|${c.stpsId||''}">${c.name}</option>`).join('');
 
     document.getElementById('modal-dc3').classList.add('open');
 }
@@ -2983,25 +2972,7 @@ function openWorkerCourses(worker) {
     const compSel = document.getElementById('wc-company');
     const agentSel = document.getElementById('wc-agent');
     compSel.innerHTML = DATA.companies.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
-    const agentSel = document.getElementById('wc-agent');
     agentSel.innerHTML = DATA.agents.map(a => `<option value="${a.name}|${a.stps}">${a.name}</option>`).join('');
-
-    // Filtrar cursos al cambiar agente en masivo por trabajador
-    agentSel.onchange = () => {
-        const [selName] = agentSel.value.split('|');
-        const agent = DATA.agents.find(a => a.name === selName);
-        if (!agent) return;
-
-        const filtered = DATA.courses.filter(c => c.creatorEmail === agent.creatorEmail);
-        const newOpts = filtered.map(c => `<option value="${c.id}|${c.name}|${c.durationHours}|${c.thematicArea}|${c.stpsId||''}">${c.name} (${c.durationHours})</option>`).join('');
-
-        for (let i = 0; i < _wcCourseRowCount; i++) {
-            const sel = document.getElementById(`wc-course-${i}`);
-            if (sel) {
-                sel.innerHTML = '<option value="">Seleccionar curso…</option>' + newOpts;
-            }
-        }
-    };
 
     // Iniciar con una fila de curso
     document.getElementById('wc-courses-list').innerHTML = '';
@@ -3014,18 +2985,7 @@ function openWorkerCourses(worker) {
 
 function addWorkerCourseRow() {
     const idx = _wcCourseRowCount++;
-
-    // Obtener agente seleccionado para filtrar cursos iniciales
-    const agentVal = document.getElementById('wc-agent')?.value || '';
-    const [selName] = agentVal.split('|');
-    const agent = DATA.agents.find(a => a.name === selName);
-
-    let filtered = DATA.courses;
-    if (agent) {
-        filtered = DATA.courses.filter(c => c.creatorEmail === agent.creatorEmail);
-    }
-
-    const courseOpts = filtered.map(c =>
+    const courseOpts = DATA.courses.map(c =>
         `<option value="${c.id}|${c.name}|${c.durationHours}|${c.thematicArea}|${c.stpsId||''}">${c.name} (${c.durationHours})</option>`
     ).join('');
 
