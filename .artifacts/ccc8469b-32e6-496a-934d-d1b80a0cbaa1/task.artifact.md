@@ -1,7 +1,6 @@
-- [x] Corregir formato de nombres y filtrado de cursos
-    - [x] Actualizar `CourseListScreen.kt` (nombres y filtro)
-    - [x] Actualizar `DC3HistoryScreen.kt` (nombres y filtro)
-    - [x] Actualizar `DC3GenerationScreen.kt` (filtrado dinámico en diálogo)
-    - [x] Actualizar `index.html` (normalización de nombres Web)
-- [ ] Verificar cambios en el emulador
+- [x] Implementar Panel de Diseño con Pestañas
+    - [x] Actualizar navegación en `MainActivity.kt`
+    - [x] Renombrar y actualizar `DC3DesignScreen.kt` a `DesignScreen.kt` con pestañas
+    - [x] Actualizar navegación e interfaz de diseño en `index.html` (Web)
+- [ ] Verificar funcionamiento en el emulador
 - [ ] Enviar commits a GitHub

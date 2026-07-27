@@ -1,24 +1,31 @@
-# Mejora de Filtrado y Formato de Nombres
+# Walkthrough: Nuevo Panel de Diseño con Pestañas
 
-Se han aplicado correcciones para asegurar que los nombres de los Agentes Capacitadores aparezcan en el orden correcto y que el filtrado de cursos sea preciso en todas las pantallas.
+Se ha completado la reestructuración del panel de diseño para soportar múltiples tipos de documentos (DC-3 y Diplomas).
 
-## Cambios Realizados
+## Cambios Principales
 
-### 1. Formato de Nombre de Agente
-- **Normalización Inteligente:** Se eliminó el ordenamiento alfabético de las palabras. Ahora el sistema reconoce que son la misma persona pero respeta el formato original (ej. **"Jesus Dario Robles Trujillo"**).
-- **Preferencia de Datos:** Si existen versiones duplicadas en la base de datos, el sistema ahora prioriza la versión que contiene el nombre completo "Jesus Dario".
+### 1. Renombrado y Navegación
+- El panel anteriormente llamado "Diseño DC-3" ahora se llama simplemente **"Diseño"** en el menú de navegación de Android y en la barra lateral Web.
+- Se actualizó el icono y la etiqueta para reflejar un propósito más general de personalización de formatos.
 
-### 2. Filtrado Dinámico en DC-3 (Android)
-- **Cursos por Agente:** Se implementó una lógica de filtrado en tiempo real en el diálogo de generación de DC-3. Al seleccionar un Agente Capacitador, la lista de cursos se reduce automáticamente para mostrar **solo los cursos que pertenecen a ese agente** (basado en su correo de creador).
+### 2. Interfaz de Pestañas (Tabs)
+- Se implementó una barra de pestañas en la parte superior de la pantalla de Diseño.
+- **Pestaña DC-3:** Contiene todas las opciones de personalización existentes (Logo, Slogan, Firma, etc.).
+- **Pestaña Diploma:** Se añadió como un nuevo contenedor para el futuro diseño de Diplomas (actualmente marcado como "Próximamente disponible").
 
-### 3. Consistencia en Paneles
-- Se actualizó el filtrado en el panel general de **Cursos** y en el de **Historial** para usar la misma lógica de normalización de nombres, asegurando que no haya duplicados visuales en los menús desplegables.
+### 3. Sincronización Web
+- La versión web (`index.html`) ahora cuenta con la misma lógica de pestañas, permitiendo alternar entre el diseño del DC-3 y el del Diploma sin cambiar de sección principal.
 
-### 4. Versión Web
-- Se actualizó `index.html` con la misma lógica de normalización para que la experiencia sea idéntica a la aplicación Android.
+## Cómo Verificar
 
-## Verificación Recomendada
+1. **En Android:**
+   - Abre el menú lateral y selecciona **"Diseño"**.
+   - Verás dos pestañas: **DC-3** y **Diploma**.
+   - Cambia entre ellas para verificar que el contenido se actualiza.
 
-1.  **Pantalla de Cursos**: Verifica que el filtro superior muestre tu nombre correctamente.
-2.  **Generar DC-3**: Selecciona a "Jesus Dario Robles Trujillo" y confirma que el menú de cursos solo muestra tus 7 cursos oficiales.
-3.  **Versión Web**: Refresca la página y verifica que los filtros estén limpios.
+2. **En la Web:**
+   - Selecciona **"Diseño"** en el menú lateral.
+   - Utiliza los botones de pestaña para alternar las vistas.
+
+## Repositorio Limpio
+- Se han corregido errores de etiquetas HTML y llaves en Kotlin introducidos durante la edición masiva, asegurando que el proyecto compile y se despliegue correctamente.

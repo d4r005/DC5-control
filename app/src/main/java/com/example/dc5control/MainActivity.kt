@@ -32,7 +32,7 @@ import com.example.dc5control.ui.theme.*
 import kotlinx.coroutines.launch
 
 enum class Screen {
-    Dashboard, Workers, Companies, Courses, DC3, DC3History, Agents, DC3Design, Users, CoursesForEmployee
+    Dashboard, Workers, Companies, Courses, DC3, DC3History, Agents, Design, Users, CoursesForEmployee
 }
 
 data class NavItem(
@@ -49,7 +49,7 @@ val navItems = listOf(
     NavItem(Screen.Courses, "Cursos", Icons.Default.MenuBook),
     NavItem(Screen.DC3History, "Historial", Icons.Default.History),
     NavItem(Screen.Agents, "Agentes", Icons.Default.Schedule),
-    NavItem(Screen.DC3Design, "Diseño DC-3", Icons.Default.Palette),
+    NavItem(Screen.Design, "Diseño", Icons.Default.Palette),
     NavItem(Screen.Users, "Usuarios", Icons.Default.AdminPanelSettings)
 )
 
@@ -333,7 +333,7 @@ fun ScreenContent(
         Screen.DC3 -> DC3GenerationScreen(user = user, isExpanded = isExpanded, onBack = onBack, preselectedEmployees = selectedEmployees)
         Screen.DC3History -> DC3HistoryScreen(user = user, isExpanded = isExpanded, onBack = onBack)
         Screen.Agents -> AgentListScreen(user = user, isExpanded = isExpanded, onBack = onBack)
-        Screen.DC3Design -> DC3DesignScreen(user = user, isExpanded = isExpanded, onBack = onBack)
+        Screen.Design -> DesignScreen(user = user, isExpanded = isExpanded, onBack = onBack)
         Screen.Users -> UsersScreen(user = user, isExpanded = isExpanded, onBack = onBack)
         Screen.CoursesForEmployee -> if (!selectedEmployees.isNullOrEmpty()) {
             CoursesForEmployeeScreen(
