@@ -36,19 +36,19 @@ object CourseDefaults {
     )
 
     private val keywordsMap = mapOf(
-        "SOLDADURA" to "SEGURIDAD EN TRABAJOS DE SOLDADURAS Y OXICORTE",
+        "SOLDADURA" to "SEGURIDAD EN TRABAJOS DE SOLDADURA Y OXICORTE",
         "MONTACARGAS" to "MANEJO SEGURO DE MONTACARGAS",
-        "BRIGADAS" to "FORMACION DE BRIGADAS DE EMERGENCIA (EVACUACION, BUSQUEDA Y RESCATE, PRIMEROS AUXILIOS Y MANEJO DE EXTINTORES)",
+        "BRIGADAS" to "FORMACION DE BRIGADAS DE EMERGENCIA (EVACUACION, BUSQUEDA Y RESCATE , CONTRA INCENDIOS, PRIMEROS AUXILIOS )",
         "MAQUINARIA PESADA" to "SEGURIDAD EN EL USO Y MANEJO DE MAQUINARIA PESADA EN CONSTRUCCION",
-        "SIMULACROS" to "DISEÑO Y EVALUACION DE SIMULACROS PARA EVACUACION O REPLIEGUE INMEDIATO ANTE UNA EMERGENCIA",
+        "SIMULACROS" to "DISEÑO Y EVALUACION DE SIMULACROS PARA EVACUACION O REPLIEGUE EN SINIESTROS",
         "SUPERVISORES" to "FORMACION DE SUPERVISORES DE SEGURIDAD Y SALUD OCUPACIONAL",
-        "ALTURA" to "MEDIDAS DE SEGURIDAD EN TRABAJOS DE ALTURA (NOM-009-STPS-2011)",
+        "ALTURA" to "SEGURIDAD EN TRABAJOS EN ALTURAS",
         "NOM-031" to "SEGURIDAD INDUSTRIAL EN LA CONSTRUCCION (NOM-031-STPS-2011)",
         "CONSTRUCCIÓN" to "SEGURIDAD INDUSTRIAL EN LA CONSTRUCCION (NOM-031-STPS-2011)",
         "CONSTRUCCION" to "SEGURIDAD INDUSTRIAL EN LA CONSTRUCCION (NOM-031-STPS-2011)",
         "INSTRUCTORES" to "FORMACION DE INSTRUCTORES",
-        "CONFINADOS" to "TRABAJOS EN ESPACIOS CONFINADOS",
-        "LOTO" to "ASEGURAMIENTO DE ENERGIA (BLOQUEO Y ETIQUETADO LOTO)",
+        "CONFINADOS" to "SEGURIDAD EN ESPACIOS CONFINADOS",
+        "LOTO" to "ASEGURAMIENTO DE ENERGIA (LOTO)",
         "MATERIALES PELIGROSOS" to "MANEJO DE MATERIALES PELIGROSOS",
         "5 RUEDA" to "OPERACION SEGURA DE VEHICULOS PESADOS 5 RUEDA",
         "CORTE" to "TALLER DE CORTE Y BARBERIA PROFESIONAL",
@@ -66,25 +66,29 @@ object CourseDefaults {
 
         dbCourses.forEach { db ->
             val dbNameUpper = db.name.uppercase()
+            // Buscamos si el nombre en la DB contiene alguna de nuestras palabras clave
             val matchedOfficialName = keywordsMap.entries.find { dbNameUpper.contains(it.key.uppercase()) }?.value
             val officialTemplate = defaultCourses.find { it.name == matchedOfficialName }
 
             if (officialTemplate != null) {
                 if (processedOfficialNames.contains(officialTemplate.name)) {
-                    // Ya existe una versión oficial de este curso en esta carga, eliminar duplicado corto
+                    // Ya procesamos este curso oficial, eliminar el duplicado corto de la DB
                     db.id?.let { id ->
                         pendingActions++
-                        SupabaseRepository.deleteData("courses", id) { pendingActions--; if(pendingActions == 0) onComplete() }
+                        SupabaseRepository.deleteData("courses", id) { 
+                            pendingActions--
+                            if(pendingActions <= 0) onComplete() 
+                        }
                     }
                 } else {
-                    // Si el nombre no es idéntico al oficial (es corto), actualizarlo
+                    // Si el nombre no es idéntico al oficial, actualizarlo en la DB
                     if (db.name != officialTemplate.name || db.durationHours != officialTemplate.durationHours) {
                         db.id?.let { id ->
                             pendingActions++
                             val updated = officialTemplate.copy(id = id, creatorEmail = db.creatorEmail)
                             SupabaseRepository.updateData("courses", id, updated, Course.serializer()) {
                                 pendingActions--
-                                if(pendingActions == 0) onComplete()
+                                if(pendingActions <= 0) onComplete()
                             }
                         }
                     }
@@ -92,17 +96,21 @@ object CourseDefaults {
                 }
             }
         }
-        if (pendingActions == 0) onComplete()
+        if (pendingActions <= 0) onComplete()
     }
 
     fun mergeWithDefaults(dbCourses: List<Course>, userEmail: String?): List<Course> {
+        // Empezamos con los cursos oficiales (Dario y Cynthia)
         val result = defaultCourses.map { it.copy(creatorEmail = userEmail) }.toMutableList()
+        
         dbCourses.forEach { db ->
             val dbNameUpper = db.name.uppercase()
-            val isOfficial = keywordsMap.entries.any { dbNameUpper.contains(it.key.uppercase()) } ||
-                             defaultCourses.any { it.name.equals(db.name, ignoreCase = true) }
+            // Un curso es oficial si su nombre está en defaultCourses o si coincide con keywordsMap
+            val isOfficial = defaultCourses.any { it.name.equals(db.name, ignoreCase = true) } ||
+                             keywordsMap.entries.any { dbNameUpper.contains(it.key.uppercase()) }
             
             if (!isOfficial) {
+                // Solo agregar si no es un curso oficial y no está ya en la lista
                 if (result.none { it.name.equals(db.name, ignoreCase = true) }) {
                     result.add(db)
                 }
