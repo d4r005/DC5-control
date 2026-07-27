@@ -833,11 +833,23 @@ async function loadCatalogs() {
     // Combinar agentes pre-cargados
     const dbAgents = agentsR.documents || [];
     dbAgents.forEach(dba => {
-        // Evitar duplicado de Cynthia (preferir versión con 'ING.')
-        if (dba.name === "CYNTHIA YADIRA GARZA LUGO") return;
+        // Normalización agresiva: Mayúsculas, sin espacios múltiples, y manejo de "ING. "
+        const norm = (s) => (s || '').toUpperCase()
+            .replace(/\s+/g, ' ')
+            .replace('ING.', 'ING. ')
+            .replace(/\s+/g, ' ')
+            .trim();
 
-        const exists = DATA.agents.find(a => a.name === dba.name && a.stps === dba.stps);
-        if (!exists) DATA.agents.push(dba);
+        const dbaNameNorm = norm(dba.name);
+
+        // Buscar si ya existe un agente con el mismo nombre normalizado o mismo STPS
+        const exists = DATA.agents.find(a => norm(a.name) === dbaNameNorm || a.stps === dba.stps);
+
+        if (!exists) {
+            DATA.agents.push(dba);
+        } else {
+            console.log('[DEBUG] Agent already exists, skipping:', dba.name);
+        }
     });
 
     DATA.companies = companiesR.documents || [];
@@ -1079,11 +1091,9 @@ function setView(v) {
         const filterable = ['courses','dc3'].includes(v);
         filterAgent.classList.toggle('hidden', !filterable);
         if (filterable) {
-            // Populate if empty
-            if (filterAgent.options.length <= 1) {
-                filterAgent.innerHTML = '<option value="">Todos los Agentes</option>' +
-                    DATA.agents.map(a => `<option value="${a.name}">${a.name}</option>`).join('');
-            }
+            // Siempre repoblar para reflejar cambios en DATA.agents y evitar duplicados en el DOM
+            filterAgent.innerHTML = '<option value="">Todos los Agentes</option>' +
+                DATA.agents.map(a => `<option value="${a.name}">${a.name}</option>`).join('');
         }
     }
 
