@@ -100,8 +100,8 @@ object CourseDefaults {
     }
 
     fun mergeWithDefaults(dbCourses: List<Course>, userEmail: String?): List<Course> {
-        // Empezamos con los cursos oficiales (Dario y Cynthia)
-        val result = defaultCourses.map { it.copy(creatorEmail = userEmail) }.toMutableList()
+        // Empezamos con los cursos oficiales (Dario y Cynthia), preservando sus creatorEmail originales
+        val result = defaultCourses.toMutableList()
         
         dbCourses.forEach { db ->
             val dbNameUpper = db.name.uppercase()

@@ -15,6 +15,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 import com.example.dc5control.data.model.AgentDesign
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -247,12 +249,49 @@ fun DesignScreen(
                     }
                 } else {
                     // Diploma Design
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(64.dp), tint = Gray300)
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text("Diseño de Diploma", fontWeight = FontWeight.Bold, color = Gray900)
-                            Text("Próximamente disponible", color = Gray500)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(if (isExpanded) 48.dp else 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        DesignCard("Plantilla de Diploma Actual") {
+                            Text("Esta es la plantilla que se utiliza para generar tus reconocimientos oficiales.", fontSize = 13.sp, color = Gray500)
+                            Spacer(modifier = Modifier.height(12.dp))
+                            
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .aspectRatio(1.29f) // Ratio aproximado de Landscape Letter
+                                    .background(Gray50, shape = RoundedCornerShape(12.dp))
+                                    .border(1.dp, Gray200, RoundedCornerShape(12.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                AsyncImage(
+                                    model = "file:///android_asset/Plantilla diploma.png",
+                                    contentDescription = "Plantilla de Diploma",
+                                    modifier = Modifier.fillMaxSize().padding(8.dp),
+                                    contentScale = ContentScale.Fit
+                                )
+                            }
+                            
+                            Spacer(modifier = Modifier.height(12.dp))
+                            
+                            Surface(
+                                color = SuccessSurface,
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = SuccessGreen, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("La firma de Cynthia se oculta automáticamente y se reemplaza por la de Jesus Dario Robles Trujillo.", fontSize = 12.sp, color = SuccessGreen)
+                                }
+                            }
                         }
                     }
                 }
