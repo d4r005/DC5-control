@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <color name="brand_blue">#1A3A5C</color>
-    <color name="ic_launcher_background">#1A3A5C</color>
-    <string name="app_name">ACE-Control</string>
-    <style name="Theme.DC5Control" parent="android:Theme.Material.Light.NoActionBar"/>
-</resources>
