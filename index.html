@@ -330,132 +330,144 @@
             <div id="design-content-dc3">
                 <div style="display:grid;grid-template-columns:400px 1fr;gap:18px;min-height:82vh;">
 
-                <!-- ── Panel izquierdo: controles ── -->
-                <div class="card p-5" style="overflow-y:auto;max-height:82vh;">
-                    <h3 class="text-sm font-bold text-blue-900 uppercase tracking-wide mb-4">Diseño DC-3</h3>
+                    <!-- ── Panel izquierdo: controles ── -->
+                    <div class="card p-5" style="overflow-y:auto;max-height:82vh;">
+                        <h3 class="text-sm font-bold text-blue-900 uppercase tracking-wide mb-4">Diseño DC-3</h3>
 
-                    <!-- LOGO DE FIRMA -->
-                    <div class="border rounded-xl p-4 mb-4 space-y-3 bg-gray-50">
-                        <p class="text-xs font-bold text-gray-600 uppercase">Logo (sección de firmas)</p>
-                        <div class="flex gap-3 items-start">
-                            <div id="design-logo-preview" class="w-20 h-16 rounded border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-300 text-xs flex-shrink-0 overflow-hidden">Sin logo</div>
-                            <div class="flex-1">
-                                <label class="btn-sm btn-outline cursor-pointer block text-center text-xs">
-                                    Subir logo
-                                    <input type="file" accept="image/png,image/jpeg" class="hidden" onchange="handleDesignImage(this,'logo')">
-                                </label>
-                                <button onclick="clearDesignImage('logo')" class="mt-1 text-xs text-red-400 hover:text-red-600 w-full text-center">✕ Quitar</button>
+                        <!-- LOGO DE FIRMA -->
+                        <div class="border rounded-xl p-4 mb-4 space-y-3 bg-gray-50">
+                            <p class="text-xs font-bold text-gray-600 uppercase">Logo (sección de firmas)</p>
+                            <div class="flex gap-3 items-start">
+                                <div id="design-logo-preview" class="w-20 h-16 rounded border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-300 text-xs flex-shrink-0 overflow-hidden">Sin logo</div>
+                                <div class="flex-1">
+                                    <label class="btn-sm btn-outline cursor-pointer block text-center text-xs">
+                                        Subir logo
+                                        <input type="file" accept="image/png,image/jpeg" class="hidden" onchange="handleDesignImage(this,'logo')">
+                                    </label>
+                                    <button onclick="clearDesignImage('logo')" class="mt-1 text-xs text-red-400 hover:text-red-600 w-full text-center">✕ Quitar</button>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-4 gap-1">
+                                <div><label class="text-xs text-gray-400">X</label><input id="design-logo-x" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="58" oninput="schedulePreview()"></div>
+                                <div><label class="text-xs text-gray-400">Y</label><input id="design-logo-y" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="454" oninput="schedulePreview()"></div>
+                                <div><label class="text-xs text-gray-400">Ancho</label><input id="design-logo-w" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="115" oninput="schedulePreview()"></div>
+                                <div><label class="text-xs text-gray-400">Alto</label><input id="design-logo-h" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="65" oninput="schedulePreview()"></div>
                             </div>
                         </div>
-                        <div class="grid grid-cols-4 gap-1">
-                            <div><label class="text-xs text-gray-400">X</label><input id="design-logo-x" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="58" oninput="schedulePreview()"></div>
-                            <div><label class="text-xs text-gray-400">Y</label><input id="design-logo-y" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="454" oninput="schedulePreview()"></div>
-                            <div><label class="text-xs text-gray-400">Ancho</label><input id="design-logo-w" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="115" oninput="schedulePreview()"></div>
-                            <div><label class="text-xs text-gray-400">Alto</label><input id="design-logo-h" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="65" oninput="schedulePreview()"></div>
-                        </div>
-                    </div>
 
-                    <!-- FIRMA -->
-                    <div class="border rounded-xl p-4 mb-4 space-y-3 bg-gray-50">
-                        <p class="text-xs font-bold text-gray-600 uppercase">Firma del instructor</p>
-                        <div class="flex gap-3 items-start">
-                            <div id="design-firma-preview" class="w-20 h-16 rounded border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-300 text-xs flex-shrink-0 overflow-hidden">Sin firma</div>
-                            <div class="flex-1">
-                                <label class="btn-sm btn-outline cursor-pointer block text-center text-xs">
-                                    Subir firma
-                                    <input type="file" accept="image/png,image/jpeg" class="hidden" onchange="handleDesignImage(this,'firma')">
-                                </label>
-                                <button onclick="clearDesignImage('firma')" class="mt-1 text-xs text-red-400 hover:text-red-600 w-full text-center">✕ Quitar</button>
+                        <!-- FIRMA -->
+                        <div class="border rounded-xl p-4 mb-4 space-y-3 bg-gray-50">
+                            <p class="text-xs font-bold text-gray-600 uppercase">Firma del instructor</p>
+                            <div class="flex gap-3 items-start">
+                                <div id="design-firma-preview" class="w-20 h-16 rounded border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-300 text-xs flex-shrink-0 overflow-hidden">Sin firma</div>
+                                <div class="flex-1">
+                                    <label class="btn-sm btn-outline cursor-pointer block text-center text-xs">
+                                        Subir firma
+                                        <input type="file" accept="image/png,image/jpeg" class="hidden" onchange="handleDesignImage(this,'firma')">
+                                    </label>
+                                    <button onclick="clearDesignImage('firma')" class="mt-1 text-xs text-red-400 hover:text-red-600 w-full text-center">✕ Quitar</button>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-4 gap-1">
+                                <div><label class="text-xs text-gray-400">X</label><input id="design-firma-x" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="88" oninput="schedulePreview()"></div>
+                                <div><label class="text-xs text-gray-400">Y</label><input id="design-firma-y" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="457" oninput="schedulePreview()"></div>
+                                <div><label class="text-xs text-gray-400">Ancho</label><input id="design-firma-w" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="85" oninput="schedulePreview()"></div>
+                                <div><label class="text-xs text-gray-400">Alto</label><input id="design-firma-h" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="60" oninput="schedulePreview()"></div>
                             </div>
                         </div>
-                        <div class="grid grid-cols-4 gap-1">
-                            <div><label class="text-xs text-gray-400">X</label><input id="design-firma-x" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="88" oninput="schedulePreview()"></div>
-                            <div><label class="text-xs text-gray-400">Y</label><input id="design-firma-y" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="457" oninput="schedulePreview()"></div>
-                            <div><label class="text-xs text-gray-400">Ancho</label><input id="design-firma-w" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="85" oninput="schedulePreview()"></div>
-                            <div><label class="text-xs text-gray-400">Alto</label><input id="design-firma-h" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="60" oninput="schedulePreview()"></div>
-                        </div>
-                    </div>
 
-                    <!-- CABECERA: logo -->
-                    <div class="border rounded-xl p-4 mb-4 space-y-3 bg-blue-50">
-                        <p class="text-xs font-bold text-blue-900 uppercase">Cabecera — Logo</p>
-                        <div class="flex gap-3 items-start">
-                            <div id="design-header-logo-preview" class="w-20 h-14 rounded border-2 border-dashed border-blue-300 flex items-center justify-center text-gray-300 text-xs flex-shrink-0 overflow-hidden">Sin logo</div>
-                            <div class="flex-1">
-                                <label class="btn-sm btn-outline cursor-pointer block text-center text-xs">
-                                    Subir logo cabecera
-                                    <input type="file" accept="image/png,image/jpeg" class="hidden" onchange="handleDesignImage(this,'headerLogo')">
-                                </label>
-                                <button onclick="clearDesignImage('headerLogo')" class="mt-1 text-xs text-red-400 hover:text-red-600 w-full text-center">✕ Quitar</button>
+                        <!-- CABECERA: logo -->
+                        <div class="border rounded-xl p-4 mb-4 space-y-3 bg-blue-50">
+                            <p class="text-xs font-bold text-blue-900 uppercase">Cabecera — Logo</p>
+                            <div class="flex gap-3 items-start">
+                                <div id="design-header-logo-preview" class="w-20 h-14 rounded border-2 border-dashed border-blue-300 flex items-center justify-center text-gray-300 text-xs flex-shrink-0 overflow-hidden">Sin logo</div>
+                                <div class="flex-1">
+                                    <label class="btn-sm btn-outline cursor-pointer block text-center text-xs">
+                                        Subir logo cabecera
+                                        <input type="file" accept="image/png,image/jpeg" class="hidden" onchange="handleDesignImage(this,'headerLogo')">
+                                    </label>
+                                    <button onclick="clearDesignImage('headerLogo')" class="mt-1 text-xs text-red-400 hover:text-red-600 w-full text-center">✕ Quitar</button>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-4 gap-1">
+                                <div><label class="text-xs text-gray-400">X</label><input id="design-header-logo-x" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="30" oninput="schedulePreview()"></div>
+                                <div><label class="text-xs text-gray-400">Y</label><input id="design-header-logo-y" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="10" oninput="schedulePreview()"></div>
+                                <div><label class="text-xs text-gray-400">Ancho</label><input id="design-header-logo-w" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="120" oninput="schedulePreview()"></div>
+                                <div><label class="text-xs text-gray-400">Alto</label><input id="design-header-logo-h" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="55" oninput="schedulePreview()"></div>
                             </div>
                         </div>
-                        <div class="grid grid-cols-4 gap-1">
-                            <div><label class="text-xs text-gray-400">X</label><input id="design-header-logo-x" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="30" oninput="schedulePreview()"></div>
-                            <div><label class="text-xs text-gray-400">Y</label><input id="design-header-logo-y" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="10" oninput="schedulePreview()"></div>
-                            <div><label class="text-xs text-gray-400">Ancho</label><input id="design-header-logo-w" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="120" oninput="schedulePreview()"></div>
-                            <div><label class="text-xs text-gray-400">Alto</label><input id="design-header-logo-h" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="55" oninput="schedulePreview()"></div>
+
+                        <!-- CABECERA: slogan -->
+                        <div class="border rounded-xl p-4 mb-4 space-y-3 bg-blue-50">
+                            <p class="text-xs font-bold text-blue-900 uppercase">Cabecera — Slogan</p>
+                            <input id="design-header-slogan" class="input-field" placeholder="Ej. CONSULTING & TRAINING SAPI" oninput="schedulePreview()">
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="text-xs text-gray-400">Fuente</label>
+                                    <select id="design-header-slogan-font" class="input-field" style="padding:4px 6px;font-size:11px" onchange="schedulePreview()">
+                                        <option value="Helvetica">Helvetica (normal)</option>
+                                        <option value="Helvetica-Bold">Helvetica Negrita</option>
+                                        <option value="Helvetica-Oblique">Helvetica Cursiva</option>
+                                        <option value="Helvetica-BoldOblique">Helvetica Negrita+Cursiva</option>
+                                        <option value="Times-Roman">Times Roman</option>
+                                        <option value="Times-Bold">Times Negrita</option>
+                                        <option value="Times-Italic">Times Cursiva</option>
+                                        <option value="Courier">Courier</option>
+                                        <option value="Courier-Bold">Courier Negrita</option>
+                                        <option value="KunstlerScript">Kunstler Script</option>
+                                        <option value="GreatVibes">Great Vibes (Script)</option>
+                                        <option value="Pacifico">Pacifico</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-xs text-gray-400">Tamaño</label>
+                                    <input id="design-header-slogan-size" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="9" min="6" max="30" oninput="schedulePreview()">
+                                </div>
+                                <div><label class="text-xs text-gray-400">X</label><input id="design-header-slogan-x" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="306" oninput="schedulePreview()"></div>
+                                <div><label class="text-xs text-gray-400">Y</label><input id="design-header-slogan-y" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="18" oninput="schedulePreview()"></div>
+                            </div>
+                        </div>
+
+                        <!-- NOMBRE AGENTE -->
+                        <div class="border rounded-xl p-4 mb-4 bg-gray-50">
+                            <label class="block text-xs font-bold text-gray-600 uppercase mb-2">Nombre del Agente</label>
+                            <input id="design-agent-name" class="input-field" placeholder="Ej. ING. CYNTHIA YADIRA GARZA LUGO" oninput="schedulePreview()">
+                        </div>
+
+                        <div class="flex gap-3 pt-2">
+                            <button onclick="saveDesign()" class="btn-sm btn-indigo flex-1 text-sm font-semibold">💾 Guardar diseño</button>
+                            <button onclick="updateDesignPreview()" class="btn-sm btn-outline flex-1 text-sm">🔄 Actualizar</button>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-2 text-center">💡 Arrastra logo/firma directo en la vista previa</p>
+                    </div>
+
+                    <!-- ── Panel derecho: preview interactivo ── -->
+                    <div class="card p-4" style="display:flex;flex-direction:column;overflow:hidden;">
+                        <div class="flex justify-between items-center mb-2">
+                            <p class="text-xs font-bold text-gray-500 uppercase">Vista previa — DC-3 (arrastra los elementos)</p>
+                            <span id="design-drag-hint" class="text-xs text-blue-900"></span>
+                        </div>
+                        <div id="design-preview-wrap" style="position:relative;overflow-y:auto;overflow-x:hidden;flex:1;min-height:0;border-radius:8px;background:#f3f4f6;">
+                            <canvas id="design-preview-canvas" style="display:block;width:100%;"></canvas>
+                            <!-- Overlay SVG para handles de arrastre -->
+                            <svg id="design-drag-overlay" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;" viewBox="0 0 918 1188" preserveAspectRatio="none"></svg>
                         </div>
                     </div>
-
-                    <!-- CABECERA: slogan -->
-                    <div class="border rounded-xl p-4 mb-4 space-y-3 bg-blue-50">
-                        <p class="text-xs font-bold text-blue-900 uppercase">Cabecera — Slogan</p>
-                        <input id="design-header-slogan" class="input-field" placeholder="Ej. CONSULTING & TRAINING SAPI" oninput="schedulePreview()">
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="text-xs text-gray-400">Fuente</label>
-                                <select id="design-header-slogan-font" class="input-field" style="padding:4px 6px;font-size:11px" onchange="schedulePreview()">
-                                    <option value="Helvetica">Helvetica (normal)</option>
-                                    <option value="Helvetica-Bold">Helvetica Negrita</option>
-                                    <option value="Helvetica-Oblique">Helvetica Cursiva</option>
-                                    <option value="Helvetica-BoldOblique">Helvetica Negrita+Cursiva</option>
-                                    <option value="Times-Roman">Times Roman</option>
-                                    <option value="Times-Bold">Times Negrita</option>
-                                    <option value="Times-Italic">Times Cursiva</option>
-                                    <option value="Courier">Courier</option>
-                                    <option value="Courier-Bold">Courier Negrita</option>
-                                    <option value="KunstlerScript">Kunstler Script</option>
-                                    <option value="GreatVibes">Great Vibes (Script)</option>
-                                    <option value="Pacifico">Pacifico</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="text-xs text-gray-400">Tamaño</label>
-                                <input id="design-header-slogan-size" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="9" min="6" max="30" oninput="schedulePreview()">
-                            </div>
-                            <div><label class="text-xs text-gray-400">X</label><input id="design-header-slogan-x" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="306" oninput="schedulePreview()"></div>
-                            <div><label class="text-xs text-gray-400">Y</label><input id="design-header-slogan-y" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="18" oninput="schedulePreview()"></div>
-                        </div>
-                    </div>
-
-                    <!-- Texto en sección de firmas eliminado por usuario -->
-
-                    <!-- NOMBRE AGENTE -->
-                    <div class="border rounded-xl p-4 mb-4 bg-gray-50">
-                        <label class="block text-xs font-bold text-gray-600 uppercase mb-2">Nombre del Agente</label>
-                        <input id="design-agent-name" class="input-field" placeholder="Ej. ING. CYNTHIA YADIRA GARZA LUGO" oninput="schedulePreview()">
-                    </div>
-
-                    <div class="flex gap-3 pt-2">
-                        <button onclick="saveDesign()" class="btn-sm btn-indigo flex-1 text-sm font-semibold">💾 Guardar diseño</button>
-                        <button onclick="updateDesignPreview()" class="btn-sm btn-outline flex-1 text-sm">🔄 Actualizar</button>
-                    </div>
-                    <p class="text-xs text-gray-400 mt-2 text-center">💡 Arrastra logo/firma directo en la vista previa</p>
                 </div>
+            </div>
 
-                <!-- ── Panel derecho: preview interactivo ── -->
-                <div class="card p-4" style="display:flex;flex-direction:column;overflow:hidden;">
-                    <div class="flex justify-between items-center mb-2">
-                        <p class="text-xs font-bold text-gray-500 uppercase">Vista previa — DC-3 (arrastra los elementos)</p>
-                        <span id="design-drag-hint" class="text-xs text-blue-900"></span>
+            <!-- Diploma Design Content -->
+            <div id="design-content-diploma" class="hidden">
+                <div class="card p-12 text-center">
+                    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path></svg>
                     </div>
-                    <div id="design-preview-wrap" style="position:relative;overflow-y:auto;overflow-x:hidden;flex:1;min-height:0;border-radius:8px;background:#f3f4f6;">
-                        <canvas id="design-preview-canvas" style="display:block;width:100%;"></canvas>
-                        <!-- Overlay SVG para handles de arrastre -->
-                        <svg id="design-drag-overlay" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;" viewBox="0 0 918 1188" preserveAspectRatio="none"></svg>
+                    <h3 class="text-lg font-bold text-gray-900">Diseño de Diploma</h3>
+                    <p class="text-gray-500 mt-1">Plantilla configurada para Jesus Dario Robles Trujillo.</p>
+                    <div class="mt-8 max-w-2xl mx-auto border-2 border-dashed border-gray-200 rounded-xl p-4 bg-gray-50">
+                        <img src="/Plantilla diploma.png" alt="Plantilla Diploma" class="w-full rounded shadow-sm opacity-80" onerror="this.parentElement.innerHTML='<p class=\'text-xs text-gray-400\'>No se pudo cargar la imagen de la plantilla</p>'">
                     </div>
                 </div>
-
             </div>
         </div>
 
@@ -633,17 +645,6 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Fecha término</label>
                     <input type="date" id="bulk-end" class="input-field">
-                </div>
-            </div>
-
-            <!-- Diploma Design Content -->
-            <div id="design-content-diploma" class="hidden">
-                <div class="card p-12 text-center">
-                    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path></svg>
-                    </div>
-                    <h3 class="text-lg font-bold text-gray-900">Diseño de Diploma</h3>
-                    <p class="text-gray-500 mt-1">Próximamente disponible para personalización.</p>
                 </div>
             </div>
         </div>
@@ -1051,24 +1052,31 @@ async function login(e) {
 }
 
 async function initApp() {
+    console.log('[DEBUG] initApp started');
     try {
         document.getElementById('view-login').style.display = 'none';
         document.getElementById('view-app').style.display = 'block';
 
         if (currentUser) {
-            document.getElementById('user-avatar').innerText = currentUser.name.substring(0,2).toUpperCase();
-            document.getElementById('user-name-display').innerText = currentUser.name;
-            document.getElementById('user-role-display').innerText = currentUser.role;
+            console.log('[DEBUG] User logged in:', currentUser.email);
+            document.getElementById('user-avatar').innerText = (currentUser.name || '??').substring(0,2).toUpperCase();
+            document.getElementById('user-name-display').innerText = currentUser.name || 'Usuario';
+            document.getElementById('user-role-display').innerText = currentUser.role || 'USER';
 
-            if (currentUser.role === 'ADMIN') {
-                document.getElementById('btn-users').classList.remove('hidden');
-            } else {
-                document.getElementById('btn-users').classList.add('hidden');
-            }
+            const btnUsers = document.getElementById('btn-users');
+            if (btnUsers) btnUsers.classList.toggle('hidden', currentUser.role !== 'ADMIN');
         }
 
-        await loadCatalogs();
-        setView('dashboard');
+        setView('dashboard'); // Switch view first to avoid looking like it failed
+
+        try {
+            await loadCatalogs();
+            console.log('[DEBUG] Catalogs loaded successfully');
+            loadSection('dashboard'); // Refresh dashboard with data
+        } catch (e) {
+            console.error('loadCatalogs error:', e);
+            // Don't block the app if catalogs fail to load
+        }
     } catch (err) {
         console.error("App init error:", err);
     }
@@ -1248,23 +1256,33 @@ async function loadSection(v) {
         await loadDesign();
 
     } else if (v === 'agents') {
-        const r = await api('find','agents',{ filter: {} });
-        const rows = (r.documents||[]);
-        document.getElementById('tb-agents').innerHTML = rows.length
-            ? rows.map(a => `<tr>
-                <td class="font-semibold">${a.name}</td>
-                <td class="font-mono text-blue-900">${a.stps}</td>
-                <td class="text-right">
-                    <div class="flex justify-end gap-2">
-                        <button onclick='openModal(${JSON.stringify(a)})' class="btn-sm btn-outline">✎</button>
-                        <button onclick="delItem('agents','${a.id}')" class="btn-sm btn-red">✕</button>
-                    </div>
-                </td>
-              </tr>`).join('')
-            : `<tr><td colspan="3" class="text-center py-12 text-gray-300 text-sm">Sin agentes</td></tr>`;
+        const tb = document.getElementById('tb-agents');
+        if (!tb) return;
+        tb.innerHTML = '<tr><td colspan="3" class="text-center py-4">Cargando agentes...</td></tr>';
+        try {
+            const r = await api('find','agents',{ filter: {} });
+            const rows = (r.documents||[]);
+            tb.innerHTML = rows.length
+                ? rows.map(a => `<tr>
+                    <td class="font-semibold">${a.name}</td>
+                    <td class="font-mono text-blue-900">${a.stps}</td>
+                    <td class="text-right">
+                        <div class="flex justify-end gap-2">
+                            <button onclick='openModal(${JSON.stringify(a)})' class="btn-sm btn-outline">✎</button>
+                            <button onclick="delItem('agents','${a.id}')" class="btn-sm btn-red">✕</button>
+                        </div>
+                    </td>
+                  </tr>`).join('')
+                : `<tr><td colspan="3" class="text-center py-12 text-gray-300 text-sm">Sin agentes registrados</td></tr>`;
+        } catch (e) {
+            console.error('Error loading agents:', e);
+            tb.innerHTML = '<tr><td colspan="3" class="text-center text-red-500">Error al cargar agentes</td></tr>';
+        }
 
     } else if (v === 'users') {
-        document.getElementById('tb-users').innerHTML = DATA.users.map(u => `<tr>
+        const tb = document.getElementById('tb-users');
+        if (!tb) return;
+        tb.innerHTML = DATA.users.map(u => `<tr>
             <td class="font-semibold">${u.name}</td>
             <td class="text-gray-500 text-sm">${u.email}</td>
             <td><span class="badge ${u.role==='ADMIN'?'badge-admin':'badge-user'}">${u.role}</span></td>
