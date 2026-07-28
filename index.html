@@ -465,7 +465,8 @@
                     <h3 class="text-lg font-bold text-gray-900">Diseño de Diploma</h3>
                     <p class="text-gray-500 mt-1">Plantilla configurada para Jesus Dario Robles Trujillo.</p>
                     <div class="mt-8 max-w-2xl mx-auto border-2 border-dashed border-gray-200 rounded-xl p-4 bg-gray-50">
-                        <img src="plantilla_diploma.png" alt="Plantilla Diploma" class="w-full rounded shadow-sm opacity-80" onerror="this.parentElement.innerHTML='<p class=\'text-xs text-gray-400\'>No se pudo cargar la imagen de la plantilla</p>'">
+                        <img id="diploma-template-img" src="plantilla_diploma.png" alt="Plantilla Diploma" class="w-full rounded shadow-sm opacity-80" onerror="this.parentElement.innerHTML='<p class=\'text-xs text-gray-400\'>No se pudo cargar la imagen de la plantilla</p>'">
+                        <script>document.getElementById('diploma-template-img').src = 'plantilla_diploma.png?v=' + Date.now();</script>
                     </div>
                 </div>
             </div>
@@ -1647,7 +1648,7 @@ async function generateDiploma() {
     })(agentStps, courseStpsId);
 
     try {
-        const resp = await fetch('plantilla_diploma.png');
+        const resp = await fetch('plantilla_diploma.png?v=' + Date.now());
         const imgBytes = await resp.arrayBuffer();
 
         const pdfDoc = await PDFDocument.create();
@@ -1661,15 +1662,10 @@ async function generateDiploma() {
         const fontB = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
         // Limpiar áreas pre-impresas en la nueva plantilla (si es necesario)
-        // La nueva plantilla tiene placeholders en:
-        // Nombre: y=315
-        // Curso: y=435
-        // Duración: y=480
-        // Fecha: y=510
-        // Firma/Nombre Agente: y=565
+        const isDario = agentName.toUpperCase().includes("DARIO");
 
-        // Limpiar área de firma y nombre del agente inferior
-        page.drawRectangle({ x: PW/2 - 150, y: PH - 595, width: 300, height: 50, color: rgb(1,1,1) });
+        // Limpiar área de firma y nombre del agente inferior (siempre, para poner datos reales)
+        page.drawRectangle({ x: PW/2 - 150, y: PH - 595, width: 300, height: 55, color: rgb(1,1,1) });
 
         const drawC = (txt, y, sz, fb = false, color = rgb(0,0,0)) => {
             const f = fb ? fontB : font;
@@ -1678,40 +1674,53 @@ async function generateDiploma() {
             page.drawText(cleanTxt, { x: PW/2 - w/2, y: PH - y, size: sz, font: f, color: color });
         };
 
-        // 1. Nombre del Trabajador (Debajo de "A")
-        const fullName = selectedWorker.apellidoPaterno ? `${selectedWorker.nombres} ${selectedWorker.apellidoPaterno} ${selectedWorker.apellidoMaterno || ''}`.trim() : selectedWorker.name;
-        drawC(fullName, 320, 26, true, rgb(0.1, 0.2, 0.4)); // Azul marino oscuro
+        if (isDario) {
+            // --- DISEÑO EXCLUSIVO EHS SOLUTIONS (DARIO) ---
 
-        // 2. Nombre del Curso (Debajo de "...curso de")
-        drawC(courseName, 435, 18, true);
+            // 1. Nombre del Trabajador (Debajo de "A")
+            const fullName = selectedWorker.apellidoPaterno ? `${selectedWorker.nombres} ${selectedWorker.apellidoPaterno} ${selectedWorker.apellidoMaterno || ''}`.trim() : selectedWorker.name;
+            drawC(fullName, 320, 26, true, rgb(0.1, 0.2, 0.4)); // Azul marino
 
-        // 3. Duración del Curso
-        drawC(courseDuration, 480, 11, true);
+            // 2. Nombre del Curso
+            drawC(courseName, 435, 18, true);
 
-        // 4. Fecha (Formato "DD de MES del AAAA")
-        const months = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
-        const p = end.split('-'); // yyyy-mm-dd
-        const dateText = `${p[2]} DE ${months[parseInt(p[1])-1]} DEL ${p[0]}`;
-        drawC(dateText, 510, 11, true);
+            // 3. Duración
+            drawC(courseDuration, 478, 11, true);
 
-        // 5. Firma y Datos del Agente
-        // Cargar firma del diseño si existe
-        try {
-            const dr = await api('find','agent_designs', { filter: { creatorEmail: currentUser?.email || '' } });
-            if (dr.documents && dr.documents.length > 0) {
-                const design = dr.documents[0];
-                if (design.firma_base64) {
-                    const fImgBytes = await fetch(design.firma_base64).then(r => r.arrayBuffer());
-                    const fImg = await pdfDoc.embedPng(fImgBytes);
-                    const fw = 90, fh = 50;
-                    page.drawImage(fImg, { x: PW/2 - fw/2, y: PH - 560, width: fw, height: fh });
-                }
-            }
-        } catch(eSig) { console.warn("No se pudo cargar firma para diploma", eSig); }
+            // 4. Fecha
+            const months = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
+            const p = end.split('-'); // yyyy-mm-dd
+            const dateText = `${p[2]} DE ${months[parseInt(p[1])-1]} DEL ${p[0]}`;
+            drawC(dateText, 508, 11, true);
 
-        // Nombre y STPS
-        drawC(agentName, 570, 10, true);
-        drawC("REGISTRO " + finalStps, 582, 8);
+            // 5. Firma y Datos Dario
+            try {
+                const dr = await api('find','agent_designs', { filter: { creatorEmail: currentUser?.email || '' } });
+                const design = (dr.documents && dr.documents.length > 0) ? dr.documents[0] : null;
+                const firmaUrl = design?.firma_base64 || '/signatures/dario_firma.png'; // Fallback a firma local si existe
+
+                const fImgBytes = await fetch(firmaUrl).then(r => r.arrayBuffer());
+                const fImg = await pdfDoc.embedPng(fImgBytes);
+                page.drawImage(fImg, { x: PW/2 - 45, y: PH - 565, width: 90, height: 50 });
+            } catch(e) {}
+
+            drawC("JESUS DARIO ROBLES TRUJILLO", 572, 10, true);
+            drawC("REGISTRO " + finalStps, 584, 8);
+
+        } else {
+            // --- DISEÑO GENÉRICO (OTROS AGENTES) ---
+            const fullName = selectedWorker.apellidoPaterno ? `${selectedWorker.nombres} ${selectedWorker.apellidoPaterno} ${selectedWorker.apellidoMaterno || ''}`.trim() : selectedWorker.name;
+            drawC(fullName, 325, 28, true);
+            drawC(courseName, 445, 18, true);
+
+            const months = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
+            const p = end.split('-');
+            const dateText = `CON DURACIÓN DE ${courseDuration} DEL ${p[2]} DE ${months[parseInt(p[1])-1]} DEL ${p[0]}`;
+            drawC(dateText, 480, 11);
+
+            drawC(agentName, 570, 10, true);
+            drawC("REGISTRO " + finalStps, 582, 8);
+        }
 
         const pdfBytes = await pdfDoc.save();
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });

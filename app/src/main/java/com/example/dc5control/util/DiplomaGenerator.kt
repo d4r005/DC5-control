@@ -78,33 +78,47 @@ object DiplomaGenerator {
             cs.setNonStrokingColor(0, 0, 0)
         }
 
-        // 2. Limpiar zona inferior (Nombre y STPS del Agente)
-        cs.setNonStrokingColor(1f, 1f, 1f)
-        cs.addRect(PW / 2f - 150f, PH - 595f, 300f, 50f)
-        cs.fill()
+        val isDario = agent.name.contains("Dario", ignoreCase = true)
 
-        // 3. Escribir Datos Dinámicos
-        
-        // Trabajador
-        val workerName = "${employee.nombres} ${employee.apellidoPaterno} ${employee.apellidoMaterno}".trim()
-        textCentered(PW / 2f, 320f, workerName, 26f, true, 1)
+        if (isDario) {
+            // --- DISEÑO EXCLUSIVO EHS SOLUTIONS (DARIO) ---
+            
+            // Limpiar zona inferior (Nombre y STPS del Agente)
+            cs.setNonStrokingColor(1f, 1f, 1f)
+            cs.addRect(PW / 2f - 150f, PH - 595f, 300f, 55f)
+            cs.fill()
 
-        // Nombre del Curso
-        textCentered(PW / 2f, 435f, course.name, 18f, true)
+            // 1. Nombre del Trabajador (Debajo de "A")
+            val workerName = "${employee.nombres} ${employee.apellidoPaterno} ${employee.apellidoMaterno}".trim()
+            textCentered(PW / 2f, 320f, workerName, 26f, true, 1)
 
-        // Duración
-        textCentered(PW / 2f, 480f, course.durationHours, 11f, true)
+            // 2. Nombre del Curso (Debajo de "...curso de")
+            textCentered(PW / 2f, 435f, course.name, 18f, true)
 
-        // Fecha
-        textCentered(PW / 2f, 510f, formatDateRange(startDate, endDate), 11f, true)
+            // 3. Duración
+            textCentered(PW / 2f, 478f, course.durationHours, 11f, true)
 
-        // 4. Datos del Agente (Firma y Nombre)
-        // Firma (si está disponible en los recursos o diseño)
-        // Por ahora centrado abajo
-        textCentered(PW / 2f, 570f, agent.name, 10f, true)
-        
-        val finalStps = calculateStps(agent.stps, course.stpsId)
-        textCentered(PW / 2f, 582f, "REGISTRO $finalStps", 8f)
+            // 4. Fecha
+            textCentered(PW / 2f, 508f, formatDateRange(startDate, endDate), 11f, true)
+
+            // 5. Datos del Agente (Firma y Nombre)
+            textCentered(PW / 2f, 572f, "JESUS DARIO ROBLES TRUJILLO", 10f, true)
+            
+            val finalStps = calculateStps(agent.stps, course.stpsId)
+            textCentered(PW / 2f, 584f, "REGISTRO $finalStps", 8f)
+
+        } else {
+            // --- DISEÑO GENÉRICO (OTROS) ---
+            val workerName = "${employee.nombres} ${employee.apellidoPaterno} ${employee.apellidoMaterno}".trim()
+            textCentered(PW / 2f, 325f, workerName, 28f, true)
+            textCentered(PW / 2f, 445f, course.name, 18f, true)
+            val dateText = "CON DURACIÓN DE ${course.durationHours} DEL ${formatDateRange(startDate, endDate)}"
+            textCentered(PW / 2f, 480f, dateText, 11f)
+            
+            textCentered(PW / 2f, 570f, agent.name, 10f, true)
+            val finalStps = calculateStps(agent.stps, course.stpsId)
+            textCentered(PW / 2f, 582f, "REGISTRO $finalStps", 8f)
+        }
 
         cs.close()
 
