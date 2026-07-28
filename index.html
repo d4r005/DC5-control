@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACE-Control | Generador de Constancias DC-3</title>
+    <title>ACE-Control | Gestión DC-3 v1.0.7</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -1672,21 +1672,21 @@ async function generateDiploma() {
         if (isDario) {
             // --- DISEÑO AJUSTADO EHS SOLUTIONS (DARIO) ---
 
-            // 1. Nombre del Trabajador: ENCIMA de la línea
+            // 1. Nombre del Trabajador: ENCIMA de la línea (Y=245)
             const fullName = selectedWorker.apellidoPaterno ? `${selectedWorker.nombres} ${selectedWorker.apellidoPaterno} ${selectedWorker.apellidoMaterno || ''}`.trim() : selectedWorker.name;
-            drawC(fullName, 268, 28, true, rgb(0.1, 0.2, 0.4)); // Azul marino
+            drawC(fullName, 245, 28, true, rgb(0.1, 0.2, 0.4)); // Azul marino
 
-            // 2. Nombre del Curso: Abajo de "Por haber concluido satisfactoriamente..."
-            drawC(courseName, 340, 20, true);
+            // 2. Nombre del Curso: Abajo de "Por haber concluido satisfactoriamente..." (Y=330)
+            drawC(courseName, 330, 18, true);
 
-            // 3. Duración: Abajo de "Con duración de"
+            // 3. Duración: Abajo de "Con duración de" (Y=405)
             drawC(courseDuration, 405, 12, true);
 
-            // 4. Fecha: Abajo de "Del"
+            // 4. Fecha: Abajo de "Del" (Y=445)
             const months = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
             const p = end.split('-');
             const dateText = `${p[2]} DE ${months[parseInt(p[1])-1]} DEL ${p[0]}`;
-            drawC(dateText, 455, 12, true);
+            drawC(dateText, 445, 11, true);
 
             // 5. Firma y Datos Dario (Sobre los placeholders de la plantilla)
             try {
@@ -1700,8 +1700,8 @@ async function generateDiploma() {
                 page.drawImage(fImg, { x: PW/2 - 45, y: PH - 540, width: 90, height: 50 });
             } catch(e) {}
 
-            drawC("JESUS DARIO ROBLES TRUJILLO", 545, 10, true);
-            drawC("REGISTRO " + finalStps, 565, 8, true);
+            drawC("JESUS DARIO ROBLES TRUJILLO", 572, 10, true);
+            drawC("REGISTRO " + finalStps, 584, 8, true);
 
         } else {
             // --- DISEÑO GENÉRICO (OTROS AGENTES) ---
