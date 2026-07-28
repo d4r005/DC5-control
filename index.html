@@ -1624,7 +1624,76 @@ async function generateDC3() {
 }
 
 async function generateDiploma() {
-    alert('Función de generación de diploma en la web próximamente. Por ahora usa la App de Android para esta función.');
+    const { PDFDocument, StandardFonts, rgb } = PDFLib;
+
+    const companyName = document.getElementById('dc3-company').value;
+    const agentVal    = document.getElementById('dc3-agent').value;
+    const courseVal   = document.getElementById('dc3-course').value;
+    const start       = document.getElementById('dc3-start').value;
+    const end         = document.getElementById('dc3-end').value;
+
+    if (!start || !end) { alert('Selecciona las fechas'); return; }
+
+    const [agentName, agentStps] = agentVal.split('|');
+    const [courseName, courseDuration] = courseVal.split('|');
+
+    try {
+        const resp = await fetch('plantilla_diploma.png');
+        const imgBytes = await resp.arrayBuffer();
+
+        const pdfDoc = await PDFDocument.create();
+        const page = pdfDoc.addPage([792, 612]); // Letter Landscape
+        const PW = 792, PH = 612;
+
+        const img = await pdfDoc.embedPng(imgBytes);
+        page.drawImage(img, { x: 0, y: 0, width: PW, height: PH });
+
+        const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+        const fontB = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+        // Limpiar área de firma anterior (Cynthia) si es Dario
+        if (agentName.includes("Dario")) {
+            page.drawRectangle({ x: 330, y: PH - 585, width: 220, height: 100, color: rgb(1,1,1) });
+        }
+
+        const drawC = (txt, y, sz, fb = false) => {
+            const f = fb ? fontB : font;
+            const w = f.widthOfTextAtSize(txt.toUpperCase(), sz);
+            page.drawText(txt.toUpperCase(), { x: PW/2 - w/2, y: PH - y, size: sz, font: f, color: rgb(0,0,0) });
+        };
+
+        // Nombre Trabajador
+        const fullName = selectedWorker.apellidoPaterno ? `${selectedWorker.nombres} ${selectedWorker.apellidoPaterno} ${selectedWorker.apellidoMaterno || ''}`.trim() : selectedWorker.name;
+        drawC(fullName, 325, 28, true);
+
+        // Curso
+        drawC(courseName, 445, 18, true);
+
+        // Duración y Fecha
+        const months = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
+        const p = end.split('-'); // yyyy-mm-dd
+        const dateText = `CON DURACIÓN DE ${courseDuration} DEL ${p[2]} DE ${months[parseInt(p[1])-1]} DEL ${p[0]}`;
+        drawC(dateText, 480, 11);
+
+        // Firma Dario si aplica
+        if (agentName.includes("Dario")) {
+            const w1 = fontB.widthOfTextAtSize("JESUS DARIO ROBLES TRUJILLO", 10);
+            page.drawText("JESUS DARIO ROBLES TRUJILLO", { x: 440 - w1/2, y: PH - 540, size: 10, font: fontB });
+            const w2 = font.widthOfTextAtSize("REGISTRO STPS " + agentStps, 8);
+            page.drawText("REGISTRO STPS " + agentStps, { x: 440 - w2/2, y: PH - 555, size: 8, font: font });
+        }
+
+        const pdfBytes = await pdfDoc.save();
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Diploma_${selectedWorker.curp}.pdf`;
+        a.click();
+
+    } catch (e) {
+        alert('Error al generar diploma: ' + e.message);
+    }
 }
 
 // Regenerar desde historial
