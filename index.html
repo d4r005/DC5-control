@@ -2593,22 +2593,25 @@ async function saveDesign() {
             slogan_y: p.sloganY,
             slogan_size: p.sloganSize,
             agent_name: p.agentName,
+            updated_at: new Date().toISOString()
+        };
+
+        // Guardar TODO (incluyendo coordenadas de diploma) en localStorage para evitar errores de DB
+        const fullDesign = {
+            ...payload,
             dip_worker_x: gv('dip-worker-x', 396), dip_worker_y: gv('dip-worker-y', 245), dip_worker_sz: gv('dip-worker-sz', 28),
             dip_course_x: gv('dip-course-x', 396), dip_course_y: gv('dip-course-y', 330), dip_course_sz: gv('dip-course-sz', 18),
             dip_duration_x: gv('dip-duration-x', 396), dip_duration_y: gv('dip-duration-y', 405), dip_duration_sz: gv('dip-duration-sz', 12),
             dip_date_x: gv('dip-date-x', 396), dip_date_y: gv('dip-date-y', 445), dip_date_sz: gv('dip-date-sz', 11),
             dip_agent_x: gv('dip-agent-x', 396), dip_agent_y: gv('dip-agent-y', 572), dip_agent_sz: gv('dip-agent-sz', 10),
             dip_stps_x: gv('dip-stps-x', 396), dip_stps_y: gv('dip-stps-y', 584), dip_stps_sz: gv('dip-stps-sz', 8),
-            updated_at: new Date().toISOString()
+            slogan_font: p.sloganFont || 'Helvetica',
+            header_slogan_font: p.headerSloganFont || 'Times-Italic'
         };
-
-        // Save fonts to localStorage (not in DB - no those columns)
-        const localPayload = { ...payload, slogan_font: p.sloganFont || 'Helvetica', header_slogan_font: p.headerSloganFont || 'Times-Italic' };
-        localStorage.setItem('dc3_design', JSON.stringify(localPayload));
+        localStorage.setItem('dc3_design', JSON.stringify(fullDesign));
 
         const existing = await api('find','agent_designs', { filter: { creatorEmail: p.creatorEmail } });
         if (existing.documents?.length > 0) {
-            // Usar api('update') para que pase por toSnake() y evitar errores de columnas camelCase
             const res = await api('update','agent_designs', { id: existing.documents[0].id, document: payload });
             if (res.error) throw new Error(res.error);
         } else {
