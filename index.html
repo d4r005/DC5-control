@@ -1746,6 +1746,14 @@ async function generateDiploma() {
     })(agentStps, courseStpsId);
 
     try {
+        // --- CARGAR DISEÑO (Prioridad DB del Agente) ---
+        let d = null;
+        try {
+            const agentRecord = DATA.agents.find(a => a.name === agentName);
+            const dr = await api('find','agent_designs', { filter: { creatorEmail: agentRecord?.creatorEmail || currentUser.email } });
+            if (dr.documents?.length > 0) d = dr.documents[0];
+        } catch(e) { console.error("Error cargando diseño:", e); }
+
         const customTemplate = d?.diploma_template_base64 || d?.diplomaTemplateBase64;
         let imgBytes;
         if (customTemplate) {
@@ -2594,14 +2602,14 @@ async function handleDiplomaTemplate(input) {
     designState.diploma_template_base64 = dataUrl;
     const thumb = document.getElementById('diploma-template-thumb');
     if (thumb) thumb.innerHTML = `<img src="${dataUrl}" class="w-full h-full object-contain">`;
-    updateDiplomaPreview();
+    updateDiplomaDesignPreview();
 }
 
 function clearDiplomaTemplate() {
     designState.diploma_template_base64 = null;
     const thumb = document.getElementById('diploma-template-thumb');
     if (thumb) thumb.innerHTML = `<img src="/plantilla_diploma.png" class="w-full h-full object-contain">`;
-    updateDiplomaPreview();
+    updateDiplomaDesignPreview();
 }
 
 function gv(id, def=0) { return +(document.getElementById(id)?.value ?? def) || def; }
