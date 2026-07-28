@@ -1660,11 +1660,8 @@ async function generateDiploma() {
         const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
         const fontB = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-        // Limpiar áreas pre-impresas en la nueva plantilla (si es necesario)
+        // Sin rectángulos blancos por solicitud del usuario
         const isDario = agentName.toUpperCase().includes("DARIO");
-
-        // Limpiar área de firma y nombre del agente inferior (siempre, para poner datos reales)
-        page.drawRectangle({ x: PW/2 - 150, y: PH - 595, width: 300, height: 55, color: rgb(1,1,1) });
 
         const drawC = (txt, y, sz, fb = false, color = rgb(0,0,0)) => {
             const f = fb ? fontB : font;
@@ -1674,37 +1671,39 @@ async function generateDiploma() {
         };
 
         if (isDario) {
-            // --- DISEÑO EXCLUSIVO EHS SOLUTIONS (DARIO) ---
+            // --- DISEÑO AJUSTADO EHS SOLUTIONS (DARIO) ---
 
-            // 1. Nombre del Trabajador (Debajo de "A")
+            // 1. Nombre del Trabajador (Aumentado Y para bajarlo de la "A")
             const fullName = selectedWorker.apellidoPaterno ? `${selectedWorker.nombres} ${selectedWorker.apellidoPaterno} ${selectedWorker.apellidoMaterno || ''}`.trim() : selectedWorker.name;
-            drawC(fullName, 320, 26, true, rgb(0.1, 0.2, 0.4)); // Azul marino
+            drawC(fullName, 355, 26, true, rgb(0.1, 0.2, 0.4)); // Azul marino
 
-            // 2. Nombre del Curso
-            drawC(courseName, 435, 18, true);
+            // 2. Nombre del Curso (Ajustado para quedar bajo "curso de")
+            drawC(courseName, 442, 16, true);
 
-            // 3. Duración
-            drawC(courseDuration, 478, 11, true);
+            // 3. Duración (Ajustado para quedar bajo "duración de")
+            drawC(courseDuration, 492, 11, true);
 
-            // 4. Fecha
+            // 4. Fecha (Ajustado para quedar bajo "Del")
             const months = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
-            const p = end.split('-'); // yyyy-mm-dd
+            const p = end.split('-');
             const dateText = `${p[2]} DE ${months[parseInt(p[1])-1]} DEL ${p[0]}`;
-            drawC(dateText, 508, 11, true);
+            drawC(dateText, 532, 11, true);
 
             // 5. Firma y Datos Dario
             try {
                 const dr = await api('find','agent_designs', { filter: { creatorEmail: currentUser?.email || '' } });
                 const design = (dr.documents && dr.documents.length > 0) ? dr.documents[0] : null;
-                const firmaUrl = design?.firma_base64 || '/signatures/dario_firma.png'; // Fallback a firma local si existe
+                const firmaUrl = design?.firma_base64 || '/signatures/dario_firma.png';
 
                 const fImgBytes = await fetch(firmaUrl).then(r => r.arrayBuffer());
                 const fImg = await pdfDoc.embedPng(fImgBytes);
-                page.drawImage(fImg, { x: PW/2 - 45, y: PH - 565, width: 90, height: 50 });
+                // Firma centrada sobre el nombre
+                page.drawImage(fImg, { x: PW/2 - 45, y: PH - 575, width: 90, height: 50 });
             } catch(e) {}
 
-            drawC("JESUS DARIO ROBLES TRUJILLO", 572, 10, true);
-            drawC("REGISTRO " + finalStps, 584, 8);
+            // Escribir sobre los placeholders para asegurar datos correctos
+            drawC("JESUS DARIO ROBLES TRUJILLO", 580, 9, true);
+            drawC("REGISTRO " + finalStps, 592, 7.5, true);
 
         } else {
             // --- DISEÑO GENÉRICO (OTROS AGENTES) ---

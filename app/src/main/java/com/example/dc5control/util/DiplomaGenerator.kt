@@ -81,31 +81,28 @@ object DiplomaGenerator {
         val isDario = agent.name.contains("Dario", ignoreCase = true)
 
         if (isDario) {
-            // --- DISEÑO EXCLUSIVO EHS SOLUTIONS (DARIO) ---
+            // --- DISEÑO AJUSTADO EHS SOLUTIONS (DARIO) ---
             
-            // Limpiar zona inferior (Nombre y STPS del Agente)
-            cs.setNonStrokingColor(1f, 1f, 1f)
-            cs.addRect(PW / 2f - 150f, PH - 595f, 300f, 55f)
-            cs.fill()
+            // Sin rectángulos blancos por solicitud del usuario
 
-            // 1. Nombre del Trabajador (Debajo de "A")
+            // 1. Nombre del Trabajador (Bajado para no encimarse con "A")
             val workerName = "${employee.nombres} ${employee.apellidoPaterno} ${employee.apellidoMaterno}".trim()
-            textCentered(PW / 2f, 320f, workerName, 26f, true, 1)
+            textCentered(PW / 2f, 355f, workerName, 26f, true, 1)
 
-            // 2. Nombre del Curso (Debajo de "...curso de")
-            textCentered(PW / 2f, 435f, course.name, 18f, true)
+            // 2. Nombre del Curso (Subido bajo "curso de")
+            textCentered(PW / 2f, 442f, course.name, 16f, true)
 
-            // 3. Duración
-            textCentered(PW / 2f, 478f, course.durationHours, 11f, true)
+            // 3. Duración (Subido bajo "duración de")
+            textCentered(PW / 2f, 492f, course.durationHours, 11f, true)
 
-            // 4. Fecha
-            textCentered(PW / 2f, 508f, formatDateRange(startDate, endDate), 11f, true)
+            // 4. Fecha (Subido bajo "Del")
+            textCentered(PW / 2f, 532f, formatDateRange(startDate, endDate), 11f, true)
 
-            // 5. Datos del Agente (Firma y Nombre)
-            textCentered(PW / 2f, 572f, "JESUS DARIO ROBLES TRUJILLO", 10f, true)
+            // 5. Datos del Agente (Sobre placeholders)
+            textCentered(PW / 2f, 580f, "JESUS DARIO ROBLES TRUJILLO", 9f, true)
             
             val finalStps = calculateStps(agent.stps, course.stpsId)
-            textCentered(PW / 2f, 584f, "REGISTRO $finalStps", 8f)
+            textCentered(PW / 2f, 592f, "REGISTRO $finalStps", 7.5f, true)
 
         } else {
             // --- DISEÑO GENÉRICO (OTROS) ---
