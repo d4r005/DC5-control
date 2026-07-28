@@ -1731,19 +1731,6 @@ async function generateDiploma() {
     }
 }
 
-        const pdfBytes = await pdfDoc.save();
-        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Diploma_${selectedWorker.curp}.pdf`;
-        a.click();
-
-    } catch (e) {
-        alert('Error al generar diploma: ' + e.message);
-    }
-}
-
 // Regenerar desde historial
 async function regenDC3(record) {
     const worker  = { name: record.workerName, curp: record.workerId, position: record.workerPos };
