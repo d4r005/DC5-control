@@ -1717,19 +1717,19 @@ async function generateDiploma() {
             drawC(agentName, 570, 10, true);
             drawC("REGISTRO " + finalStps, 582, 8);
         }
-            // --- DISEÑO GENÉRICO (OTROS AGENTES) ---
-            const fullName = selectedWorker.apellidoPaterno ? `${selectedWorker.nombres} ${selectedWorker.apellidoPaterno} ${selectedWorker.apellidoMaterno || ''}`.trim() : selectedWorker.name;
-            drawC(fullName, 325, 28, true);
-            drawC(courseName, 445, 18, true);
 
-            const months = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
-            const p = end.split('-');
-            const dateText = `CON DURACIÓN DE ${courseDuration} DEL ${p[2]} DE ${months[parseInt(p[1])-1]} DEL ${p[0]}`;
-            drawC(dateText, 480, 11);
+        const pdfBytes = await pdfDoc.save();
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Diploma_${selectedWorker.curp}.pdf`;
+        a.click();
 
-            drawC(agentName, 570, 10, true);
-            drawC("REGISTRO " + finalStps, 582, 8);
-        }
+    } catch (e) {
+        alert('Error al generar diploma: ' + e.message);
+    }
+}
 
         const pdfBytes = await pdfDoc.save();
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
