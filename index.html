@@ -22,7 +22,7 @@
         .login-page { min-height: 100vh; background: linear-gradient(135deg,#e8eef8 0%,#f0f4ff 50%,#e8eef8 100%); }
         .login-card { background: white; border-radius: 20px; box-shadow: 0 20px 60px rgba(99,102,241,.12); padding: 48px 40px; width: 420px; }
         .login-logo { width: 48px; height: 48px; }
-        .btn-primary { background: #1e3a8a; color: white; border-radius: 10px; padding: 12px 24px; font-weight: 600; font-size: 15px; border: none; cursor: pointer; width: 100%; transition: background .2s; }
+        .btn-primary { background: #1a3a8a; color: white; border-radius: 10px; padding: 12px 24px; font-weight: 600; font-size: 15px; border: none; cursor: pointer; width: 100%; transition: background .2s; }
         .btn-primary:hover { background: #1a3070; }
         .input-field { width: 100%; border: 1.5px solid #e5e7eb; border-radius: 10px; padding: 11px 14px; font-size: 14px; color: #111827; outline: none; transition: border-color .2s; box-sizing: border-box; }
         .input-field:focus { border-color: #1e3a8a; }
@@ -1193,10 +1193,17 @@ async function initApp() {
             }
         }
 
-        console.log('[DEBUG] Loading catalogs...');
-        await loadCatalogs();
-        console.log('[DEBUG] Catalogs loaded, setting dashboard');
+        console.log('[DEBUG] Setting dashboard view');
         setView('dashboard');
+
+        console.log('[DEBUG] Loading catalogs...');
+        try {
+            await loadCatalogs();
+            console.log('[DEBUG] Catalogs loaded successfully');
+            loadSection('dashboard');
+        } catch (e) {
+            console.error('[DEBUG] loadCatalogs error:', e);
+        }
     } catch (err) {
         console.error("[DEBUG] App init error:", err);
     }
