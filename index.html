@@ -1768,8 +1768,8 @@ async function generateDiploma() {
         const page = pdfDoc.addPage([792, 612]); // Letter Landscape
         const PW = 792, PH = 612;
 
-const img = await pdfDoc.embedPng(imgBytes);
-                const bleed = 10;
+        const img = await pdfDoc.embedPng(imgBytes);
+        const bleed = 10;
         page.drawImage(img, { x: -bleed, y: -bleed, width: PW + (bleed * 2), height: PH + (bleed * 2) });
 
         const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
