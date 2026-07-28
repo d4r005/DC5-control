@@ -54,21 +54,28 @@ object DiplomaGenerator {
 
         val cs = PDPageContentStream(document, page)
 
-        // 1. Cargar imagen de fondo con sangrado (Bleed) para evitar franjas blancas
+        // 0. Rellenar fondo con color oscuro para evitar bordes blancos
+        cs.setNonStrokingColor(10, 20, 40) // Azul muy oscuro (casi negro)
+        cs.addRect(0f, 0f, PW, PH)
+        cs.fill()
+
+        // 1. Cargar imagen de fondo forzando cobertura total
         try {
-            val bleed = 10f // Aumentamos el sangrado para asegurar cobertura total
-            if (customTemplateBitmap != null) {
+            val bleed = 5f 
+            val imgXObject = if (customTemplateBitmap != null) {
                 val stream = java.io.ByteArrayOutputStream()
                 customTemplateBitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
-                val img = PDImageXObject.createFromByteArray(document, stream.toByteArray(), "custom_template")
-                cs.drawImage(img, -bleed, -bleed, PW + (bleed * 2), PH + (bleed * 2))
+                PDImageXObject.createFromByteArray(document, stream.toByteArray(), "custom_template")
             } else {
                 val inputStream = context.assets.open(TEMPLATE_NAME)
                 val bytes = inputStream.readBytes()
                 inputStream.close()
-                val img = PDImageXObject.createFromByteArray(document, bytes, "template")
-                cs.drawImage(img, -bleed, -bleed, PW + (bleed * 2), PH + (bleed * 2))
+                PDImageXObject.createFromByteArray(document, bytes, "template")
             }
+            
+            // Dibujamos la imagen ligeramente más grande y centrada para ocultar cualquier margen
+            cs.drawImage(imgXObject, -bleed, -bleed, PW + (bleed * 2), PH + (bleed * 2))
+            
         } catch (e: Exception) {
             Log.e(TAG, "Error loading template image", e)
         }
@@ -77,16 +84,19 @@ object DiplomaGenerator {
         val font = PDType1Font.HELVETICA
         val fontB = PDType1Font.HELVETICA_BOLD
 
-        fun textCentered(xC: Float, yF: Float, t: String, sz: Float, bold: Boolean = false, color: Int = 0) {
+        fun textCentered(xC: Float, yF: Float, t: String, sz: Float, bold: Boolean = false, colorType: Int = 0) {
             if (t.isBlank()) return
             val f = if (bold) fontB else font
             val st = t.uppercase()
             val w = f.getStringWidth(st) / 1000 * sz
+            
             cs.beginText()
             cs.setFont(f, sz)
-            if (color == 1) cs.setNonStrokingColor(25, 51, 102) // Azul marino
-            else if (color == 2) cs.setNonStrokingColor(76, 102, 0) // Verde oliva para folio
-            else cs.setNonStrokingColor(0, 0, 0)
+            when (colorType) {
+                1 -> cs.setNonStrokingColor(25, 51, 102) // Azul marino
+                2 -> cs.setNonStrokingColor(76, 102, 0) // Verde oliva para folio
+                else -> cs.setNonStrokingColor(0, 0, 0)
+            }
             cs.newLineAtOffset(xC - (w / 2f), PH - yF)
             cs.showText(st)
             cs.endText()
@@ -94,28 +104,29 @@ object DiplomaGenerator {
         }
 
         val isDario = agent.name.contains("Dario", ignoreCase = true)
+        val centerX = PW / 2f
 
         if (isDario) {
             // --- DISEÑO AJUSTADO EHS SOLUTIONS (DARIO) ---
             
             // 1. Nombre del Trabajador: ENCIMA de la línea (Y=245)
             val workerName = "${employee.nombres} ${employee.apellidoPaterno} ${employee.apellidoMaterno}".trim()
-            textCentered(PW / 2f, 245f, workerName, 28f, true, 1)
+            textCentered(centerX, 245f, workerName, 28f, true, 1)
 
             // 2. Nombre del Curso: Abajo de "Por haber concluido satisfactoriamente..." (Y=330)
-            textCentered(PW / 2f, 330f, course.name, 18f, true)
+            textCentered(centerX, 330f, course.name, 18f, true)
 
             // 3. Duración: Abajo de "Con duración de" (Y=405)
-            textCentered(PW / 2f, 405f, course.durationHours, 12f, true)
+            textCentered(centerX, 405f, course.durationHours, 12f, true)
 
             // 4. Fecha: Abajo de "Del" (Y=445)
-            textCentered(PW / 2f, 445f, formatDateRange(startDate, endDate), 11f, true)
+            textCentered(centerX, 445f, formatDateRange(startDate, endDate), 11f, true)
 
             // 5. Datos del Agente (Sobre placeholders)
-            textCentered(PW / 2f, 572f, "JESUS DARIO Robles Trujillo", 10f, true)
+            textCentered(centerX, 572f, "JESUS DARIO Robles Trujillo", 10f, true)
             
             val finalStps = calculateStps(agent.stps, course.stpsId)
-            textCentered(PW / 2f, 584f, "REGISTRO $finalStps", 8f, true)
+            textCentered(centerX, 584f, "REGISTRO $finalStps", 8f, true)
 
             // 6. Folio
             folio?.let { textCentered(folioX, folioY, "folio: $it", folioSz, true, 2) }
@@ -123,14 +134,14 @@ object DiplomaGenerator {
         } else {
             // --- DISEÑO GENÉRICO (OTROS) ---
             val workerName = "${employee.nombres} ${employee.apellidoPaterno} ${employee.apellidoMaterno}".trim()
-            textCentered(PW / 2f, 325f, workerName, 28f, true)
-            textCentered(PW / 2f, 445f, course.name, 18f, true)
+            textCentered(centerX, 325f, workerName, 28f, true)
+            textCentered(centerX, 445f, course.name, 18f, true)
             val dateText = "CON DURACIÓN DE ${course.durationHours} DEL ${formatDateRange(startDate, endDate)}"
-            textCentered(PW / 2f, 480f, dateText, 11f)
+            textCentered(centerX, 480f, dateText, 11f)
             
-            textCentered(PW / 2f, 570f, agent.name, 10f, true)
+            textCentered(centerX, 570f, agent.name, 10f, true)
             val finalStps = calculateStps(agent.stps, course.stpsId)
-            textCentered(PW / 2f, 582f, "REGISTRO $finalStps", 8f)
+            textCentered(centerX, 582f, "REGISTRO $finalStps", 8f)
 
             // 6. Folio
             folio?.let { textCentered(folioX, folioY, "folio: $it", folioSz, true, 2) }

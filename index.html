@@ -1784,9 +1784,14 @@ async function generateDiploma() {
         const pdfDoc = await PDFDocument.create();
         const page = pdfDoc.addPage([792, 612]); // Letter Landscape
         const PW = 792, PH = 612;
-        const bleed = 10; // Aumentamos el sangrado para asegurar cobertura total
+
+        // Rellenar fondo con azul oscuro antes de la imagen para evitar bordes blancos
+        page.drawRectangle({ x: 0, y: 0, width: PW, height: PH, color: rgb(0.05, 0.1, 0.2) });
 
         const img = await pdfDoc.embedPng(imgBytes);
+
+        // Dibujamos la imagen ligeramente más grande para asegurar cobertura total
+        const bleed = 5;
         page.drawImage(img, {
             x: -bleed,
             y: -bleed,
