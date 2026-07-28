@@ -2342,7 +2342,7 @@ async function updateDiplomaDesignPreview() {
     const outBytes = await pdfDoc.save();
     const pdf = await pdfjsLib.getDocument({ data: outBytes }).promise;
     const pg = await pdf.getPage(1);
-    const vp = pg.getViewport({ scale: 1.2 });
+    const vp = pg.getViewport({ scale: 1.2, rotation: 0 });
     canvas.width = vp.width; canvas.height = vp.height;
     await pg.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
 
