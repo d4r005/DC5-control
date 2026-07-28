@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACE-Control | Gestión DC-3 v1.0.7</title>
+    <title>ACE-Control | Gestión DC-3 v1.0.8</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -1101,19 +1101,27 @@ async function sha256(text) {
 }
 
 async function login(e) {
+    console.log('[DEBUG] Login attempt started');
     try {
         e.preventDefault();
         const email = document.getElementById('email').value.trim();
         const pass = document.getElementById('password').value;
-        
+
+        console.log('[DEBUG] Email entered:', email);
+
         // Hash the password with SHA-256 before comparing
         const passHash = await sha256(pass);
+        console.log('[DEBUG] Generated hash:', passHash);
+
         const user = DATA.users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.passHash === passHash);
 
         if (!user) {
+            console.warn('[DEBUG] User not found or hash mismatch');
             document.getElementById('login-error').classList.remove('hidden');
             return;
         }
+
+        console.log('[DEBUG] User verified:', user.name);
 
         // Check if user is active (future enhancement: disable users)
         if (user.active === false) {
@@ -1746,13 +1754,18 @@ async function generateDiploma() {
     })(agentStps, courseStpsId);
 
     try {
-        // --- CARGAR DISEÑO (Prioridad DB del Agente) ---
+        // --- CARGAR DISEÑO (Prioridad LocalStorage > DB del Agente) ---
         let d = null;
-        try {
-            const agentRecord = DATA.agents.find(a => a.name === agentName);
-            const dr = await api('find','agent_designs', { filter: { creatorEmail: agentRecord?.creatorEmail || currentUser.email } });
-            if (dr.documents?.length > 0) d = dr.documents[0];
-        } catch(e) { console.error("Error cargando diseño:", e); }
+        const localD = localStorage.getItem('dc3_design');
+        if (localD) {
+            d = JSON.parse(localD);
+        } else {
+            try {
+                const agentRecord = DATA.agents.find(a => a.name === agentName);
+                const dr = await api('find','agent_designs', { filter: { creatorEmail: agentRecord?.creatorEmail || currentUser.email } });
+                if (dr.documents?.length > 0) d = dr.documents[0];
+            } catch(e) { console.error("Error cargando diseño:", e); }
+        }
 
         const customTemplate = d?.diploma_template_base64 || d?.diplomaTemplateBase64;
         let imgBytes;
@@ -1768,25 +1781,22 @@ async function generateDiploma() {
         const page = pdfDoc.addPage([792, 612]); // Letter Landscape
         const PW = 792, PH = 612;
 
-const img = await pdfDoc.embedPng(imgBytes);
-                const bleed = 10;
-        page.drawImage(img, { x: -bleed, y: -bleed, width: PW + (bleed * 2), height: PH + (bleed * 2) });
+        // Rellenar fondo con azul oscuro antes de la imagen para evitar bordes blancos
+        page.drawRectangle({ x: 0, y: 0, width: PW, height: PH, color: rgb(0.05, 0.1, 0.2) });
+
+        const img = await pdfDoc.embedPng(imgBytes);
+
+        // Dibujamos la imagen ligeramente más grande para asegurar cobertura total
+        const bleed = 5;
+        page.drawImage(img, {
+            x: -bleed,
+            y: -bleed,
+            width: PW + (bleed * 2),
+            height: PH + (bleed * 2)
+        });
 
         const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
         const fontB = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-
-        // --- CARGAR DISEÑO (Prioridad LocalStorage > DB) ---
-        let d = null;
-        const localD = localStorage.getItem('dc3_design');
-        if (localD) {
-            d = JSON.parse(localD);
-        } else {
-            try {
-                const agentRecord = DATA.agents.find(a => a.name === agentName);
-                const dr = await api('find','agent_designs', { filter: { creatorEmail: agentRecord?.creatorEmail || currentUser.email } });
-                if (dr.documents?.length > 0) d = dr.documents[0];
-            } catch(e) {}
-        }
 
         const drawC = (txt, x, y, sz, fb = false, color = rgb(0,0,0)) => {
             const f = fb ? fontB : font;
@@ -1797,7 +1807,55 @@ const img = await pdfDoc.embedPng(imgBytes);
 
         // 1. Nombre del Trabajador
         const fullName = selectedWorker.apellidoPaterno ? `${selectedWorker.nombres} ${selectedWorker.apellidoPaterno} ${selectedWorker.apellidoMaterno || ''}`.trim() : selectedWorker.name;
-        drawC(fullName, d?.dip_worker_x ?? 396, d?.dip_worker_y ?? 245, d?.dip_worker_sz ?? 28, true, rgb(0.1, 0.2, 0.4));
+        drawC(fullName, d?.dip_worker_x ?? d?.dipWorkerX ?? 396, d?.dip_worker_y ?? d?.dipWorkerY ?? 245, d?.dip_worker_sz ?? d?.dipWorkerSz ?? 28, true, rgb(0.1, 0.2, 0.4));
+
+        // 2. Nombre del Curso
+        drawC(courseName, d?.dip_course_x ?? d?.dipCourseX ?? 396, d?.dip_course_y ?? d?.dipCourseY ?? 330, d?.dip_course_sz ?? d?.dipCourseSz ?? 18, true);
+
+        // 3. Duración del Curso
+        drawC(courseDuration, d?.dip_duration_x ?? d?.dipDurationX ?? 396, d?.dip_duration_y ?? d?.dipDurationY ?? 405, d?.dip_duration_sz ?? d?.dipDurationSz ?? 12, true);
+
+        // 4. Fecha
+        const months = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
+        const p = end.split('-');
+        const dateText = `${p[2]} DE ${months[parseInt(p[1])-1]} DEL ${p[0]}`;
+        drawC(dateText, d?.dip_date_x ?? d?.dipDateX ?? 396, d?.dip_date_y ?? d?.dipDateY ?? 445, d?.dip_date_sz ?? d?.dipDateSz ?? 11, true);
+
+        // 5. Firma y Datos del Agente
+        const firmaBase64 = d?.firma_base64 || d?.firmaBase64;
+        if (firmaBase64) {
+            try {
+                const fImgBytes = await fetch(firmaBase64).then(r => r.arrayBuffer());
+                const fImg = await pdfDoc.embedPng(fImgBytes);
+                // Firma centrada sobre el nombre
+                page.drawImage(fImg, { x: (d?.dip_agent_x ?? d?.dipAgentX ?? 396) - 45, y: PH - (d?.dip_agent_y ?? d?.dipAgentY ?? 572) + 10, width: 90, height: 50 });
+            } catch(e) {}
+        }
+
+        drawC(agentName, d?.dip_agent_x ?? d?.dipAgentX ?? 396, d?.dip_agent_y ?? d?.dipAgentY ?? 572, d?.dip_agent_sz ?? d?.dipAgentSz ?? 10, true);
+        drawC("REGISTRO " + finalStps, d?.dip_stps_x ?? d?.dipStpsX ?? 396, d?.dip_stps_y ?? d?.dipStpsY ?? 584, d?.dip_stps_sz ?? d?.dipStpsSz ?? 8, true);
+
+        // 6. Folio
+        const folioStr = "FOLIO: " + (function() {
+            const now = new Date();
+            return `EHS-${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}-${Math.floor(Math.random()*1000).toString().padStart(3,'0')}`;
+        })();
+        drawC(folioStr, d?.dip_folio_x ?? d?.dipFolioX ?? 396, d?.dip_folio_y ?? d?.dipFolioY ?? 550, d?.dip_folio_sz ?? d?.dipFolioSz ?? 10, true, rgb(0.3, 0.4, 0));
+
+        const pdfBytes = await pdfDoc.save();
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Diploma_${fullName.replace(/\s+/g,'_')}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+
+    } catch (e) {
+        console.error("Error Diploma:", e);
+        alert("Error al generar diploma: " + e.message);
+    }
+}
 
         // 2. Nombre del Curso
         drawC(courseName, d?.dip_course_x ?? 396, d?.dip_course_y ?? 330, d?.dip_course_sz ?? 18, true);
