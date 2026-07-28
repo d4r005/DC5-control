@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACE-Control | Gestión DC-3 v1.0.8</title>
+    <title>ACE-Control | Generador de Constancias DC-3</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -172,7 +172,7 @@
             </div>
             <div class="nav-link" onclick="setView('dc3design')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
-                Diseño
+                Diseño DC-3
             </div>
             <div class="nav-link" id="btn-agents" onclick="setView('agents')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
@@ -321,240 +321,134 @@
 
         <!-- DC-3 Design -->
         <div id="section-dc3design" class="hidden">
-            <!-- Tabs -->
-            <div class="flex border-b border-gray-200 mb-6 bg-white rounded-t-xl overflow-hidden">
-                <button onclick="setDesignTab('dc3')" id="tab-design-dc3" class="px-6 py-3 text-sm font-bold text-blue-900 border-b-2 border-blue-900">DC-3</button>
-                <button onclick="setDesignTab('diploma')" id="tab-design-diploma" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-blue-900 transition-colors">Diploma</button>
-            </div>
+            <div style="display:grid;grid-template-columns:400px 1fr;gap:18px;min-height:82vh;">
 
-            <div id="design-content-dc3">
-                <div style="display:grid;grid-template-columns:400px 1fr;gap:18px;min-height:82vh;">
+                <!-- ── Panel izquierdo: controles ── -->
+                <div class="card p-5" style="overflow-y:auto;max-height:82vh;">
+                    <h3 class="text-sm font-bold text-blue-900 uppercase tracking-wide mb-4">Diseño DC-3</h3>
 
-                    <!-- ── Panel izquierdo: controles ── -->
-                    <div class="card p-5" style="overflow-y:auto;max-height:82vh;">
-                        <h3 class="text-sm font-bold text-blue-900 uppercase tracking-wide mb-4">Diseño DC-3</h3>
-
-                        <!-- LOGO DE FIRMA -->
-                        <div class="border rounded-xl p-4 mb-4 space-y-3 bg-gray-50">
-                            <p class="text-xs font-bold text-gray-600 uppercase">Logo (sección de firmas)</p>
-                            <div class="flex gap-3 items-start">
-                                <div id="design-logo-preview" class="w-20 h-16 rounded border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-300 text-xs flex-shrink-0 overflow-hidden">Sin logo</div>
-                                <div class="flex-1">
-                                    <label class="btn-sm btn-outline cursor-pointer block text-center text-xs">
-                                        Subir logo
-                                        <input type="file" accept="image/png,image/jpeg" class="hidden" onchange="handleDesignImage(this,'logo')">
-                                    </label>
-                                    <button onclick="clearDesignImage('logo')" class="mt-1 text-xs text-red-400 hover:text-red-600 w-full text-center">✕ Quitar</button>
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-4 gap-1">
-                                <div><label class="text-xs text-gray-400">X</label><input id="design-logo-x" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="58" oninput="schedulePreview()"></div>
-                                <div><label class="text-xs text-gray-400">Y</label><input id="design-logo-y" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="454" oninput="schedulePreview()"></div>
-                                <div><label class="text-xs text-gray-400">Ancho</label><input id="design-logo-w" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="115" oninput="schedulePreview()"></div>
-                                <div><label class="text-xs text-gray-400">Alto</label><input id="design-logo-h" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="65" oninput="schedulePreview()"></div>
-                            </div>
-                        </div>
-
-                        <!-- FIRMA -->
-                        <div class="border rounded-xl p-4 mb-4 space-y-3 bg-gray-50">
-                            <p class="text-xs font-bold text-gray-600 uppercase">Firma del instructor</p>
-                            <div class="flex gap-3 items-start">
-                                <div id="design-firma-preview" class="w-20 h-16 rounded border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-300 text-xs flex-shrink-0 overflow-hidden">Sin firma</div>
-                                <div class="flex-1">
-                                    <label class="btn-sm btn-outline cursor-pointer block text-center text-xs">
-                                        Subir firma
-                                        <input type="file" accept="image/png,image/jpeg" class="hidden" onchange="handleDesignImage(this,'firma')">
-                                    </label>
-                                    <button onclick="clearDesignImage('firma')" class="mt-1 text-xs text-red-400 hover:text-red-600 w-full text-center">✕ Quitar</button>
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-4 gap-1">
-                                <div><label class="text-xs text-gray-400">X</label><input id="design-firma-x" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="88" oninput="schedulePreview()"></div>
-                                <div><label class="text-xs text-gray-400">Y</label><input id="design-firma-y" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="457" oninput="schedulePreview()"></div>
-                                <div><label class="text-xs text-gray-400">Ancho</label><input id="design-firma-w" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="85" oninput="schedulePreview()"></div>
-                                <div><label class="text-xs text-gray-400">Alto</label><input id="design-firma-h" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="60" oninput="schedulePreview()"></div>
-                            </div>
-                        </div>
-
-                        <!-- CABECERA: logo -->
-                        <div class="border rounded-xl p-4 mb-4 space-y-3 bg-blue-50">
-                            <p class="text-xs font-bold text-blue-900 uppercase">Cabecera — Logo</p>
-                            <div class="flex gap-3 items-start">
-                                <div id="design-header-logo-preview" class="w-20 h-14 rounded border-2 border-dashed border-blue-300 flex items-center justify-center text-gray-300 text-xs flex-shrink-0 overflow-hidden">Sin logo</div>
-                                <div class="flex-1">
-                                    <label class="btn-sm btn-outline cursor-pointer block text-center text-xs">
-                                        Subir logo cabecera
-                                        <input type="file" accept="image/png,image/jpeg" class="hidden" onchange="handleDesignImage(this,'headerLogo')">
-                                    </label>
-                                    <button onclick="clearDesignImage('headerLogo')" class="mt-1 text-xs text-red-400 hover:text-red-600 w-full text-center">✕ Quitar</button>
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-4 gap-1">
-                                <div><label class="text-xs text-gray-400">X</label><input id="design-header-logo-x" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="30" oninput="schedulePreview()"></div>
-                                <div><label class="text-xs text-gray-400">Y</label><input id="design-header-logo-y" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="10" oninput="schedulePreview()"></div>
-                                <div><label class="text-xs text-gray-400">Ancho</label><input id="design-header-logo-w" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="120" oninput="schedulePreview()"></div>
-                                <div><label class="text-xs text-gray-400">Alto</label><input id="design-header-logo-h" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="55" oninput="schedulePreview()"></div>
-                            </div>
-                        </div>
-
-                        <!-- CABECERA: slogan -->
-                        <div class="border rounded-xl p-4 mb-4 space-y-3 bg-blue-50">
-                            <p class="text-xs font-bold text-blue-900 uppercase">Cabecera — Slogan</p>
-                            <input id="design-header-slogan" class="input-field" placeholder="Ej. CONSULTING & TRAINING SAPI" oninput="schedulePreview()">
-                            <div class="grid grid-cols-2 gap-2">
-                                <div>
-                                    <label class="text-xs text-gray-400">Fuente</label>
-                                    <select id="design-header-slogan-font" class="input-field" style="padding:4px 6px;font-size:11px" onchange="schedulePreview()">
-                                        <option value="Helvetica">Helvetica (normal)</option>
-                                        <option value="Helvetica-Bold">Helvetica Negrita</option>
-                                        <option value="Helvetica-Oblique">Helvetica Cursiva</option>
-                                        <option value="Helvetica-BoldOblique">Helvetica Negrita+Cursiva</option>
-                                        <option value="Times-Roman">Times Roman</option>
-                                        <option value="Times-Bold">Times Negrita</option>
-                                        <option value="Times-Italic">Times Cursiva</option>
-                                        <option value="Courier">Courier</option>
-                                        <option value="Courier-Bold">Courier Negrita</option>
-                                        <option value="KunstlerScript">Kunstler Script</option>
-                                        <option value="GreatVibes">Great Vibes (Script)</option>
-                                        <option value="Pacifico">Pacifico</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="text-xs text-gray-400">Tamaño</label>
-                                    <input id="design-header-slogan-size" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="9" min="6" max="30" oninput="schedulePreview()">
-                                </div>
-                                <div><label class="text-xs text-gray-400">X</label><input id="design-header-slogan-x" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="306" oninput="schedulePreview()"></div>
-                                <div><label class="text-xs text-gray-400">Y</label><input id="design-header-slogan-y" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="18" oninput="schedulePreview()"></div>
-                            </div>
-                        </div>
-
-                        <!-- NOMBRE AGENTE -->
-                        <div class="border rounded-xl p-4 mb-4 bg-gray-50">
-                            <label class="block text-xs font-bold text-gray-600 uppercase mb-2">Nombre del Agente</label>
-                            <input id="design-agent-name" class="input-field" placeholder="Ej. ING. CYNTHIA YADIRA GARZA LUGO" oninput="schedulePreview()">
-                        </div>
-
-                        <div class="flex gap-3 pt-2">
-                            <button onclick="saveDesign()" class="btn-sm btn-indigo flex-1 text-sm font-semibold">💾 Guardar diseño</button>
-                            <button onclick="updateDesignPreview()" class="btn-sm btn-outline flex-1 text-sm">🔄 Actualizar</button>
-                        </div>
-                        <p class="text-xs text-gray-400 mt-2 text-center">💡 Arrastra logo/firma directo en la vista previa</p>
-                    </div>
-
-                    <!-- ── Panel derecho: preview interactivo ── -->
-                    <div class="card p-4" style="display:flex;flex-direction:column;overflow:hidden;">
-                        <div class="flex justify-between items-center mb-2">
-                            <p class="text-xs font-bold text-gray-500 uppercase">Vista previa — DC-3 (arrastra los elementos)</p>
-                            <span id="design-drag-hint" class="text-xs text-blue-900"></span>
-                        </div>
-                        <div id="design-preview-wrap" style="position:relative;overflow-y:auto;overflow-x:hidden;flex:1;min-height:0;border-radius:8px;background:#f3f4f6;">
-                            <canvas id="design-preview-canvas" style="display:block;width:100%;"></canvas>
-                            <!-- Overlay SVG para handles de arrastre -->
-                            <svg id="design-drag-overlay" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;" viewBox="0 0 918 1188" preserveAspectRatio="none"></svg>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Diploma Design Content -->
-            <div id="design-content-diploma" class="hidden">
-                <div style="display:grid;grid-template-columns:400px 1fr;gap:18px;min-height:82vh;">
-                    <!-- Panel izquierdo: controles -->
-                    <div class="card p-5" style="overflow-y:auto;max-height:82vh;">
-                        <h3 class="text-sm font-bold text-blue-900 uppercase tracking-wide mb-4">Diseño de Diploma</h3>
-
-                        <!-- NUEVA SECCIÓN: PLANTILLA -->
-                        <div class="border rounded-xl p-4 mb-4 bg-blue-50">
-                            <p class="text-xs font-bold text-blue-900 uppercase mb-3">Plantilla de Fondo</p>
-                            <div id="diploma-template-thumb" class="w-full aspect-video rounded border-2 border-dashed border-blue-200 bg-white mb-3 overflow-hidden flex items-center justify-center">
-                                <img src="/plantilla_diploma.png" class="w-full h-full object-contain">
-                            </div>
-                            <div class="flex gap-2">
-                                <label class="btn-sm btn-indigo flex-1 text-center cursor-pointer text-[11px] py-2">
-                                    📷 Cambiar Fondo
-                                    <input type="file" accept="image/png,image/jpeg" class="hidden" onchange="handleDiplomaTemplate(this)">
+                    <!-- LOGO DE FIRMA -->
+                    <div class="border rounded-xl p-4 mb-4 space-y-3 bg-gray-50">
+                        <p class="text-xs font-bold text-gray-600 uppercase">Logo (sección de firmas)</p>
+                        <div class="flex gap-3 items-start">
+                            <div id="design-logo-preview" class="w-20 h-16 rounded border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-300 text-xs flex-shrink-0 overflow-hidden">Sin logo</div>
+                            <div class="flex-1">
+                                <label class="btn-sm btn-outline cursor-pointer block text-center text-xs">
+                                    Subir logo
+                                    <input type="file" accept="image/png,image/jpeg" class="hidden" onchange="handleDesignImage(this,'logo')">
                                 </label>
-                                <button onclick="clearDiplomaTemplate()" class="text-red-500 hover:text-red-700 text-xs px-2">✕</button>
+                                <button onclick="clearDesignImage('logo')" class="mt-1 text-xs text-red-400 hover:text-red-600 w-full text-center">✕ Quitar</button>
                             </div>
                         </div>
-
-                        <p class="text-[11px] text-gray-500 mb-4">Acomoda los recuadros arrastrándolos en la vista previa o usa los controles manuales.</p>
-
-                        <!-- Trabajador -->
-                        <div class="border rounded-xl p-4 mb-4 bg-gray-50">
-                            <p class="text-xs font-bold text-gray-600 uppercase mb-2">Nombre del Trabajador</p>
-                            <div class="grid grid-cols-3 gap-2">
-                                <div><label class="text-[10px] text-gray-400">X</label><input id="dip-worker-x" type="number" class="input-field !p-1 !text-xs" value="396" oninput="scheduleDiplomaPreview()"></div>
-                                <div><label class="text-[10px] text-gray-400">Y</label><input id="dip-worker-y" type="number" class="input-field !p-1 !text-xs" value="245" oninput="scheduleDiplomaPreview()"></div>
-                                <div><label class="text-[10px] text-gray-400">Tam.</label><input id="dip-worker-sz" type="number" class="input-field !p-1 !text-xs" value="28" oninput="scheduleDiplomaPreview()"></div>
-                            </div>
+                        <div class="grid grid-cols-4 gap-1">
+                            <div><label class="text-xs text-gray-400">X</label><input id="design-logo-x" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="58" oninput="schedulePreview()"></div>
+                            <div><label class="text-xs text-gray-400">Y</label><input id="design-logo-y" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="454" oninput="schedulePreview()"></div>
+                            <div><label class="text-xs text-gray-400">Ancho</label><input id="design-logo-w" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="115" oninput="schedulePreview()"></div>
+                            <div><label class="text-xs text-gray-400">Alto</label><input id="design-logo-h" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="65" oninput="schedulePreview()"></div>
                         </div>
-
-                        <!-- Curso -->
-                        <div class="border rounded-xl p-4 mb-4 bg-gray-50">
-                            <p class="text-xs font-bold text-gray-600 uppercase mb-2">Nombre del Curso</p>
-                            <div class="grid grid-cols-3 gap-2">
-                                <div><label class="text-[10px] text-gray-400">X</label><input id="dip-course-x" type="number" class="input-field !p-1 !text-xs" value="396" oninput="scheduleDiplomaPreview()"></div>
-                                <div><label class="text-[10px] text-gray-400">Y</label><input id="dip-course-y" type="number" class="input-field !p-1 !text-xs" value="330" oninput="scheduleDiplomaPreview()"></div>
-                                <div><label class="text-[10px] text-gray-400">Tam.</label><input id="dip-course-sz" type="number" class="input-field !p-1 !text-xs" value="18" oninput="scheduleDiplomaPreview()"></div>
-                            </div>
-                        </div>
-
-                        <!-- Duración -->
-                        <div class="border rounded-xl p-4 mb-4 bg-gray-50">
-                            <p class="text-xs font-bold text-gray-600 uppercase mb-2">Duración (Horas)</p>
-                            <div class="grid grid-cols-3 gap-2">
-                                <div><label class="text-[10px] text-gray-400">X</label><input id="dip-duration-x" type="number" class="input-field !p-1 !text-xs" value="396" oninput="scheduleDiplomaPreview()"></div>
-                                <div><label class="text-[10px] text-gray-400">Y</label><input id="dip-duration-y" type="number" class="input-field !p-1 !text-xs" value="405" oninput="scheduleDiplomaPreview()"></div>
-                                <div><label class="text-[10px] text-gray-400">Tam.</label><input id="dip-duration-sz" type="number" class="input-field !p-1 !text-xs" value="12" oninput="scheduleDiplomaPreview()"></div>
-                            </div>
-                        </div>
-
-                        <!-- Fecha -->
-                        <div class="border rounded-xl p-4 mb-4 bg-gray-50">
-                            <p class="text-xs font-bold text-gray-600 uppercase mb-2">Fecha (Formato largo)</p>
-                            <div class="grid grid-cols-3 gap-2">
-                                <div><label class="text-[10px] text-gray-400">X</label><input id="dip-date-x" type="number" class="input-field !p-1 !text-xs" value="396" oninput="scheduleDiplomaPreview()"></div>
-                                <div><label class="text-[10px] text-gray-400">Y</label><input id="dip-date-y" type="number" class="input-field !p-1 !text-xs" value="445" oninput="scheduleDiplomaPreview()"></div>
-                                <div><label class="text-[10px] text-gray-400">Tam.</label><input id="dip-date-sz" type="number" class="input-field !p-1 !text-xs" value="11" oninput="scheduleDiplomaPreview()"></div>
-                            </div>
-                        </div>
-
-                        <!-- Nombre Agente -->
-                        <div class="border rounded-xl p-4 mb-4 bg-gray-50">
-                            <p class="text-xs font-bold text-gray-600 uppercase mb-2">Nombre Agente (Firma)</p>
-                            <div class="grid grid-cols-3 gap-2">
-                                <div><label class="text-[10px] text-gray-400">X</label><input id="dip-agent-x" type="number" class="input-field !p-1 !text-xs" value="396" oninput="scheduleDiplomaPreview()"></div>
-                                <div><label class="text-[10px] text-gray-400">Y</label><input id="dip-agent-y" type="number" class="input-field !p-1 !text-xs" value="572" oninput="scheduleDiplomaPreview()"></div>
-                                <div><label class="text-[10px] text-gray-400">Tam.</label><input id="dip-agent-sz" type="number" class="input-field !p-1 !text-xs" value="10" oninput="scheduleDiplomaPreview()"></div>
-                            </div>
-                        </div>
-
-                        <!-- Registro STPS -->
-                        <div class="border rounded-xl p-4 mb-4 bg-gray-50">
-                            <p class="text-xs font-bold text-gray-600 uppercase mb-2">Registro STPS</p>
-                            <div class="grid grid-cols-3 gap-2">
-                                <div><label class="text-[10px] text-gray-400">X</label><input id="dip-stps-x" type="number" class="input-field !p-1 !text-xs" value="396" oninput="scheduleDiplomaPreview()"></div>
-                                <div><label class="text-[10px] text-gray-400">Y</label><input id="dip-stps-y" type="number" class="input-field !p-1 !text-xs" value="584" oninput="scheduleDiplomaPreview()"></div>
-                                <div><label class="text-[10px] text-gray-400">Tam.</label><input id="dip-stps-sz" type="number" class="input-field !p-1 !text-xs" value="8" oninput="scheduleDiplomaPreview()"></div>
-                            </div>
-                        </div>
-
-                        <button onclick="saveDesign()" class="btn-primary">💾 Guardar Diseño</button>
                     </div>
 
-                    <!-- Panel derecho: vista previa -->
-                    <div class="card p-4 flex flex-col overflow-hidden">
-                        <div class="flex justify-between items-center mb-2">
-                            <p class="text-xs font-bold text-gray-500 uppercase">Vista previa — Diploma (arrastra los recuadros)</p>
-                            <span id="diploma-drag-hint" class="text-xs text-blue-900"></span>
+                    <!-- FIRMA -->
+                    <div class="border rounded-xl p-4 mb-4 space-y-3 bg-gray-50">
+                        <p class="text-xs font-bold text-gray-600 uppercase">Firma del instructor</p>
+                        <div class="flex gap-3 items-start">
+                            <div id="design-firma-preview" class="w-20 h-16 rounded border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-300 text-xs flex-shrink-0 overflow-hidden">Sin firma</div>
+                            <div class="flex-1">
+                                <label class="btn-sm btn-outline cursor-pointer block text-center text-xs">
+                                    Subir firma
+                                    <input type="file" accept="image/png,image/jpeg" class="hidden" onchange="handleDesignImage(this,'firma')">
+                                </label>
+                                <button onclick="clearDesignImage('firma')" class="mt-1 text-xs text-red-400 hover:text-red-600 w-full text-center">✕ Quitar</button>
+                            </div>
                         </div>
-                        <div id="diploma-preview-wrap" style="position:relative;overflow-y:auto;overflow-x:hidden;flex:1;min-height:0;border-radius:8px;background:#f3f4f6;">
-                            <canvas id="diploma-preview-canvas" style="display:block;width:100%;"></canvas>
-                            <svg id="diploma-drag-overlay" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;" viewBox="0 0 792 612" preserveAspectRatio="none"></svg>
+                        <div class="grid grid-cols-4 gap-1">
+                            <div><label class="text-xs text-gray-400">X</label><input id="design-firma-x" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="88" oninput="schedulePreview()"></div>
+                            <div><label class="text-xs text-gray-400">Y</label><input id="design-firma-y" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="457" oninput="schedulePreview()"></div>
+                            <div><label class="text-xs text-gray-400">Ancho</label><input id="design-firma-w" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="85" oninput="schedulePreview()"></div>
+                            <div><label class="text-xs text-gray-400">Alto</label><input id="design-firma-h" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="60" oninput="schedulePreview()"></div>
                         </div>
+                    </div>
+
+                    <!-- CABECERA: logo -->
+                    <div class="border rounded-xl p-4 mb-4 space-y-3 bg-blue-50">
+                        <p class="text-xs font-bold text-blue-900 uppercase">Cabecera — Logo</p>
+                        <div class="flex gap-3 items-start">
+                            <div id="design-header-logo-preview" class="w-20 h-14 rounded border-2 border-dashed border-blue-300 flex items-center justify-center text-gray-300 text-xs flex-shrink-0 overflow-hidden">Sin logo</div>
+                            <div class="flex-1">
+                                <label class="btn-sm btn-outline cursor-pointer block text-center text-xs">
+                                    Subir logo cabecera
+                                    <input type="file" accept="image/png,image/jpeg" class="hidden" onchange="handleDesignImage(this,'headerLogo')">
+                                </label>
+                                <button onclick="clearDesignImage('headerLogo')" class="mt-1 text-xs text-red-400 hover:text-red-600 w-full text-center">✕ Quitar</button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-4 gap-1">
+                            <div><label class="text-xs text-gray-400">X</label><input id="design-header-logo-x" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="30" oninput="schedulePreview()"></div>
+                            <div><label class="text-xs text-gray-400">Y</label><input id="design-header-logo-y" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="10" oninput="schedulePreview()"></div>
+                            <div><label class="text-xs text-gray-400">Ancho</label><input id="design-header-logo-w" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="120" oninput="schedulePreview()"></div>
+                            <div><label class="text-xs text-gray-400">Alto</label><input id="design-header-logo-h" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="55" oninput="schedulePreview()"></div>
+                        </div>
+                    </div>
+
+                    <!-- CABECERA: slogan -->
+                    <div class="border rounded-xl p-4 mb-4 space-y-3 bg-blue-50">
+                        <p class="text-xs font-bold text-blue-900 uppercase">Cabecera — Slogan</p>
+                        <input id="design-header-slogan" class="input-field" placeholder="Ej. CONSULTING & TRAINING SAPI" oninput="schedulePreview()">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="text-xs text-gray-400">Fuente</label>
+                                <select id="design-header-slogan-font" class="input-field" style="padding:4px 6px;font-size:11px" onchange="schedulePreview()">
+                                    <option value="Helvetica">Helvetica (normal)</option>
+                                    <option value="Helvetica-Bold">Helvetica Negrita</option>
+                                    <option value="Helvetica-Oblique">Helvetica Cursiva</option>
+                                    <option value="Helvetica-BoldOblique">Helvetica Negrita+Cursiva</option>
+                                    <option value="Times-Roman">Times Roman</option>
+                                    <option value="Times-Bold">Times Negrita</option>
+                                    <option value="Times-Italic">Times Cursiva</option>
+                                    <option value="Courier">Courier</option>
+                                    <option value="Courier-Bold">Courier Negrita</option>
+                                    <option value="KunstlerScript">Kunstler Script</option>
+                                    <option value="GreatVibes">Great Vibes (Script)</option>
+                                    <option value="Pacifico">Pacifico</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-xs text-gray-400">Tamaño</label>
+                                <input id="design-header-slogan-size" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="9" min="6" max="30" oninput="schedulePreview()">
+                            </div>
+                            <div><label class="text-xs text-gray-400">X</label><input id="design-header-slogan-x" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="306" oninput="schedulePreview()"></div>
+                            <div><label class="text-xs text-gray-400">Y</label><input id="design-header-slogan-y" type="number" class="input-field" style="padding:4px 6px;font-size:11px" value="18" oninput="schedulePreview()"></div>
+                        </div>
+                    </div>
+
+                    <!-- Texto en sección de firmas eliminado por usuario -->
+
+                    <!-- NOMBRE AGENTE -->
+                    <div class="border rounded-xl p-4 mb-4 bg-gray-50">
+                        <label class="block text-xs font-bold text-gray-600 uppercase mb-2">Nombre del Agente</label>
+                        <input id="design-agent-name" class="input-field" placeholder="Ej. ING. CYNTHIA YADIRA GARZA LUGO" oninput="schedulePreview()">
+                    </div>
+
+                    <div class="flex gap-3 pt-2">
+                        <button onclick="saveDesign()" class="btn-sm btn-indigo flex-1 text-sm font-semibold">💾 Guardar diseño</button>
+                        <button onclick="updateDesignPreview()" class="btn-sm btn-outline flex-1 text-sm">🔄 Actualizar</button>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-2 text-center">💡 Arrastra logo/firma directo en la vista previa</p>
+                </div>
+
+                <!-- ── Panel derecho: preview interactivo ── -->
+                <div class="card p-4" style="display:flex;flex-direction:column;overflow:hidden;">
+                    <div class="flex justify-between items-center mb-2">
+                        <p class="text-xs font-bold text-gray-500 uppercase">Vista previa — DC-3 (arrastra los elementos)</p>
+                        <span id="design-drag-hint" class="text-xs text-blue-900"></span>
+                    </div>
+                    <div id="design-preview-wrap" style="position:relative;overflow-y:auto;overflow-x:hidden;flex:1;min-height:0;border-radius:8px;background:#f3f4f6;">
+                        <canvas id="design-preview-canvas" style="display:block;width:100%;"></canvas>
+                        <!-- Overlay SVG para handles de arrastre -->
+                        <svg id="design-drag-overlay" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;" viewBox="0 0 918 1188" preserveAspectRatio="none"></svg>
                     </div>
                 </div>
+
             </div>
         </div>
 
@@ -597,8 +491,6 @@
             <button onclick="closeModal('modal-add')" class="btn-sm btn-outline px-5">Cancelar</button>
             <button onclick="saveItem()" class="btn-sm btn-indigo px-7">Guardar</button>
         </div>
-    </div>
-</div>
     </div>
 </div>
 
@@ -658,16 +550,13 @@
             <!-- Resultado de evaluación eliminado -->
         </div>
 
-        <div class="grid grid-cols-2 gap-3 mt-7">
-            <button onclick="closeModal('modal-dc3')" class="btn-sm btn-outline">Cancelar</button>
-            <button onclick="previewDC3()" class="btn-sm btn-outline" style="border-color:#1e3a8a;color:#1e3a8a">
+        <div class="flex justify-end gap-3 mt-7">
+            <button onclick="closeModal('modal-dc3')" class="btn-sm btn-outline px-5">Cancelar</button>
+            <button onclick="previewDC3()" class="btn-sm btn-outline px-5" style="border-color:#1e3a8a;color:#1e3a8a">
                 👁 Previsualizar
             </button>
-            <button onclick="generateDC3()" class="btn-sm btn-indigo">
+            <button onclick="generateDC3()" class="btn-sm btn-indigo px-7">
                 ⬇ Generar PDF DC-3
-            </button>
-            <button onclick="generateDiploma()" class="btn-sm" style="background:#15803d;color:white">
-                🎓 Generar Diploma
             </button>
         </div>
     </div>
@@ -916,7 +805,7 @@ const DATA = {
     ],
     agents: [
         { name: "ING. CYNTHIA YADIRA GARZA LUGO", stps: "STPS-GALC780523-MP3-005", creatorEmail: "lugga.advisors@gmail.com" },
-        { name: "Jesus Dario Robles Trujillo", stps: "STPS-ROTJ920320-IP4", creatorEmail: "d4r005@gmail.com" }
+        { name: "ROBLES TRUJILLO JESUS DARIO", stps: "STPS-ROTJ920320-IP4", creatorEmail: "d4r005@gmail.com" }
     ],
     companies: []   // Cargado desde Supabase
 };
@@ -1003,13 +892,7 @@ function toSnake(obj) {
         headerSloganFont:'header_slogan_font',
         updatedAt:'updated_at',
         apellidoPaterno:'apellido_paterno', apellidoMaterno:'apellido_materno', nombres:'nombres',
-        photoUrl:'photo_url',
-        dipWorkerX:'dip_worker_x', dipWorkerY:'dip_worker_y', dipWorkerSz:'dip_worker_sz',
-        dipCourseX:'dip_course_x', dipCourseY:'dip_course_y', dipCourseSz:'dip_course_sz',
-        dipDurationX:'dip_duration_x', dipDurationY:'dip_duration_y', dipDurationSz:'dip_duration_sz',
-        dipDateX:'dip_date_x', dipDateY:'dip_date_y', dipDateSz:'dip_date_sz',
-        dipAgentX:'dip_agent_x', dipAgentY:'dip_agent_y', dipAgentSz:'dip_agent_sz',
-        dipStpsX:'dip_stps_x', dipStpsY:'dip_stps_y', dipStpsSz:'dip_stps_sz'
+        photoUrl:'photo_url'
     };
     const out = {};
     for (const [k,v] of Object.entries(obj)) out[map[k]||k] = v;
@@ -1033,13 +916,7 @@ function toCamel(obj) {
         header_slogan_font:'headerSloganFont',
         updated_at:'updatedAt',
         apellido_paterno:'apellidoPaterno', apellido_materno:'apellidoMaterno', nombres:'nombres',
-        photo_url:'photoUrl',
-        dip_worker_x:'dipWorkerX', dip_worker_y:'dipWorkerY', dip_worker_sz:'dipWorkerSz',
-        dip_course_x:'dipCourseX', dip_course_y:'dipCourseY', dip_course_sz:'dipCourseSz',
-        dip_duration_x:'dipDurationX', dip_duration_y:'dipDurationY', dip_duration_sz:'dipDurationSz',
-        dip_date_x:'dipDateX', dip_date_y:'dipDateY', dip_date_sz:'dipDateSz',
-        dip_agent_x:'dipAgentX', dip_agent_y:'dipAgentY', dip_agent_sz:'dipAgentSz',
-        dip_stps_x:'dipStpsX', dip_stps_y:'dipStpsY', dip_stps_sz:'dipStpsSz'
+        photo_url:'photoUrl'
     };
     const out = {};
     for (const [k,v] of Object.entries(obj)) out[map[k]||k] = v;
@@ -1101,27 +978,19 @@ async function sha256(text) {
 }
 
 async function login(e) {
-    console.log('[DEBUG] Login attempt started');
     try {
         e.preventDefault();
         const email = document.getElementById('email').value.trim();
         const pass = document.getElementById('password').value;
-
-        console.log('[DEBUG] Email entered:', email);
-
+        
         // Hash the password with SHA-256 before comparing
         const passHash = await sha256(pass);
-        console.log('[DEBUG] Generated hash:', passHash);
-
         const user = DATA.users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.passHash === passHash);
 
         if (!user) {
-            console.warn('[DEBUG] User not found or hash mismatch');
             document.getElementById('login-error').classList.remove('hidden');
             return;
         }
-
-        console.log('[DEBUG] User verified:', user.name);
 
         // Check if user is active (future enhancement: disable users)
         if (user.active === false) {
@@ -1162,31 +1031,24 @@ async function login(e) {
 }
 
 async function initApp() {
-    console.log('[DEBUG] initApp started');
     try {
         document.getElementById('view-login').style.display = 'none';
         document.getElementById('view-app').style.display = 'block';
 
         if (currentUser) {
-            console.log('[DEBUG] User logged in:', currentUser.email);
-            document.getElementById('user-avatar').innerText = (currentUser.name || '??').substring(0,2).toUpperCase();
-            document.getElementById('user-name-display').innerText = currentUser.name || 'Usuario';
-            document.getElementById('user-role-display').innerText = currentUser.role || 'USER';
+            document.getElementById('user-avatar').innerText = currentUser.name.substring(0,2).toUpperCase();
+            document.getElementById('user-name-display').innerText = currentUser.name;
+            document.getElementById('user-role-display').innerText = currentUser.role;
 
-            const btnUsers = document.getElementById('btn-users');
-            if (btnUsers) btnUsers.classList.toggle('hidden', currentUser.role !== 'ADMIN');
+            if (currentUser.role === 'ADMIN') {
+                document.getElementById('btn-users').classList.remove('hidden');
+            } else {
+                document.getElementById('btn-users').classList.add('hidden');
+            }
         }
 
-        setView('dashboard'); // Switch view first to avoid looking like it failed
-
-        try {
-            await loadCatalogs();
-            console.log('[DEBUG] Catalogs loaded successfully');
-            loadSection('dashboard'); // Refresh dashboard with data
-        } catch (e) {
-            console.error('loadCatalogs error:', e);
-            // Don't block the app if catalogs fail to load
-        }
+        await loadCatalogs();
+        setView('dashboard');
     } catch (err) {
         console.error("App init error:", err);
     }
@@ -1208,7 +1070,7 @@ const TITLES = {
     companies: ['Empresas', 'Empresas cliente registradas en el sistema'],
     courses:   ['Cursos', 'Catálogo de cursos disponibles por agente'],
     dc3:       ['Constancias DC-3', 'Historial de constancias generadas'],
-    dc3design: ['Diseño', 'Personaliza el formato de tus documentos'],
+    dc3design: ['Diseno DC-3', 'Personaliza el logo, firma y texto de tu constancia'],
     agents:    ['Agentes Capacitadores', 'Agentes Externos registrados ante la STPS'],
     users:     ['Usuarios', 'Gestión de accesos al sistema'],
 };
@@ -1280,9 +1142,9 @@ async function loadSection(v) {
                 <td class="text-right">
                     <div class="flex justify-end gap-2 flex-wrap">
                         <button onclick='openDC3(${JSON.stringify(x)})' class="btn-sm btn-indigo">DC-3</button>
-                        <button onclick='openWorkerCourses(${JSON.stringify(x)})' class="btn-sm btn-indigo">+ Cursos</button>
-                        <button onclick='openModal(${JSON.stringify(x)})' class="btn-sm btn-outline" style="background:white;padding:4px 8px">✎</button>
-                        <button onclick="delItem('workers','${x.id}')" class="btn-sm btn-red" style="padding:4px 8px">✕</button>
+                        <button onclick='openWorkerCourses(${JSON.stringify(x)})' class="btn-sm" style="background:#1e3a8a;color:#fff;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:600">+ Cursos</button>
+                        <button onclick='openModal(${JSON.stringify(x)})' class="btn-sm btn-outline">✎</button>
+                        <button onclick="delItem('workers','${x.id}')" class="btn-sm btn-red">✕</button>
                     </div>
                 </td>
               </tr>`;
@@ -1366,33 +1228,23 @@ async function loadSection(v) {
         await loadDesign();
 
     } else if (v === 'agents') {
-        const tb = document.getElementById('tb-agents');
-        if (!tb) return;
-        tb.innerHTML = '<tr><td colspan="3" class="text-center py-4">Cargando agentes...</td></tr>';
-        try {
-            const r = await api('find','agents',{ filter: {} });
-            const rows = (r.documents||[]);
-            tb.innerHTML = rows.length
-                ? rows.map(a => `<tr>
-                    <td class="font-semibold">${a.name}</td>
-                    <td class="font-mono text-blue-900">${a.stps}</td>
-                    <td class="text-right">
-                        <div class="flex justify-end gap-2">
-                            <button onclick='openModal(${JSON.stringify(a)})' class="btn-sm btn-outline">✎</button>
-                            <button onclick="delItem('agents','${a.id}')" class="btn-sm btn-red">✕</button>
-                        </div>
-                    </td>
-                  </tr>`).join('')
-                : `<tr><td colspan="3" class="text-center py-12 text-gray-300 text-sm">Sin agentes registrados</td></tr>`;
-        } catch (e) {
-            console.error('Error loading agents:', e);
-            tb.innerHTML = '<tr><td colspan="3" class="text-center text-red-500">Error al cargar agentes</td></tr>';
-        }
+        const r = await api('find','agents',{ filter: {} });
+        const rows = (r.documents||[]);
+        document.getElementById('tb-agents').innerHTML = rows.length
+            ? rows.map(a => `<tr>
+                <td class="font-semibold">${a.name}</td>
+                <td class="font-mono text-blue-900">${a.stps}</td>
+                <td class="text-right">
+                    <div class="flex justify-end gap-2">
+                        <button onclick='openModal(${JSON.stringify(a)})' class="btn-sm btn-outline">✎</button>
+                        <button onclick="delItem('agents','${a.id}')" class="btn-sm btn-red">✕</button>
+                    </div>
+                </td>
+              </tr>`).join('')
+            : `<tr><td colspan="3" class="text-center py-12 text-gray-300 text-sm">Sin agentes</td></tr>`;
 
     } else if (v === 'users') {
-        const tb = document.getElementById('tb-users');
-        if (!tb) return;
-        tb.innerHTML = DATA.users.map(u => `<tr>
+        document.getElementById('tb-users').innerHTML = DATA.users.map(u => `<tr>
             <td class="font-semibold">${u.name}</td>
             <td class="text-gray-500 text-sm">${u.email}</td>
             <td><span class="badge ${u.role==='ADMIN'?'badge-admin':'badge-user'}">${u.role}</span></td>
@@ -1610,21 +1462,10 @@ function openDC3(worker) {
     const agentSel = document.getElementById('dc3-agent');
     agentSel.innerHTML = DATA.agents.map(a => `<option value="${a.name}|${a.stps}">${a.name}</option>`).join('');
 
-    // Courses (Filtrado dinámico por agente)
-    const courSel = document.getElementById('dc3-course');
-    const updateCoursesList = () => {
-        const [selName] = agentSel.value.split('|');
-        const agent = DATA.agents.find(a => a.name === selName);
-        if (agent) {
-            // Filtrar cursos que pertenecen al agente seleccionado
-            const filtered = DATA.courses.filter(c => c.creatorEmail === agent.creatorEmail)
-                .filter(c => c.thematicArea && c.thematicArea !== '' && c.thematicArea !== '–' && c.thematicArea !== '-');
-            courSel.innerHTML = filtered.map(c => `<option value="${c.name}|${c.durationHours}|${c.thematicArea}|${c.stpsId||''}">${c.name}</option>`).join('');
-        }
-    };
-
-    agentSel.onchange = updateCoursesList;
-    updateCoursesList();
+    // Courses
+    const list = (currentUser.role === 'ADMIN' ? DATA.courses : DATA.courses.filter(c => c.creatorEmail === currentUser.email))
+        .filter(c => c.thematicArea && c.thematicArea !== '' && c.thematicArea !== '–' && c.thematicArea !== '-');
+    document.getElementById('dc3-course').innerHTML = list.map(c => `<option value="${c.name}|${c.durationHours}|${c.thematicArea}|${c.stpsId||''}">${c.name}</option>`).join('');
 
     document.getElementById('modal-dc3').classList.add('open');
 }
@@ -1728,172 +1569,6 @@ async function generateDC3() {
     closeModal('modal-dc3');
     if (currentView === 'dc3') loadSection('dc3');
     else { alert('DC-3 generado y guardado exitosamente.'); }
-}
-
-async function generateDiploma() {
-    const { PDFDocument, StandardFonts, rgb } = PDFLib;
-
-    const companyName = document.getElementById('dc3-company').value;
-    const agentVal    = document.getElementById('dc3-agent').value;
-    const courseVal   = document.getElementById('dc3-course').value;
-    const start       = document.getElementById('dc3-start').value;
-    const end         = document.getElementById('dc3-end').value;
-
-    if (!start || !end) { alert('Selecciona las fechas'); return; }
-
-    const [agentName, agentStps] = agentVal.split('|');
-    const [courseName, courseDuration, courseArea, courseStpsId] = courseVal.split('|');
-
-    // Calcular STPS final según el curso
-    const finalStps = (function(aStps, cId) {
-        let base = aStps.replace(/^STPS-/, '').replace(/^STPS-/, '').trim();
-        if (!cId) return "STPS-" + base;
-        let parts = base.split("-");
-        if (parts.length < 2) return "STPS-" + base + "-" + cId;
-        return "STPS-" + parts.slice(0, -1).join("-") + "-" + cId;
-    })(agentStps, courseStpsId);
-
-    try {
-        // --- CARGAR DISEÑO (Prioridad LocalStorage > DB del Agente) ---
-        let d = null;
-        const localD = localStorage.getItem('dc3_design');
-        if (localD) {
-            d = JSON.parse(localD);
-        } else {
-            try {
-                const agentRecord = DATA.agents.find(a => a.name === agentName);
-                const dr = await api('find','agent_designs', { filter: { creatorEmail: agentRecord?.creatorEmail || currentUser.email } });
-                if (dr.documents?.length > 0) d = dr.documents[0];
-            } catch(e) { console.error("Error cargando diseño:", e); }
-        }
-
-        const customTemplate = d?.diploma_template_base64 || d?.diplomaTemplateBase64;
-        let imgBytes;
-        if (customTemplate) {
-            const b64 = customTemplate.split(',')[1];
-            imgBytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-        } else {
-            const resp = await fetch('plantilla_diploma.png?v=2');
-            imgBytes = await resp.arrayBuffer();
-        }
-
-        const pdfDoc = await PDFDocument.create();
-        const page = pdfDoc.addPage([792, 612]); // Letter Landscape
-        const PW = 792, PH = 612;
-
-        // Rellenar fondo con azul oscuro antes de la imagen para evitar bordes blancos
-        page.drawRectangle({ x: 0, y: 0, width: PW, height: PH, color: rgb(0.05, 0.1, 0.2) });
-
-        const img = await pdfDoc.embedPng(imgBytes);
-
-        // Dibujamos la imagen ligeramente más grande para asegurar cobertura total
-        const bleed = 5;
-        page.drawImage(img, {
-            x: -bleed,
-            y: -bleed,
-            width: PW + (bleed * 2),
-            height: PH + (bleed * 2)
-        });
-
-        const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-        const fontB = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-
-        const drawC = (txt, x, y, sz, fb = false, color = rgb(0,0,0)) => {
-            const f = fb ? fontB : font;
-            const cleanTxt = (txt || '').toUpperCase();
-            const w = f.widthOfTextAtSize(cleanTxt, sz);
-            page.drawText(cleanTxt, { x: x - w/2, y: PH - y, size: sz, font: f, color: color });
-        };
-
-        // 1. Nombre del Trabajador
-        const fullName = selectedWorker.apellidoPaterno ? `${selectedWorker.nombres} ${selectedWorker.apellidoPaterno} ${selectedWorker.apellidoMaterno || ''}`.trim() : selectedWorker.name;
-        drawC(fullName, d?.dip_worker_x ?? d?.dipWorkerX ?? 396, d?.dip_worker_y ?? d?.dipWorkerY ?? 245, d?.dip_worker_sz ?? d?.dipWorkerSz ?? 28, true, rgb(0.1, 0.2, 0.4));
-
-        // 2. Nombre del Curso
-        drawC(courseName, d?.dip_course_x ?? d?.dipCourseX ?? 396, d?.dip_course_y ?? d?.dipCourseY ?? 330, d?.dip_course_sz ?? d?.dipCourseSz ?? 18, true);
-
-        // 3. Duración del Curso
-        drawC(courseDuration, d?.dip_duration_x ?? d?.dipDurationX ?? 396, d?.dip_duration_y ?? d?.dipDurationY ?? 405, d?.dip_duration_sz ?? d?.dipDurationSz ?? 12, true);
-
-        // 4. Fecha
-        const months = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
-        const p = end.split('-');
-        const dateText = `${p[2]} DE ${months[parseInt(p[1])-1]} DEL ${p[0]}`;
-        drawC(dateText, d?.dip_date_x ?? d?.dipDateX ?? 396, d?.dip_date_y ?? d?.dipDateY ?? 445, d?.dip_date_sz ?? d?.dipDateSz ?? 11, true);
-
-        // 5. Firma y Datos del Agente
-        const firmaBase64 = d?.firma_base64 || d?.firmaBase64;
-        if (firmaBase64) {
-            try {
-                const fImgBytes = await fetch(firmaBase64).then(r => r.arrayBuffer());
-                const fImg = await pdfDoc.embedPng(fImgBytes);
-                // Firma centrada sobre el nombre
-                page.drawImage(fImg, { x: (d?.dip_agent_x ?? d?.dipAgentX ?? 396) - 45, y: PH - (d?.dip_agent_y ?? d?.dipAgentY ?? 572) + 10, width: 90, height: 50 });
-            } catch(e) {}
-        }
-
-        drawC(agentName, d?.dip_agent_x ?? d?.dipAgentX ?? 396, d?.dip_agent_y ?? d?.dipAgentY ?? 572, d?.dip_agent_sz ?? d?.dipAgentSz ?? 10, true);
-        drawC("REGISTRO " + finalStps, d?.dip_stps_x ?? d?.dipStpsX ?? 396, d?.dip_stps_y ?? d?.dipStpsY ?? 584, d?.dip_stps_sz ?? d?.dipStpsSz ?? 8, true);
-
-        // 6. Folio
-        const folioStr = "FOLIO: " + (function() {
-            const now = new Date();
-            return `EHS-${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}-${Math.floor(Math.random()*1000).toString().padStart(3,'0')}`;
-        })();
-        drawC(folioStr, d?.dip_folio_x ?? d?.dipFolioX ?? 396, d?.dip_folio_y ?? d?.dipFolioY ?? 550, d?.dip_folio_sz ?? d?.dipFolioSz ?? 10, true, rgb(0.3, 0.4, 0));
-
-        const pdfBytes = await pdfDoc.save();
-        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Diploma_${fullName.replace(/\s+/g,'_')}.pdf`;
-        a.click();
-        URL.revokeObjectURL(url);
-
-    } catch (e) {
-        console.error("Error Diploma:", e);
-        alert("Error al generar diploma: " + e.message);
-    }
-}
-
-        // 2. Nombre del Curso
-        drawC(courseName, d?.dip_course_x ?? 396, d?.dip_course_y ?? 330, d?.dip_course_sz ?? 18, true);
-
-        // 3. Duración del Curso
-        drawC(courseDuration, d?.dip_duration_x ?? 396, d?.dip_duration_y ?? 405, d?.dip_duration_sz ?? 12, true);
-
-        // 4. Fecha
-        const months = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
-        const p = end.split('-');
-        const dateText = `${p[2]} DE ${months[parseInt(p[1])-1]} DEL ${p[0]}`;
-        drawC(dateText, d?.dip_date_x ?? 396, d?.dip_date_y ?? 445, d?.dip_date_sz ?? 11, true);
-
-        // 5. Firma y Datos del Agente
-        const firmaBase64 = d?.firma_base64 || d?.firmaBase64;
-        if (firmaBase64) {
-            try {
-                const fImgBytes = await fetch(firmaBase64).then(r => r.arrayBuffer());
-                const fImg = await pdfDoc.embedPng(fImgBytes);
-                // Firma centrada sobre el nombre
-                page.drawImage(fImg, { x: (d?.dip_agent_x ?? 396) - 45, y: PH - (d?.dip_agent_y ?? 572) + 10, width: 90, height: 50 });
-            } catch(e) {}
-        }
-
-        drawC(agentName, d?.dip_agent_x ?? 396, d?.dip_agent_y ?? 572, d?.dip_agent_sz ?? 10, true);
-        drawC("REGISTRO " + finalStps, d?.dip_stps_x ?? 396, d?.dip_stps_y ?? 584, d?.dip_stps_sz ?? 8, true);
-
-        const pdfBytes = await pdfDoc.save();
-        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Diploma_${selectedWorker.curp}.pdf`;
-        a.click();
-
-    } catch (e) {
-        alert('Error al generar diploma: ' + e.message);
-    }
 }
 
 // Regenerar desde historial
@@ -2385,152 +2060,9 @@ function togglePassword() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const designState = {
-    logo_base64: null, firma_base64: null, header_logo_base64: null, diploma_template_base64: null,
-    _previewTimer: null, _dipPreviewTimer: null, _pdfTemplateBytes: null, _dipTemplateBytes: null,
-    _scale: 1.0, _dipScale: 1.0
+    logo_base64: null, firma_base64: null, header_logo_base64: null,
+    _previewTimer: null, _pdfTemplateBytes: null, _scale: 1.0
 };
-
-/** Dispara el preview del diploma con debounce */
-function scheduleDiplomaPreview() {
-    clearTimeout(designState._dipPreviewTimer);
-    designState._dipPreviewTimer = setTimeout(() => updateDiplomaDesignPreview(), 120);
-}
-
-// Dimensiones Diploma (Letter Landscape)
-const T_DIP_W = 792, T_DIP_H = 612;
-
-async function updateDiplomaDesignPreview() {
-    const canvas = document.getElementById('diploma-preview-canvas');
-    if (!canvas) return;
-
-    const p = getDesignParams();
-
-    try {
-        if (p.diplomaTemplateBase64) {
-            const b64 = p.diplomaTemplateBase64.split(',')[1];
-            designState._dipTemplateBytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-        } else {
-            const resp = await fetch('plantilla_diploma.png?v=2');
-            designState._dipTemplateBytes = await resp.arrayBuffer();
-        }
-    } catch(e) { console.error(e); return; }
-
-    const { PDFDocument, StandardFonts, rgb } = PDFLib;
-    const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([T_DIP_W, T_DIP_H]);
-
-    // Invertimos la imagen manualmente si aparece al revés en el canvas
-    let img;
-    try {
-        img = await pdfDoc.embedPng(designState._dipTemplateBytes);
-    } catch(e) {
-        img = await pdfDoc.embedJpg(designState._dipTemplateBytes);
-    }
-
-    page.drawImage(img, {
-        x: 0,
-        y: 0,
-        width: T_DIP_W,
-        height: T_DIP_H
-    });
-
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const fontB = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-
-    const getV = (id) => +document.getElementById(id).value;
-
-    const drawPlaceholder = (txt, x, y, sz, fb = false, color = rgb(0,0,0)) => {
-        const f = fb ? fontB : font;
-        const w = f.widthOfTextAtSize(txt.toUpperCase(), sz);
-        page.drawText(txt.toUpperCase(), { x: x - w/2, y: T_DIP_H - y, size: sz, font: f, color });
-    };
-
-    drawPlaceholder("TRABAJADOR DE PRUEBA", getV('dip-worker-x'), getV('dip-worker-y'), getV('dip-worker-sz'), true, rgb(0.1, 0.2, 0.4));
-    drawPlaceholder("NOMBRE DEL CURSO DE PRUEBA", getV('dip-course-x'), getV('dip-course-y'), getV('dip-course-sz'), true);
-    drawPlaceholder("8 HORAS", getV('dip-duration-x'), getV('dip-duration-y'), getV('dip-duration-sz'), true);
-    drawPlaceholder("27 DE JULIO DEL 2026", getV('dip-date-x'), getV('dip-date-y'), getV('dip-date-sz'), true);
-    drawPlaceholder("JESUS DARIO ROBLES TRUJILLO", getV('dip-agent-x'), getV('dip-agent-y'), getV('dip-agent-sz'), true);
-    drawPlaceholder("REGISTRO STPS-XXX-001", getV('dip-stps-x'), getV('dip-stps-y'), getV('dip-stps-sz'), true);
-
-    const outBytes = await pdfDoc.save();
-    const pdf = await pdfjsLib.getDocument({ data: outBytes }).promise;
-    const pg = await pdf.getPage(1);
-    const vp = pg.getViewport({ scale: 1.2 });
-    canvas.width = vp.width; canvas.height = vp.height;
-    await pg.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
-
-    designState._dipScale = vp.width / T_DIP_W;
-    _updateDiplomaDragHandles();
-}
-
-function _updateDiplomaDragHandles() {
-    const svg = document.getElementById('diploma-drag-overlay');
-    const canvas = document.getElementById('diploma-preview-canvas');
-    if (!svg || !canvas) return;
-
-    const sc = designState._dipScale;
-    svg.setAttribute('viewBox', `0 0 ${canvas.width} ${canvas.height}`);
-    svg.innerHTML = '';
-
-    const items = [
-        { id: 'dip-worker-x', yId: 'dip-worker-y', label: 'TRABAJADOR', color: '#1e3a8a' },
-        { id: 'dip-course-x', yId: 'dip-course-y', label: 'CURSO', color: '#1e3a8a' },
-        { id: 'dip-duration-x', yId: 'dip-duration-y', label: 'DURACIÓN', color: '#1e3a8a' },
-        { id: 'dip-date-x', yId: 'dip-date-y', label: 'FECHA', color: '#1e3a8a' },
-        { id: 'dip-agent-x', yId: 'dip-agent-y', label: 'AGENTE', color: '#15803d' },
-        { id: 'dip-stps-x', yId: 'dip-stps-y', label: 'REGISTRO', color: '#15803d' }
-    ];
-
-    items.forEach(item => {
-        const xEl = document.getElementById(item.id);
-        const yEl = document.getElementById(item.yId);
-        if (!xEl || !yEl) return;
-
-        const x = +xEl.value;
-        const y = +yEl.value;
-
-        const g = document.createElementNS('http://www.w3.org/2000/svg','g');
-        g.style.cursor = 'move';
-        g.style.pointerEvents = 'all';
-
-        const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
-        rect.setAttribute('x', (x - 100) * sc);
-        rect.setAttribute('y', (y - 15) * sc);
-        rect.setAttribute('width', 200 * sc);
-        rect.setAttribute('height', 30 * sc);
-        rect.setAttribute('fill', item.color + '22');
-        rect.setAttribute('stroke', item.color);
-        rect.setAttribute('rx', '4');
-
-        const text = document.createElementNS('http://www.w3.org/2000/svg','text');
-        text.setAttribute('x', (x - 95) * sc);
-        text.setAttribute('y', (y + 5) * sc);
-        text.setAttribute('fill', item.color);
-        text.setAttribute('font-size', '10');
-        text.setAttribute('font-weight', 'bold');
-        text.textContent = item.label;
-
-        g.appendChild(rect);
-        g.appendChild(text);
-        svg.appendChild(g);
-
-        g.addEventListener('mousedown', (e) => {
-            const startX = e.clientX, startY = e.clientY;
-            const startValX = x, startValY = y;
-
-            const onMove = (ev) => {
-                const canvasRect = canvas.getBoundingClientRect();
-                const pxPerPt = canvasRect.width / T_DIP_W;
-                document.getElementById(item.id).value = Math.round(startValX + (ev.clientX - startX) / pxPerPt);
-                document.getElementById(item.yId).value = Math.round(startValY + (ev.clientY - startY) / pxPerPt);
-                scheduleDiplomaPreview();
-            };
-            const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
-            document.addEventListener('mousemove', onMove);
-            document.addEventListener('mouseup', onUp);
-        });
-    });
-}
 
 // Dimensiones internas del PDF (US Letter portrait)
 const PDF_W = 612, PDF_H = 792;
@@ -2583,12 +2115,6 @@ async function loadDesign() {
         if (d.logoBase64)        { designState.logo_base64 = d.logoBase64;             showDesignThumb('logo', d.logoBase64); }
         if (d.firmaBase64)       { designState.firma_base64 = d.firmaBase64;           showDesignThumb('firma', d.firmaBase64); }
         if (d.headerLogoBase64)  { designState.header_logo_base64 = d.headerLogoBase64; showDesignThumb('headerLogo', d.headerLogoBase64); }
-        if (d.diplomaTemplateBase64 || d.diploma_template_base64) {
-            const b64 = d.diplomaTemplateBase64 || d.diploma_template_base64;
-            designState.diploma_template_base64 = b64;
-            const thumb = document.getElementById('diploma-template-thumb');
-            if (thumb) thumb.innerHTML = `<img src="${b64}" class="w-full h-full object-contain">`;
-        }
 
         setV('design-agent-name', d.agentName);
         setV('design-slogan', d.slogan);
@@ -2614,15 +2140,7 @@ async function loadDesign() {
         setV('design-header-logo-x', d.headerLogoX ?? 30);
         setV('design-header-logo-y', d.headerLogoY ?? 10);
 
-        setV('dip-worker-x', d.dipWorkerX ?? 396); setV('dip-worker-y', d.dipWorkerY ?? 245); setV('dip-worker-sz', d.dipWorkerSz ?? 28);
-        setV('dip-course-x', d.dipCourseX ?? 396); setV('dip-course-y', d.dipCourseY ?? 330); setV('dip-course-sz', d.dipCourseSz ?? 18);
-        setV('dip-duration-x', d.dipDurationX ?? 396); setV('dip-duration-y', d.dipDurationY ?? 405); setV('dip-duration-sz', d.dipDurationSz ?? 12);
-        setV('dip-date-x', d.dipDateX ?? 396); setV('dip-date-y', d.dipDateY ?? 445); setV('dip-date-sz', d.dipDateSz ?? 11);
-        setV('dip-agent-x', d.dipAgentX ?? 396); setV('dip-agent-y', d.dipAgentY ?? 572); setV('dip-agent-sz', d.dipAgentSz ?? 10);
-        setV('dip-stps-x', d.dipStpsX ?? 396); setV('dip-stps-y', d.dipStpsY ?? 584); setV('dip-stps-sz', d.dipStpsSz ?? 8);
-
         await updateDesignPreview();
-        await updateDiplomaDesignPreview();
     } catch(e) { console.warn('loadDesign error:', e); }
 }
 
@@ -2654,23 +2172,6 @@ function clearDesignImage(type) {
     updateDesignPreview();
 }
 
-async function handleDiplomaTemplate(input) {
-    const file = input.files[0];
-    if (!file) return;
-    const dataUrl = await fileToDataUrl(file);
-    designState.diploma_template_base64 = dataUrl;
-    const thumb = document.getElementById('diploma-template-thumb');
-    if (thumb) thumb.innerHTML = `<img src="${dataUrl}" class="w-full h-full object-contain">`;
-    updateDiplomaDesignPreview();
-}
-
-function clearDiplomaTemplate() {
-    designState.diploma_template_base64 = null;
-    const thumb = document.getElementById('diploma-template-thumb');
-    if (thumb) thumb.innerHTML = `<img src="/plantilla_diploma.png" class="w-full h-full object-contain">`;
-    updateDiplomaDesignPreview();
-}
-
 function gv(id, def=0) { return +(document.getElementById(id)?.value ?? def) || def; }
 function gs(id, def='') { return document.getElementById(id)?.value ?? def; }
 
@@ -2695,7 +2196,6 @@ function getDesignParams() {
         sloganSize: gv('design-slogan-size',7),
         sloganFont: gs('design-slogan-font','Helvetica'),
         agentName: gs('design-agent-name'),
-        diplomaTemplateBase64: designState.diploma_template_base64,
         creatorEmail: currentUser?.email || ''
     };
 }
@@ -2734,26 +2234,16 @@ async function saveDesign() {
             slogan_y: p.sloganY,
             slogan_size: p.sloganSize,
             agent_name: p.agentName,
-            diploma_template_base64: p.diplomaTemplateBase64,
             updated_at: new Date().toISOString()
         };
 
-        // Guardar TODO (incluyendo coordenadas de diploma) en localStorage para evitar errores de DB
-        const fullDesign = {
-            ...payload,
-            dip_worker_x: gv('dip-worker-x', 396), dip_worker_y: gv('dip-worker-y', 245), dip_worker_sz: gv('dip-worker-sz', 28),
-            dip_course_x: gv('dip-course-x', 396), dip_course_y: gv('dip-course-y', 330), dip_course_sz: gv('dip-course-sz', 18),
-            dip_duration_x: gv('dip-duration-x', 396), dip_duration_y: gv('dip-duration-y', 405), dip_duration_sz: gv('dip-duration-sz', 12),
-            dip_date_x: gv('dip-date-x', 396), dip_date_y: gv('dip-date-y', 445), dip_date_sz: gv('dip-date-sz', 11),
-            dip_agent_x: gv('dip-agent-x', 396), dip_agent_y: gv('dip-agent-y', 572), dip_agent_sz: gv('dip-agent-sz', 10),
-            dip_stps_x: gv('dip-stps-x', 396), dip_stps_y: gv('dip-stps-y', 584), dip_stps_sz: gv('dip-stps-sz', 8),
-            slogan_font: p.sloganFont || 'Helvetica',
-            header_slogan_font: p.headerSloganFont || 'Times-Italic'
-        };
-        localStorage.setItem('dc3_design', JSON.stringify(fullDesign));
+        // Save fonts to localStorage (not in DB - no those columns)
+        const localPayload = { ...payload, slogan_font: p.sloganFont || 'Helvetica', header_slogan_font: p.headerSloganFont || 'Times-Italic' };
+        localStorage.setItem('dc3_design', JSON.stringify(localPayload));
 
         const existing = await api('find','agent_designs', { filter: { creatorEmail: p.creatorEmail } });
         if (existing.documents?.length > 0) {
+            // Usar api('update') para que pase por toSnake() y evitar errores de columnas camelCase
             const res = await api('update','agent_designs', { id: existing.documents[0].id, document: payload });
             if (res.error) throw new Error(res.error);
         } else {
@@ -3498,30 +2988,6 @@ function splitNameJS(name, maxChars) {
     const mid = name.lastIndexOf(' ', maxChars);
     if (mid > 0) return [name.substring(0, mid), name.substring(mid + 1)];
     return [name.substring(0, maxChars), name.substring(maxChars)];
-}
-
-function setDesignTab(tab) {
-    const isDc3 = tab === 'dc3';
-    const dc3Content = document.getElementById('design-content-dc3');
-    const diplomaContent = document.getElementById('design-content-diploma');
-
-    if (dc3Content) dc3Content.classList.toggle('hidden', !isDc3);
-    if (diplomaContent) diplomaContent.classList.toggle('hidden', isDc3);
-
-    // Update tab styles
-    const tabDc3 = document.getElementById('tab-design-dc3');
-    const tabDiploma = document.getElementById('tab-design-diploma');
-
-    if (tabDc3 && tabDiploma) {
-        if (isDc3) {
-            tabDc3.className = "px-6 py-3 text-sm font-bold text-blue-900 border-b-2 border-blue-900";
-            tabDiploma.className = "px-6 py-3 text-sm font-medium text-gray-500 hover:text-blue-900 transition-colors";
-        } else {
-            tabDiploma.className = "px-6 py-3 text-sm font-bold text-blue-900 border-b-2 border-blue-900";
-            tabDc3.className = "px-6 py-3 text-sm font-medium text-gray-500 hover:text-blue-900 transition-colors";
-            updateDiplomaDesignPreview();
-        }
-    }
 }
 
 </script>
