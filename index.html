@@ -1784,7 +1784,7 @@ async function generateDiploma() {
         const pdfDoc = await PDFDocument.create();
         const page = pdfDoc.addPage([792, 612]); // Letter Landscape
         const PW = 792, PH = 612;
-        const bleed = 2;
+        const bleed = 10; // Aumentamos el sangrado para asegurar cobertura total
 
         const img = await pdfDoc.embedPng(imgBytes);
         page.drawImage(img, {

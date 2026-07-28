@@ -56,7 +56,7 @@ object DiplomaGenerator {
 
         // 1. Cargar imagen de fondo con sangrado (Bleed) para evitar franjas blancas
         try {
-            val bleed = 2f
+            val bleed = 10f // Aumentamos el sangrado para asegurar cobertura total
             if (customTemplateBitmap != null) {
                 val stream = java.io.ByteArrayOutputStream()
                 customTemplateBitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
