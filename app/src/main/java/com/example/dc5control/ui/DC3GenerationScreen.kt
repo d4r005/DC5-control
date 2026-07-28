@@ -225,6 +225,9 @@ fun DC3GenerationScreen(
         val agent = selectedAgent ?: return
         isGenerating = true
         try {
+            val design = SupabaseRepository.fetchDataFilteredSuspend("agent_designs", "creator_email=eq.${agent.creatorEmail ?: user.email}", AgentDesign.serializer()).firstOrNull()
+            val customTemplate = loadBitmap(context, design?.diplomaTemplateBase64)
+
             var currentDoc = 0
             val totalDocs = selectedEmployees.size * selectedCourses.size
             selectedEmployees.forEach { employee ->
@@ -232,7 +235,7 @@ fun DC3GenerationScreen(
                     currentDoc++
                     statusText = "Generando Diploma $currentDoc de $totalDocs..."
                     val file = DiplomaGenerator.generateDiploma(
-                        context, employee, course, agent, startDate, endDate
+                        context, employee, course, agent, startDate, endDate, customTemplate
                     )
                     PdfGenerator.saveToDownloads(context, file)
                     if (totalDocs == 1) PdfGenerator.openPdf(context, file)

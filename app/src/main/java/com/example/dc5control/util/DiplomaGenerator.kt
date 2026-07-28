@@ -1,6 +1,7 @@
 package com.example.dc5control.util
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.os.Environment
 import android.util.Log
 import com.example.dc5control.data.model.Agent
@@ -39,7 +40,8 @@ object DiplomaGenerator {
         course: Course,
         agent: Agent,
         startDate: String,
-        endDate: String
+        endDate: String,
+        customTemplateBitmap: Bitmap? = null
     ): File {
         PDFBoxResourceLoader.init(context)
         val document = PDDocument()
@@ -50,11 +52,18 @@ object DiplomaGenerator {
 
         // 1. Cargar imagen de fondo
         try {
-            val inputStream = context.assets.open(TEMPLATE_NAME)
-            val bytes = inputStream.readBytes()
-            inputStream.close()
-            val img = PDImageXObject.createFromByteArray(document, bytes, "template")
-            cs.drawImage(img, 0f, 0f, PW, PH)
+            if (customTemplateBitmap != null) {
+                val stream = java.io.ByteArrayOutputStream()
+                customTemplateBitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+                val img = PDImageXObject.createFromByteArray(document, stream.toByteArray(), "custom_template")
+                cs.drawImage(img, 0f, 0f, PW, PH)
+            } else {
+                val inputStream = context.assets.open(TEMPLATE_NAME)
+                val bytes = inputStream.readBytes()
+                inputStream.close()
+                val img = PDImageXObject.createFromByteArray(document, bytes, "template")
+                cs.drawImage(img, 0f, 0f, PW, PH)
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error loading template image", e)
         }

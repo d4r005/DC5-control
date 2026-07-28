@@ -1,5 +1,9 @@
 package com.example.dc5control.ui
 
+import android.net.Uri
+import android.util.Base64
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,11 +20,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import coil.compose.AsyncImage
-import com.example.dc5control.data.model.AgentDesign
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import com.example.dc5control.data.model.AgentDesign
 import com.example.dc5control.data.model.User
 import com.example.dc5control.data.repository.SupabaseRepository
 import com.example.dc5control.ui.theme.*
@@ -33,6 +38,7 @@ fun DesignScreen(
     isExpanded: Boolean,
     onBack: () -> Unit
 ) {
+    val context = LocalContext.current
     var selectedTab by remember { mutableStateOf(0) }
     val tabs = listOf("DC-3", "Diploma")
 
@@ -40,19 +46,53 @@ fun DesignScreen(
     var headerSlogan by remember { mutableStateOf("") }
     var agentName by remember { mutableStateOf(user.name) }
     var slogan by remember { mutableStateOf("") }
+    var diplomaTemplateBase64 by remember { mutableStateOf<String?>(null) }
+    var headerLogoBase64 by remember { mutableStateOf<String?>(null) }
+    var signatureBase64 by remember { mutableStateOf<String?>(null) }
+    var logoBase64 by remember { mutableStateOf<String?>(null) }
+    
     var isLoading by remember { mutableStateOf(true) }
     var isSaving by remember { mutableStateOf(false) }
     var saveMessage by remember { mutableStateOf<String?>(null) }
 
+    // Helpers to convert Uri to Base64
+    fun uriToBase64(uri: Uri): String? {
+        return try {
+            val inputStream = context.contentResolver.openInputStream(uri)
+            val bytes = inputStream?.readBytes()
+            inputStream?.close()
+            if (bytes != null) {
+                val mimeType = context.contentResolver.getType(uri) ?: "image/png"
+                "data:$mimeType;base64," + Base64.encodeToString(bytes, Base64.NO_WRAP)
+            } else null
+        } catch (e: Exception) { null }
+    }
+
+    val headerLogoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let { headerLogoBase64 = uriToBase64(it) }
+    }
+    val signatureLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let { signatureBase64 = uriToBase64(it) }
+    }
+    val logoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let { logoBase64 = uriToBase64(it) }
+    }
+    val diplomaLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let { diplomaTemplateBase64 = uriToBase64(it) }
+    }
+
     // Load existing design
     LaunchedEffect(Unit) {
-        // Fetch agent_designs for this user
         SupabaseRepository.fetchData("agent_designs", AgentDesign.serializer()) { designs ->
             val userDesign = designs.find { it.creatorEmail == user.email }
             if (userDesign != null) {
                 headerSlogan = userDesign.headerSlogan ?: ""
                 agentName = userDesign.agentName ?: user.name
                 slogan = userDesign.slogan ?: ""
+                diplomaTemplateBase64 = userDesign.diplomaTemplateBase64
+                headerLogoBase64 = userDesign.headerLogoBase64
+                signatureBase64 = userDesign.firmaBase64
+                logoBase64 = userDesign.logoBase64
             }
             isLoading = false
         }
@@ -124,14 +164,18 @@ fun DesignScreen(
                                     .height(120.dp)
                                     .background(Gray50, shape = RoundedCornerShape(12.dp))
                                     .border(2.dp, Gray200, RoundedCornerShape(12.dp))
-                                    .clickable { /* File picker - future enhancement */ }
+                                    .clickable { logoLauncher.launch("image/*") }
                                     .padding(16.dp),
                                 horizontalArrangement = Arrangement.Center,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(Icons.Default.Upload, contentDescription = null, tint = Gray400, modifier = Modifier.size(24.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Toca para subir logo (PNG/JPG)", fontSize = 13.sp, color = Gray400)
+                                if (logoBase64 != null) {
+                                    AsyncImage(model = logoBase64, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
+                                } else {
+                                    Icon(Icons.Default.Upload, contentDescription = null, tint = Gray400, modifier = Modifier.size(24.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Toca para subir logo (PNG/JPG)", fontSize = 13.sp, color = Gray400)
+                                }
                             }
                         }
 
@@ -181,14 +225,18 @@ fun DesignScreen(
                                     .height(100.dp)
                                     .background(Gray50, shape = RoundedCornerShape(12.dp))
                                     .border(2.dp, Gray200, RoundedCornerShape(12.dp))
-                                    .clickable { /* File picker */ }
+                                    .clickable { signatureLauncher.launch("image/*") }
                                     .padding(16.dp),
                                 horizontalArrangement = Arrangement.Center,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(Icons.Default.Upload, contentDescription = null, tint = Gray400, modifier = Modifier.size(24.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Toca para subir firma", fontSize = 13.sp, color = Gray400)
+                                if (signatureBase64 != null) {
+                                    AsyncImage(model = signatureBase64, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
+                                } else {
+                                    Icon(Icons.Default.Upload, contentDescription = null, tint = Gray400, modifier = Modifier.size(24.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Toca para subir firma", fontSize = 13.sp, color = Gray400)
+                                }
                             }
                         }
 
@@ -224,9 +272,20 @@ fun DesignScreen(
                                         creatorEmail = user.email,
                                         headerSlogan = headerSlogan,
                                         agentName = agentName,
-                                        slogan = slogan
+                                        slogan = slogan,
+                                        logoBase64 = logoBase64,
+                                        firmaBase64 = signatureBase64,
+                                        headerLogoBase64 = headerLogoBase64,
+                                        diplomaTemplateBase64 = diplomaTemplateBase64
                                     )
-                                    // Try to insert/update
+                                    
+                                    val existing = SupabaseRepository.fetchDataFilteredSuspend("agent_designs", "creator_email=eq.${user.email}", AgentDesign.serializer()).firstOrNull()
+                                    if (existing != null) {
+                                        SupabaseRepository.updateDataSuspend("agent_designs", existing.id!!, design, AgentDesign.serializer())
+                                    } else {
+                                        SupabaseRepository.insertDataSuspend("agent_designs", design, AgentDesign.serializer())
+                                    }
+                                    
                                     isSaving = false
                                     saveMessage = "✓ Diseño guardado correctamente"
                                 }
@@ -256,24 +315,52 @@ fun DesignScreen(
                             .padding(if (isExpanded) 48.dp else 16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        DesignCard("Plantilla de Diploma Actual") {
+                        DesignCard("Plantilla de Diploma") {
                             Text("Esta es la plantilla que se utiliza para generar tus reconocimientos oficiales.", fontSize = 13.sp, color = Gray500)
                             Spacer(modifier = Modifier.height(12.dp))
                             
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .aspectRatio(1.29f) // Ratio aproximado de Landscape Letter
+                                    .aspectRatio(1.29f)
                                     .background(Gray50, shape = RoundedCornerShape(12.dp))
-                                    .border(1.dp, Gray200, RoundedCornerShape(12.dp)),
+                                    .border(1.dp, Gray200, RoundedCornerShape(12.dp))
+                                    .clickable { diplomaLauncher.launch("image/*") },
                                 contentAlignment = Alignment.Center
                             ) {
-                                AsyncImage(
-                                    model = "file:///android_asset/plantilla_diploma.png",
-                                    contentDescription = "Plantilla de Diploma",
-                                    modifier = Modifier.fillMaxSize().padding(8.dp),
-                                    contentScale = ContentScale.Fit
-                                )
+                                if (diplomaTemplateBase64 != null) {
+                                    AsyncImage(
+                                        model = diplomaTemplateBase64,
+                                        contentDescription = "Plantilla de Diploma Personalizada",
+                                        modifier = Modifier.fillMaxSize().padding(8.dp),
+                                        contentScale = ContentScale.Fit
+                                    )
+                                } else {
+                                    AsyncImage(
+                                        model = "file:///android_asset/plantilla_diploma.png",
+                                        contentDescription = "Plantilla de Diploma por defecto",
+                                        modifier = Modifier.fillMaxSize().padding(8.dp),
+                                        contentScale = ContentScale.Fit
+                                    )
+                                }
+                            }
+                            
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Button(
+                                onClick = { diplomaLauncher.launch("image/*") },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = NavySurface, contentColor = NavyPrimary)
+                            ) {
+                                Icon(Icons.Default.Image, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Subir nueva plantilla")
+                            }
+                            
+                            if (diplomaTemplateBase64 != null) {
+                                TextButton(onClick = { diplomaTemplateBase64 = null }, modifier = Modifier.fillMaxWidth()) {
+                                    Text("Restablecer a plantilla por defecto", color = ErrorRed, fontSize = 12.sp)
+                                }
                             }
                             
                             Spacer(modifier = Modifier.height(12.dp))
@@ -289,8 +376,46 @@ fun DesignScreen(
                                 ) {
                                     Icon(Icons.Default.CheckCircle, contentDescription = null, tint = SuccessGreen, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("La firma de Cynthia se oculta automáticamente y se reemplaza por la de Jesus Dario Robles Trujillo.", fontSize = 12.sp, color = SuccessGreen)
+                                    Text("Al guardar, se usará esta plantilla para todos tus diplomas.", fontSize = 12.sp, color = SuccessGreen)
                                 }
+                            }
+                        }
+
+                        Button(
+                            onClick = {
+                                isSaving = true
+                                scope.launch {
+                                    val design = com.example.dc5control.data.model.AgentDesign(
+                                        creatorEmail = user.email,
+                                        headerSlogan = headerSlogan,
+                                        agentName = agentName,
+                                        slogan = slogan,
+                                        logoBase64 = logoBase64,
+                                        firmaBase64 = signatureBase64,
+                                        headerLogoBase64 = headerLogoBase64,
+                                        diplomaTemplateBase64 = diplomaTemplateBase64
+                                    )
+                                    val existing = SupabaseRepository.fetchDataFilteredSuspend("agent_designs", "creator_email=eq.${user.email}", AgentDesign.serializer()).firstOrNull()
+                                    if (existing != null) {
+                                        SupabaseRepository.updateDataSuspend("agent_designs", existing.id!!, design, AgentDesign.serializer())
+                                    } else {
+                                        SupabaseRepository.insertDataSuspend("agent_designs", design, AgentDesign.serializer())
+                                    }
+                                    isSaving = false
+                                    saveMessage = "✓ Diseño guardado correctamente"
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
+                            enabled = !isSaving
+                        ) {
+                            if (isSaving) {
+                                CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
+                            } else {
+                                Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Guardar diseño de diploma", fontWeight = FontWeight.SemiBold)
                             }
                         }
                     }

@@ -138,7 +138,20 @@ object SupabaseRepository {
         })
     }
 
-    // ─── INSERT (batch workers) ────────────────────────────────────
+    suspend fun <T> updateDataSuspend(table: String, id: String, item: T, serializer: kotlinx.serialization.KSerializer<T>): Boolean =
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            val bodyString = json.encodeToString(serializer, item)
+            val request = getBaseRequest(table)
+                .url("$SUPABASE_URL/$table?id=eq.$id")
+                .patch(bodyString.toRequestBody("application/json".toMediaType()))
+                .build()
+
+            try {
+                client.newCall(request).execute().use { it.isSuccessful }
+            } catch (e: Exception) {
+                false
+            }
+        }
     fun insertWorkers(workers: List<Employee>, onResult: (Boolean) -> Unit) {
         val bodyString = json.encodeToString(kotlinx.serialization.builtins.ListSerializer(Employee.serializer()), workers)
         val request = getBaseRequest("workers")

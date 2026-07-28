@@ -462,7 +462,23 @@
                     <!-- Panel izquierdo: controles -->
                     <div class="card p-5" style="overflow-y:auto;max-height:82vh;">
                         <h3 class="text-sm font-bold text-blue-900 uppercase tracking-wide mb-4">Diseño de Diploma</h3>
-                        <p class="text-xs text-gray-500 mb-4">Acomoda los recuadros arrastrándolos en la vista previa o usa los controles manuales.</p>
+
+                        <!-- NUEVA SECCIÓN: PLANTILLA -->
+                        <div class="border rounded-xl p-4 mb-4 bg-blue-50">
+                            <p class="text-xs font-bold text-blue-900 uppercase mb-3">Plantilla de Fondo</p>
+                            <div id="diploma-template-thumb" class="w-full aspect-video rounded border-2 border-dashed border-blue-200 bg-white mb-3 overflow-hidden flex items-center justify-center">
+                                <img src="/plantilla_diploma.png" class="w-full h-full object-contain">
+                            </div>
+                            <div class="flex gap-2">
+                                <label class="btn-sm btn-indigo flex-1 text-center cursor-pointer text-[11px] py-2">
+                                    📷 Cambiar Fondo
+                                    <input type="file" accept="image/png,image/jpeg" class="hidden" onchange="handleDiplomaTemplate(this)">
+                                </label>
+                                <button onclick="clearDiplomaTemplate()" class="text-red-500 hover:text-red-700 text-xs px-2">✕</button>
+                            </div>
+                        </div>
+
+                        <p class="text-[11px] text-gray-500 mb-4">Acomoda los recuadros arrastrándolos en la vista previa o usa los controles manuales.</p>
 
                         <!-- Trabajador -->
                         <div class="border rounded-xl p-4 mb-4 bg-gray-50">
@@ -1730,8 +1746,15 @@ async function generateDiploma() {
     })(agentStps, courseStpsId);
 
     try {
-        const resp = await fetch('plantilla_diploma.png?v=2');
-        const imgBytes = await resp.arrayBuffer();
+        const customTemplate = d?.diploma_template_base64 || d?.diplomaTemplateBase64;
+        let imgBytes;
+        if (customTemplate) {
+            const b64 = customTemplate.split(',')[1];
+            imgBytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+        } else {
+            const resp = await fetch('plantilla_diploma.png?v=2');
+            imgBytes = await resp.arrayBuffer();
+        }
 
         const pdfDoc = await PDFDocument.create();
         const page = pdfDoc.addPage([792, 612]); // Letter Landscape
@@ -2295,7 +2318,7 @@ function togglePassword() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const designState = {
-    logo_base64: null, firma_base64: null, header_logo_base64: null,
+    logo_base64: null, firma_base64: null, header_logo_base64: null, diploma_template_base64: null,
     _previewTimer: null, _dipPreviewTimer: null, _pdfTemplateBytes: null, _dipTemplateBytes: null,
     _scale: 1.0, _dipScale: 1.0
 };
@@ -2313,9 +2336,16 @@ async function updateDiplomaDesignPreview() {
     const canvas = document.getElementById('diploma-preview-canvas');
     if (!canvas) return;
 
+    const p = getDesignParams();
+
     try {
-        const resp = await fetch('plantilla_diploma.png?v=2');
-        designState._dipTemplateBytes = await resp.arrayBuffer();
+        if (p.diplomaTemplateBase64) {
+            const b64 = p.diplomaTemplateBase64.split(',')[1];
+            designState._dipTemplateBytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+        } else {
+            const resp = await fetch('plantilla_diploma.png?v=2');
+            designState._dipTemplateBytes = await resp.arrayBuffer();
+        }
     } catch(e) { console.error(e); return; }
 
     const { PDFDocument, StandardFonts, rgb } = PDFLib;
@@ -2486,6 +2516,12 @@ async function loadDesign() {
         if (d.logoBase64)        { designState.logo_base64 = d.logoBase64;             showDesignThumb('logo', d.logoBase64); }
         if (d.firmaBase64)       { designState.firma_base64 = d.firmaBase64;           showDesignThumb('firma', d.firmaBase64); }
         if (d.headerLogoBase64)  { designState.header_logo_base64 = d.headerLogoBase64; showDesignThumb('headerLogo', d.headerLogoBase64); }
+        if (d.diplomaTemplateBase64 || d.diploma_template_base64) {
+            const b64 = d.diplomaTemplateBase64 || d.diploma_template_base64;
+            designState.diploma_template_base64 = b64;
+            const thumb = document.getElementById('diploma-template-thumb');
+            if (thumb) thumb.innerHTML = `<img src="${b64}" class="w-full h-full object-contain">`;
+        }
 
         setV('design-agent-name', d.agentName);
         setV('design-slogan', d.slogan);
@@ -2551,6 +2587,23 @@ function clearDesignImage(type) {
     updateDesignPreview();
 }
 
+async function handleDiplomaTemplate(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const dataUrl = await fileToDataUrl(file);
+    designState.diploma_template_base64 = dataUrl;
+    const thumb = document.getElementById('diploma-template-thumb');
+    if (thumb) thumb.innerHTML = `<img src="${dataUrl}" class="w-full h-full object-contain">`;
+    updateDiplomaPreview();
+}
+
+function clearDiplomaTemplate() {
+    designState.diploma_template_base64 = null;
+    const thumb = document.getElementById('diploma-template-thumb');
+    if (thumb) thumb.innerHTML = `<img src="/plantilla_diploma.png" class="w-full h-full object-contain">`;
+    updateDiplomaPreview();
+}
+
 function gv(id, def=0) { return +(document.getElementById(id)?.value ?? def) || def; }
 function gs(id, def='') { return document.getElementById(id)?.value ?? def; }
 
@@ -2575,6 +2628,7 @@ function getDesignParams() {
         sloganSize: gv('design-slogan-size',7),
         sloganFont: gs('design-slogan-font','Helvetica'),
         agentName: gs('design-agent-name'),
+        diplomaTemplateBase64: designState.diploma_template_base64,
         creatorEmail: currentUser?.email || ''
     };
 }
@@ -2613,6 +2667,7 @@ async function saveDesign() {
             slogan_y: p.sloganY,
             slogan_size: p.sloganSize,
             agent_name: p.agentName,
+            diploma_template_base64: p.diplomaTemplateBase64,
             updated_at: new Date().toISOString()
         };
 

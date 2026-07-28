@@ -1,36 +1,36 @@
-# Plan de Implementación: Corrección de Paneles en Blanco y Errores de Acceso (Web)
+# Plan de Implementación: Personalización de Plantilla de Diploma
 
-Este plan aborda la resolución de los problemas donde los paneles de "Diseño/Diploma", "Agentes Capacitadores" y "Usuarios" aparecen vacíos en la versión web, además de corregir errores de codificación en el archivo principal.
+Este plan detalla los pasos para permitir que el usuario cambie la plantilla del diploma desde la Web y la App Android, además de asegurar que los cambios actuales lleguen al servidor.
 
-## Problemas Identificados
-1.  **Caracteres Corruptos**: El archivo `index.html` contiene símbolos extraños (ej. `ÔÇô`) debido a un error de codificación en ediciones previas, lo que puede causar fallos en la ejecución de JavaScript.
-2.  **Paneles Vacíos**: La lógica de carga de datos en `loadSection` parece interrumpirse, probablemente por errores no capturados o fallos en la inicialización de `currentUser`.
-3.  **Pestaña Diploma**: El contenido de la pestaña "Diploma" no se muestra correctamente a pesar de estar seleccionado.
+## Tareas Iniciales
+- `[ ]` Commit y Push del cambio actual en `plantilla_diploma.png` para que Cloudflare se actualice.
 
 ## Cambios Propuestos
 
-### Componente: Interfaz Web
+### 1. Modelo de Datos
+#### [MODIFY] [Models.kt](file:///C:/Users/dtruj/AndroidStudioProjects/DC5-control/app/src/main/java/com/example/dc5control/data/model/Models.kt)
+- Añadir campo `diploma_template_base64` a la data class `AgentDesign`.
 
+### 2. Interfaz Web
 #### [MODIFY] [index.html](file:///C:/Users/dtruj/AndroidStudioProjects/DC5-control/index.html)
+- En la pestaña de **Diseño -> Diploma**, añadir un botón para subir una nueva imagen de plantilla.
+- Guardar la imagen como Base64 en la tabla `agent_designs` de Supabase.
+- Actualizar la función `generateDiploma` para:
+    - Intentar cargar la plantilla personalizada desde el diseño del agente.
+    - Si no existe, usar la plantilla por defecto (`plantilla_diploma.png`).
 
-1.  **Corrección de Codificación**:
-    - Reemplazar todos los símbolos corruptos por sus equivalentes correctos (guiones, acentos, iconos).
-    - Asegurar que el archivo se guarde en formato UTF-8 limpio.
+### 3. Interfaz Android
+#### [MODIFY] [DC3DesignScreen.kt](file:///C:/Users/dtruj/AndroidStudioProjects/DC5-control/app/src/main/java/com/example/dc5control/ui/DC3DesignScreen.kt)
+- Añadir un botón "Subir nueva plantilla" en la pestaña de Diploma.
+- Implementar el selector de archivos para capturar la imagen.
+- Guardar en Supabase.
 
-2.  **Refactorización de `initApp` y `loadSection`**:
-    - Añadir validaciones para asegurar que `currentUser` no sea nulo antes de acceder a sus propiedades.
-    - Implementar un flujo de carga más robusto: mostrar la interfaz primero y luego cargar los datos de forma asíncrona sin bloquear toda la aplicación.
-    - Asegurar que las tablas de "Agentes" y "Usuarios" muestren mensajes de "Sin datos" o "Cargando" en lugar de quedar totalmente en blanco.
-
-3.  **Mejora de la Pestaña Diploma**:
-    - Actualizar el contenido de `design-content-diploma` para mostrar la plantilla actual y eliminar el mensaje de "Próximamente".
-    - Verificar que la función `setDesignTab` no tenga duplicados y maneje correctamente los elementos del DOM.
+### 4. Generador de PDF (Android)
+#### [MODIFY] [DiplomaGenerator.kt](file:///C:/Users/dtruj/AndroidStudioProjects/DC5-control/app/src/main/java/com/example/dc5control/util/DiplomaGenerator.kt)
+- Modificar `generateDiploma` para recibir opcionalmente un Bitmap de la plantilla personalizada.
+- Cargar dicho Bitmap si está presente; de lo contrario, cargar el asset por defecto.
 
 ## Verificación
-
-### Manual
-1.  Iniciar sesión con `d4r005@gmail.com`.
-2.  Navegar al panel de **Usuarios** y verificar que aparezca la lista (Dario y Cynthia).
-3.  Navegar al panel de **Agentes** y verificar que aparezca la lista de la base de datos.
-4.  Entrar a **Diseño -> Diploma** y confirmar que se ve la vista previa de la plantilla.
-5.  Revisar que no haya errores en la consola del navegador (F12).
+1. **Web**: Subir una imagen de prueba como plantilla y generar un diploma para verificar que se use la nueva imagen.
+2. **Android**: Repetir la prueba desde la APK.
+3. **Cloudflare**: Confirmar que la URL pública muestra la última versión de la plantilla base subida por el usuario.
