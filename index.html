@@ -458,14 +458,85 @@
 
             <!-- Diploma Design Content -->
             <div id="design-content-diploma" class="hidden">
-                <div class="card p-12 text-center">
-                    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path></svg>
+                <div style="display:grid;grid-template-columns:400px 1fr;gap:18px;min-height:82vh;">
+                    <!-- Panel izquierdo: controles -->
+                    <div class="card p-5" style="overflow-y:auto;max-height:82vh;">
+                        <h3 class="text-sm font-bold text-blue-900 uppercase tracking-wide mb-4">Diseño de Diploma</h3>
+                        <p class="text-xs text-gray-500 mb-4">Acomoda los recuadros arrastrándolos en la vista previa o usa los controles manuales.</p>
+
+                        <!-- Trabajador -->
+                        <div class="border rounded-xl p-4 mb-4 bg-gray-50">
+                            <p class="text-xs font-bold text-gray-600 uppercase mb-2">Nombre del Trabajador</p>
+                            <div class="grid grid-cols-3 gap-2">
+                                <div><label class="text-[10px] text-gray-400">X</label><input id="dip-worker-x" type="number" class="input-field !p-1 !text-xs" value="396" oninput="scheduleDiplomaPreview()"></div>
+                                <div><label class="text-[10px] text-gray-400">Y</label><input id="dip-worker-y" type="number" class="input-field !p-1 !text-xs" value="245" oninput="scheduleDiplomaPreview()"></div>
+                                <div><label class="text-[10px] text-gray-400">Tam.</label><input id="dip-worker-sz" type="number" class="input-field !p-1 !text-xs" value="28" oninput="scheduleDiplomaPreview()"></div>
+                            </div>
+                        </div>
+
+                        <!-- Curso -->
+                        <div class="border rounded-xl p-4 mb-4 bg-gray-50">
+                            <p class="text-xs font-bold text-gray-600 uppercase mb-2">Nombre del Curso</p>
+                            <div class="grid grid-cols-3 gap-2">
+                                <div><label class="text-[10px] text-gray-400">X</label><input id="dip-course-x" type="number" class="input-field !p-1 !text-xs" value="396" oninput="scheduleDiplomaPreview()"></div>
+                                <div><label class="text-[10px] text-gray-400">Y</label><input id="dip-course-y" type="number" class="input-field !p-1 !text-xs" value="330" oninput="scheduleDiplomaPreview()"></div>
+                                <div><label class="text-[10px] text-gray-400">Tam.</label><input id="dip-course-sz" type="number" class="input-field !p-1 !text-xs" value="18" oninput="scheduleDiplomaPreview()"></div>
+                            </div>
+                        </div>
+
+                        <!-- Duración -->
+                        <div class="border rounded-xl p-4 mb-4 bg-gray-50">
+                            <p class="text-xs font-bold text-gray-600 uppercase mb-2">Duración (Horas)</p>
+                            <div class="grid grid-cols-3 gap-2">
+                                <div><label class="text-[10px] text-gray-400">X</label><input id="dip-duration-x" type="number" class="input-field !p-1 !text-xs" value="396" oninput="scheduleDiplomaPreview()"></div>
+                                <div><label class="text-[10px] text-gray-400">Y</label><input id="dip-duration-y" type="number" class="input-field !p-1 !text-xs" value="405" oninput="scheduleDiplomaPreview()"></div>
+                                <div><label class="text-[10px] text-gray-400">Tam.</label><input id="dip-duration-sz" type="number" class="input-field !p-1 !text-xs" value="12" oninput="scheduleDiplomaPreview()"></div>
+                            </div>
+                        </div>
+
+                        <!-- Fecha -->
+                        <div class="border rounded-xl p-4 mb-4 bg-gray-50">
+                            <p class="text-xs font-bold text-gray-600 uppercase mb-2">Fecha (Formato largo)</p>
+                            <div class="grid grid-cols-3 gap-2">
+                                <div><label class="text-[10px] text-gray-400">X</label><input id="dip-date-x" type="number" class="input-field !p-1 !text-xs" value="396" oninput="scheduleDiplomaPreview()"></div>
+                                <div><label class="text-[10px] text-gray-400">Y</label><input id="dip-date-y" type="number" class="input-field !p-1 !text-xs" value="445" oninput="scheduleDiplomaPreview()"></div>
+                                <div><label class="text-[10px] text-gray-400">Tam.</label><input id="dip-date-sz" type="number" class="input-field !p-1 !text-xs" value="11" oninput="scheduleDiplomaPreview()"></div>
+                            </div>
+                        </div>
+
+                        <!-- Nombre Agente -->
+                        <div class="border rounded-xl p-4 mb-4 bg-gray-50">
+                            <p class="text-xs font-bold text-gray-600 uppercase mb-2">Nombre Agente (Firma)</p>
+                            <div class="grid grid-cols-3 gap-2">
+                                <div><label class="text-[10px] text-gray-400">X</label><input id="dip-agent-x" type="number" class="input-field !p-1 !text-xs" value="396" oninput="scheduleDiplomaPreview()"></div>
+                                <div><label class="text-[10px] text-gray-400">Y</label><input id="dip-agent-y" type="number" class="input-field !p-1 !text-xs" value="572" oninput="scheduleDiplomaPreview()"></div>
+                                <div><label class="text-[10px] text-gray-400">Tam.</label><input id="dip-agent-sz" type="number" class="input-field !p-1 !text-xs" value="10" oninput="scheduleDiplomaPreview()"></div>
+                            </div>
+                        </div>
+
+                        <!-- Registro STPS -->
+                        <div class="border rounded-xl p-4 mb-4 bg-gray-50">
+                            <p class="text-xs font-bold text-gray-600 uppercase mb-2">Registro STPS</p>
+                            <div class="grid grid-cols-3 gap-2">
+                                <div><label class="text-[10px] text-gray-400">X</label><input id="dip-stps-x" type="number" class="input-field !p-1 !text-xs" value="396" oninput="scheduleDiplomaPreview()"></div>
+                                <div><label class="text-[10px] text-gray-400">Y</label><input id="dip-stps-y" type="number" class="input-field !p-1 !text-xs" value="584" oninput="scheduleDiplomaPreview()"></div>
+                                <div><label class="text-[10px] text-gray-400">Tam.</label><input id="dip-stps-sz" type="number" class="input-field !p-1 !text-xs" value="8" oninput="scheduleDiplomaPreview()"></div>
+                            </div>
+                        </div>
+
+                        <button onclick="saveDesign()" class="btn-primary">💾 Guardar Diseño</button>
                     </div>
-                    <h3 class="text-lg font-bold text-gray-900">Diseño de Diploma</h3>
-                    <p class="text-gray-500 mt-1">Plantilla configurada para Jesus Dario Robles Trujillo.</p>
-                    <div class="mt-8 max-w-2xl mx-auto border-2 border-dashed border-gray-200 rounded-xl p-4 bg-gray-50">
-                        <img id="diploma-template-img" src="plantilla_diploma.png?v=2" alt="Plantilla Diploma" class="w-full rounded shadow-sm opacity-80" onerror="this.parentElement.innerHTML='<p class=\'text-xs text-gray-400\'>No se pudo cargar la imagen de la plantilla</p>'">
+
+                    <!-- Panel derecho: vista previa -->
+                    <div class="card p-4 flex flex-col overflow-hidden">
+                        <div class="flex justify-between items-center mb-2">
+                            <p class="text-xs font-bold text-gray-500 uppercase">Vista previa — Diploma (arrastra los recuadros)</p>
+                            <span id="diploma-drag-hint" class="text-xs text-blue-900"></span>
+                        </div>
+                        <div id="diploma-preview-wrap" style="position:relative;overflow-y:auto;overflow-x:hidden;flex:1;min-height:0;border-radius:8px;background:#f3f4f6;">
+                            <canvas id="diploma-preview-canvas" style="display:block;width:100%;"></canvas>
+                            <svg id="diploma-drag-overlay" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;" viewBox="0 0 792 612" preserveAspectRatio="none"></svg>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -916,7 +987,13 @@ function toSnake(obj) {
         headerSloganFont:'header_slogan_font',
         updatedAt:'updated_at',
         apellidoPaterno:'apellido_paterno', apellidoMaterno:'apellido_materno', nombres:'nombres',
-        photoUrl:'photo_url'
+        photoUrl:'photo_url',
+        dipWorkerX:'dip_worker_x', dipWorkerY:'dip_worker_y', dipWorkerSz:'dip_worker_sz',
+        dipCourseX:'dip_course_x', dipCourseY:'dip_course_y', dipCourseSz:'dip_course_sz',
+        dipDurationX:'dip_duration_x', dipDurationY:'dip_duration_y', dipDurationSz:'dip_duration_sz',
+        dipDateX:'dip_date_x', dipDateY:'dip_date_y', dipDateSz:'dip_date_sz',
+        dipAgentX:'dip_agent_x', dipAgentY:'dip_agent_y', dipAgentSz:'dip_agent_sz',
+        dipStpsX:'dip_stps_x', dipStpsY:'dip_stps_y', dipStpsSz:'dip_stps_sz'
     };
     const out = {};
     for (const [k,v] of Object.entries(obj)) out[map[k]||k] = v;
@@ -940,7 +1017,13 @@ function toCamel(obj) {
         header_slogan_font:'headerSloganFont',
         updated_at:'updatedAt',
         apellido_paterno:'apellidoPaterno', apellido_materno:'apellidoMaterno', nombres:'nombres',
-        photo_url:'photoUrl'
+        photo_url:'photoUrl',
+        dip_worker_x:'dipWorkerX', dip_worker_y:'dipWorkerY', dip_worker_sz:'dipWorkerSz',
+        dip_course_x:'dipCourseX', dip_course_y:'dipCourseY', dip_course_sz:'dipCourseSz',
+        dip_duration_x:'dipDurationX', dip_duration_y:'dipDurationY', dip_duration_sz:'dipDurationSz',
+        dip_date_x:'dipDateX', dip_date_y:'dipDateY', dip_date_sz:'dipDateSz',
+        dip_agent_x:'dipAgentX', dip_agent_y:'dipAgentY', dip_agent_sz:'dipAgentSz',
+        dip_stps_x:'dipStpsX', dip_stps_y:'dipStpsY', dip_stps_sz:'dipStpsSz'
     };
     const out = {};
     for (const [k,v] of Object.entries(obj)) out[map[k]||k] = v;
@@ -1660,63 +1743,49 @@ async function generateDiploma() {
         const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
         const fontB = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-        const isDario = agentName.toUpperCase().includes("DARIO");
+        // Cargar Diseño personalizado (si existe)
+        let d = null;
+        try {
+            const agentRecord = DATA.agents.find(a => a.name === agentName);
+            const dr = await api('find','agent_designs', { filter: { creatorEmail: agentRecord?.creatorEmail || currentUser.email } });
+            if (dr.documents?.length > 0) d = dr.documents[0];
+        } catch(e) {}
 
-        const drawC = (txt, y, sz, fb = false, color = rgb(0,0,0)) => {
+        const drawC = (txt, x, y, sz, fb = false, color = rgb(0,0,0)) => {
             const f = fb ? fontB : font;
             const cleanTxt = (txt || '').toUpperCase();
             const w = f.widthOfTextAtSize(cleanTxt, sz);
-            page.drawText(cleanTxt, { x: PW/2 - w/2, y: PH - y, size: sz, font: f, color: color });
+            page.drawText(cleanTxt, { x: x - w/2, y: PH - y, size: sz, font: f, color: color });
         };
 
-        if (isDario) {
-            // --- DISEÑO AJUSTADO EHS SOLUTIONS (DARIO) ---
+        // 1. Nombre del Trabajador
+        const fullName = selectedWorker.apellidoPaterno ? `${selectedWorker.nombres} ${selectedWorker.apellidoPaterno} ${selectedWorker.apellidoMaterno || ''}`.trim() : selectedWorker.name;
+        drawC(fullName, d?.dipWorkerX ?? 396, d?.dipWorkerY ?? 245, d?.dipWorkerSz ?? 28, true, rgb(0.1, 0.2, 0.4));
 
-            // 1. Nombre del Trabajador: ENCIMA de la línea (Y=245)
-            const fullName = selectedWorker.apellidoPaterno ? `${selectedWorker.nombres} ${selectedWorker.apellidoPaterno} ${selectedWorker.apellidoMaterno || ''}`.trim() : selectedWorker.name;
-            drawC(fullName, 245, 28, true, rgb(0.1, 0.2, 0.4)); // Azul marino
+        // 2. Nombre del Curso
+        drawC(courseName, d?.dipCourseX ?? 396, d?.dipCourseY ?? 330, d?.dipCourseSz ?? 18, true);
 
-            // 2. Nombre del Curso: Abajo de "Por haber concluido satisfactoriamente..." (Y=330)
-            drawC(courseName, 330, 18, true);
+        // 3. Duración del Curso
+        drawC(courseDuration, d?.dipDurationX ?? 396, d?.dipDurationY ?? 405, d?.dipDurationSz ?? 12, true);
 
-            // 3. Duración: Abajo de "Con duración de" (Y=405)
-            drawC(courseDuration, 405, 12, true);
+        // 4. Fecha
+        const months = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
+        const p = end.split('-');
+        const dateText = `${p[2]} DE ${months[parseInt(p[1])-1]} DEL ${p[0]}`;
+        drawC(dateText, d?.dipDateX ?? 396, d?.dipDateY ?? 445, d?.dipDateSz ?? 11, true);
 
-            // 4. Fecha: Abajo de "Del" (Y=445)
-            const months = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
-            const p = end.split('-');
-            const dateText = `${p[2]} DE ${months[parseInt(p[1])-1]} DEL ${p[0]}`;
-            drawC(dateText, 445, 11, true);
-
-            // 5. Firma y Datos Dario (Sobre los placeholders de la plantilla)
+        // 5. Firma y Datos del Agente
+        if (d?.firmaBase64) {
             try {
-                const dr = await api('find','agent_designs', { filter: { creatorEmail: currentUser?.email || '' } });
-                const design = (dr.documents && dr.documents.length > 0) ? dr.documents[0] : null;
-                const firmaUrl = design?.firma_base64 || '/signatures/dario_firma.png';
-
-                const fImgBytes = await fetch(firmaUrl).then(r => r.arrayBuffer());
+                const fImgBytes = await fetch(d.firmaBase64).then(r => r.arrayBuffer());
                 const fImg = await pdfDoc.embedPng(fImgBytes);
-                // Firma centrada sobre tu nombre al final
-                page.drawImage(fImg, { x: PW/2 - 45, y: PH - 540, width: 90, height: 50 });
+                // Firma centrada sobre el nombre
+                page.drawImage(fImg, { x: (d.dipAgentX ?? 396) - 45, y: PH - (d.dipAgentY ?? 572) + 10, width: 90, height: 50 });
             } catch(e) {}
-
-            drawC("JESUS DARIO ROBLES TRUJILLO", 572, 10, true);
-            drawC("REGISTRO " + finalStps, 584, 8, true);
-
-        } else {
-            // --- DISEÑO GENÉRICO (OTROS AGENTES) ---
-            const fullName = selectedWorker.apellidoPaterno ? `${selectedWorker.nombres} ${selectedWorker.apellidoPaterno} ${selectedWorker.apellidoMaterno || ''}`.trim() : selectedWorker.name;
-            drawC(fullName, 325, 28, true);
-            drawC(courseName, 445, 18, true);
-
-            const months = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
-            const p = end.split('-');
-            const dateText = `CON DURACIÓN DE ${courseDuration} DEL ${p[2]} DE ${months[parseInt(p[1])-1]} DEL ${p[0]}`;
-            drawC(dateText, 480, 11);
-
-            drawC(agentName, 570, 10, true);
-            drawC("REGISTRO " + finalStps, 582, 8);
         }
+
+        drawC(agentName, d?.dipAgentX ?? 396, d?.dipAgentY ?? 572, d?.dipAgentSz ?? 10, true);
+        drawC("REGISTRO " + finalStps, d?.dipStpsX ?? 396, d?.dipStpsY ?? 584, d?.dipStpsSz ?? 8, true);
 
         const pdfBytes = await pdfDoc.save();
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
@@ -2221,8 +2290,130 @@ function togglePassword() {
 
 const designState = {
     logo_base64: null, firma_base64: null, header_logo_base64: null,
-    _previewTimer: null, _pdfTemplateBytes: null, _scale: 1.0
+    _previewTimer: null, _dipPreviewTimer: null, _pdfTemplateBytes: null, _dipTemplateBytes: null,
+    _scale: 1.0, _dipScale: 1.0
 };
+
+/** Dispara el preview del diploma con debounce */
+function scheduleDiplomaPreview() {
+    clearTimeout(designState._dipPreviewTimer);
+    designState._dipPreviewTimer = setTimeout(() => updateDiplomaDesignPreview(), 120);
+}
+
+// Dimensiones Diploma (Letter Landscape)
+const DIP_W = 792, DIP_H = 612;
+
+async function updateDiplomaDesignPreview() {
+    const canvas = document.getElementById('diploma-preview-canvas');
+    if (!canvas) return;
+
+    if (!designState._dipTemplateBytes) {
+        try {
+            const resp = await fetch('plantilla_diploma.png?v=2');
+            designState._dipTemplateBytes = await resp.arrayBuffer();
+        } catch(e) { console.error(e); return; }
+    }
+
+    const { PDFDocument, StandardFonts, rgb } = PDFLib;
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([DIP_W, DIP_H]);
+
+    const img = await pdfDoc.embedPng(designState._dipTemplateBytes);
+    page.drawImage(img, { x: 0, y: 0, width: DIP_W, height: DIP_H });
+
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const fontB = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+    const getV = (id) => +document.getElementById(id).value;
+
+    const drawPlaceholder = (txt, x, y, sz, fb = false, color = rgb(0,0,0)) => {
+        const f = fb ? fontB : font;
+        const w = f.widthOfTextAtSize(txt.toUpperCase(), sz);
+        page.drawText(txt.toUpperCase(), { x: x - w/2, y: DIP_H - y, size: sz, font: f, color });
+    };
+
+    drawPlaceholder("TRABAJADOR DE PRUEBA", getV('dip-worker-x'), getV('dip-worker-y'), getV('dip-worker-sz'), true, rgb(0.1, 0.2, 0.4));
+    drawPlaceholder("NOMBRE DEL CURSO DE PRUEBA", getV('dip-course-x'), getV('dip-course-y'), getV('dip-course-sz'), true);
+    drawPlaceholder("8 HORAS", getV('dip-duration-x'), getV('dip-duration-y'), getV('dip-duration-sz'), true);
+    drawPlaceholder("27 DE JULIO DEL 2026", getV('dip-date-x'), getV('dip-date-y'), getV('dip-date-sz'), true);
+    drawPlaceholder("JESUS DARIO ROBLES TRUJILLO", getV('dip-agent-x'), getV('dip-agent-y'), getV('dip-agent-sz'), true);
+    drawPlaceholder("REGISTRO STPS-XXX-001", getV('dip-stps-x'), getV('dip-stps-y'), getV('dip-stps-sz'), true);
+
+    const outBytes = await pdfDoc.save();
+    const pdf = await pdfjsLib.getDocument({ data: outBytes }).promise;
+    const pg = await pdf.getPage(1);
+    const vp = pg.getViewport({ scale: 1.2 });
+    canvas.width = vp.width; canvas.height = vp.height;
+    await pg.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+
+    designState._dipScale = vp.width / DIP_W;
+    _updateDiplomaDragHandles();
+}
+
+function _updateDiplomaDragHandles() {
+    const svg = document.getElementById('diploma-drag-overlay');
+    const canvas = document.getElementById('diploma-preview-canvas');
+    if (!svg || !canvas) return;
+
+    const sc = designState._dipScale;
+    svg.setAttribute('viewBox', `0 0 ${canvas.width} ${canvas.height}`);
+    svg.innerHTML = '';
+
+    const items = [
+        { id: 'dip-worker-x', yId: 'dip-worker-y', label: 'TRABAJADOR', color: '#1e3a8a' },
+        { id: 'dip-course-x', yId: 'dip-course-y', label: 'CURSO', color: '#1e3a8a' },
+        { id: 'dip-duration-x', yId: 'dip-duration-y', label: 'DURACIÓN', color: '#1e3a8a' },
+        { id: 'dip-date-x', yId: 'dip-date-y', label: 'FECHA', color: '#1e3a8a' },
+        { id: 'dip-agent-x', yId: 'dip-agent-y', label: 'AGENTE', color: '#15803d' },
+        { id: 'dip-stps-x', yId: 'dip-stps-y', label: 'REGISTRO', color: '#15803d' }
+    ];
+
+    items.forEach(item => {
+        const x = +document.getElementById(item.id).value;
+        const y = +document.getElementById(item.yId).value;
+
+        const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+        g.style.cursor = 'move';
+        g.style.pointerEvents = 'all';
+
+        const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+        rect.setAttribute('x', (x - 100) * sc);
+        rect.setAttribute('y', (y - 15) * sc);
+        rect.setAttribute('width', 200 * sc);
+        rect.setAttribute('height', 30 * sc);
+        rect.setAttribute('fill', item.color + '22');
+        rect.setAttribute('stroke', item.color);
+        rect.setAttribute('rx', '4');
+
+        const text = document.createElementNS('http://www.w3.org/2000/svg','text');
+        text.setAttribute('x', (x - 95) * sc);
+        text.setAttribute('y', (y + 5) * sc);
+        text.setAttribute('fill', item.color);
+        text.setAttribute('font-size', '10');
+        text.setAttribute('font-weight', 'bold');
+        text.textContent = item.label;
+
+        g.appendChild(rect);
+        g.appendChild(text);
+        svg.appendChild(g);
+
+        g.addEventListener('mousedown', (e) => {
+            const startX = e.clientX, startY = e.clientY;
+            const startValX = x, startValY = y;
+
+            const onMove = (ev) => {
+                const canvasRect = canvas.getBoundingClientRect();
+                const pxPerPt = canvasRect.width / DIP_W;
+                document.getElementById(item.id).value = Math.round(startValX + (ev.clientX - startX) / pxPerPt);
+                document.getElementById(item.yId).value = Math.round(startValY + (ev.clientY - startY) / pxPerPt);
+                scheduleDiplomaPreview();
+            };
+            const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onUp);
+        });
+    });
+}
 
 // Dimensiones internas del PDF (US Letter portrait)
 const PDF_W = 612, PDF_H = 792;
@@ -2300,7 +2491,15 @@ async function loadDesign() {
         setV('design-header-logo-x', d.headerLogoX ?? 30);
         setV('design-header-logo-y', d.headerLogoY ?? 10);
 
+        setV('dip-worker-x', d.dipWorkerX ?? 396); setV('dip-worker-y', d.dipWorkerY ?? 245); setV('dip-worker-sz', d.dipWorkerSz ?? 28);
+        setV('dip-course-x', d.dipCourseX ?? 396); setV('dip-course-y', d.dipCourseY ?? 330); setV('dip-course-sz', d.dipCourseSz ?? 18);
+        setV('dip-duration-x', d.dipDurationX ?? 396); setV('dip-duration-y', d.dipDurationY ?? 405); setV('dip-duration-sz', d.dipDurationSz ?? 12);
+        setV('dip-date-x', d.dipDateX ?? 396); setV('dip-date-y', d.dipDateY ?? 445); setV('dip-date-sz', d.dipDateSz ?? 11);
+        setV('dip-agent-x', d.dipAgentX ?? 396); setV('dip-agent-y', d.dipAgentY ?? 572); setV('dip-agent-sz', d.dipAgentSz ?? 10);
+        setV('dip-stps-x', d.dipStpsX ?? 396); setV('dip-stps-y', d.dipStpsY ?? 584); setV('dip-stps-sz', d.dipStpsSz ?? 8);
+
         await updateDesignPreview();
+        await updateDiplomaDesignPreview();
     } catch(e) { console.warn('loadDesign error:', e); }
 }
 
@@ -2394,6 +2593,12 @@ async function saveDesign() {
             slogan_y: p.sloganY,
             slogan_size: p.sloganSize,
             agent_name: p.agentName,
+            dip_worker_x: gv('dip-worker-x', 396), dip_worker_y: gv('dip-worker-y', 245), dip_worker_sz: gv('dip-worker-sz', 28),
+            dip_course_x: gv('dip-course-x', 396), dip_course_y: gv('dip-course-y', 330), dip_course_sz: gv('dip-course-sz', 18),
+            dip_duration_x: gv('dip-duration-x', 396), dip_duration_y: gv('dip-duration-y', 405), dip_duration_sz: gv('dip-duration-sz', 12),
+            dip_date_x: gv('dip-date-x', 396), dip_date_y: gv('dip-date-y', 445), dip_date_sz: gv('dip-date-sz', 11),
+            dip_agent_x: gv('dip-agent-x', 396), dip_agent_y: gv('dip-agent-y', 572), dip_agent_sz: gv('dip-agent-sz', 10),
+            dip_stps_x: gv('dip-stps-x', 396), dip_stps_y: gv('dip-stps-y', 584), dip_stps_sz: gv('dip-stps-sz', 8),
             updated_at: new Date().toISOString()
         };
 
@@ -3169,6 +3374,7 @@ function setDesignTab(tab) {
         } else {
             tabDiploma.className = "px-6 py-3 text-sm font-bold text-blue-900 border-b-2 border-blue-900";
             tabDc3.className = "px-6 py-3 text-sm font-medium text-gray-500 hover:text-blue-900 transition-colors";
+            updateDiplomaDesignPreview();
         }
     }
 }
