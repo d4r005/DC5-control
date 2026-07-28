@@ -481,31 +481,61 @@ fun DatesSelectionSection(startDate: String, onStart: (String) -> Unit, endDate:
 
 @Composable
 fun ActionButtonsSection(onBack: () -> Unit, onPreview: () -> Unit, onGenerate: () -> Unit, onGenerateDiploma: () -> Unit, enabled: Boolean) {
-    Column {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = onBack, modifier = Modifier.weight(1f), shape = RoundedCornerShape(8.dp)) { Text("Cancelar") }
-            Button(onClick = onPreview, modifier = Modifier.weight(1f), enabled = enabled, colors = ButtonDefaults.buttonColors(containerColor = NavySurface, contentColor = NavyPrimary), shape = RoundedCornerShape(8.dp)) { Text("Previsualizar") }
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OutlinedButton(
+                onClick = onBack,
+                modifier = Modifier.weight(0.8f).height(44.dp),
+                shape = RoundedCornerShape(8.dp),
+                border = BorderStroke(1.dp, Gray200),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Gray600)
+            ) {
+                Text("Cancelar", fontSize = 14.sp)
+            }
+            
+            OutlinedButton(
+                onClick = onPreview,
+                modifier = Modifier.weight(1.2f).height(44.dp),
+                enabled = enabled,
+                shape = RoundedCornerShape(8.dp),
+                border = BorderStroke(1.dp, NavyPrimary),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = NavyPrimary)
+            ) {
+                Icon(Icons.Default.Visibility, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Previsualizar", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            }
         }
-        Spacer(modifier = Modifier.height(12.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             Button(
-                onClick = onGenerate, 
-                modifier = Modifier.weight(1f).height(48.dp), 
-                enabled = enabled, 
-                shape = RoundedCornerShape(8.dp), 
+                onClick = onGenerate,
+                modifier = Modifier.weight(1f).height(48.dp),
+                enabled = enabled,
+                shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary)
-            ) { 
-                Text("Generar DC-3", fontWeight = FontWeight.Bold, fontSize = 13.sp) 
+            ) {
+                Icon(Icons.Default.FileDownload, contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Generar PDF DC-3", fontWeight = FontWeight.Bold, fontSize = 13.sp)
             }
             
             Button(
-                onClick = onGenerateDiploma, 
-                modifier = Modifier.weight(1f).height(48.dp), 
-                enabled = enabled, 
-                shape = RoundedCornerShape(8.dp), 
+                onClick = onGenerateDiploma,
+                modifier = Modifier.weight(1f).height(48.dp),
+                enabled = enabled,
+                shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = ComplianceGreen)
-            ) { 
-                Text("Generar Diploma", fontWeight = FontWeight.Bold, fontSize = 13.sp) 
+            ) {
+                Icon(Icons.Default.WorkspacePremium, contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Generar Diploma", fontWeight = FontWeight.Bold, fontSize = 13.sp)
             }
         }
     }

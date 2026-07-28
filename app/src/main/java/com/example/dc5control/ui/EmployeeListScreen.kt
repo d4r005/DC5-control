@@ -592,50 +592,64 @@ fun EmployeeListScreen(
                                         
                                         Spacer(modifier = Modifier.height(12.dp))
                                         
+                                        // Action Buttons
                                         Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(start = 8.dp),
+                                            modifier = Modifier.fillMaxWidth(),
                                             horizontalArrangement = Arrangement.End,
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
+                                            // DC-3 Button
                                             Button(
                                                 onClick = { onGenerateDC3(employee) },
                                                 colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary, contentColor = Color.White),
-                                                shape = RoundedCornerShape(6.dp),
-                                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
-                                                modifier = Modifier.height(28.dp)
+                                                shape = RoundedCornerShape(8.dp),
+                                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                                                modifier = Modifier.height(32.dp)
                                             ) {
-                                                Text("DC-3", fontSize = 11.sp)
+                                                Text("DC-3", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                             }
-                                            Spacer(modifier = Modifier.width(6.dp))
+                                            
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            
+                                            // +Cursos Button
                                             Button(
                                                 onClick = { onViewCourses(employee) },
-                                                colors = ButtonDefaults.buttonColors(containerColor = Gray100, contentColor = Gray700),
-                                                shape = RoundedCornerShape(6.dp),
-                                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
-                                                modifier = Modifier.height(28.dp)
+                                                colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary, contentColor = Color.White),
+                                                shape = RoundedCornerShape(8.dp),
+                                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                                                modifier = Modifier.height(32.dp)
                                             ) {
-                                                Text("+Cursos", fontSize = 11.sp)
+                                                Text("+ Cursos", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                             }
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            IconButton(
+                                            
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            
+                                            Surface(
                                                 onClick = { 
                                                     employeeToEdit = employee
                                                     showAddEditDialog = true
                                                 },
-                                                modifier = Modifier.size(28.dp)
+                                                modifier = Modifier.size(32.dp),
+                                                shape = RoundedCornerShape(8.dp),
+                                                border = BorderStroke(1.dp, Gray200),
+                                                color = Color.White
                                             ) {
-                                                Icon(Icons.Default.Edit, contentDescription = "Editar", tint = Gray500, modifier = Modifier.size(16.dp))
+                                                Box(contentAlignment = Alignment.Center) {
+                                                    Icon(Icons.Default.Edit, contentDescription = "Editar", tint = Gray700, modifier = Modifier.size(16.dp))
+                                                }
                                             }
-                                            Spacer(modifier = Modifier.width(4.dp))
-                                            IconButton(
-                                                onClick = { 
-                                                    employeeToDelete = employee
-                                                },
-                                                modifier = Modifier.size(28.dp)
+                                            
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            
+                                            Surface(
+                                                onClick = { employeeToDelete = employee },
+                                                modifier = Modifier.size(32.dp),
+                                                shape = RoundedCornerShape(8.dp),
+                                                color = ErrorSurface
                                             ) {
-                                                Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = ErrorRed, modifier = Modifier.size(16.dp))
+                                                Box(contentAlignment = Alignment.Center) {
+                                                    Icon(Icons.Default.Close, contentDescription = "Eliminar", tint = ErrorRed, modifier = Modifier.size(16.dp))
+                                                }
                                             }
                                         }
                                     }
