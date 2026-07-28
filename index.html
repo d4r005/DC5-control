@@ -571,13 +571,16 @@
             <!-- Resultado de evaluación eliminado -->
         </div>
 
-        <div class="flex justify-end gap-3 mt-7">
-            <button onclick="closeModal('modal-dc3')" class="btn-sm btn-outline px-5">Cancelar</button>
-            <button onclick="previewDC3()" class="btn-sm btn-outline px-5" style="border-color:#1e3a8a;color:#1e3a8a">
+        <div class="grid grid-cols-2 gap-3 mt-7">
+            <button onclick="closeModal('modal-dc3')" class="btn-sm btn-outline">Cancelar</button>
+            <button onclick="previewDC3()" class="btn-sm btn-outline" style="border-color:#1e3a8a;color:#1e3a8a">
                 👁 Previsualizar
             </button>
-            <button onclick="generateDC3()" class="btn-sm btn-indigo px-7">
+            <button onclick="generateDC3()" class="btn-sm btn-indigo">
                 ⬇ Generar PDF DC-3
+            </button>
+            <button onclick="generateDiploma()" class="btn-sm" style="background:#15803d;color:white">
+                🎓 Generar Diploma
             </button>
         </div>
     </div>
@@ -1170,9 +1173,9 @@ async function loadSection(v) {
                 <td class="text-right">
                     <div class="flex justify-end gap-2 flex-wrap">
                         <button onclick='openDC3(${JSON.stringify(x)})' class="btn-sm btn-indigo">DC-3</button>
-                        <button onclick='openWorkerCourses(${JSON.stringify(x)})' class="btn-sm" style="background:#1e3a8a;color:#fff;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:600">+ Cursos</button>
-                        <button onclick='openModal(${JSON.stringify(x)})' class="btn-sm btn-outline">✎</button>
-                        <button onclick="delItem('workers','${x.id}')" class="btn-sm btn-red">✕</button>
+                        <button onclick='openWorkerCourses(${JSON.stringify(x)})' class="btn-sm btn-indigo">+ Cursos</button>
+                        <button onclick='openModal(${JSON.stringify(x)})' class="btn-sm btn-outline" style="background:white;padding:4px 8px">✎</button>
+                        <button onclick="delItem('workers','${x.id}')" class="btn-sm btn-red" style="padding:4px 8px">✕</button>
                     </div>
                 </td>
               </tr>`;
@@ -1618,6 +1621,10 @@ async function generateDC3() {
     closeModal('modal-dc3');
     if (currentView === 'dc3') loadSection('dc3');
     else { alert('DC-3 generado y guardado exitosamente.'); }
+}
+
+async function generateDiploma() {
+    alert('Función de generación de diploma en la web próximamente. Por ahora usa la App de Android para esta función.');
 }
 
 // Regenerar desde historial
