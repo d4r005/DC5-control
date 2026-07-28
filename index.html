@@ -465,8 +465,7 @@
                     <h3 class="text-lg font-bold text-gray-900">Diseño de Diploma</h3>
                     <p class="text-gray-500 mt-1">Plantilla configurada para Jesus Dario Robles Trujillo.</p>
                     <div class="mt-8 max-w-2xl mx-auto border-2 border-dashed border-gray-200 rounded-xl p-4 bg-gray-50">
-                        <img id="diploma-template-img" src="plantilla_diploma.png" alt="Plantilla Diploma" class="w-full rounded shadow-sm opacity-80" onerror="this.parentElement.innerHTML='<p class=\'text-xs text-gray-400\'>No se pudo cargar la imagen de la plantilla</p>'">
-                        <script>document.getElementById('diploma-template-img').src = 'plantilla_diploma.png?v=' + Date.now();</script>
+                        <img id="diploma-template-img" src="plantilla_diploma.png?v=2" alt="Plantilla Diploma" class="w-full rounded shadow-sm opacity-80" onerror="this.parentElement.innerHTML='<p class=\'text-xs text-gray-400\'>No se pudo cargar la imagen de la plantilla</p>'">
                     </div>
                 </div>
             </div>
@@ -1648,7 +1647,7 @@ async function generateDiploma() {
     })(agentStps, courseStpsId);
 
     try {
-        const resp = await fetch('plantilla_diploma.png?v=' + Date.now());
+        const resp = await fetch('plantilla_diploma.png?v=2');
         const imgBytes = await resp.arrayBuffer();
 
         const pdfDoc = await PDFDocument.create();
