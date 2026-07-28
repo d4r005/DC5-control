@@ -2301,25 +2301,35 @@ function scheduleDiplomaPreview() {
 }
 
 // Dimensiones Diploma (Letter Landscape)
-const DIP_W = 792, DIP_H = 612;
+const T_DIP_W = 792, T_DIP_H = 612;
 
 async function updateDiplomaDesignPreview() {
     const canvas = document.getElementById('diploma-preview-canvas');
     if (!canvas) return;
 
-    if (!designState._dipTemplateBytes) {
-        try {
-            const resp = await fetch('plantilla_diploma.png?v=2');
-            designState._dipTemplateBytes = await resp.arrayBuffer();
-        } catch(e) { console.error(e); return; }
-    }
+    try {
+        const resp = await fetch('plantilla_diploma.png?v=2');
+        designState._dipTemplateBytes = await resp.arrayBuffer();
+    } catch(e) { console.error(e); return; }
 
     const { PDFDocument, StandardFonts, rgb } = PDFLib;
     const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([DIP_W, DIP_H]);
+    const page = pdfDoc.addPage([T_DIP_W, T_DIP_H]);
 
-    const img = await pdfDoc.embedPng(designState._dipTemplateBytes);
-    page.drawImage(img, { x: 0, y: 0, width: DIP_W, height: DIP_H });
+    // Invertimos la imagen manualmente si aparece al revés en el canvas
+    let img;
+    try {
+        img = await pdfDoc.embedPng(designState._dipTemplateBytes);
+    } catch(e) {
+        img = await pdfDoc.embedJpg(designState._dipTemplateBytes);
+    }
+
+    page.drawImage(img, {
+        x: 0,
+        y: 0,
+        width: T_DIP_W,
+        height: T_DIP_H
+    });
 
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const fontB = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
@@ -2329,7 +2339,7 @@ async function updateDiplomaDesignPreview() {
     const drawPlaceholder = (txt, x, y, sz, fb = false, color = rgb(0,0,0)) => {
         const f = fb ? fontB : font;
         const w = f.widthOfTextAtSize(txt.toUpperCase(), sz);
-        page.drawText(txt.toUpperCase(), { x: x - w/2, y: DIP_H - y, size: sz, font: f, color });
+        page.drawText(txt.toUpperCase(), { x: x - w/2, y: T_DIP_H - y, size: sz, font: f, color });
     };
 
     drawPlaceholder("TRABAJADOR DE PRUEBA", getV('dip-worker-x'), getV('dip-worker-y'), getV('dip-worker-sz'), true, rgb(0.1, 0.2, 0.4));
@@ -2342,11 +2352,11 @@ async function updateDiplomaDesignPreview() {
     const outBytes = await pdfDoc.save();
     const pdf = await pdfjsLib.getDocument({ data: outBytes }).promise;
     const pg = await pdf.getPage(1);
-    const vp = pg.getViewport({ scale: 1.2, rotation: 0 });
+    const vp = pg.getViewport({ scale: 1.2 });
     canvas.width = vp.width; canvas.height = vp.height;
     await pg.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
 
-    designState._dipScale = vp.width / DIP_W;
+    designState._dipScale = vp.width / T_DIP_W;
     _updateDiplomaDragHandles();
 }
 
@@ -2369,8 +2379,12 @@ function _updateDiplomaDragHandles() {
     ];
 
     items.forEach(item => {
-        const x = +document.getElementById(item.id).value;
-        const y = +document.getElementById(item.yId).value;
+        const xEl = document.getElementById(item.id);
+        const yEl = document.getElementById(item.yId);
+        if (!xEl || !yEl) return;
+
+        const x = +xEl.value;
+        const y = +yEl.value;
 
         const g = document.createElementNS('http://www.w3.org/2000/svg','g');
         g.style.cursor = 'move';
@@ -2403,7 +2417,7 @@ function _updateDiplomaDragHandles() {
 
             const onMove = (ev) => {
                 const canvasRect = canvas.getBoundingClientRect();
-                const pxPerPt = canvasRect.width / DIP_W;
+                const pxPerPt = canvasRect.width / T_DIP_W;
                 document.getElementById(item.id).value = Math.round(startValX + (ev.clientX - startX) / pxPerPt);
                 document.getElementById(item.yId).value = Math.round(startValY + (ev.clientY - startY) / pxPerPt);
                 scheduleDiplomaPreview();
