@@ -1002,6 +1002,7 @@ function toSnake(obj) {
         sloganX:'slogan_x', sloganY:'slogan_y', sloganSize:'slogan_size', sloganFont:'slogan_font',
         headerSloganFont:'header_slogan_font',
         updatedAt:'updated_at',
+        diplomaTemplateBase64:'diploma_template_base64',
         apellidoPaterno:'apellido_paterno', apellidoMaterno:'apellido_materno', nombres:'nombres',
         photoUrl:'photo_url',
         dipWorkerX:'dip_worker_x', dipWorkerY:'dip_worker_y', dipWorkerSz:'dip_worker_sz',
@@ -1032,6 +1033,7 @@ function toCamel(obj) {
         slogan_x:'sloganX', slogan_y:'sloganY', slogan_size:'sloganSize', slogan_font:'sloganFont',
         header_slogan_font:'headerSloganFont',
         updated_at:'updatedAt',
+        diploma_template_base64:'diplomaTemplateBase64',
         apellido_paterno:'apellidoPaterno', apellido_materno:'apellidoMaterno', nombres:'nombres',
         photo_url:'photoUrl',
         dip_worker_x:'dipWorkerX', dip_worker_y:'dipWorkerY', dip_worker_sz:'dipWorkerSz',
@@ -1788,19 +1790,19 @@ async function generateDiploma() {
 
         // 1. Nombre del Trabajador
         const fullName = selectedWorker.apellidoPaterno ? `${selectedWorker.nombres} ${selectedWorker.apellidoPaterno} ${selectedWorker.apellidoMaterno || ''}`.trim() : selectedWorker.name;
-        drawC(fullName, d?.dip_worker_x ?? 396, d?.dip_worker_y ?? 245, d?.dip_worker_sz ?? 28, true, rgb(0.1, 0.2, 0.4));
+        drawC(fullName, d?.dip_worker_x ?? d?.dipWorkerX ?? 396, d?.dip_worker_y ?? d?.dipWorkerY ?? 245, d?.dip_worker_sz ?? d?.dipWorkerSz ?? 28, true, rgb(0.1, 0.2, 0.4));
 
         // 2. Nombre del Curso
-        drawC(courseName, d?.dip_course_x ?? 396, d?.dip_course_y ?? 330, d?.dip_course_sz ?? 18, true);
+        drawC(courseName, d?.dip_course_x ?? d?.dipCourseX ?? 396, d?.dip_course_y ?? d?.dipCourseY ?? 330, d?.dip_course_sz ?? d?.dipCourseSz ?? 18, true);
 
         // 3. Duración del Curso
-        drawC(courseDuration, d?.dip_duration_x ?? 396, d?.dip_duration_y ?? 405, d?.dip_duration_sz ?? 12, true);
+        drawC(courseDuration, d?.dip_duration_x ?? d?.dipDurationX ?? 396, d?.dip_duration_y ?? d?.dipDurationY ?? 405, d?.dip_duration_sz ?? d?.dipDurationSz ?? 12, true);
 
         // 4. Fecha
         const months = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
         const p = end.split('-');
         const dateText = `${p[2]} DE ${months[parseInt(p[1])-1]} DEL ${p[0]}`;
-        drawC(dateText, d?.dip_date_x ?? 396, d?.dip_date_y ?? 445, d?.dip_date_sz ?? 11, true);
+        drawC(dateText, d?.dip_date_x ?? d?.dipDateX ?? 396, d?.dip_date_y ?? d?.dipDateY ?? 445, d?.dip_date_sz ?? d?.dipDateSz ?? 11, true);
 
         // 5. Firma y Datos del Agente
         const firmaBase64 = d?.firma_base64 || d?.firmaBase64;
@@ -1809,12 +1811,12 @@ async function generateDiploma() {
                 const fImgBytes = await fetch(firmaBase64).then(r => r.arrayBuffer());
                 const fImg = await pdfDoc.embedPng(fImgBytes);
                 // Firma centrada sobre el nombre
-                page.drawImage(fImg, { x: (d?.dip_agent_x ?? 396) - 45, y: PH - (d?.dip_agent_y ?? 572) + 10, width: 90, height: 50 });
+                page.drawImage(fImg, { x: (d?.dip_agent_x ?? d?.dipAgentX ?? 396) - 45, y: PH - (d?.dip_agent_y ?? d?.dipAgentY ?? 572) + 10, width: 90, height: 50 });
             } catch(e) {}
         }
 
-        drawC(agentName, d?.dip_agent_x ?? 396, d?.dip_agent_y ?? 572, d?.dip_agent_sz ?? 10, true);
-        drawC("REGISTRO " + finalStps, d?.dip_stps_x ?? 396, d?.dip_stps_y ?? 584, d?.dip_stps_sz ?? 8, true);
+        drawC(agentName, d?.dip_agent_x ?? d?.dipAgentX ?? 396, d?.dip_agent_y ?? d?.dipAgentY ?? 572, d?.dip_agent_sz ?? d?.dipAgentSz ?? 10, true);
+        drawC("REGISTRO " + finalStps, d?.dip_stps_x ?? d?.dipStpsX ?? 396, d?.dip_stps_y ?? d?.dipStpsY ?? 584, d?.dip_stps_sz ?? d?.dipStpsSz ?? 8, true);
 
         const pdfBytes = await pdfDoc.save();
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
