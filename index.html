@@ -1660,7 +1660,6 @@ async function generateDiploma() {
         const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
         const fontB = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-        // Sin rectángulos blancos por solicitud del usuario
         const isDario = agentName.toUpperCase().includes("DARIO");
 
         const drawC = (txt, y, sz, fb = false, color = rgb(0,0,0)) => {
@@ -1673,23 +1672,23 @@ async function generateDiploma() {
         if (isDario) {
             // --- DISEÑO AJUSTADO EHS SOLUTIONS (DARIO) ---
 
-            // 1. Nombre del Trabajador (Aumentado Y para bajarlo de la "A")
+            // 1. Nombre del Trabajador: ENCIMA de la línea
             const fullName = selectedWorker.apellidoPaterno ? `${selectedWorker.nombres} ${selectedWorker.apellidoPaterno} ${selectedWorker.apellidoMaterno || ''}`.trim() : selectedWorker.name;
-            drawC(fullName, 355, 26, true, rgb(0.1, 0.2, 0.4)); // Azul marino
+            drawC(fullName, 268, 28, true, rgb(0.1, 0.2, 0.4)); // Azul marino
 
-            // 2. Nombre del Curso (Ajustado para quedar bajo "curso de")
-            drawC(courseName, 442, 16, true);
+            // 2. Nombre del Curso: Abajo de "Por haber concluido satisfactoriamente..."
+            drawC(courseName, 340, 20, true);
 
-            // 3. Duración (Ajustado para quedar bajo "duración de")
-            drawC(courseDuration, 492, 11, true);
+            // 3. Duración: Abajo de "Con duración de"
+            drawC(courseDuration, 405, 12, true);
 
-            // 4. Fecha (Ajustado para quedar bajo "Del")
+            // 4. Fecha: Abajo de "Del"
             const months = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
             const p = end.split('-');
             const dateText = `${p[2]} DE ${months[parseInt(p[1])-1]} DEL ${p[0]}`;
-            drawC(dateText, 532, 11, true);
+            drawC(dateText, 455, 12, true);
 
-            // 5. Firma y Datos Dario
+            // 5. Firma y Datos Dario (Sobre los placeholders de la plantilla)
             try {
                 const dr = await api('find','agent_designs', { filter: { creatorEmail: currentUser?.email || '' } });
                 const design = (dr.documents && dr.documents.length > 0) ? dr.documents[0] : null;
@@ -1697,15 +1696,27 @@ async function generateDiploma() {
 
                 const fImgBytes = await fetch(firmaUrl).then(r => r.arrayBuffer());
                 const fImg = await pdfDoc.embedPng(fImgBytes);
-                // Firma centrada sobre el nombre
-                page.drawImage(fImg, { x: PW/2 - 45, y: PH - 575, width: 90, height: 50 });
+                // Firma centrada sobre tu nombre al final
+                page.drawImage(fImg, { x: PW/2 - 45, y: PH - 540, width: 90, height: 50 });
             } catch(e) {}
 
-            // Escribir sobre los placeholders para asegurar datos correctos
-            drawC("JESUS DARIO ROBLES TRUJILLO", 580, 9, true);
-            drawC("REGISTRO " + finalStps, 592, 7.5, true);
+            drawC("JESUS DARIO ROBLES TRUJILLO", 545, 10, true);
+            drawC("REGISTRO " + finalStps, 565, 8, true);
 
         } else {
+            // --- DISEÑO GENÉRICO (OTROS AGENTES) ---
+            const fullName = selectedWorker.apellidoPaterno ? `${selectedWorker.nombres} ${selectedWorker.apellidoPaterno} ${selectedWorker.apellidoMaterno || ''}`.trim() : selectedWorker.name;
+            drawC(fullName, 325, 28, true);
+            drawC(courseName, 445, 18, true);
+
+            const months = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
+            const p = end.split('-');
+            const dateText = `CON DURACIÓN DE ${courseDuration} DEL ${p[2]} DE ${months[parseInt(p[1])-1]} DEL ${p[0]}`;
+            drawC(dateText, 480, 11);
+
+            drawC(agentName, 570, 10, true);
+            drawC("REGISTRO " + finalStps, 582, 8);
+        }
             // --- DISEÑO GENÉRICO (OTROS AGENTES) ---
             const fullName = selectedWorker.apellidoPaterno ? `${selectedWorker.nombres} ${selectedWorker.apellidoPaterno} ${selectedWorker.apellidoMaterno || ''}`.trim() : selectedWorker.name;
             drawC(fullName, 325, 28, true);

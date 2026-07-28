@@ -83,26 +83,24 @@ object DiplomaGenerator {
         if (isDario) {
             // --- DISEÑO AJUSTADO EHS SOLUTIONS (DARIO) ---
             
-            // Sin rectángulos blancos por solicitud del usuario
-
-            // 1. Nombre del Trabajador (Bajado para no encimarse con "A")
+            // 1. Nombre del Trabajador: ENCIMA de la línea
             val workerName = "${employee.nombres} ${employee.apellidoPaterno} ${employee.apellidoMaterno}".trim()
-            textCentered(PW / 2f, 355f, workerName, 26f, true, 1)
+            textCentered(PW / 2f, 268f, workerName, 28f, true, 1)
 
-            // 2. Nombre del Curso (Subido bajo "curso de")
-            textCentered(PW / 2f, 442f, course.name, 16f, true)
+            // 2. Nombre del Curso: Abajo de "Por haber concluido satisfactoriamente..."
+            textCentered(PW / 2f, 340f, course.name, 20f, true)
 
-            // 3. Duración (Subido bajo "duración de")
-            textCentered(PW / 2f, 492f, course.durationHours, 11f, true)
+            // 3. Duración: Abajo de "Con duración de"
+            textCentered(PW / 2f, 405f, course.durationHours, 12f, true)
 
-            // 4. Fecha (Subido bajo "Del")
-            textCentered(PW / 2f, 532f, formatDateRange(startDate, endDate), 11f, true)
+            // 4. Fecha: Abajo de "Del"
+            textCentered(PW / 2f, 455f, formatDateRange(startDate, endDate), 12f, true)
 
             // 5. Datos del Agente (Sobre placeholders)
-            textCentered(PW / 2f, 580f, "JESUS DARIO ROBLES TRUJILLO", 9f, true)
+            textCentered(PW / 2f, 545f, "JESUS DARIO ROBLES TRUJILLO", 10f, true)
             
             val finalStps = calculateStps(agent.stps, course.stpsId)
-            textCentered(PW / 2f, 592f, "REGISTRO $finalStps", 7.5f, true)
+            textCentered(PW / 2f, 565f, "REGISTRO $finalStps", 8f, true)
 
         } else {
             // --- DISEÑO GENÉRICO (OTROS) ---
