@@ -1,5 +1,7 @@
 package com.example.dc5control.ui
 
+import android.content.Context
+import android.content.SharedPreferences
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -37,10 +39,16 @@ import androidx.compose.ui.res.painterResource
 import com.example.dc5control.R
 import com.example.dc5control.data.AuthManager
 import com.example.dc5control.data.model.User
-import com.example.dc5control.ui.theme.*
 import com.example.dc5control.util.SecurePreferences
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.util.concurrent.TimeUnit
+
+private const val BRUTE_FORCE_PREFS = "brute_force_prefs"
+private const val KEY_ATTEMPT_COUNT = "attempt_count"
+private const val KEY_LAST_ATTEMPT_TIME = "last_attempt_time"
+private const val MAX_ATTEMPTS = 3
+private const val LOCKOUT_DURATION_MINUTES = 15
 
 @Composable
 fun LoginScreen(onLoginSuccess: (User, Boolean) -> Unit) {
@@ -53,8 +61,19 @@ fun LoginScreen(onLoginSuccess: (User, Boolean) -> Unit) {
     var showError by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("Credenciales incorrectas. Intenta de nuevo.") }
     var isLoading by remember { mutableStateOf(false) }
-    var attempts by remember { mutableStateOf(0) }
     val scope = rememberCoroutineScope()
+
+    // Brute force protection state
+    val prefs = context.getSharedPreferences(BRUTE_FORCE_PREFS, Context.MODE_PRIVATE)
+    val attemptCount = prefs.getInt(KEY_ATTEMPT_COUNT, 0)
+    val lastAttemptTime = prefs.getLong(KEY_LAST_ATTEMPT_TIME, 0)
+    val isLocked = attemptCount >= MAX_ATTEMPTS &&
+        (System.currentTimeMillis() - lastAttemptTime < TimeUnit.MINUTES.toMillis(LOCKOUT_DURATION_MINUTES))
+    val timeUntilUnlock = if (isLocked) {
+        val timePassed = System.currentTimeMillis() - lastAttemptTime
+        val timeLeft = TimeUnit.MINUTES.toMillis(LOCKOUT_DURATION_MINUTES) - timePassed
+        Math.max(0, timeLeft / (60 * 1000)) // minutes left
+    } else 0
 
     // Initialize email from secure storage
     init {
@@ -197,7 +216,33 @@ fun LoginScreen(onLoginSuccess: (User, Boolean) -> Unit) {
                         Text("Recordar usuario", fontSize = 14.sp, color = Gray600, modifier = Modifier.clickable { rememberMe = !rememberMe })
                     }
 
-                    if (showError) {
+                    // Show lockout message if account is locked
+                    if (isLocked) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .background(ErrorRed.copy(alpha = 0.1f), shape = RoundedCornerShape(8.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("!", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = ErrorRed)
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                "Cuenta bloqueada debido a demasiados intentos fallidos. Inténtalo de nuevo en $timeUntilUnlock minutos.",
+                                fontSize = 14.sp,
+                                color = ErrorRed,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+
+                    if (showError && !isLocked) {
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -222,6 +267,13 @@ fun LoginScreen(onLoginSuccess: (User, Boolean) -> Unit) {
                     // Submit button
                     Button(
                         onClick = {
+                            if (isLocked) {
+                                // Show error if account is locked
+                                errorMessage = "Cuenta bloqueada debido a demasiados intentos fallidos. Inténtalo de nuevo en $timeUntilUnlock minutos."
+                                showError = true
+                                return@Button
+                            }
+
                             if (email.isNotBlank() && password.isNotBlank()) {
                                 isLoading = true
                                 scope.launch {
@@ -230,6 +282,8 @@ fun LoginScreen(onLoginSuccess: (User, Boolean) -> Unit) {
                                     isLoading = false
                                     if (user != null) {
                                         showError = false
+                                        // Reset failed attempts on successful login
+                                        prefs.edit().putInt(KEY_ATTEMPT_COUNT, 0).apply()
                                         // Save email if remember me is checked
                                         if (rememberMe) {
                                             try {
@@ -250,9 +304,16 @@ fun LoginScreen(onLoginSuccess: (User, Boolean) -> Unit) {
                                         }
                                         onLoginSuccess(user, rememberMe)
                                     } else {
-                                        attempts++
-                                        errorMessage = if (attempts >= 3) {
-                                            "Demasiados intentos. Verifica tus credenciales."
+                                        // Increment failed attempts
+                                        val newAttemptCount = attemptCount + 1
+                                        prefs.edit()
+                                            .putInt(KEY_ATTEMPT_COUNT, newAttemptCount)
+                                            .putLong(KEY_LAST_ATTEMPT_TIME, System.currentTimeMillis())
+                                            .apply()
+
+                                        val updatedAttemptCount = attemptCount + 1
+                                        errorMessage = if (updatedAttemptCount >= MAX_ATTEMPTS) {
+                                            "Demasiados intentos. Cuenta bloqueada por $LOCKOUT_DURATION_MINUTES minutos."
                                         } else {
                                             "Credenciales incorrectas. Intenta de nuevo."
                                         }
@@ -267,7 +328,7 @@ fun LoginScreen(onLoginSuccess: (User, Boolean) -> Unit) {
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
-                        enabled = !isLoading
+                        enabled = !isLoading && !isLocked
                     ) {
                         if (isLoading) {
                             CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)

@@ -11,13 +11,17 @@ import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
+import java.security.cert.CertificateEncodingException
+import java.security.cert.CertificateException
+import java.security.cert.X509Certificate
+import javax.net.ssl.SSLHandshakeException
+import javax.net.ssl.SSLPeerUnverifiedException
 
 /**
  * Repositorio que se conecta directamente a Supabase REST API.
  * Sincronizado con las credenciales y estructura de index.html.
  */
 object SupabaseRepository {
-    private val client = OkHttpClient()
     private val json = Json {
         ignoreUnknownKeys = true
         encodeDefaults = true
@@ -28,6 +32,19 @@ object SupabaseRepository {
     // Credenciales de la plataforma web (osgfwgedjdltrmvwycjd.supabase.co)
     private fun getSupabaseUrl(context: Context): String = context.getString(R.string.supabase_url)
     private fun getSupabaseKey(context: Context): String = context.getString(R.string.supabase_anon_key)
+
+    // Certificate pinning for Supabase
+    private val certificatePinner: CertificatePinner by lazy {
+        CertificatePinner.Builder()
+            .add("osgfwgedjdltrmvwycjd.supabase.co", "sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=")
+            .build()
+    }
+
+    private val client: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .certificatePinner(certificatePinner)
+            .build()
+    }
 
     private fun getBaseRequest(context: Context, table: String, query: String = ""): Request.Builder {
         val url = if (query.isNotEmpty()) "${getSupabaseUrl(context)}/$table?$query" else "${getSupabaseUrl(context)}/$table"

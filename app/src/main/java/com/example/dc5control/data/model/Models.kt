@@ -122,5 +122,8 @@ data class AgentDesign(
     @SerialName("slogan") val slogan: String? = null,
     @SerialName("agent_name") val agentName: String? = null,
     @SerialName("diploma_template_base64") val diplomaTemplateBase64: String? = null,
+    @SerialName("dip_folio_x") val dipFolioX: Float? = null,
+    @SerialName("dip_folio_y") val dipFolioY: Float? = null,
+    @SerialName("dip_folio_sz") val dipFolioSz: Float? = null,
     @SerialName("updated_at") val updatedAt: String? = null
 )
