@@ -1,6 +1,6 @@
-- `[/]` Implementar personalización de plantilla de diploma
-    - `[x]` Subir cambio actual de `plantilla_diploma.png` (Ya en GitHub)
-    - `[/]` Actualizar modelo de datos `AgentDesign`
-    - `[ ]` Actualizar `DiplomaGenerator.kt` para soportar plantillas dinámicas
-    - `[ ]` Implementar carga de plantilla en la Web (`index.html`)
-    - `[ ]` Implementar carga de plantilla en Android (`DC3DesignScreen.kt`)
+- `[/]` Restauración Total de Funcionalidades y Filtros
+    - `[/]` Restaurar UI y Lógica de Diseño de Diploma en `index.html`
+    - `[ ]` Implementar Filtrado Dinámico de Cursos en Modal DC-3
+    - `[ ]` Asegurar Funcionamiento de Filtros Globales (Topbar)
+    - `[ ]` Actualizar Generador de Diplomas con Folios y Sangrado
+    - `[ ]` Sincronizar App Android (`DesignScreen.kt` y `DiplomaGenerator.kt`)

@@ -1,43 +1,56 @@
-# Plan de Implementación: Folio en Diplomas
+# Plan de Restauración Total y Verificación de Filtros
 
-Este plan detalla los pasos para generar un folio único por cada diploma y permitir su personalización en el panel de diseño.
+Este plan tiene como objetivo recuperar todas las funcionalidades avanzadas de diplomas y asegurar que el sistema de filtrado por Agente Capacitador funcione correctamente en todas las secciones de la plataforma web.
 
-## Acción Requerida en Supabase
-
-> [!IMPORTANT]
-> Ejecuta este SQL en el editor de Supabase para añadir las columnas necesarias a la tabla `agent_designs`:
->
-> ```sql
-> ALTER TABLE agent_designs
-> ADD COLUMN IF NOT EXISTS dip_folio_x FLOAT,
-> ADD COLUMN IF NOT EXISTS dip_folio_y FLOAT,
-> ADD COLUMN IF NOT EXISTS dip_folio_sz FLOAT;
-> ```
+## Problemas Identificados
+1.  **Panel de Diseño de Diploma**: Se perdió la UI interactiva (Tabs, Coordenadas, Folio, Drag & Drop).
+2.  **Filtro de Cursos en Modal**: Al generar un DC-3, el selector de cursos muestra todos los cursos de la base de datos en lugar de solo los del agente seleccionado.
+3.  **Filtros Globales**: El filtro de la barra superior (Topbar) no está afectando a todas las secciones esperadas.
 
 ## Cambios Propuestos
 
-### 1. Modelo de Datos
-#### [MODIFY] [Models.kt](file:///C:/Users/dtruj/AndroidStudioProjects/DC5-control/app/src/main/java/com/example/dc5control/data/model/Models.kt)
-- Añadir `dipFolioX`, `dipFolioY` y `dipFolioSz` a `AgentDesign`.
+### 1. Restauración del Panel de Diseño (Web)
+- **UI**: Re-introducir el sistema de pestañas (DC-3 / Diploma).
+- **Controles**: Restaurar los inputs para X, Y y Tamaño del Trabajador, Curso, Fecha, Firma y **Folio**.
+- **Plantilla**: Restaurar la opción de "Cambiar Fondo" para el diploma.
+- **Interactividad**: Rehabilitar el canvas de vista previa con soporte para arrastrar elementos.
 
-### 2. Interfaz Web (`index.html`)
-- **Panel de Diseño**: Añadir controles para el Folio (X, Y, Tamaño) en la pestaña de Diploma.
-- **Lógica de Generación**:
-    - Crear una función para generar folios únicos (ej. `EHS-DIP-YYYYMMDD-SERIAL`).
-    - Actualizar `generateDiploma()` para incluir el folio en el PDF en la posición configurada.
-- **Vista Previa**: Permitir arrastrar el cuadro de "Folio" en el canvas de diseño.
+### 2. Sincronización de Filtros por Agente (Web)
 
-### 3. Aplicación Android
-#### [MODIFY] [DC3DesignScreen.kt](file:///C:/Users/dtruj/AndroidStudioProjects/DC5-control/app/src/main/java/com/example/dc5control/ui/DC3DesignScreen.kt)
-- Añadir controles de Folio en la pestaña de diseño de diploma.
+#### A. Filtro en Modal de Generación (Personal -> DC-3)
+- Modificar `openDC3()` para que la lista de cursos se actualice dinámicamente cuando el usuario cambie el **Agente Capacitador** en el menú desplegable.
+- Filtrar `DATA.courses` por el `creatorEmail` del agente elegido.
 
-#### [MODIFY] [DiplomaGenerator.kt](file:///C:/Users/dtruj/AndroidStudioProjects/DC5-control/app/src/main/java/com/example/dc5control/util/DiplomaGenerator.kt)
-- Actualizar `generateDiploma` para recibir una cadena de folio y dibujarla según las coordenadas del diseño.
+#### B. Filtro Global (Topbar)
+- Asegurar que el filtro "Todos los Agentes" afecte a:
+    - **Cursos**: Mostrar solo los cursos del agente seleccionado.
+    - **Historial DC-3**: Mostrar solo los registros generados por ese agente.
+    - **Personal**: (Opcional, según lógica de negocio) Filtrar trabajadores que tengan registros previos con dicho agente.
 
-#### [MODIFY] [DC3GenerationScreen.kt](file:///C:/Users/dtruj/AndroidStudioProjects/DC5-control/app/src/main/java/com/example/dc5control/ui/DC3GenerationScreen.kt)
-- Generar el folio antes de llamar al creador del PDF.
+### 3. Generación de Diplomas
+- Re-activar la lógica de **Folio automático** (`EHS-AAAAMMDD-SERIAL`).
+- Asegurar que el PDF use las coordenadas personalizadas guardadas.
+- Mantener la corrección de la franja blanca (fondo oscuro + sangrado).
 
-## Verificación
-1. **Diseño**: Mover el campo "Folio" en la web y guardar. Verificar que se mantenga la posición.
-2. **Generación**: Crear un diploma y confirmar que aparezca el folio (ej. `folio: EHS-20240728-001`).
-3. **Consistencia**: Verificar que el folio se genere igual tanto en la App como en la Web.
+### 4. Sincronización Android
+- Actualizar `DesignScreen.kt` para que incluya los campos de Folio.
+- Actualizar `DiplomaGenerator.kt` para aceptar el folio y procesarlo en el PDF.
+
+## Verificación de Filtros
+| Sección | Filtro Esperado | Estado Actual |
+| :--- | :--- | :--- |
+| **Personal (Modal)** | Cambiar Agente -> Cambia lista de Cursos | ❌ No funciona |
+| **Cursos (Global)** | Seleccionar Agente -> Ver solo sus cursos | ⚠️ Parcial |
+| **Historial (Global)** | Seleccionar Agente -> Ver solo sus DC-3 | ⚠️ Parcial |
+
+## Tareas Detalladas
+- `[ ]` Restaurar código de Tabs y Canvas en `index.html`.
+- `[ ]` Corregir lógica de `onchange` en selectores de Agente en la Web.
+- `[ ]` Actualizar `generateDiploma` con lógica de Folio.
+- `[ ]` Sincronizar cambios en los archivos de la App Android.
+
+## Verificación Final
+1. Entrar a la Web.
+2. Seleccionar "Jesus Dario Robles" en el filtro global y ver que la sección de Cursos cambie.
+3. Ir a Personal, abrir DC-3 para un trabajador, cambiar el agente y verificar que los cursos se filtren al instante.
+4. Generar un Diploma y verificar el folio.
