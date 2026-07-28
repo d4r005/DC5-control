@@ -41,7 +41,11 @@ object DiplomaGenerator {
         agent: Agent,
         startDate: String,
         endDate: String,
-        customTemplateBitmap: Bitmap? = null
+        customTemplateBitmap: Bitmap? = null,
+        folio: String? = null,
+        folioX: Float = 396f,
+        folioY: Float = 550f,
+        folioSz: Float = 10f
     ): File {
         PDFBoxResourceLoader.init(context)
         val document = PDDocument()
@@ -80,6 +84,7 @@ object DiplomaGenerator {
             cs.beginText()
             cs.setFont(f, sz)
             if (color == 1) cs.setNonStrokingColor(25, 51, 102) // Azul marino
+            else if (color == 2) cs.setNonStrokingColor(76, 102, 0) // Verde oliva para folio
             else cs.setNonStrokingColor(0, 0, 0)
             cs.newLineAtOffset(xC - (w / 2f), PH - yF)
             cs.showText(st)
@@ -111,6 +116,9 @@ object DiplomaGenerator {
             val finalStps = calculateStps(agent.stps, course.stpsId)
             textCentered(PW / 2f, 584f, "REGISTRO $finalStps", 8f, true)
 
+            // 6. Folio
+            folio?.let { textCentered(folioX, folioY, "folio: $it", folioSz, true, 2) }
+
         } else {
             // --- DISEÑO GENÉRICO (OTROS) ---
             val workerName = "${employee.nombres} ${employee.apellidoPaterno} ${employee.apellidoMaterno}".trim()
@@ -122,6 +130,9 @@ object DiplomaGenerator {
             textCentered(PW / 2f, 570f, agent.name, 10f, true)
             val finalStps = calculateStps(agent.stps, course.stpsId)
             textCentered(PW / 2f, 582f, "REGISTRO $finalStps", 8f)
+
+            // 6. Folio
+            folio?.let { textCentered(folioX, folioY, "folio: $it", folioSz, true, 2) }
         }
 
         cs.close()

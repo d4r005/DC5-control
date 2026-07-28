@@ -540,6 +540,16 @@
                             </div>
                         </div>
 
+                        <!-- Folio -->
+                        <div class="border rounded-xl p-4 mb-6 bg-gray-50">
+                            <p class="text-xs font-bold text-gray-600 uppercase mb-2">Folio (Identificador único)</p>
+                            <div class="grid grid-cols-3 gap-2">
+                                <div><label class="text-[10px] text-gray-400">X</label><input id="dip-folio-x" type="number" class="input-field !p-1 !text-xs" value="396" oninput="scheduleDiplomaPreview()"></div>
+                                <div><label class="text-[10px] text-gray-400">Y</label><input id="dip-folio-y" type="number" class="input-field !p-1 !text-xs" value="550" oninput="scheduleDiplomaPreview()"></div>
+                                <div><label class="text-[10px] text-gray-400">Tam.</label><input id="dip-folio-sz" type="number" class="input-field !p-1 !text-xs" value="10" oninput="scheduleDiplomaPreview()"></div>
+                            </div>
+                        </div>
+
                         <button onclick="saveDesign()" class="btn-primary">💾 Guardar Diseño</button>
                     </div>
 
@@ -1818,6 +1828,13 @@ async function generateDiploma() {
         drawC(agentName, d?.dip_agent_x ?? d?.dipAgentX ?? 396, d?.dip_agent_y ?? d?.dipAgentY ?? 572, d?.dip_agent_sz ?? d?.dipAgentSz ?? 10, true);
         drawC("REGISTRO " + finalStps, d?.dip_stps_x ?? d?.dipStpsX ?? 396, d?.dip_stps_y ?? d?.dipStpsY ?? 584, d?.dip_stps_sz ?? d?.dipStpsSz ?? 8, true);
 
+        // 6. Folio
+        const folioStr = "FOLIO: " + (function() {
+            const now = new Date();
+            return `EHS-${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}-${Math.floor(Math.random()*1000).toString().padStart(3,'0')}`;
+        })();
+        drawC(folioStr, d?.dip_folio_x ?? d?.dipFolioX ?? 396, d?.dip_folio_y ?? d?.dipFolioY ?? 550, d?.dip_folio_sz ?? d?.dipFolioSz ?? 10, true, rgb(0.3, 0.4, 0));
+
         const pdfBytes = await pdfDoc.save();
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
@@ -2386,6 +2403,7 @@ async function updateDiplomaDesignPreview() {
     drawPlaceholder("27 DE JULIO DEL 2026", getV('dip-date-x'), getV('dip-date-y'), getV('dip-date-sz'), true);
     drawPlaceholder("JESUS DARIO ROBLES TRUJILLO", getV('dip-agent-x'), getV('dip-agent-y'), getV('dip-agent-sz'), true);
     drawPlaceholder("REGISTRO STPS-XXX-001", getV('dip-stps-x'), getV('dip-stps-y'), getV('dip-stps-sz'), true);
+    drawPlaceholder("FOLIO: EHS-20240728-001", getV('dip-folio-x'), getV('dip-folio-y'), getV('dip-folio-sz'), true, rgb(0.3, 0.4, 0));
 
     const outBytes = await pdfDoc.save();
     const pdf = await pdfjsLib.getDocument({ data: outBytes }).promise;
@@ -2413,7 +2431,8 @@ function _updateDiplomaDragHandles() {
         { id: 'dip-duration-x', yId: 'dip-duration-y', label: 'DURACIÓN', color: '#1e3a8a' },
         { id: 'dip-date-x', yId: 'dip-date-y', label: 'FECHA', color: '#1e3a8a' },
         { id: 'dip-agent-x', yId: 'dip-agent-y', label: 'AGENTE', color: '#15803d' },
-        { id: 'dip-stps-x', yId: 'dip-stps-y', label: 'REGISTRO', color: '#15803d' }
+        { id: 'dip-stps-x', yId: 'dip-stps-y', label: 'REGISTRO', color: '#15803d' },
+        { id: 'dip-folio-x', yId: 'dip-folio-y', label: 'FOLIO', color: '#7c3aed' }
     ];
 
     items.forEach(item => {
@@ -2682,7 +2701,8 @@ async function saveDesign() {
             dip_date_x: gv('dip-date-x', 396), dip_date_y: gv('dip-date-y', 445), dip_date_sz: gv('dip-date-sz', 11),
             dip_agent_x: gv('dip-agent-x', 396), dip_agent_y: gv('dip-agent-y', 572), dip_agent_sz: gv('dip-agent-sz', 10),
             dip_stps_x: gv('dip-stps-x', 396), dip_stps_y: gv('dip-stps-y', 584), dip_stps_sz: gv('dip-stps-sz', 8),
-            slogan_font: p.sloganFont || 'Helvetica',
+        dip_folio_x: gv('dip-folio-x', 396), dip_folio_y: gv('dip-folio-y', 550), dip_folio_sz: gv('dip-folio-sz', 10),
+        slogan_font: p.sloganFont || 'Helvetica',
             header_slogan_font: p.headerSloganFont || 'Times-Italic'
         };
         localStorage.setItem('dc3_design', JSON.stringify(fullDesign));

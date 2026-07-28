@@ -51,6 +51,10 @@ fun DesignScreen(
     var signatureBase64 by remember { mutableStateOf<String?>(null) }
     var logoBase64 by remember { mutableStateOf<String?>(null) }
     
+    var dipFolioX by remember { mutableStateOf(396f) }
+    var dipFolioY by remember { mutableStateOf(550f) }
+    var dipFolioSz by remember { mutableStateOf(10f) }
+    
     var isLoading by remember { mutableStateOf(true) }
     var isSaving by remember { mutableStateOf(false) }
     var saveMessage by remember { mutableStateOf<String?>(null) }
@@ -93,6 +97,9 @@ fun DesignScreen(
                 headerLogoBase64 = userDesign.headerLogoBase64
                 signatureBase64 = userDesign.firmaBase64
                 logoBase64 = userDesign.logoBase64
+                dipFolioX = userDesign.dipFolioX ?: 396f
+                dipFolioY = userDesign.dipFolioY ?: 550f
+                dipFolioSz = userDesign.dipFolioSz ?: 10f
             }
             isLoading = false
         }
@@ -275,7 +282,10 @@ fun DesignScreen(
                                         logoBase64 = logoBase64,
                                         firmaBase64 = signatureBase64,
                                         headerLogoBase64 = headerLogoBase64,
-                                        diplomaTemplateBase64 = diplomaTemplateBase64
+                                        diplomaTemplateBase64 = diplomaTemplateBase64,
+                                        dipFolioX = dipFolioX,
+                                        dipFolioY = dipFolioY,
+                                        dipFolioSz = dipFolioSz
                                     )
                                     
                                     try {
@@ -389,6 +399,38 @@ fun DesignScreen(
                             }
                         }
 
+                        // Folio Controls
+                        DesignCard("Personalización de Folio") {
+                            Text("Ajusta la posición y tamaño del identificador único del diploma.", fontSize = 13.sp, color = Gray500)
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedTextField(
+                                    value = dipFolioX.toString(),
+                                    onValueChange = { dipFolioX = it.toFloatOrNull() ?: dipFolioX },
+                                    label = { Text("X") },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = NavyPrimary, unfocusedBorderColor = Gray200)
+                                )
+                                OutlinedTextField(
+                                    value = dipFolioY.toString(),
+                                    onValueChange = { dipFolioY = it.toFloatOrNull() ?: dipFolioY },
+                                    label = { Text("Y") },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = NavyPrimary, unfocusedBorderColor = Gray200)
+                                )
+                                OutlinedTextField(
+                                    value = dipFolioSz.toString(),
+                                    onValueChange = { dipFolioSz = it.toFloatOrNull() ?: dipFolioSz },
+                                    label = { Text("Tam.") },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = NavyPrimary, unfocusedBorderColor = Gray200)
+                                )
+                            }
+                        }
+
                         Button(
                             onClick = {
                                 isSaving = true
@@ -401,7 +443,10 @@ fun DesignScreen(
                                         logoBase64 = logoBase64,
                                         firmaBase64 = signatureBase64,
                                         headerLogoBase64 = headerLogoBase64,
-                                        diplomaTemplateBase64 = diplomaTemplateBase64
+                                        diplomaTemplateBase64 = diplomaTemplateBase64,
+                                        dipFolioX = dipFolioX,
+                                        dipFolioY = dipFolioY,
+                                        dipFolioSz = dipFolioSz
                                     )
                                     val existing = SupabaseRepository.fetchDataFilteredSuspend("agent_designs", "creator_email=eq.${user.email}", AgentDesign.serializer()).firstOrNull()
                                     if (existing != null) {

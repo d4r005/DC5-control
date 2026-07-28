@@ -234,8 +234,15 @@ fun DC3GenerationScreen(
                 selectedCourses.forEach { course ->
                     currentDoc++
                     statusText = "Generando Diploma $currentDoc de $totalDocs..."
+                    
+                    val folioStr = "EHS-" + java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.getDefault()).format(java.util.Date()) + "-" + (100..999).random()
+                    
                     val file = DiplomaGenerator.generateDiploma(
-                        context, employee, course, agent, startDate, endDate, customTemplate
+                        context, employee, course, agent, startDate, endDate, customTemplate,
+                        folio = folioStr,
+                        folioX = design?.dipFolioX ?: 396f,
+                        folioY = design?.dipFolioY ?: 550f,
+                        folioSz = design?.dipFolioSz ?: 10f
                     )
                     PdfGenerator.saveToDownloads(context, file)
                     if (totalDocs == 1) PdfGenerator.openPdf(context, file)
