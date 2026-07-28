@@ -1635,7 +1635,16 @@ async function generateDiploma() {
     if (!start || !end) { alert('Selecciona las fechas'); return; }
 
     const [agentName, agentStps] = agentVal.split('|');
-    const [courseName, courseDuration] = courseVal.split('|');
+    const [courseName, courseDuration, courseArea, courseStpsId] = courseVal.split('|');
+
+    // Calcular STPS final según el curso
+    const finalStps = (function(aStps, cId) {
+        let base = aStps.replace(/^STPS-/, '').replace(/^STPS-/, '').trim();
+        if (!cId) return "STPS-" + base;
+        let parts = base.split("-");
+        if (parts.length < 2) return "STPS-" + base + "-" + cId;
+        return "STPS-" + parts.slice(0, -1).join("-") + "-" + cId;
+    })(agentStps, courseStpsId);
 
     try {
         const resp = await fetch('plantilla_diploma.png');
@@ -1651,37 +1660,58 @@ async function generateDiploma() {
         const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
         const fontB = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-        // Limpiar área de firma anterior (Cynthia) si es Dario
-        if (agentName.includes("Dario")) {
-            page.drawRectangle({ x: 330, y: PH - 585, width: 220, height: 100, color: rgb(1,1,1) });
-        }
+        // Limpiar áreas pre-impresas en la nueva plantilla (si es necesario)
+        // La nueva plantilla tiene placeholders en:
+        // Nombre: y=315
+        // Curso: y=435
+        // Duración: y=480
+        // Fecha: y=510
+        // Firma/Nombre Agente: y=565
 
-        const drawC = (txt, y, sz, fb = false) => {
+        // Limpiar área de firma y nombre del agente inferior
+        page.drawRectangle({ x: PW/2 - 150, y: PH - 595, width: 300, height: 50, color: rgb(1,1,1) });
+
+        const drawC = (txt, y, sz, fb = false, color = rgb(0,0,0)) => {
             const f = fb ? fontB : font;
-            const w = f.widthOfTextAtSize(txt.toUpperCase(), sz);
-            page.drawText(txt.toUpperCase(), { x: PW/2 - w/2, y: PH - y, size: sz, font: f, color: rgb(0,0,0) });
+            const cleanTxt = (txt || '').toUpperCase();
+            const w = f.widthOfTextAtSize(cleanTxt, sz);
+            page.drawText(cleanTxt, { x: PW/2 - w/2, y: PH - y, size: sz, font: f, color: color });
         };
 
-        // Nombre Trabajador
+        // 1. Nombre del Trabajador (Debajo de "A")
         const fullName = selectedWorker.apellidoPaterno ? `${selectedWorker.nombres} ${selectedWorker.apellidoPaterno} ${selectedWorker.apellidoMaterno || ''}`.trim() : selectedWorker.name;
-        drawC(fullName, 325, 28, true);
+        drawC(fullName, 320, 26, true, rgb(0.1, 0.2, 0.4)); // Azul marino oscuro
 
-        // Curso
-        drawC(courseName, 445, 18, true);
+        // 2. Nombre del Curso (Debajo de "...curso de")
+        drawC(courseName, 435, 18, true);
 
-        // Duración y Fecha
+        // 3. Duración del Curso
+        drawC(courseDuration, 480, 11, true);
+
+        // 4. Fecha (Formato "DD de MES del AAAA")
         const months = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
         const p = end.split('-'); // yyyy-mm-dd
-        const dateText = `CON DURACIÓN DE ${courseDuration} DEL ${p[2]} DE ${months[parseInt(p[1])-1]} DEL ${p[0]}`;
-        drawC(dateText, 480, 11);
+        const dateText = `${p[2]} DE ${months[parseInt(p[1])-1]} DEL ${p[0]}`;
+        drawC(dateText, 510, 11, true);
 
-        // Firma Dario si aplica
-        if (agentName.includes("Dario")) {
-            const w1 = fontB.widthOfTextAtSize("JESUS DARIO ROBLES TRUJILLO", 10);
-            page.drawText("JESUS DARIO ROBLES TRUJILLO", { x: 440 - w1/2, y: PH - 540, size: 10, font: fontB });
-            const w2 = font.widthOfTextAtSize("REGISTRO STPS " + agentStps, 8);
-            page.drawText("REGISTRO STPS " + agentStps, { x: 440 - w2/2, y: PH - 555, size: 8, font: font });
-        }
+        // 5. Firma y Datos del Agente
+        // Cargar firma del diseño si existe
+        try {
+            const dr = await api('find','agent_designs', { filter: { creatorEmail: currentUser?.email || '' } });
+            if (dr.documents && dr.documents.length > 0) {
+                const design = dr.documents[0];
+                if (design.firma_base64) {
+                    const fImgBytes = await fetch(design.firma_base64).then(r => r.arrayBuffer());
+                    const fImg = await pdfDoc.embedPng(fImgBytes);
+                    const fw = 90, fh = 50;
+                    page.drawImage(fImg, { x: PW/2 - fw/2, y: PH - 560, width: fw, height: fh });
+                }
+            }
+        } catch(eSig) { console.warn("No se pudo cargar firma para diploma", eSig); }
+
+        // Nombre y STPS
+        drawC(agentName, 570, 10, true);
+        drawC("REGISTRO " + finalStps, 582, 8);
 
         const pdfBytes = await pdfDoc.save();
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });

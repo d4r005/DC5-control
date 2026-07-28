@@ -22,6 +22,17 @@ object DiplomaGenerator {
     private const val PW = 792f // Letter Landscape width
     private const val PH = 612f // Letter Landscape height
 
+    private fun calculateStps(agentStps: String, courseStpsId: String?): String {
+        val base = agentStps.removePrefix("STPS-").removePrefix("STPS-").trim()
+        if (courseStpsId.isNullOrBlank()) return "STPS-$base"
+        
+        val parts = base.split("-")
+        if (parts.size < 2) return "STPS-$base-$courseStpsId"
+        
+        val baseWithoutSuffix = parts.dropLast(1).joinToString("-")
+        return "STPS-$baseWithoutSuffix-$courseStpsId"
+    }
+
     fun generateDiploma(
         context: Context,
         employee: Employee,
@@ -52,41 +63,48 @@ object DiplomaGenerator {
         val font = PDType1Font.HELVETICA
         val fontB = PDType1Font.HELVETICA_BOLD
 
-        fun textCentered(xC: Float, yF: Float, t: String, sz: Float, bold: Boolean = false) {
+        fun textCentered(xC: Float, yF: Float, t: String, sz: Float, bold: Boolean = false, color: Int = 0) {
             if (t.isBlank()) return
             val f = if (bold) fontB else font
             val st = t.uppercase()
             val w = f.getStringWidth(st) / 1000 * sz
             cs.beginText()
             cs.setFont(f, sz)
+            if (color == 1) cs.setNonStrokingColor(25, 51, 102) // Azul marino
+            else cs.setNonStrokingColor(0, 0, 0)
             cs.newLineAtOffset(xC - (w / 2f), PH - yF)
             cs.showText(st)
             cs.endText()
+            cs.setNonStrokingColor(0, 0, 0)
         }
 
-        // 2. Limpiar zona de Cynthia (Rectángulo blanco sobre la firma y datos actuales)
-        // Estimación: x=340-540, y=470-580
+        // 2. Limpiar zona inferior (Nombre y STPS del Agente)
         cs.setNonStrokingColor(1f, 1f, 1f)
-        cs.addRect(330f, PH - 585f, 220f, 100f) 
+        cs.addRect(PW / 2f - 150f, PH - 595f, 300f, 50f)
         cs.fill()
-        cs.setNonStrokingColor(0f, 0f, 0f)
 
         // 3. Escribir Datos Dinámicos
         
-        // Trabajador (Grande y Azul oscuro/Negro)
+        // Trabajador
         val workerName = "${employee.nombres} ${employee.apellidoPaterno} ${employee.apellidoMaterno}".trim()
-        textCentered(PW / 2f, 325f, workerName, 28f, true)
+        textCentered(PW / 2f, 320f, workerName, 26f, true, 1)
 
         // Nombre del Curso
-        textCentered(PW / 2f, 445f, course.name, 18f, true)
+        textCentered(PW / 2f, 435f, course.name, 18f, true)
 
-        // Duración y Fecha
-        val dateText = "CON DURACIÓN DE ${course.durationHours} HORAS DEL ${formatDateRange(startDate, endDate)}"
-        textCentered(PW / 2f, 480f, dateText, 11f)
+        // Duración
+        textCentered(PW / 2f, 480f, course.durationHours, 11f, true)
 
-        // 4. Datos de Jesus Dario (En el área limpia)
-        textCentered(440f, 540f, "Jesus Dario Robles Trujillo", 10f, true)
-        textCentered(440f, 555f, "REGISTRO STPS ${agent.stps}", 8f)
+        // Fecha
+        textCentered(PW / 2f, 510f, formatDateRange(startDate, endDate), 11f, true)
+
+        // 4. Datos del Agente (Firma y Nombre)
+        // Firma (si está disponible en los recursos o diseño)
+        // Por ahora centrado abajo
+        textCentered(PW / 2f, 570f, agent.name, 10f, true)
+        
+        val finalStps = calculateStps(agent.stps, course.stpsId)
+        textCentered(PW / 2f, 582f, "REGISTRO $finalStps", 8f)
 
         cs.close()
 
