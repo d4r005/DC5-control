@@ -26,10 +26,10 @@ object DiplomaGenerator {
     private fun calculateStps(agentStps: String, courseStpsId: String?): String {
         val base = agentStps.removePrefix("STPS-").removePrefix("STPS-").trim()
         if (courseStpsId.isNullOrBlank()) return "STPS-$base"
-        
+
         val parts = base.split("-")
         if (parts.size < 2) return "STPS-$base-$courseStpsId"
-        
+
         val baseWithoutSuffix = parts.dropLast(1).joinToString("-")
         return "STPS-$baseWithoutSuffix-$courseStpsId"
     }
@@ -61,7 +61,7 @@ object DiplomaGenerator {
 
         // 1. Cargar imagen de fondo forzando cobertura total
         try {
-            val bleed = 5f 
+            val bleed = 10f // Aumentamos el sangrado para asegurar cobertura total
             val imgXObject = if (customTemplateBitmap != null) {
                 val stream = java.io.ByteArrayOutputStream()
                 customTemplateBitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
@@ -72,10 +72,10 @@ object DiplomaGenerator {
                 inputStream.close()
                 PDImageXObject.createFromByteArray(document, bytes, "template")
             }
-            
+
             // Dibujamos la imagen ligeramente más grande y centrada para ocultar cualquier margen
             cs.drawImage(imgXObject, -bleed, -bleed, PW + (bleed * 2), PH + (bleed * 2))
-            
+
         } catch (e: Exception) {
             Log.e(TAG, "Error loading template image", e)
         }
@@ -87,9 +87,9 @@ object DiplomaGenerator {
         fun textCentered(xC: Float, yF: Float, t: String, sz: Float, bold: Boolean = false, colorType: Int = 0) {
             if (t.isBlank()) return
             val f = if (bold) fontB else font
-            val st = t.uppercase()
+            val st = t.toUpperCase(Locale.ROOT)
             val w = f.getStringWidth(st) / 1000 * sz
-            
+
             cs.beginText()
             cs.setFont(f, sz)
             when (colorType) {
@@ -108,7 +108,7 @@ object DiplomaGenerator {
 
         if (isDario) {
             // --- DISEÑO AJUSTADO EHS SOLUTIONS (DARIO) ---
-            
+
             // 1. Nombre del Trabajador: ENCIMA de la línea (Y=245)
             val workerName = "${employee.nombres} ${employee.apellidoPaterno} ${employee.apellidoMaterno}".trim()
             textCentered(centerX, 245f, workerName, 28f, true, 1)
@@ -124,7 +124,7 @@ object DiplomaGenerator {
 
             // 5. Datos del Agente (Sobre placeholders)
             textCentered(centerX, 572f, "JESUS DARIO Robles Trujillo", 10f, true)
-            
+
             val finalStps = calculateStps(agent.stps, course.stpsId)
             textCentered(centerX, 584f, "REGISTRO $finalStps", 8f, true)
 
@@ -138,7 +138,7 @@ object DiplomaGenerator {
             textCentered(centerX, 445f, course.name, 18f, true)
             val dateText = "CON DURACIÓN DE ${course.durationHours} DEL ${formatDateRange(startDate, endDate)}"
             textCentered(centerX, 480f, dateText, 11f)
-            
+
             textCentered(centerX, 570f, agent.name, 10f, true)
             val finalStps = calculateStps(agent.stps, course.stpsId)
             textCentered(centerX, 582f, "REGISTRO $finalStps", 8f)
