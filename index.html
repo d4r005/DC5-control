@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACE-Control | Generador de Constancias DC-3</title>
+    <title>ACE-Control | Gestión DC-3 v1.0.10</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -1098,19 +1098,35 @@ async function sha256(text) {
 }
 
 async function login(e) {
+    console.log('[DEBUG] Login attempt started');
     try {
         e.preventDefault();
-        const email = document.getElementById('email').value.trim();
-        const pass = document.getElementById('password').value;
+        const emailEl = document.getElementById('email');
+        const passEl = document.getElementById('password');
+
+        if (!emailEl || !passEl) {
+            console.error('[DEBUG] Email or password inputs not found');
+            return;
+        }
+
+        const email = emailEl.value.trim();
+        const pass = passEl.value;
         
+        console.log('[DEBUG] Email entered:', email);
+
         // Hash the password with SHA-256 before comparing
         const passHash = await sha256(pass);
+        console.log('[DEBUG] Pass hashed');
+
         const user = DATA.users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.passHash === passHash);
 
         if (!user) {
+            console.warn('[DEBUG] Invalid credentials');
             document.getElementById('login-error').classList.remove('hidden');
             return;
         }
+
+        console.log('[DEBUG] User verified:', user.name);
 
         // Check if user is active (future enhancement: disable users)
         if (user.active === false) {
@@ -1151,26 +1167,38 @@ async function login(e) {
 }
 
 async function initApp() {
+    console.log('[DEBUG] initApp started');
     try {
         document.getElementById('view-login').style.display = 'none';
         document.getElementById('view-app').style.display = 'block';
 
         if (currentUser) {
-            document.getElementById('user-avatar').innerText = currentUser.name.substring(0,2).toUpperCase();
-            document.getElementById('user-name-display').innerText = currentUser.name;
-            document.getElementById('user-role-display').innerText = currentUser.role;
+            console.log('[DEBUG] Setting UI for:', currentUser.email);
+            const avatar = document.getElementById('user-avatar');
+            if (avatar) avatar.innerText = (currentUser.name || "??").substring(0,2).toUpperCase();
 
-            if (currentUser.role === 'ADMIN') {
-                document.getElementById('btn-users').classList.remove('hidden');
-            } else {
-                document.getElementById('btn-users').classList.add('hidden');
+            const nameDisp = document.getElementById('user-name-display');
+            if (nameDisp) nameDisp.innerText = currentUser.name || "Usuario";
+
+            const roleDisp = document.getElementById('user-role-display');
+            if (roleDisp) roleDisp.innerText = currentUser.role || "USER";
+
+            const btnUsers = document.getElementById('btn-users');
+            if (btnUsers) {
+                if (currentUser.role === 'ADMIN') {
+                    btnUsers.classList.remove('hidden');
+                } else {
+                    btnUsers.classList.add('hidden');
+                }
             }
         }
 
+        console.log('[DEBUG] Loading catalogs...');
         await loadCatalogs();
+        console.log('[DEBUG] Catalogs loaded, setting dashboard');
         setView('dashboard');
     } catch (err) {
-        console.error("App init error:", err);
+        console.error("[DEBUG] App init error:", err);
     }
 }
 
@@ -3465,26 +3493,8 @@ function setDesignTab(tab) {
         } else {
             tabDiploma.className = "px-6 py-3 text-sm font-bold text-blue-900 border-b-2 border-blue-900";
             tabDc3.className = "px-6 py-3 text-sm font-medium text-gray-500 hover:text-blue-900 transition-colors";
-            updateDiplomaDesignPreview();
+            if (typeof updateDiplomaDesignPreview === 'function') updateDiplomaDesignPreview();
         }
-    }
-}
-
-function setDesignTab(tab) {
-    const isDc3 = tab === 'dc3';
-    document.getElementById('design-content-dc3').classList.toggle('hidden', !isDc3);
-    document.getElementById('design-content-diploma').classList.toggle('hidden', isDc3);
-
-    // Update tab styles
-    const tabDc3 = document.getElementById('tab-design-dc3');
-    const tabDiploma = document.getElementById('tab-design-diploma');
-
-    if (isDc3) {
-        tabDc3.className = "px-6 py-3 text-sm font-bold text-blue-900 border-b-2 border-blue-900";
-        tabDiploma.className = "px-6 py-3 text-sm font-medium text-gray-500 hover:text-blue-900 transition-colors";
-    } else {
-        tabDiploma.className = "px-6 py-3 text-sm font-bold text-blue-900 border-b-2 border-blue-900";
-        tabDc3.className = "px-6 py-3 text-sm font-medium text-gray-500 hover:text-blue-900 transition-colors";
     }
 }
 
