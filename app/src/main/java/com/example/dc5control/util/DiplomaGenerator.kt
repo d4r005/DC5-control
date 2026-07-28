@@ -54,19 +54,20 @@ object DiplomaGenerator {
 
         val cs = PDPageContentStream(document, page)
 
-        // 1. Cargar imagen de fondo
+        // 1. Cargar imagen de fondo con sangrado (Bleed) para evitar franjas blancas
         try {
+            val bleed = 2f
             if (customTemplateBitmap != null) {
                 val stream = java.io.ByteArrayOutputStream()
                 customTemplateBitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
                 val img = PDImageXObject.createFromByteArray(document, stream.toByteArray(), "custom_template")
-                cs.drawImage(img, 0f, 0f, PW, PH)
+                cs.drawImage(img, -bleed, -bleed, PW + (bleed * 2), PH + (bleed * 2))
             } else {
                 val inputStream = context.assets.open(TEMPLATE_NAME)
                 val bytes = inputStream.readBytes()
                 inputStream.close()
                 val img = PDImageXObject.createFromByteArray(document, bytes, "template")
-                cs.drawImage(img, 0f, 0f, PW, PH)
+                cs.drawImage(img, -bleed, -bleed, PW + (bleed * 2), PH + (bleed * 2))
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error loading template image", e)
