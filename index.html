@@ -1746,13 +1746,18 @@ async function generateDiploma() {
     })(agentStps, courseStpsId);
 
     try {
-        // --- CARGAR DISEÑO (Prioridad DB del Agente) ---
+        // --- CARGAR DISEÑO (Prioridad LocalStorage > DB) ---
         let d = null;
-        try {
-            const agentRecord = DATA.agents.find(a => a.name === agentName);
-            const dr = await api('find','agent_designs', { filter: { creatorEmail: agentRecord?.creatorEmail || currentUser.email } });
-            if (dr.documents?.length > 0) d = dr.documents[0];
-        } catch(e) { console.error("Error cargando diseño:", e); }
+        const localD = localStorage.getItem('dc3_design');
+        if (localD) {
+            d = JSON.parse(localD);
+        } else {
+            try {
+                const agentRecord = DATA.agents.find(a => a.name === agentName);
+                const dr = await api('find','agent_designs', { filter: { creatorEmail: agentRecord?.creatorEmail || currentUser.email } });
+                if (dr.documents?.length > 0) d = dr.documents[0];
+            } catch(e) { console.error("Error cargando diseño:", e); }
+        }
 
         const customTemplate = d?.diploma_template_base64 || d?.diplomaTemplateBase64;
         let imgBytes;
@@ -1773,19 +1778,6 @@ async function generateDiploma() {
 
         const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
         const fontB = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-
-        // --- CARGAR DISEÑO (Prioridad LocalStorage > DB) ---
-        let d = null;
-        const localD = localStorage.getItem('dc3_design');
-        if (localD) {
-            d = JSON.parse(localD);
-        } else {
-            try {
-                const agentRecord = DATA.agents.find(a => a.name === agentName);
-                const dr = await api('find','agent_designs', { filter: { creatorEmail: agentRecord?.creatorEmail || currentUser.email } });
-                if (dr.documents?.length > 0) d = dr.documents[0];
-            } catch(e) {}
-        }
 
         const drawC = (txt, x, y, sz, fb = false, color = rgb(0,0,0)) => {
             const f = fb ? fontB : font;
