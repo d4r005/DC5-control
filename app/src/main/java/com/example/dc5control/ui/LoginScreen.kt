@@ -68,22 +68,23 @@ fun LoginScreen(onLoginSuccess: (User, Boolean) -> Unit) {
     val attemptCount = prefs.getInt(KEY_ATTEMPT_COUNT, 0)
     val lastAttemptTime = prefs.getLong(KEY_LAST_ATTEMPT_TIME, 0)
     val isLocked = attemptCount >= MAX_ATTEMPTS &&
-        (System.currentTimeMillis() - lastAttemptTime < TimeUnit.MINUTES.toMillis(LOCKOUT_DURATION_MINUTES))
+        (System.currentTimeMillis() - lastAttemptTime < TimeUnit.MINUTES.toMillis(LOCKOUT_DURATION_MINUTES.toLong()))
     val timeUntilUnlock = if (isLocked) {
         val timePassed = System.currentTimeMillis() - lastAttemptTime
-        val timeLeft = TimeUnit.MINUTES.toMillis(LOCKOUT_DURATION_MINUTES) - timePassed
-        Math.max(0, timeLeft / (60 * 1000)) // minutes left
-    } else 0
+        val timeLeft = TimeUnit.MINUTES.toMillis(LOCKOUT_DURATION_MINUTES.toLong()) - timePassed
+        Math.max(0L, timeLeft / (60 * 1000)) // minutes left
+    } else 0L
 
-    // Initialize email from secure storage
-    init {
+    // Initialize email from secure storage once
+    LaunchedEffect(Unit) {
         try {
-            email = SecurePreferences.getEmail(context) ?: ""
-            rememberMe = email.isNotEmpty()
+            val savedEmail = SecurePreferences.getEmail(context) ?: ""
+            if (savedEmail.isNotEmpty()) {
+                email = savedEmail
+                rememberMe = true
+            }
         } catch (e: Exception) {
-            // If there's an error reading from secure storage, fall back to empty
-            email = ""
-            rememberMe = false
+            // Fallback
         }
     }
 

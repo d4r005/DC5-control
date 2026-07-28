@@ -1747,11 +1747,11 @@ async function generateDiploma() {
 
     try {
         // --- CARGAR DISEÑO (Prioridad DB del Agente) ---
-        let d = null;
+        let templateDesign = null;
         try {
             const agentRecord = DATA.agents.find(a => a.name === agentName);
             const dr = await api('find','agent_designs', { filter: { creatorEmail: agentRecord?.creatorEmail || currentUser.email } });
-            if (dr.documents?.length > 0) d = dr.documents[0];
+            if (dr.documents?.length > 0) templateDesign = dr.documents[0];
         } catch(e) { console.error("Error cargando diseño:", e); }
 
         const customTemplate = d?.diploma_template_base64 || d?.diplomaTemplateBase64;
@@ -1770,21 +1770,32 @@ async function generateDiploma() {
 
         const img = await pdfDoc.embedPng(imgBytes);
         const bleed = 10;
+        const img = await pdfDoc.embedPng(imgBytes);
+        const bleed = 10;
         page.drawImage(img, { x: -bleed, y: -bleed, width: PW + (bleed * 2), height: PH + (bleed * 2) });
 
         const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
         const fontB = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
         // --- CARGAR DISEÑO (Prioridad LocalStorage > DB) ---
-        let d = null;
-        const localD = localStorage.getItem('dc3_design');
-        if (localD) {
-            d = JSON.parse(localD);
+        let localDesign = null;
+        const localDesignStr = localStorage.getItem('dc3_design');
+        if (localDesignStr) {
+            localDesign = JSON.parse(localDesignStr);
         } else {
             try {
                 const agentRecord = DATA.agents.find(a => a.name === agentName);
                 const dr = await api('find','agent_designs', { filter: { creatorEmail: agentRecord?.creatorEmail || currentUser.email } });
-                if (dr.documents?.length > 0) d = dr.documents[0];
+                if (dr.documents?.length > 0) localDesign = dr.documents[0];
+            } catch(e) {}
+        }
+
+        const drawC = (txt, x, y, sz, fb = false, color = rgb(0,0,0)) => {
+            const f = fb ? fontB : font;
+            const cleanTxt = (txt || ').toUpperCase();
+            const w = f.widthOfTextAtSize(cleanTxt, sz);
+            page.drawText(cleanTxt, { x: x - w/2, y: PH - y, size: sz, font: f, color: color });
+        };
             } catch(e) {}
         }
 
@@ -1807,7 +1818,7 @@ async function generateDiploma() {
 
         // 4. Fecha
         const months = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
-        const p = end.split('-');
+        const p = enlocalDesign.split('-');
         const dateText = `${p[2]} DE ${months[parseInt(p[1])-1]} DEL ${p[0]}`;
         drawC(dateText, d?.dip_date_x ?? 396, d?.dip_date_y ?? 445, d?.dip_date_sz ?? 11, true);
 
