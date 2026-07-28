@@ -269,7 +269,7 @@ fun DesignScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 AsyncImage(
-                                    model = "file:///android_asset/Plantilla diploma.png",
+                                    model = "file:///android_asset/plantilla_diploma.png",
                                     contentDescription = "Plantilla de Diploma",
                                     modifier = Modifier.fillMaxSize().padding(8.dp),
                                     contentScale = ContentScale.Fit

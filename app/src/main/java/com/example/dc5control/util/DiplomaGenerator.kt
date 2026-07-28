@@ -18,7 +18,7 @@ import java.util.Locale
 
 object DiplomaGenerator {
     private const val TAG = "DiplomaGenerator"
-    private const val TEMPLATE_NAME = "Plantilla diploma.png"
+    private const val TEMPLATE_NAME = "plantilla_diploma.png"
     private const val PW = 792f // Letter Landscape width
     private const val PH = 612f // Letter Landscape height
 
