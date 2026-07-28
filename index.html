@@ -2686,16 +2686,25 @@ async function saveDesign() {
         localStorage.setItem('dc3_design', JSON.stringify(fullDesign));
 
         const existing = await api('find','agent_designs', { filter: { creatorEmail: p.creatorEmail } });
+        let dbRes;
         if (existing.documents?.length > 0) {
-            const res = await api('update','agent_designs', { id: existing.documents[0].id, document: payload });
-            if (res.error) throw new Error(res.error);
+            dbRes = await api('update','agent_designs', { id: existing.documents[0].id, document: payload });
         } else {
-            const res = await api('insertOne','agent_designs', { document: payload });
-            if (res.error) throw new Error(res.error);
+            dbRes = await api('insertOne','agent_designs', { document: payload });
         }
-        alert('✓ Diseño guardado');
+
+        if (dbRes.error) {
+            console.error('Error DB:', dbRes.error);
+            if (dbRes.error.includes('diploma_template_base64')) {
+                alert('Aviso: El diseño se guardó LOCALMENTE en este navegador.\n\nPara guardarlo en la nube, debes añadir la columna "diploma_template_base64" en Supabase (ver instrucciones en el chat).');
+            } else {
+                alert('Aviso: Error al guardar en la nube: ' + dbRes.error + '\n\nSe mantuvo una copia local.');
+            }
+        } else {
+            alert('✓ Diseño guardado correctamente en la nube');
+        }
     } catch(e) {
-        console.error('Error saving design:', e);
+        console.error('Error general saveDesign:', e);
         alert('Error: ' + e.message);
     }
     finally { if (btn) { btn.disabled=false; btn.textContent='💾 Guardar diseño'; } }

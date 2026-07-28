@@ -267,7 +267,6 @@ fun DesignScreen(
                             onClick = {
                                 isSaving = true
                                 scope.launch {
-                                    // Save design to Supabase
                                     val design = com.example.dc5control.data.model.AgentDesign(
                                         creatorEmail = user.email,
                                         headerSlogan = headerSlogan,
@@ -279,15 +278,24 @@ fun DesignScreen(
                                         diplomaTemplateBase64 = diplomaTemplateBase64
                                     )
                                     
-                                    val existing = SupabaseRepository.fetchDataFilteredSuspend("agent_designs", "creator_email=eq.${user.email}", AgentDesign.serializer()).firstOrNull()
-                                    if (existing != null) {
-                                        SupabaseRepository.updateDataSuspend("agent_designs", existing.id!!, design, AgentDesign.serializer())
-                                    } else {
-                                        SupabaseRepository.insertDataSuspend("agent_designs", design, AgentDesign.serializer())
+                                    try {
+                                        val existing = SupabaseRepository.fetchDataFilteredSuspend("agent_designs", "creator_email=eq.${user.email}", AgentDesign.serializer()).firstOrNull()
+                                        val success = if (existing != null) {
+                                            SupabaseRepository.updateDataSuspend("agent_designs", existing.id!!, design, AgentDesign.serializer())
+                                        } else {
+                                            SupabaseRepository.insertDataSuspend("agent_designs", design, AgentDesign.serializer())
+                                        }
+                                        
+                                        if (success) {
+                                            saveMessage = "✓ Diseño guardado correctamente"
+                                        } else {
+                                            saveMessage = "⚠ Error al sincronizar con la nube. Verifica tu conexión."
+                                        }
+                                    } catch (e: Exception) {
+                                        saveMessage = "⚠ Error: ${e.message}. ¿Añadiste la columna en Supabase?"
                                     }
                                     
                                     isSaving = false
-                                    saveMessage = "✓ Diseño guardado correctamente"
                                 }
                             },
                             modifier = Modifier.fillMaxWidth(),

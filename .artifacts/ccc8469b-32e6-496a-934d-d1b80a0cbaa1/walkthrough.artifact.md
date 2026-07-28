@@ -1,31 +1,28 @@
-# Walkthrough: Nuevo Panel de Diseño con Pestañas
+# Walkthrough: Personalización Dinámica de Diplomas
 
-Se ha completado la reestructuración del panel de diseño para soportar múltiples tipos de documentos (DC-3 y Diplomas).
+Se ha implementado la funcionalidad para cambiar la plantilla de fondo de los diplomas tanto en la aplicación móvil como en la plataforma web.
 
-## Cambios Principales
+## Cambios Realizados
 
-### 1. Renombrado y Navegación
-- El panel anteriormente llamado "Diseño DC-3" ahora se llama simplemente **"Diseño"** en el menú de navegación de Android y en la barra lateral Web.
-- Se actualizó el icono y la etiqueta para reflejar un propósito más general de personalización de formatos.
+### 1. Gestión de Plantillas
+- **Subida a GitHub**: Se ha sincronizado la versión más reciente de `plantilla_diploma.png` para que Cloudflare y la App tengan la base actualizada.
+- **Plantilla Dinámica**: Ahora puedes subir una imagen propia desde el panel de **Diseño**. Esta imagen se guarda en la base de datos vinculada a tu usuario.
 
-### 2. Interfaz de Pestañas (Tabs)
-- Se implementó una barra de pestañas en la parte superior de la pantalla de Diseño.
-- **Pestaña DC-3:** Contiene todas las opciones de personalización existentes (Logo, Slogan, Firma, etc.).
-- **Pestaña Diploma:** Se añadió como un nuevo contenedor para el futuro diseño de Diplomas (actualmente marcado como "Próximamente disponible").
+### 2. Plataforma Web
+- **Panel de Diseño**: En la pestaña **Diploma**, se añadió el botón "📷 Cambiar Fondo".
+- **Vista Previa**: Al subir una imagen, la vista previa se actualiza instantáneamente para mostrar cómo quedarán los textos sobre tu nueva plantilla.
+- **Generación**: Al generar un diploma, el sistema verifica si tienes una plantilla personalizada; si no, usa la de EHS por defecto.
 
-### 3. Sincronización Web
-- La versión web (`index.html`) ahora cuenta con la misma lógica de pestañas, permitiendo alternar entre el diseño del DC-3 y el del Diploma sin cambiar de sección principal.
+### 3. Aplicación Android
+- **Selector de Imagen**: Se habilitó la carga de archivos en el panel de Diseño para Android.
+- **Generador PDF**: El motor de PDF (`DiplomaGenerator.kt`) ahora acepta y procesa el fondo personalizado subido por el usuario.
 
-## Cómo Verificar
+## Cómo Usarlo
+1. Entra a **Diseño**.
+2. Cambia a la pestaña **Diploma**.
+3. Presiona **Cambiar Fondo** y selecciona tu imagen.
+4. Presiona **Guardar Todo el Diseño**.
+5. Al generar cualquier diploma nuevo, verás tu fondo aplicado.
 
-1. **En Android:**
-   - Abre el menú lateral y selecciona **"Diseño"**.
-   - Verás dos pestañas: **DC-3** y **Diploma**.
-   - Cambia entre ellas para verificar que el contenido se actualiza.
-
-2. **En la Web:**
-   - Selecciona **"Diseño"** en el menú lateral.
-   - Utiliza los botones de pestaña para alternar las vistas.
-
-## Repositorio Limpio
-- Se han corregido errores de etiquetas HTML y llaves en Kotlin introducidos durante la edición masiva, asegurando que el proyecto compile y se despliegue correctamente.
+> [!TIP]
+> Para mejores resultados, utiliza imágenes en formato PNG con una resolución de aproximadamente 3300x2550 píxeles (Tamaño Carta Horizontal).

@@ -1,36 +1,33 @@
-# Plan de Implementación: Personalización de Plantilla de Diploma
+# Plan de Implementación: Solución Error de Base de Datos y Plantilla de Diploma
 
-Este plan detalla los pasos para permitir que el usuario cambie la plantilla del diploma desde la Web y la App Android, además de asegurar que los cambios actuales lleguen al servidor.
+Este plan aborda el error de columna faltante en Supabase y asegura que la funcionalidad de cambiar la plantilla del diploma funcione correctamente en todas las plataformas.
 
-## Tareas Iniciales
-- `[ ]` Commit y Push del cambio actual en `plantilla_diploma.png` para que Cloudflare se actualice.
+## Acción Requerida en Supabase
+
+> [!IMPORTANT]
+> Para corregir el error que ves en pantalla, es **indispensable** añadir la columna a tu tabla de Supabase. Copia y pega el siguiente código en el **SQL Editor** de tu Dashboard de Supabase y presiona "Run":
+>
+> ```sql
+> ALTER TABLE agent_designs
+> ADD COLUMN IF NOT EXISTS diploma_template_base64 TEXT;
+> ```
 
 ## Cambios Propuestos
 
-### 1. Modelo de Datos
-#### [MODIFY] [Models.kt](file:///C:/Users/dtruj/AndroidStudioProjects/DC5-control/app/src/main/java/com/example/dc5control/data/model/Models.kt)
-- Añadir campo `diploma_template_base64` a la data class `AgentDesign`.
+### 1. Interfaz Web (`index.html`)
+- **Robustez al Guardar**: Modificar `saveDesign()` para que, si falla el guardado en la base de datos (por falta de la columna), guarde los datos localmente en el navegador como respaldo y no bloquee al usuario.
+- **Detección de Errores**: Mejorar el mensaje de error para guiar al usuario sobre la falta de la columna en la BD.
 
-### 2. Interfaz Web
-#### [MODIFY] [index.html](file:///C:/Users/dtruj/AndroidStudioProjects/DC5-control/index.html)
-- En la pestaña de **Diseño -> Diploma**, añadir un botón para subir una nueva imagen de plantilla.
-- Guardar la imagen como Base64 en la tabla `agent_designs` de Supabase.
-- Actualizar la función `generateDiploma` para:
-    - Intentar cargar la plantilla personalizada desde el diseño del agente.
-    - Si no existe, usar la plantilla por defecto (`plantilla_diploma.png`).
+### 2. Aplicación Android (`DC3DesignScreen.kt`)
+- Asegurar que el guardado también sea resiliente a errores de esquema de base de datos.
+- Sincronizar el nombre de los campos con la base de datos.
 
-### 3. Interfaz Android
-#### [MODIFY] [DC3DesignScreen.kt](file:///C:/Users/dtruj/AndroidStudioProjects/DC5-control/app/src/main/java/com/example/dc5control/ui/DC3DesignScreen.kt)
-- Añadir un botón "Subir nueva plantilla" en la pestaña de Diploma.
-- Implementar el selector de archivos para capturar la imagen.
-- Guardar en Supabase.
+## Tareas Detalladas
 
-### 4. Generador de PDF (Android)
-#### [MODIFY] [DiplomaGenerator.kt](file:///C:/Users/dtruj/AndroidStudioProjects/DC5-control/app/src/main/java/com/example/dc5control/util/DiplomaGenerator.kt)
-- Modificar `generateDiploma` para recibir opcionalmente un Bitmap de la plantilla personalizada.
-- Cargar dicho Bitmap si está presente; de lo contrario, cargar el asset por defecto.
+- `[ ]` Modificar `index.html` para un guardado "seguro" con respaldo en `localStorage`.
+- `[ ]` Actualizar `DC3DesignScreen.kt` para manejar errores de red o esquema al guardar el diseño.
+- `[ ]` Verificar sincronización de nombres de columnas.
 
 ## Verificación
-1. **Web**: Subir una imagen de prueba como plantilla y generar un diploma para verificar que se use la nueva imagen.
-2. **Android**: Repetir la prueba desde la APK.
-3. **Cloudflare**: Confirmar que la URL pública muestra la última versión de la plantilla base subida por el usuario.
+1. **Sin la columna**: El sistema debería permitir guardar (avisando que solo se guardó localmente) y generar el diploma con la imagen subida.
+2. **Con la columna**: Una vez ejecutado el SQL, el sistema debería guardar permanentemente en la nube y sincronizar con otros dispositivos.
