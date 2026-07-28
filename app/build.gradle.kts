@@ -97,6 +97,8 @@ dependencies {
 
     // Coil — carga de imágenes desde URL (fotos de trabajadores)
     implementation(libs.coil.compose)
+    // Security Crypto for EncryptedSharedPreferences
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

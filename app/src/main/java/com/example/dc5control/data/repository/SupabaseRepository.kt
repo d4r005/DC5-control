@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
+import com.example.dc5control.R
 import com.example.dc5control.data.model.*
 import kotlinx.serialization.json.*
 import okhttp3.*
@@ -17,7 +18,7 @@ import java.io.IOException
  */
 object SupabaseRepository {
     private val client = OkHttpClient()
-    private val json = Json { 
+    private val json = Json {
         ignoreUnknownKeys = true
         encodeDefaults = true
         isLenient = true
@@ -25,29 +26,29 @@ object SupabaseRepository {
     private val mainHandler = Handler(Looper.getMainLooper())
 
     // Credenciales de la plataforma web (osgfwgedjdltrmvwycjd.supabase.co)
-    private const val SUPABASE_URL = "https://osgfwgedjdltrmvwycjd.supabase.co/rest/v1"
-    private const val SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zZ2Z3Z2VkamRsdHJtdnd5Y2pkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyNDAxMzcsImV4cCI6MjA5OTgxNjEzN30.jeV98eAfhQzkXiGj88DUOLqLPLFr_IKPrcnTaefEgj0"
+    private fun getSupabaseUrl(context: Context): String = context.getString(R.string.supabase_url)
+    private fun getSupabaseKey(context: Context): String = context.getString(R.string.supabase_anon_key)
 
-    private fun getBaseRequest(table: String, query: String = ""): Request.Builder {
-        val url = if (query.isNotEmpty()) "$SUPABASE_URL/$table?$query" else "$SUPABASE_URL/$table"
+    private fun getBaseRequest(context: Context, table: String, query: String = ""): Request.Builder {
+        val url = if (query.isNotEmpty()) "${getSupabaseUrl(context)}/$table?$query" else "${getSupabaseUrl(context)}/$table"
         return Request.Builder()
             .url(url)
-            .addHeader("apikey", SUPABASE_KEY)
-            .addHeader("Authorization", "Bearer $SUPABASE_KEY")
+            .addHeader("apikey", getSupabaseKey(context))
+            .addHeader("Authorization", "Bearer ${getSupabaseKey(context)}")
             .addHeader("Content-Type", "application/json")
             .addHeader("Accept", "application/json")
     }
 
     // ─── FETCH (SELECT) ───────────────────────────────────────────
-    fun <T> fetchData(table: String, serializer: kotlinx.serialization.KSerializer<T>, onResult: (List<T>) -> Unit) {
-        val request = getBaseRequest(table, "select=*")
+    fun <T> fetchData(context: Context, table: String, serializer: kotlinx.serialization.KSerializer<T>, onResult: (List<T>) -> Unit) {
+        val request = getBaseRequest(context, table, "select=*")
             .get()
             .build()
 
         android.util.Log.d("Supabase", "Fetching from $table...")
 
         client.newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) { 
+            override fun onFailure(call: Call, e: IOException) {
                 android.util.Log.e("Supabase", "Connection failed for $table: ${e.message}")
                 mainHandler.post { onResult(emptyList()) }
             }

@@ -38,6 +38,7 @@ import com.example.dc5control.R
 import com.example.dc5control.data.AuthManager
 import com.example.dc5control.data.model.User
 import com.example.dc5control.ui.theme.*
+import com.example.dc5control.util.SecurePreferences
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -45,10 +46,8 @@ import kotlinx.coroutines.launch
 fun LoginScreen(onLoginSuccess: (User, Boolean) -> Unit) {
     val context = LocalContext.current
     // Pre-fill email if "recordar usuario" was previously checked
-    val prefs = context.getSharedPreferences("ace_session", Context.MODE_PRIVATE)
-    val savedEmail = prefs.getString("saved_email", null)
-    var email by rememberSaveable { mutableStateOf(savedEmail ?: "") }
-    var rememberMe by rememberSaveable { mutableStateOf(savedEmail != null) }
+    var email by rememberSaveable { mutableStateOf("") }
+    var rememberMe by rememberSaveable { mutableStateOf(false) }
     var password by rememberSaveable { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
     var showError by remember { mutableStateOf(false) }
@@ -56,6 +55,18 @@ fun LoginScreen(onLoginSuccess: (User, Boolean) -> Unit) {
     var isLoading by remember { mutableStateOf(false) }
     var attempts by remember { mutableStateOf(0) }
     val scope = rememberCoroutineScope()
+
+    // Initialize email from secure storage
+    init {
+        try {
+            email = SecurePreferences.getEmail(context) ?: ""
+            rememberMe = email.isNotEmpty()
+        } catch (e: Exception) {
+            // If there's an error reading from secure storage, fall back to empty
+            email = ""
+            rememberMe = false
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -221,9 +232,21 @@ fun LoginScreen(onLoginSuccess: (User, Boolean) -> Unit) {
                                         showError = false
                                         // Save email if remember me is checked
                                         if (rememberMe) {
-                                            prefs.edit().putString("saved_email", email.trim()).apply()
+                                            try {
+                                                SecurePreferences.saveEmail(context, email.trim())
+                                            } catch (e: Exception) {
+                                                // Handle encryption error - fallback to regular preferences for now
+                                                val prefs = context.getSharedPreferences("ace_session", Context.MODE_PRIVATE)
+                                                prefs.edit().putString("saved_email", email.trim()).apply()
+                                            }
                                         } else {
-                                            prefs.edit().remove("saved_email").apply()
+                                            try {
+                                                SecurePreferences.clearEmail(context)
+                                            } catch (e: Exception) {
+                                                // Handle decryption error - fallback to regular preferences for now
+                                                val prefs = context.getSharedPreferences("ace_session", Context.MODE_PRIVATE)
+                                                prefs.edit().remove("saved_email").apply()
+                                            }
                                         }
                                         onLoginSuccess(user, rememberMe)
                                     } else {
