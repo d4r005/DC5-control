@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACE-Control | Gestión DC-3 v1.2.4 · DIPLOMA & UI FIX</title>
+    <title>ACE-Control | Gestión DC-3 v1.2.5 · TEMPLATE RECOVERY</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -90,7 +90,7 @@
                 </svg>
             </div>
             <h1 class="text-2xl font-black text-gray-900">ACE-Control</h1>
-            <p class="text-sm text-gray-400 mt-1">Sistema de Gestión DC-3 · STPS v1.2.4 · DIPLOMA & UI FIX</p>
+            <p class="text-sm text-gray-400 mt-1">Sistema de Gestión DC-3 · STPS v1.2.5 · TEMPLATE RECOVERY</p>
         </div>
 
         <div class="login-card">
@@ -1022,7 +1022,7 @@ function toSnake(obj) {
         updatedAt:'updated_at',
         apellidoPaterno:'apellido_paterno', apellidoMaterno:'apellido_materno', nombres:'nombres',
         photoUrl:'photo_url',
-        diplomaBase64:'diploma_template_base64',
+        diplomaBase64:'diploma_base64',
         dipWorkerX:'dip_worker_x', dipWorkerY:'dip_worker_y', dipWorkerSz:'dip_worker_sz',
         dipCourseX:'dip_course_x', dipCourseY:'dip_course_y', dipCourseSz:'dip_course_sz',
         dipDurationX:'dip_duration_x', dipDurationY:'dip_duration_y', dipDurationSz:'dip_duration_sz',
@@ -1858,16 +1858,17 @@ async function _buildDiplomaCore() {
     let d = null;
     const localD = localStorage.getItem('dc3_design');
     if (localD) {
-        d = JSON.parse(localD);
+        try { d = JSON.parse(localD); } catch(e) {}
     } else {
         try {
             const agentRecord = DATA.agents.find(a => a.name === agentName);
             const dr = await api('find','agent_designs', { filter: { creatorEmail: agentRecord?.creatorEmail || currentUser.email } });
-            if (dr.documents?.length > 0) d = dr.documents[0];
+            if (dr.documents?.length > 0) d = toCamel(dr.documents[0]);
         } catch(e) {}
     }
 
-    const diplomaB64 = d?.diploma_template_base64 || d?.diploma_base64 || d?.diplomaBase64;
+    // Try all possible column names for the template
+    const diplomaB64 = d?.diplomaBase64 || d?.diploma_base64 || d?.diploma_template_base64;
     if (diplomaB64) {
         const b64 = diplomaB64.split(',')[1];
         imgBytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
