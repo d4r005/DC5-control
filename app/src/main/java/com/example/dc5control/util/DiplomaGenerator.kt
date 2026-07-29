@@ -23,15 +23,9 @@ object DiplomaGenerator {
     private const val PW = 792f // Letter Landscape width
     private const val PH = 612f // Letter Landscape height
 
-    private fun calculateStps(agentStps: String, courseStpsId: String?): String {
+    private fun calculateStps(agentStps: String): String {
         val base = agentStps.removePrefix("STPS-").removePrefix("STPS-").trim()
-        if (courseStpsId.isNullOrBlank()) return "STPS-$base"
-
-        val parts = base.split("-")
-        if (parts.size < 2) return "STPS-$base-$courseStpsId"
-
-        val baseWithoutSuffix = parts.dropLast(1).joinToString("-")
-        return "STPS-$baseWithoutSuffix-$courseStpsId"
+        return "STPS-$base"
     }
 
     fun generateDiploma(
@@ -141,10 +135,10 @@ object DiplomaGenerator {
 
         textCentered(agentX, agentY, design?.agentName ?: agent.name, agentSz, true)
 
-        val finalStps = calculateStps(agent.stps, course.stpsId)
+        val finalStps = calculateStps(agent.stps)
         textCentered(stpsX, stpsY, "REGISTRO $finalStps", stpsSz, true)
 
-        folio?.let { textCentered(folioX, folioY, "folio: $it", folioSz, true, 2) }
+        folio?.let { textCentered(folioX, folioY, it, folioSz, true, 2) }
 
         cs.close()
 

@@ -65,15 +65,9 @@ suspend fun loadBitmap(context: Context, source: String?): Bitmap? {
     }
 }
 
-fun calculateStps(agentStps: String, courseStpsId: String?): String {
+fun calculateStps(agentStps: String): String {
     val base = agentStps.removePrefix("STPS-").removePrefix("STPS-").trim()
-    if (courseStpsId.isNullOrBlank()) return "STPS-$base"
-    
-    val parts = base.split("-")
-    if (parts.size < 2) return "STPS-$base-$courseStpsId"
-    
-    val baseWithoutSuffix = parts.dropLast(1).joinToString("-")
-    return "STPS-$baseWithoutSuffix-$courseStpsId"
+    return "STPS-$base"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -161,7 +155,7 @@ fun DC3GenerationScreen(
                 val course = selectedCourses.firstOrNull() ?: return
                 val photo = loadBitmap(context, employee.photoUrl)
                 
-                val finalStps = calculateStps(agent.stps, course.stpsId)
+                val finalStps = calculateStps(agent.stps)
                 
                 val file = PdfGenerator.generateDC3(
                     context, employee, course, agent.copy(stps = finalStps), company.name, company.rfc,
@@ -179,7 +173,7 @@ fun DC3GenerationScreen(
                         currentDoc++
                         statusText = "Procesando $currentDoc de $totalDocs: ${employee.nombres}..."
                         
-                        val finalStps = calculateStps(agent.stps, course.stpsId)
+                        val finalStps = calculateStps(agent.stps)
                         
                         val file = PdfGenerator.generateDC3(
                             context, employee, course, agent.copy(stps = finalStps), company.name, company.rfc,
@@ -228,6 +222,10 @@ fun DC3GenerationScreen(
             val design = SupabaseRepository.fetchDataFilteredSuspend("agent_designs", "creator_email=eq.${agent.creatorEmail ?: user.email}", AgentDesign.serializer()).firstOrNull()
             val customTemplate = loadBitmap(context, design?.diplomaTemplateBase64)
 
+            val year = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
+            val initialRecords = SupabaseRepository.fetchDataFilteredSuspend("dc3_records", "start_date=gte.$year-01-01", DC3Record.serializer())
+            val initialCount = initialRecords.size
+
             var currentDoc = 0
             val totalDocs = selectedEmployees.size * selectedCourses.size
             selectedEmployees.forEach { employee ->
@@ -235,7 +233,7 @@ fun DC3GenerationScreen(
                     currentDoc++
                     statusText = "Generando Diploma $currentDoc de $totalDocs..."
                     
-                    val folioStr = "EHS-" + java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.getDefault()).format(java.util.Date()) + "-" + (100..999).random()
+                    val folioStr = "EHS-CON-$year-${String.format(java.util.Locale.US, "%04d", initialCount + currentDoc)}"
                     
                     val file = DiplomaGenerator.generateDiploma(
                         context, employee, course, agent, startDate, endDate, customTemplate,
