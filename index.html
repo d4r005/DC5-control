@@ -1013,7 +1013,8 @@ function toSnake(obj) {
         headerSloganFont:'header_slogan_font',
         updatedAt:'updated_at',
         apellidoPaterno:'apellido_paterno', apellidoMaterno:'apellido_materno', nombres:'nombres',
-        photoUrl:'photo_url'
+        photoUrl:'photo_url',
+        diplomaBase64:'diploma_base64'
     };
     const out = {};
     for (const [k,v] of Object.entries(obj)) out[map[k]||k] = v;
@@ -1037,7 +1038,8 @@ function toCamel(obj) {
         header_slogan_font:'headerSloganFont',
         updated_at:'updatedAt',
         apellido_paterno:'apellidoPaterno', apellido_materno:'apellidoMaterno', nombres:'nombres',
-        photo_url:'photoUrl'
+        photo_url:'photoUrl',
+        diploma_base64:'diplomaBase64'
     };
     const out = {};
     for (const [k,v] of Object.entries(obj)) out[map[k]||k] = v;
@@ -1775,19 +1777,7 @@ async function generateDiploma() {
     })(agentStps, courseStpsId);
 
     try {
-        const resp = await fetch('plantilla_diploma.png?v=2');
-        const imgBytes = await resp.arrayBuffer();
-
-        const pdfDoc = await PDFDocument.create();
-        const page = pdfDoc.addPage([792, 612]); // Letter Landscape
-        const PW = 792, PH = 612;
-
-        const img = await pdfDoc.embedPng(imgBytes);
-        page.drawImage(img, { x: 0, y: 0, width: PW, height: PH });
-
-        const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-        const fontB = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-
+        let imgBytes = null;
         // --- CARGAR DISEÑO (Prioridad LocalStorage > DB) ---
         let d = null;
         const localD = localStorage.getItem('dc3_design');
@@ -1800,6 +1790,25 @@ async function generateDiploma() {
                 if (dr.documents?.length > 0) d = dr.documents[0];
             } catch(e) {}
         }
+
+        const diplomaB64 = d?.diploma_base64 || d?.diplomaBase64;
+        if (diplomaB64) {
+            const b64 = diplomaB64.split(',')[1];
+            imgBytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+        } else {
+            const resp = await fetch('plantilla_diploma.png?v=2');
+            imgBytes = await resp.arrayBuffer();
+        }
+
+        const pdfDoc = await PDFDocument.create();
+        const page = pdfDoc.addPage([792, 612]); // Letter Landscape
+        const PW = 792, PH = 612;
+
+        const img = await pdfDoc.embedPng(imgBytes).catch(() => pdfDoc.embedJpg(imgBytes));
+        page.drawImage(img, { x: 0, y: 0, width: PW, height: PH });
+
+        const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+        const fontB = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
         const drawC = (txt, x, y, sz, fb = false, color = rgb(0,0,0)) => {
             const f = fb ? fontB : font;
@@ -1883,19 +1892,7 @@ async function generateDiploma() {
     })(agentStps, courseStpsId);
 
     try {
-        const resp = await fetch('plantilla_diploma.png?v=2');
-        const imgBytes = await resp.arrayBuffer();
-
-        const pdfDoc = await PDFDocument.create();
-        const page = pdfDoc.addPage([792, 612]); // Letter Landscape
-        const PW = 792, PH = 612;
-
-        const img = await pdfDoc.embedPng(imgBytes);
-        page.drawImage(img, { x: 0, y: 0, width: PW, height: PH });
-
-        const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-        const fontB = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-
+        let imgBytes = null;
         // --- CARGAR DISEÑO (Prioridad LocalStorage > DB) ---
         let d = null;
         const localD = localStorage.getItem('dc3_design');
@@ -1908,6 +1905,25 @@ async function generateDiploma() {
                 if (dr.documents?.length > 0) d = dr.documents[0];
             } catch(e) {}
         }
+
+        const diplomaB64 = d?.diploma_base64 || d?.diplomaBase64;
+        if (diplomaB64) {
+            const b64 = diplomaB64.split(',')[1];
+            imgBytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+        } else {
+            const resp = await fetch('plantilla_diploma.png?v=2');
+            imgBytes = await resp.arrayBuffer();
+        }
+
+        const pdfDoc = await PDFDocument.create();
+        const page = pdfDoc.addPage([792, 612]); // Letter Landscape
+        const PW = 792, PH = 612;
+
+        const img = await pdfDoc.embedPng(imgBytes).catch(() => pdfDoc.embedJpg(imgBytes));
+        page.drawImage(img, { x: 0, y: 0, width: PW, height: PH });
+
+        const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+        const fontB = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
         const drawC = (txt, x, y, sz, fb = false, color = rgb(0,0,0)) => {
             const f = fb ? fontB : font;
@@ -2081,6 +2097,7 @@ async function loadDesign() {
         if (d.logoBase64)        { designState.logo_base64 = d.logoBase64;             showDesignThumb('logo', d.logoBase64); }
         if (d.firmaBase64)       { designState.firma_base64 = d.firmaBase64;           showDesignThumb('firma', d.firmaBase64); }
         if (d.headerLogoBase64)  { designState.header_logo_base64 = d.headerLogoBase64; showDesignThumb('headerLogo', d.headerLogoBase64); }
+        if (d.diplomaBase64)     { designState.diploma_base64 = d.diplomaBase64;       showDesignThumb('diploma', d.diplomaBase64); }
 
         setV('design-agent-name', d.agentName);
         setV('design-slogan', d.slogan);
@@ -2149,16 +2166,23 @@ async function updateDiplomaDesignPreview() {
     const canvas = document.getElementById('diploma-preview-canvas');
     if (!canvas) return;
 
-    if (!designState._dipTemplateBytes) {
-        try {
-            const resp = await fetch('plantilla_diploma.png?v=2');
-            if (!resp.ok) throw new Error("HTTP " + resp.status);
-            designState._dipTemplateBytes = await resp.arrayBuffer();
-        } catch(e) {
-            console.error("Error cargando plantilla diploma:", e);
-            _showCanvasError(canvas, "No se pudo cargar plantilla_diploma.png");
-            return;
+    let imgBytes = null;
+    if (designState.diploma_base64) {
+        const b64 = designState.diploma_base64.split(',')[1];
+        imgBytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    } else {
+        if (!designState._dipTemplateBytes) {
+            try {
+                const resp = await fetch('plantilla_diploma.png?v=2');
+                if (!resp.ok) throw new Error("HTTP " + resp.status);
+                designState._dipTemplateBytes = await resp.arrayBuffer();
+            } catch(e) {
+                console.error("Error cargando plantilla diploma:", e);
+                _showCanvasError(canvas, "No se pudo cargar plantilla_diploma.png");
+                return;
+            }
         }
+        imgBytes = designState._dipTemplateBytes;
     }
 
     const { PDFDocument, StandardFonts, rgb } = PDFLib;
@@ -2166,8 +2190,14 @@ async function updateDiplomaDesignPreview() {
     const page = pdfDoc.addPage([T_DIP_W, T_DIP_H]);
 
     try {
-        const img = await pdfDoc.embedPng(designState._dipTemplateBytes);
+        const img = await pdfDoc.embedPng(imgBytes);
         page.drawImage(img, { x: 0, y: 0, width: T_DIP_W, height: T_DIP_H });
+    } catch(e) {
+        try {
+            const img = await pdfDoc.embedJpg(imgBytes);
+            page.drawImage(img, { x: 0, y: 0, width: T_DIP_W, height: T_DIP_H });
+        } catch(e2) { console.error("Error embed imagen diploma:", e2); }
+    }
     } catch(e) {
         try {
             const img = await pdfDoc.embedJpg(designState._dipTemplateBytes);
@@ -2274,7 +2304,12 @@ function _updateDiplomaDragHandles() {
 }
 
 function showDesignThumb(type, src) {
-    const idMap = { logo: 'design-logo-preview', firma: 'design-firma-preview', headerLogo: 'design-header-logo-preview' };
+    const idMap = {
+        logo: 'design-logo-preview',
+        firma: 'design-firma-preview',
+        headerLogo: 'design-header-logo-preview',
+        diploma: 'diploma-template-thumb'
+    };
     const el = document.getElementById(idMap[type]);
     if (!el) return;
     el.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:contain;border-radius:4px">`;
@@ -2289,6 +2324,22 @@ async function handleDesignImage(input, type) {
     else if (type === 'headerLogo')  designState.header_logo_base64 = dataUrl;
     showDesignThumb(type, dataUrl);
     updateDesignPreview();
+}
+
+async function handleDiplomaTemplate(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const dataUrl = await fileToDataUrl(file);
+    designState.diploma_base64 = dataUrl;
+    showDesignThumb('diploma', dataUrl);
+    updateDiplomaDesignPreview();
+}
+
+function clearDiplomaTemplate() {
+    designState.diploma_base64 = null;
+    const el = document.getElementById('diploma-template-thumb');
+    if (el) el.innerHTML = `<img src="/plantilla_diploma.png" alt="Vista previa plantilla" class="w-full h-full object-contain">`;
+    updateDiplomaDesignPreview();
 }
 
 function clearDesignImage(type) {
@@ -2325,6 +2376,7 @@ function getDesignParams() {
         sloganSize: gv('design-slogan-size',7),
         sloganFont: gs('design-slogan-font','Helvetica'),
         agentName: gs('design-agent-name'),
+        diplomaBase64: designState.diploma_base64,
         creatorEmail: currentUser?.email || ''
     };
 }
@@ -2363,6 +2415,7 @@ async function saveDesign() {
             slogan_y: p.sloganY,
             slogan_size: p.sloganSize,
             agent_name: p.agentName,
+            diploma_base64: p.diplomaBase64,
             updated_at: new Date().toISOString()
         };
 
