@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACE-Control | Gestión DC-3 v1.2.5 · TEMPLATE RECOVERY</title>
+    <title>ACE-Control | Gestión DC-3 v1.2.6 · TEMPLATE FIX</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -90,7 +90,7 @@
                 </svg>
             </div>
             <h1 class="text-2xl font-black text-gray-900">ACE-Control</h1>
-            <p class="text-sm text-gray-400 mt-1">Sistema de Gestión DC-3 · STPS v1.2.5 · TEMPLATE RECOVERY</p>
+            <p class="text-sm text-gray-400 mt-1">Sistema de Gestión DC-3 · STPS v1.2.6 · TEMPLATE FIX</p>
         </div>
 
         <div class="login-card">
@@ -1998,6 +1998,7 @@ function togglePassword() {
 
 const designState = {
     logo_base64: null, firma_base64: null, header_logo_base64: null,
+    diploma_base64: null,
     _previewTimer: null, _pdfTemplateBytes: null, _scale: 1.0
 };
 
@@ -2043,7 +2044,7 @@ async function loadDesign() {
                 const doc = r.documents[0];
                 d = toCamel(doc);
                 // Si faltan columnas de diploma, intentar cargarlas de campos antiguos si existen
-                if (!d.diplomaBase64) d.diplomaBase64 = doc.diploma_template_base64 || doc.diploma_base64;
+                if (!d.diplomaBase64) d.diplomaBase64 = doc.diploma_base64 || doc.diploma_template_base64;
                 console.log('[DEBUG] Loaded agent_design:', d);
             }
         } catch(e) {}
