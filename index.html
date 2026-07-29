@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACE-Control | Gestión DC-3 v1.1.5</title>
+    <title>ACE-Control | Gestión DC-3 v1.1.6 · LOGIN REPAIRED</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -90,7 +90,7 @@
                 </svg>
             </div>
             <h1 class="text-2xl font-black text-gray-900">ACE-Control</h1>
-            <p class="text-sm text-gray-400 mt-1">Sistema de Gestión DC-3 · STPS v1.1.5 · FIXED</p>
+            <p class="text-sm text-gray-400 mt-1">Sistema de Gestión DC-3 · STPS v1.1.6 · LOGIN REPAIRED</p>
         </div>
 
         <div class="login-card">
@@ -1119,13 +1119,17 @@ async function login(e) {
 
         // Hash the password with SHA-256 before comparing
         const passHash = await sha256(pass);
+        console.log('[DEBUG] Attempting login for:', email);
+
         const user = DATA.users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.passHash === passHash);
 
         if (!user) {
-            console.warn('[DEBUG] Invalid credentials');
+            console.warn('[DEBUG] Invalid credentials for:', email);
             const errEl = document.getElementById('login-error');
-            if (errEl) errEl.classList.remove('hidden');
-            else alert('Credenciales incorrectas.');
+            if (errEl) {
+                errEl.classList.remove('hidden');
+                errEl.textContent = 'Correo o contraseña incorrectos.';
+            } else alert('Credenciales incorrectas.');
             return;
         }
 
@@ -1832,6 +1836,15 @@ async function generateDiploma() {
         const pdfBytes = await pdfDoc.save();
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Diploma_${selectedWorker.curp}.pdf`;
+        a.click();
+    } catch(e) {
+        console.error("Error generating Diploma:", e);
+        alert("Error al generar diploma: " + e.message);
+    }
+
     closeModal('modal-dc3');
     if (currentView === 'dc3') loadSection('dc3');
     else { alert('DC-3 generado y guardado exitosamente.'); }
