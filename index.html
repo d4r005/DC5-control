@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACE-Control | Gestión DC-3 v1.2.0 · FOLIO & DATABASE FIX</title>
+    <title>ACE-Control | Gestión DC-3 v1.2.1 · SUPABASE SYNC FIX</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -90,7 +90,7 @@
                 </svg>
             </div>
             <h1 class="text-2xl font-black text-gray-900">ACE-Control</h1>
-            <p class="text-sm text-gray-400 mt-1">Sistema de Gestión DC-3 · STPS v1.2.0 · FOLIO & DATABASE FIX</p>
+            <p class="text-sm text-gray-400 mt-1">Sistema de Gestión DC-3 · STPS v1.2.1 · SUPABASE SYNC FIX</p>
         </div>
 
         <div class="login-card">
@@ -2280,7 +2280,7 @@ function getDesignParams() {
         sloganSize: gv('design-slogan-size',7),
         sloganFont: gs('design-slogan-font','Helvetica'),
         agentName: gs('design-agent-name'),
-        diplomaBase64: designState.diploma_base_64 || designState.diplomaBase64,
+        diplomaBase64: designState.diploma_base64 || designState.diplomaBase64,
         dipWorkerX: gv('dip-worker-x'), dipWorkerY: gv('dip-worker-y'), dipWorkerSz: gv('dip-worker-sz'),
         dipCourseX: gv('dip-course-x'), dipCourseY: gv('dip-course-y'), dipCourseSz: gv('dip-course-sz'),
         dipDurationX: gv('dip-duration-x'), dipDurationY: gv('dip-duration-y'), dipDurationSz: gv('dip-duration-sz'),
@@ -2300,42 +2300,8 @@ async function saveDesign() {
         const p = getDesignParams();
 
         // Mapeo manual para asegurar que NO se envíen nombres camelCase ni columnas inexistentes
-        const payload = {
-            creator_email: p.creatorEmail,
-            logo_base64: p.logoBase64,
-            logo_x: p.logoX,
-            logo_y: p.logoY,
-            logo_w: p.logoW,
-            logo_h: p.logoH,
-            firma_base64: p.firmaBase64,
-            firma_x: p.firmaX,
-            firma_y: p.firmaY,
-            firma_w: p.firmaW,
-            firma_h: p.firmaH,
-            header_logo_base64: p.headerLogoBase64,
-            header_logo_x: p.headerLogoX,
-            header_logo_y: p.headerLogoY,
-            header_logo_w: p.headerLogoW,
-            header_logo_h: p.headerLogoH,
-            header_slogan: p.headerSlogan,
-            header_slogan_x: p.headerSloganX,
-            header_slogan_y: p.headerSloganY,
-            header_slogan_size: p.headerSloganSize,
-            slogan: p.slogan,
-            slogan_x: p.sloganX,
-            slogan_y: p.sloganY,
-            slogan_size: p.sloganSize,
-            agent_name: p.agentName,
-            diploma_base64: p.diplomaBase64,
-            dip_worker_x: p.dipWorkerX, dip_worker_y: p.dipWorkerY, dip_worker_sz: p.dipWorkerSz,
-            dip_course_x: p.dipCourseX, dip_course_y: p.dipCourseY, dip_course_sz: p.dipCourseSz,
-            dip_duration_x: p.dipDurationX, dip_duration_y: p.dipDurationY, dip_duration_sz: p.dipDurationSz,
-            dip_date_x: p.dipDateX, dip_date_y: p.dipDateY, dip_date_sz: p.dipDateSz,
-            dip_agent_x: p.dipAgentX, dip_agent_y: p.dipAgentY, dip_agent_sz: p.dipAgentSz,
-            dip_stps_x: p.dipStpsX, dip_stps_y: p.dipStpsY, dip_stps_sz: p.dipStpsSz,
-            dip_folio_x: p.dipFolioX, dip_folio_y: p.dipFolioY, dip_folio_sz: p.dipFolioSz,
-            updated_at: new Date().toISOString()
-        };
+        const payload = toSnake(p);
+        payload.updated_at = new Date().toISOString();
 
         // Save fonts and diploma template to localStorage (persistent even if DB columns are missing)
         const localPayload = { ...payload, diploma_base64: p.diplomaBase64, slogan_font: p.sloganFont || 'Helvetica', header_slogan_font: p.headerSloganFont || 'Times-Italic' };
