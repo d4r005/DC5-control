@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACE-Control | Gestión DC-3 v1.2.2 · QUOTA & DB FIX</title>
+    <title>ACE-Control | Gestión DC-3 v1.2.3 · COURSE FILTER FIX</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -90,7 +90,7 @@
                 </svg>
             </div>
             <h1 class="text-2xl font-black text-gray-900">ACE-Control</h1>
-            <p class="text-sm text-gray-400 mt-1">Sistema de Gestión DC-3 · STPS v1.2.2 · QUOTA & DB FIX</p>
+            <p class="text-sm text-gray-400 mt-1">Sistema de Gestión DC-3 · STPS v1.2.3 · COURSE FILTER FIX</p>
         </div>
 
         <div class="login-card">
@@ -649,7 +649,7 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Agente Capacitador</label>
-                    <select id="dc3-agent" class="input-field"></select>
+                    <select id="dc3-agent" class="input-field" onchange="filterDC3Courses()"></select>
                 </div>
             </div>
             <div>
@@ -1658,12 +1658,28 @@ function openDC3(worker) {
     const agentSel = document.getElementById('dc3-agent');
     agentSel.innerHTML = DATA.agents.map(a => `<option value="${a.name}|${a.stps}">${a.name}</option>`).join('');
 
-    // Courses
-    const list = (currentUser.role === 'ADMIN' ? DATA.courses : DATA.courses.filter(c => c.creatorEmail === currentUser.email))
-        .filter(c => c.thematicArea && c.thematicArea !== '' && c.thematicArea !== '–' && c.thematicArea !== '-');
-    document.getElementById('dc3-course').innerHTML = list.map(c => `<option value="${c.name}|${c.durationHours}|${c.thematicArea}|${c.stpsId||''}">${c.name}</option>`).join('');
+    // Courses - Initialize filtered by first agent
+    filterDC3Courses();
 
     document.getElementById('modal-dc3').classList.add('open');
+}
+
+function filterDC3Courses() {
+    const agentVal = document.getElementById('dc3-agent').value;
+    if (!agentVal) return;
+    const [agentName] = agentVal.split('|');
+    const selectedAgent = DATA.agents.find(a => a.name === agentName);
+
+    if (!selectedAgent) return;
+
+    // Si es ADMIN, puede ver todo, pero por defecto filtramos por el agente seleccionado para ayudar al usuario
+    const list = DATA.courses.filter(c => c.creatorEmail === selectedAgent.creatorEmail)
+        .filter(c => c.thematicArea && c.thematicArea !== '' && c.thematicArea !== '–' && c.thematicArea !== '-');
+
+    const courseSel = document.getElementById('dc3-course');
+    courseSel.innerHTML = list.length
+        ? list.map(c => `<option value="${c.name}|${c.durationHours}|${c.thematicArea}|${c.stpsId||''}">${c.name}</option>`).join('')
+        : '<option value="">No hay cursos para este agente</option>';
 }
 
 function prepareEditDC3(record) {
@@ -1684,10 +1700,10 @@ function prepareEditDC3(record) {
     const agentOption = [...agentSel.options].find(opt => opt.value.startsWith(record.agentName));
     if (agentOption) agentSel.value = agentOption.value;
 
+    // Filter courses based on selected agent
+    filterDC3Courses();
+
     const courSel = document.getElementById('dc3-course');
-    const list = (currentUser.role === 'ADMIN' ? DATA.courses : DATA.courses.filter(c => c.creatorEmail === currentUser.email))
-        .filter(c => c.thematicArea && c.thematicArea !== '' && c.thematicArea !== '–' && c.thematicArea !== '-');
-    courSel.innerHTML = list.map(c => `<option value="${c.name}|${c.durationHours}|${c.thematicArea}">${c.name}</option>`).join('');
     const courseOption = [...courSel.options].find(opt => opt.value.startsWith(record.courseName));
     if (courseOption) courSel.value = courseOption.value;
 
