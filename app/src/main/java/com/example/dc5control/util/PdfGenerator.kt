@@ -280,9 +280,28 @@ object PdfGenerator {
 
         // --- PÁGINA 2 (Reverso) ---
         if (document.numberOfPages > 1) {
-            val csR = PDPageContentStream(document, document.getPage(1), PDPageContentStream.AppendMode.APPEND, true, true)
-            d.headerSlogan?.let { textCentered(306f, 15f, it, 11f, italic = true) }
-            d.headerLogoBitmap?.let { csR.drawImage(PDImageXObject.createFromByteArray(document, bitmapToJpeg(it), "hR"), 246f, PH-80f, 120f, 48f) }
+            val pageR = document.getPage(1)
+            val csR = PDPageContentStream(document, pageR, PDPageContentStream.AppendMode.APPEND, true, true)
+            
+            d.headerSlogan?.let {
+                val sz = d.headerSloganSize ?: 9f
+                val st = sanitize(it).uppercase()
+                val w = fontI.getStringWidth(st) / 1000 * sz
+                csR.beginText()
+                csR.setFont(fontI, sz)
+                csR.newLineAtOffset((d.headerSloganX ?: 306f) - (w / 2f), PH - (d.headerSloganY ?: 18f))
+                csR.showText(st)
+                csR.endText()
+            }
+            
+            d.headerLogoBitmap?.let {
+                val img = PDImageXObject.createFromByteArray(document, bitmapToJpeg(it), "hR")
+                val hlw = d.headerLogoW ?: 120f
+                val hlh = d.headerLogoH ?: 55f
+                val hlx = d.headerLogoX ?: 30f
+                val hly = d.headerLogoY ?: 10f
+                csR.drawImage(img, hlx, PH - hly - hlh, hlw, hlh)
+            }
             csR.close()
         }
 
