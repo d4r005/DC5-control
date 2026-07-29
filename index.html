@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACE-Control | Gestión DC-3 v1.1.2</title>
+    <title>ACE-Control | Gestión DC-3 v1.1.5</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -90,7 +90,7 @@
                 </svg>
             </div>
             <h1 class="text-2xl font-black text-gray-900">ACE-Control</h1>
-            <p class="text-sm text-gray-400 mt-1">Sistema de Gestión DC-3 · STPS v1.1.1</p>
+            <p class="text-sm text-gray-400 mt-1">Sistema de Gestión DC-3 · STPS v1.1.5 · FIXED</p>
         </div>
 
         <div class="login-card">
@@ -98,6 +98,7 @@
             <p class="text-sm text-gray-400 mb-7">Ingresa tus credenciales para continuar</p>
 
             <form onsubmit="login(event)" class="space-y-4">
+                <p class="text-[10px] text-blue-500 text-center">Si el sistema no responde, presiona Ctrl + F5</p>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Correo electrónico</label>
                     <input id="email" type="email" class="input-field" placeholder="usuario@correo.com" required>
@@ -456,7 +457,6 @@
                     </div>
                 </div>
             </div>
-        </div>
 
             <!-- Diploma Design Content -->
             <div id="design-content-diploma" class="hidden">
@@ -1119,17 +1119,13 @@ async function login(e) {
 
         // Hash the password with SHA-256 before comparing
         const passHash = await sha256(pass);
-        console.log('[DEBUG] Attempting login for:', email);
-
         const user = DATA.users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.passHash === passHash);
 
         if (!user) {
-            console.warn('[DEBUG] Invalid credentials for:', email);
+            console.warn('[DEBUG] Invalid credentials');
             const errEl = document.getElementById('login-error');
-            if (errEl) {
-                errEl.classList.remove('hidden');
-                errEl.textContent = 'Correo o contraseña incorrectos.';
-            } else alert('Credenciales incorrectas.');
+            if (errEl) errEl.classList.remove('hidden');
+            else alert('Credenciales incorrectas.');
             return;
         }
 
@@ -1836,18 +1832,73 @@ async function generateDiploma() {
         const pdfBytes = await pdfDoc.save();
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Diploma_${selectedWorker.curp}.pdf`;
-        a.click();
-
-    } catch (e) {
-        alert('Error al generar diploma: ' + e.message);
-    }
+    closeModal('modal-dc3');
+    if (currentView === 'dc3') loadSection('dc3');
+    else { alert('DC-3 generado y guardado exitosamente.'); }
 }
 
-// Regenerar desde historial
-async function regenDC3(record) {
+async function generateDiploma() {
+    const { PDFDocument, StandardFonts, rgb } = PDFLib;
+
+    const companyName = document.getElementById('dc3-company').value;
+    const agentVal    = document.getElementById('dc3-agent').value;
+    const courseVal   = document.getElementById('dc3-course').value;
+    const start       = document.getElementById('dc3-start').value;
+    const end         = document.getElementById('dc3-end').value;
+
+    if (!start || !end) { alert('Selecciona las fechas'); return; }
+
+    const [agentName, agentStps] = agentVal.split('|');
+    const [courseName, courseDuration, courseArea, courseStpsId] = courseVal.split('|');
+
+    // Calcular STPS final según el curso
+    const finalStps = (function(aStps, cId) {
+        let base = aStps.replace(/^STPS-/, '').replace(/^STPS-/, '').trim();
+        if (!cId) return "STPS-" + base;
+        let parts = base.split("-");
+        if (parts.length < 2) return "STPS-" + base + "-" + cId;
+        return "STPS-" + parts.slice(0, -1).join("-") + "-" + cId;
+    })(agentStps, courseStpsId);
+
+    try {
+        const resp = await fetch('plantilla_diploma.png?v=2');
+        const imgBytes = await resp.arrayBuffer();
+
+        const pdfDoc = await PDFDocument.create();
+        const page = pdfDoc.addPage([792, 612]); // Letter Landscape
+        const PW = 792, PH = 612;
+
+        const img = await pdfDoc.embedPng(imgBytes);
+        page.drawImage(img, { x: 0, y: 0, width: PW, height: PH });
+
+        const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+        const fontB = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+        // --- CARGAR DISEÑO (Prioridad LocalStorage > DB) ---
+        let d = null;
+        const localD = localStorage.getItem('dc3_design');
+        if (localD) {
+            d = JSON.parse(localD);
+        } else {
+            try {
+                const agentRecord = DATA.agents.find(a => a.name === agentName);
+                const dr = await api('find','agent_designs', { filter: { creatorEmail: agentRecord?.creatorEmail || currentUser.email } });
+                if (dr.documents?.length > 0) d = dr.documents[0];
+            } catch(e) {}
+        }
+
+        const drawC = (txt, x, y, sz, fb = false, color = rgb(0,0,0)) => {
+            const f = fb ? fontB : font;
+            const cleanTxt = (txt || '').toUpperCase();
+            const w = f.widthOfTextAtSize(cleanTxt, sz);
+            page.drawText(cleanTxt, { x: x - w/2, y: PH - y, size: sz, font: f, color: color });
+        };
+
+        // Coordenadas desde el Diseño (o defaults)
+        const dx = (id, def) => d?.[id] ?? def;
+
+        // 1. Nombre del Trabajador
+        const fullName = selectedWorker.apellidoPaterno ? `${selectedWorker.nombres} ${selectedWorker.apellidoPaterno} ${selectedWorker.apellidoMaterno || ''}`.trim() : selectedWorker.name;
         drawC(fullName, dx('dip_worker_x', 396), dx('dip_worker_y', 245), dx('dip_worker_sz', 28), true, rgb(0.1, 0.2, 0.4));
 
         // 2. Nombre del Curso
@@ -2768,279 +2819,6 @@ async function previewDC3() {
     }
 }
 
-// ─── PDF OFICIAL DC-3 STPS — rellena plantilla oficial ──────────
-async function _buildDC3Core({ worker, company, agent, course, start, end, result }) {
-    const { PDFDocument, StandardFonts, rgb } = PDFLib;
-
-    function sp(s) {
-        return String(s||'')
-            .replace(/[áà]/g,'a').replace(/[éè]/g,'e').replace(/[íì]/g,'i')
-            .replace(/[óò]/g,'o').replace(/[úùü]/g,'u').replace(/ñ/g,'n')
-            .replace(/[ÁÀ]/g,'A').replace(/[ÉÈ]/g,'E').replace(/[ÍÌ]/g,'I')
-            .replace(/[ÓÒ]/g,'O').replace(/[ÚÙÜ]/g,'U').replace(/Ñ/g,'N');
-    }
-
-    function parseFecha(f) {
-        if (!f) return { a:'    ', m:'  ', d:'  ' };
-        let parts;
-        if (f.includes('-')) {
-            parts = f.split('-');
-            return { a: parts[0].padStart(4,'0'), m: parts[1].padStart(2,'0'), d: parts[2].padStart(2,'0') };
-        } else {
-            parts = f.split('/');
-            return { a: (parts[2]||'    ').padStart(4,'0'), m: (parts[1]||'  ').padStart(2,'0'), d: (parts[0]||'  ').padStart(2,'0') };
-        }
-    }
-
-    let pdfBytes;
-    try {
-        const resp = await fetch('/plantilla_dc3.pdf');
-        if (!resp.ok) throw new Error('No se pudo cargar plantilla_dc3.pdf: ' + resp.status);
-        pdfBytes = await resp.arrayBuffer();
-    } catch(e) {
-        alert('Error cargando plantilla DC-3: ' + e.message);
-        return null;
-    }
-
-    const pdfDoc = await PDFDocument.load(pdfBytes);
-    const font   = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const fontB  = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-    const fontI  = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
-    const page   = pdfDoc.getPage(0);
-    const pageR  = pdfDoc.getPageCount() > 1 ? pdfDoc.getPage(1) : null;
-    const PH     = 792;
-
-    function T(x, yFitz, s, size, useBold) {
-        if (!s) return;
-        const sz = size || 9;
-        page.drawText(sp(String(s)), { x, y: PH - yFitz, size: sz, font: useBold ? fontB : font, color: rgb(0,0,0) });
-    }
-
-    function T_C(xCenter, yFitz, s, size, useBold) {
-        if (!s) return;
-        const sz = size || 9;
-        const f  = useBold ? fontB : font;
-        const w  = f.widthOfTextAtSize(sp(String(s)), sz);
-        page.drawText(sp(String(s)), { x: xCenter - w/2, y: PH - yFitz, size: sz, font: f, color: rgb(0,0,0) });
-    }
-
-    let agentDesign = null;
-    try {
-        const agentRecord = (DATA.agents || []).find(a => a.name && agent.name && a.name.toUpperCase().trim() === agent.name.toUpperCase().trim());
-        const agentEmail = agentRecord?.creatorEmail || currentUser?.email || '';
-        const dr = await api('find','agent_designs', { filter: { creatorEmail: agentEmail } });
-        agentDesign = (dr.documents && dr.documents.length > 0) ? dr.documents[0] : null;
-    } catch(e) {}
-
-    const compObj = (typeof company === 'object' && company !== null) ? company : { name: String(company || ''), rfc: '' };
-    const companyNameFinal = String(compObj.name || '').toUpperCase();
-
-    // Photo
-    if (worker && worker.photoUrl) {
-        try {
-            const photoBytes = await fetch(worker.photoUrl).then(r => r.arrayBuffer());
-            const photoImg = await pdfDoc.embedJpg(photoBytes).catch(() => pdfDoc.embedPng(photoBytes));
-            page.drawImage(photoImg, { x: 24, y: PH - 126, width: 72, height: 90 });
-        } catch(e) {}
-    }
-
-    // Cabecera
-    if (agentDesign?.header_logo_base64) {
-        try {
-            const hlImg = await embedBase64Img(pdfDoc, agentDesign.header_logo_base64);
-            const hlw = agentDesign.header_logo_w || 120, hlh = agentDesign.header_logo_h || 55;
-            page.drawImage(hlImg, { x: agentDesign.header_logo_x||30, y: PH - ((agentDesign.header_logo_y||10) + hlh), width: hlw, height: hlh });
-        } catch(e) {}
-    }
-    if (agentDesign?.header_slogan) {
-        const hss = agentDesign.header_slogan_size || 9;
-        const hst = sp(agentDesign.header_slogan);
-        const hsw = fontI.widthOfTextAtSize(hst, hss);
-        page.drawText(hst, { x: (agentDesign.header_slogan_x||306) - hsw/2, y: PH - (agentDesign.header_slogan_y||18) - hss, size: hss, font: fontI, color: rgb(0,0,0) });
-    }
-
-    // 1. Trabajador
-    let fullName = worker.apellidoPaterno ? `${worker.apellidoPaterno} ${worker.apellidoMaterno || ''} ${worker.nombres || ''}`.trim() : (worker.name || '');
-    T(30, 172.5, fullName.toUpperCase(), 9, true);
-
-    // 2. CURP
-    const curp = (worker.curp||'').toUpperCase().replace(/\s/g,'').slice(0,18);
-    const CURP_CENTERS = [32.0,47.4,62.8,78.2,93.5,108.8,124.2,139.6,155.0,170.3,185.8,201.2,216.6,231.9,247.2,262.6,278.0,293.3];
-    for (let i = 0; i < curp.length; i++) {
-        const w = font.widthOfTextAtSize(curp[i], 8);
-        page.drawText(curp[i], { x: CURP_CENTERS[i] - w/2, y: PH - 196, size: 8, font, color: rgb(0,0,0) });
-    }
-
-    // 3. Ocupación y 4. Puesto
-    T(307, 199, (worker.occupation||'').toUpperCase(), 9);
-    page.drawRectangle({ x:26, y: PH-226, width:559, height:13, color: rgb(1,1,1) });
-    T(30, 221, (worker.position||'').toUpperCase(), 9);
-
-    // 5. Empresa y 6. RFC
-    page.drawRectangle({ x:26, y: PH-288, width:559, height:17, color: rgb(1,1,1) });
-    T(30, 283, companyNameFinal, 9, true);
-    const rfc = (compObj.rfc||'').toUpperCase().replace(/\s/g,'').slice(0,15);
-    const RFC_CENTERS = [34.9,52.1,66.0,80.8,95.4,109.8,124.0,138.3,152.8,167.0,181.2,195.5,209.8,227.4,245.1];
-    for (let i = 0; i < rfc.length; i++) {
-        const w = font.widthOfTextAtSize(rfc[i], 8);
-        page.drawText(rfc[i], { x: RFC_CENTERS[i] - w/2, y: PH - 311, size: 8, font, color: rgb(0,0,0) });
-    }
-
-    // 7. Curso y 8. Duración
-    page.drawRectangle({ x:26, y: PH-366, width:559, height:11, color: rgb(1,1,1) });
-    T(30, 363, (course.name||'').toUpperCase(), 9);
-    T(30, 390, (course.durationHours||'').toUpperCase(), 8);
-
-    // 9. Fechas
-    const fStart = parseFecha(start), fEnd = parseFecha(end);
-    const FY = 389;
-    const centers = { iniA:[260.2,276.1,292.2,308.4], iniM:[326.9,348.2], iniD:[369.6,390.7], finA:[432.9,452.4,471.9,491.4], finM:[511.8,532.8], finD:[554.2,575.7] };
-    const drawD = (val, arr) => { for(let i=0; i<val.length; i++) { const w=font.widthOfTextAtSize(val[i],8); page.drawText(val[i],{x:arr[i]-w/2,y:PH-FY,size:8,font,color:rgb(0,0,0)}); } };
-    drawD(fStart.a, centers.iniA); drawD(fStart.m, centers.iniM); drawD(fStart.d, centers.iniD);
-    drawD(fEnd.a, centers.finA); drawD(fEnd.m, centers.finM); drawD(fEnd.d, centers.finD);
-
-    // 10. Área y 11. Agente
-    page.drawRectangle({ x:26, y: PH-416, width:559, height:9, color: rgb(1,1,1) });
-    T(30, 413, (course.thematicArea||'').toUpperCase(), 8);
-    page.drawRectangle({ x:26, y: PH-442, width:559, height:11, color: rgb(1,1,1) });
-    T(30, 440, (agent.name + "  " + agent.stps).toUpperCase(), 8);
-
-    // 12. Firmas
-    const SIG_Y = 512, NAME_Y = 522;
-    page.drawRectangle({ x:63, y: PH-538, width:137, height:27, color: rgb(1,1,1) });
-    page.drawRectangle({ x:218, y: PH-538, width:153, height:27, color: rgb(1,1,1) });
-    page.drawRectangle({ x:389, y: PH-538, width:153, height:27, color: rgb(1,1,1) });
-
-    if (agentDesign?.logo_base64) {
-        try {
-            const lImg = await embedBase64Img(pdfDoc, agentDesign.logo_base64);
-            page.drawImage(lImg, { x:agentDesign.logo_x||88, y:PH-((agentDesign.logo_y||SIG_Y)+(agentDesign.logo_h||50)), width:agentDesign.logo_w||90, height:agentDesign.logo_h||50, opacity:0.8 });
-        } catch(e) {}
-    }
-    if (agentDesign?.firma_base64) {
-        try {
-            const fImg = await embedBase64Img(pdfDoc, agentDesign.firma_base64);
-            page.drawImage(fImg, { x:agentDesign.firma_x||88, y:PH-((agentDesign.firma_y||SIG_Y)+(agentDesign.firma_h||55)), width:agentDesign.firma_w||95, height:agentDesign.firma_h||55 });
-        } catch(e) {}
-    }
-
-    T_C(132, NAME_Y, agent.name.toUpperCase(), 8);
-    T_C(295, NAME_Y, (compObj.representanteLegal||'').toUpperCase(), 8);
-    T_C(465, NAME_Y, (compObj.representanteTrabajadores||'').toUpperCase(), 8);
-
-    return await pdfDoc.save();
-}
-
-async function buildDC3PDFBytes(opts) { return await _buildDC3Core(opts); }
-
-async function buildDC3PDF(opts) {
-    const bytes = await _buildDC3Core(opts);
-    if (!bytes) return;
-    const blob = new Blob([bytes], { type: 'application/pdf' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `DC3_${sp2(opts.worker.name)}.pdf`; a.click();
-}
-
-async function previewDC3() {
-    const compName = document.getElementById('dc3-company').value;
-    const agentVal = document.getElementById('dc3-agent').value;
-    const courseVal = document.getElementById('dc3-course').value;
-    const start = document.getElementById('dc3-start').value;
-    const end = document.getElementById('dc3-end').value;
-    if (!start || !end) { alert('Faltan fechas'); return; }
-    const [agentName, agentStps] = agentVal.split('|');
-    const [courseName, courseDur, courseArea, courseStpsId] = courseVal.split('|');
-    const company = DATA.companies.find(c => c.name === compName) || { name: compName, rfc: '' };
-    document.getElementById('modal-dc3-preview').classList.add('open');
-    const container = document.getElementById('dc3-preview-container');
-    container.innerHTML = 'Generando...';
-    try {
-        _previewPdfBytes = await buildDC3PDFBytes({ worker: selectedWorker, company, agent: { name: agentName, stps: agentStps }, course: { name: courseName, durationHours: courseDur, thematicArea: courseArea, stpsId: courseStpsId }, start, end, result: 'Acreditado' });
-        showPDFInContainer(_previewPdfBytes, container);
-    } catch(e) { container.innerHTML = 'Error: ' + e.message; }
-}
-
-async function previewDC3FromRecord(record) {
-    document.getElementById('modal-dc3-preview').classList.add('open');
-    const container = document.getElementById('dc3-preview-container');
-    container.innerHTML = 'Cargando...';
-    try {
-        _previewPdfBytes = await buildDC3PDFBytes({ worker: { name: record.workerName, curp: record.workerId, position: record.workerPos }, company: { name: record.companyName, rfc: '', representanteLegal: record.representanteLegal, representanteTrabajadores: record.representanteTrabajadores }, agent: { name: record.agentName, stps: record.agentStps }, course: { name: record.courseName, durationHours: record.durationHours, thematicArea: record.thematicArea }, start: record.startDate, end: record.endDate, result: record.resultText });
-        showPDFInContainer(_previewPdfBytes, container);
-    } catch(e) { container.innerHTML = 'Error: ' + e.message; }
-}
-
-function showPDFInContainer(bytes, container) {
-    const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
-    container.innerHTML = `<iframe src="${url}" style="width:100%;height:100%;border:none;border-radius:8px"></iframe>`;
-}
-
-function downloadFromPreview() {
-    if (!_previewPdfBytes) return;
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([_previewPdfBytes], { type: 'application/pdf' }));
-    a.download = 'DC3_preview.pdf'; a.click();
-}
-
-async function openBulkDC3Modal() {
-    if (!selectedWorkers.length) return;
-    const compSel = document.getElementById('bulk-company');
-    const agentSel = document.getElementById('bulk-agent');
-    const courseSel = document.getElementById('bulk-course');
-    compSel.innerHTML = DATA.companies.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
-    agentSel.innerHTML = DATA.agents.map(a => `<option value="${a.name}|${a.stps}">${a.name}</option>`).join('');
-    courseSel.innerHTML = DATA.courses.map(c => `<option value="${c.name}|${c.durationHours}|${c.thematicArea}">${c.name}</option>`).join('');
-    document.getElementById('bulk-workers-list').innerHTML = selectedWorkers.map(w => `<p class="text-xs">• ${w.name}</p>`).join('');
-    document.getElementById('modal-bulk-dc3').classList.add('open');
-}
-
-async function generateBulkDC3() {
-    const compName = document.getElementById('bulk-company').value;
-    const agentVal = document.getElementById('bulk-agent').value;
-    const courseVal = document.getElementById('bulk-course').value;
-    const start = document.getElementById('bulk-start').value;
-    const end = document.getElementById('bulk-end').value;
-    const company = DATA.companies.find(c => c.name === compName);
-    const [agentName, agentStps] = agentVal.split('|');
-    const [courseName, courseDur, courseArea] = courseVal.split('|');
-    const { PDFDocument } = PDFLib;
-    const mergedPdf = await PDFDocument.create();
-    for (const worker of selectedWorkers) {
-        const bytes = await buildDC3PDFBytes({ worker, company, agent: { name: agentName, stps: agentStps }, course: { name: courseName, durationHours: courseDur, thematicArea: courseArea }, start, end, result: 'Acreditado' });
-        const doc = await PDFDocument.load(bytes);
-        const pages = await mergedPdf.copyPages(doc, doc.getPageIndices());
-        pages.forEach(p => mergedPdf.addPage(p));
-    }
-    const finalBytes = await mergedPdf.save();
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([finalBytes], { type: 'application/pdf' }));
-    a.download = 'DC3_Masivo.pdf'; a.click();
-    closeModal('modal-bulk-dc3');
-}
-
-function setDesignTab(tab) {
-    const isDc3 = tab === 'dc3';
-    const dc3Content = document.getElementById('design-content-dc3');
-    const diplomaContent = document.getElementById('design-content-diploma');
-
-    if (dc3Content) dc3Content.classList.toggle('hidden', !isDc3);
-    if (diplomaContent) diplomaContent.classList.toggle('hidden', isDc3);
-
-    const tabDc3 = document.getElementById('tab-design-dc3');
-    const tabDiploma = document.getElementById('tab-design-diploma');
-
-    if (tabDc3 && tabDiploma) {
-        if (isDc3) {
-            tabDc3.className = "px-6 py-3 text-sm font-bold text-blue-900 border-b-2 border-blue-900";
-            tabDiploma.className = "px-6 py-3 text-sm font-medium text-gray-500 hover:text-blue-900 transition-colors";
-        } else {
-            tabDiploma.className = "px-6 py-3 text-sm font-bold text-blue-900 border-b-2 border-blue-900";
-            tabDc3.className = "px-6 py-3 text-sm font-medium text-gray-500 hover:text-blue-900 transition-colors";
-            if (typeof updateDiplomaDesignPreview === 'function') updateDiplomaDesignPreview();
-        }
-    }
-}
 async function previewDC3FromRecord(record) {
     const worker  = { name: record.workerName, curp: record.workerId, position: record.workerPos };
     const regenCompany = DATA.companies.find(c => c.name === record.companyName) || { name: record.companyName, rfc: '' };
@@ -3062,279 +2840,6 @@ async function previewDC3FromRecord(record) {
     }
 }
 
-// ─── PDF OFICIAL DC-3 STPS — rellena plantilla oficial ──────────
-async function _buildDC3Core({ worker, company, agent, course, start, end, result }) {
-    const { PDFDocument, StandardFonts, rgb } = PDFLib;
-
-    function sp(s) {
-        return String(s||'')
-            .replace(/[áà]/g,'a').replace(/[éè]/g,'e').replace(/[íì]/g,'i')
-            .replace(/[óò]/g,'o').replace(/[úùü]/g,'u').replace(/ñ/g,'n')
-            .replace(/[ÁÀ]/g,'A').replace(/[ÉÈ]/g,'E').replace(/[ÍÌ]/g,'I')
-            .replace(/[ÓÒ]/g,'O').replace(/[ÚÙÜ]/g,'U').replace(/Ñ/g,'N');
-    }
-
-    function parseFecha(f) {
-        if (!f) return { a:'    ', m:'  ', d:'  ' };
-        let parts;
-        if (f.includes('-')) {
-            parts = f.split('-');
-            return { a: parts[0].padStart(4,'0'), m: parts[1].padStart(2,'0'), d: parts[2].padStart(2,'0') };
-        } else {
-            parts = f.split('/');
-            return { a: (parts[2]||'    ').padStart(4,'0'), m: (parts[1]||'  ').padStart(2,'0'), d: (parts[0]||'  ').padStart(2,'0') };
-        }
-    }
-
-    let pdfBytes;
-    try {
-        const resp = await fetch('/plantilla_dc3.pdf');
-        if (!resp.ok) throw new Error('No se pudo cargar plantilla_dc3.pdf: ' + resp.status);
-        pdfBytes = await resp.arrayBuffer();
-    } catch(e) {
-        alert('Error cargando plantilla DC-3: ' + e.message);
-        return null;
-    }
-
-    const pdfDoc = await PDFDocument.load(pdfBytes);
-    const font   = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const fontB  = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-    const fontI  = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
-    const page   = pdfDoc.getPage(0);
-    const pageR  = pdfDoc.getPageCount() > 1 ? pdfDoc.getPage(1) : null;
-    const PH     = 792;
-
-    function T(x, yFitz, s, size, useBold) {
-        if (!s) return;
-        const sz = size || 9;
-        page.drawText(sp(String(s)), { x, y: PH - yFitz, size: sz, font: useBold ? fontB : font, color: rgb(0,0,0) });
-    }
-
-    function T_C(xCenter, yFitz, s, size, useBold) {
-        if (!s) return;
-        const sz = size || 9;
-        const f  = useBold ? fontB : font;
-        const w  = f.widthOfTextAtSize(sp(String(s)), sz);
-        page.drawText(sp(String(s)), { x: xCenter - w/2, y: PH - yFitz, size: sz, font: f, color: rgb(0,0,0) });
-    }
-
-    let agentDesign = null;
-    try {
-        const agentRecord = (DATA.agents || []).find(a => a.name && agent.name && a.name.toUpperCase().trim() === agent.name.toUpperCase().trim());
-        const agentEmail = agentRecord?.creatorEmail || currentUser?.email || '';
-        const dr = await api('find','agent_designs', { filter: { creatorEmail: agentEmail } });
-        agentDesign = (dr.documents && dr.documents.length > 0) ? dr.documents[0] : null;
-    } catch(e) {}
-
-    const compObj = (typeof company === 'object' && company !== null) ? company : { name: String(company || ''), rfc: '' };
-    const companyNameFinal = String(compObj.name || '').toUpperCase();
-
-    // Photo
-    if (worker && worker.photoUrl) {
-        try {
-            const photoBytes = await fetch(worker.photoUrl).then(r => r.arrayBuffer());
-            const photoImg = await pdfDoc.embedJpg(photoBytes).catch(() => pdfDoc.embedPng(photoBytes));
-            page.drawImage(photoImg, { x: 24, y: PH - 126, width: 72, height: 90 });
-        } catch(e) {}
-    }
-
-    // Cabecera
-    if (agentDesign?.header_logo_base64) {
-        try {
-            const hlImg = await embedBase64Img(pdfDoc, agentDesign.header_logo_base64);
-            const hlw = agentDesign.header_logo_w || 120, hlh = agentDesign.header_logo_h || 55;
-            page.drawImage(hlImg, { x: agentDesign.header_logo_x||30, y: PH - ((agentDesign.header_logo_y||10) + hlh), width: hlw, height: hlh });
-        } catch(e) {}
-    }
-    if (agentDesign?.header_slogan) {
-        const hss = agentDesign.header_slogan_size || 9;
-        const hst = sp(agentDesign.header_slogan);
-        const hsw = fontI.widthOfTextAtSize(hst, hss);
-        page.drawText(hst, { x: (agentDesign.header_slogan_x||306) - hsw/2, y: PH - (agentDesign.header_slogan_y||18) - hss, size: hss, font: fontI, color: rgb(0,0,0) });
-    }
-
-    // 1. Trabajador
-    let fullName = worker.apellidoPaterno ? `${worker.apellidoPaterno} ${worker.apellidoMaterno || ''} ${worker.nombres || ''}`.trim() : (worker.name || '');
-    T(30, 172.5, fullName.toUpperCase(), 9, true);
-
-    // 2. CURP
-    const curp = (worker.curp||'').toUpperCase().replace(/\s/g,'').slice(0,18);
-    const CURP_CENTERS = [32.0,47.4,62.8,78.2,93.5,108.8,124.2,139.6,155.0,170.3,185.8,201.2,216.6,231.9,247.2,262.6,278.0,293.3];
-    for (let i = 0; i < curp.length; i++) {
-        const w = font.widthOfTextAtSize(curp[i], 8);
-        page.drawText(curp[i], { x: CURP_CENTERS[i] - w/2, y: PH - 196, size: 8, font, color: rgb(0,0,0) });
-    }
-
-    // 3. Ocupación y 4. Puesto
-    T(307, 199, (worker.occupation||'').toUpperCase(), 9);
-    page.drawRectangle({ x:26, y: PH-226, width:559, height:13, color: rgb(1,1,1) });
-    T(30, 221, (worker.position||'').toUpperCase(), 9);
-
-    // 5. Empresa y 6. RFC
-    page.drawRectangle({ x:26, y: PH-288, width:559, height:17, color: rgb(1,1,1) });
-    T(30, 283, companyNameFinal, 9, true);
-    const rfc = (compObj.rfc||'').toUpperCase().replace(/\s/g,'').slice(0,15);
-    const RFC_CENTERS = [34.9,52.1,66.0,80.8,95.4,109.8,124.0,138.3,152.8,167.0,181.2,195.5,209.8,227.4,245.1];
-    for (let i = 0; i < rfc.length; i++) {
-        const w = font.widthOfTextAtSize(rfc[i], 8);
-        page.drawText(rfc[i], { x: RFC_CENTERS[i] - w/2, y: PH - 311, size: 8, font, color: rgb(0,0,0) });
-    }
-
-    // 7. Curso y 8. Duración
-    page.drawRectangle({ x:26, y: PH-366, width:559, height:11, color: rgb(1,1,1) });
-    T(30, 363, (course.name||'').toUpperCase(), 9);
-    T(30, 390, (course.durationHours||'').toUpperCase(), 8);
-
-    // 9. Fechas
-    const fStart = parseFecha(start), fEnd = parseFecha(end);
-    const FY = 389;
-    const centers = { iniA:[260.2,276.1,292.2,308.4], iniM:[326.9,348.2], iniD:[369.6,390.7], finA:[432.9,452.4,471.9,491.4], finM:[511.8,532.8], finD:[554.2,575.7] };
-    const drawD = (val, arr) => { for(let i=0; i<val.length; i++) { const w=font.widthOfTextAtSize(val[i],8); page.drawText(val[i],{x:arr[i]-w/2,y:PH-FY,size:8,font,color:rgb(0,0,0)}); } };
-    drawD(fStart.a, centers.iniA); drawD(fStart.m, centers.iniM); drawD(fStart.d, centers.iniD);
-    drawD(fEnd.a, centers.finA); drawD(fEnd.m, centers.finM); drawD(fEnd.d, centers.finD);
-
-    // 10. Área y 11. Agente
-    page.drawRectangle({ x:26, y: PH-416, width:559, height:9, color: rgb(1,1,1) });
-    T(30, 413, (course.thematicArea||'').toUpperCase(), 8);
-    page.drawRectangle({ x:26, y: PH-442, width:559, height:11, color: rgb(1,1,1) });
-    T(30, 440, (agent.name + "  " + agent.stps).toUpperCase(), 8);
-
-    // 12. Firmas
-    const SIG_Y = 512, NAME_Y = 522;
-    page.drawRectangle({ x:63, y: PH-538, width:137, height:27, color: rgb(1,1,1) });
-    page.drawRectangle({ x:218, y: PH-538, width:153, height:27, color: rgb(1,1,1) });
-    page.drawRectangle({ x:389, y: PH-538, width:153, height:27, color: rgb(1,1,1) });
-
-    if (agentDesign?.logo_base64) {
-        try {
-            const lImg = await embedBase64Img(pdfDoc, agentDesign.logo_base64);
-            page.drawImage(lImg, { x:agentDesign.logo_x||88, y:PH-((agentDesign.logo_y||SIG_Y)+(agentDesign.logo_h||50)), width:agentDesign.logo_w||90, height:agentDesign.logo_h||50, opacity:0.8 });
-        } catch(e) {}
-    }
-    if (agentDesign?.firma_base64) {
-        try {
-            const fImg = await embedBase64Img(pdfDoc, agentDesign.firma_base64);
-            page.drawImage(fImg, { x:agentDesign.firma_x||88, y:PH-((agentDesign.firma_y||SIG_Y)+(agentDesign.firma_h||55)), width:agentDesign.firma_w||95, height:agentDesign.firma_h||55 });
-        } catch(e) {}
-    }
-
-    T_C(132, NAME_Y, agent.name.toUpperCase(), 8);
-    T_C(295, NAME_Y, (compObj.representanteLegal||'').toUpperCase(), 8);
-    T_C(465, NAME_Y, (compObj.representanteTrabajadores||'').toUpperCase(), 8);
-
-    return await pdfDoc.save();
-}
-
-async function buildDC3PDFBytes(opts) { return await _buildDC3Core(opts); }
-
-async function buildDC3PDF(opts) {
-    const bytes = await _buildDC3Core(opts);
-    if (!bytes) return;
-    const blob = new Blob([bytes], { type: 'application/pdf' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `DC3_${sp2(opts.worker.name)}.pdf`; a.click();
-}
-
-async function previewDC3() {
-    const compName = document.getElementById('dc3-company').value;
-    const agentVal = document.getElementById('dc3-agent').value;
-    const courseVal = document.getElementById('dc3-course').value;
-    const start = document.getElementById('dc3-start').value;
-    const end = document.getElementById('dc3-end').value;
-    if (!start || !end) { alert('Faltan fechas'); return; }
-    const [agentName, agentStps] = agentVal.split('|');
-    const [courseName, courseDur, courseArea, courseStpsId] = courseVal.split('|');
-    const company = DATA.companies.find(c => c.name === compName) || { name: compName, rfc: '' };
-    document.getElementById('modal-dc3-preview').classList.add('open');
-    const container = document.getElementById('dc3-preview-container');
-    container.innerHTML = 'Generando...';
-    try {
-        _previewPdfBytes = await buildDC3PDFBytes({ worker: selectedWorker, company, agent: { name: agentName, stps: agentStps }, course: { name: courseName, durationHours: courseDur, thematicArea: courseArea, stpsId: courseStpsId }, start, end, result: 'Acreditado' });
-        showPDFInContainer(_previewPdfBytes, container);
-    } catch(e) { container.innerHTML = 'Error: ' + e.message; }
-}
-
-async function previewDC3FromRecord(record) {
-    document.getElementById('modal-dc3-preview').classList.add('open');
-    const container = document.getElementById('dc3-preview-container');
-    container.innerHTML = 'Cargando...';
-    try {
-        _previewPdfBytes = await buildDC3PDFBytes({ worker: { name: record.workerName, curp: record.workerId, position: record.workerPos }, company: { name: record.companyName, rfc: '', representanteLegal: record.representanteLegal, representanteTrabajadores: record.representanteTrabajadores }, agent: { name: record.agentName, stps: record.agentStps }, course: { name: record.courseName, durationHours: record.durationHours, thematicArea: record.thematicArea }, start: record.startDate, end: record.endDate, result: record.resultText });
-        showPDFInContainer(_previewPdfBytes, container);
-    } catch(e) { container.innerHTML = 'Error: ' + e.message; }
-}
-
-function showPDFInContainer(bytes, container) {
-    const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
-    container.innerHTML = `<iframe src="${url}" style="width:100%;height:100%;border:none;border-radius:8px"></iframe>`;
-}
-
-function downloadFromPreview() {
-    if (!_previewPdfBytes) return;
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([_previewPdfBytes], { type: 'application/pdf' }));
-    a.download = 'DC3_preview.pdf'; a.click();
-}
-
-async function openBulkDC3Modal() {
-    if (!selectedWorkers.length) return;
-    const compSel = document.getElementById('bulk-company');
-    const agentSel = document.getElementById('bulk-agent');
-    const courseSel = document.getElementById('bulk-course');
-    compSel.innerHTML = DATA.companies.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
-    agentSel.innerHTML = DATA.agents.map(a => `<option value="${a.name}|${a.stps}">${a.name}</option>`).join('');
-    courseSel.innerHTML = DATA.courses.map(c => `<option value="${c.name}|${c.durationHours}|${c.thematicArea}">${c.name}</option>`).join('');
-    document.getElementById('bulk-workers-list').innerHTML = selectedWorkers.map(w => `<p class="text-xs">• ${w.name}</p>`).join('');
-    document.getElementById('modal-bulk-dc3').classList.add('open');
-}
-
-async function generateBulkDC3() {
-    const compName = document.getElementById('bulk-company').value;
-    const agentVal = document.getElementById('bulk-agent').value;
-    const courseVal = document.getElementById('bulk-course').value;
-    const start = document.getElementById('bulk-start').value;
-    const end = document.getElementById('bulk-end').value;
-    const company = DATA.companies.find(c => c.name === compName);
-    const [agentName, agentStps] = agentVal.split('|');
-    const [courseName, courseDur, courseArea] = courseVal.split('|');
-    const { PDFDocument } = PDFLib;
-    const mergedPdf = await PDFDocument.create();
-    for (const worker of selectedWorkers) {
-        const bytes = await buildDC3PDFBytes({ worker, company, agent: { name: agentName, stps: agentStps }, course: { name: courseName, durationHours: courseDur, thematicArea: courseArea }, start, end, result: 'Acreditado' });
-        const doc = await PDFDocument.load(bytes);
-        const pages = await mergedPdf.copyPages(doc, doc.getPageIndices());
-        pages.forEach(p => mergedPdf.addPage(p));
-    }
-    const finalBytes = await mergedPdf.save();
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([finalBytes], { type: 'application/pdf' }));
-    a.download = 'DC3_Masivo.pdf'; a.click();
-    closeModal('modal-bulk-dc3');
-}
-
-function setDesignTab(tab) {
-    const isDc3 = tab === 'dc3';
-    const dc3Content = document.getElementById('design-content-dc3');
-    const diplomaContent = document.getElementById('design-content-diploma');
-
-    if (dc3Content) dc3Content.classList.toggle('hidden', !isDc3);
-    if (diplomaContent) diplomaContent.classList.toggle('hidden', isDc3);
-
-    const tabDc3 = document.getElementById('tab-design-dc3');
-    const tabDiploma = document.getElementById('tab-design-diploma');
-
-    if (tabDc3 && tabDiploma) {
-        if (isDc3) {
-            tabDc3.className = "px-6 py-3 text-sm font-bold text-blue-900 border-b-2 border-blue-900";
-            tabDiploma.className = "px-6 py-3 text-sm font-medium text-gray-500 hover:text-blue-900 transition-colors";
-        } else {
-            tabDiploma.className = "px-6 py-3 text-sm font-bold text-blue-900 border-b-2 border-blue-900";
-            tabDc3.className = "px-6 py-3 text-sm font-medium text-gray-500 hover:text-blue-900 transition-colors";
-            if (typeof updateDiplomaDesignPreview === 'function') updateDiplomaDesignPreview();
-        }
-    }
-}
 function showPDFInContainer(pdfBytes, container) {
     const blob = new Blob([pdfBytes], { type: 'application/pdf' });
     const url  = URL.createObjectURL(blob);
@@ -3357,27 +2862,6 @@ async function buildDC3PDFBytes(opts) {
     return await _buildDC3Core(opts);
 }
 
-
-// ─── FOTO DE TRABAJADOR ────────────────────────────────────────────────────
-// Foto guardada como base64 en la DB (sin Supabase Storage, sin RLS)
-
-async function handleWorkerPhoto(input) {
-    if (!input.files[0]) return;
-    const file = input.files[0];
-    const preview = document.getElementById('worker-photo-preview');
-    if (preview) preview.innerHTML = '<div class="w-full h-full flex items-center justify-center text-xs text-gray-400">Procesando…</div>';
-    try {
-        const base64 = await resizeImage(file, 300);
-        document.getElementById('f5_photo').value = base64;
-        if (preview) preview.innerHTML = '<img src="' + base64 + '" class="w-full h-full object-cover">';
-    } catch(e) {
-        console.error('Error procesando foto:', e);
-        if (preview) preview.innerHTML = '<span class="text-xs text-red-400 p-1">Error</span>';
-        alert('Error al procesar la foto: ' + e.message);
-    }
-}
-
-// ─── PDF OFICIAL DC-3 STPS — rellena plantilla oficial ──────────
 async function _buildDC3Core({ worker, company, agent, course, start, end, result }) {
     const { PDFDocument, StandardFonts, rgb } = PDFLib;
 
@@ -3444,7 +2928,6 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     const compObj = (typeof company === 'object' && company !== null) ? company : { name: String(company || ''), rfc: '' };
     const companyNameFinal = String(compObj.name || '').toUpperCase();
 
-    // Photo
     if (worker && worker.photoUrl) {
         try {
             const photoBytes = await fetch(worker.photoUrl).then(r => r.arrayBuffer());
@@ -3453,7 +2936,6 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
         } catch(e) {}
     }
 
-    // Cabecera
     if (agentDesign?.header_logo_base64) {
         try {
             const hlImg = await embedBase64Img(pdfDoc, agentDesign.header_logo_base64);
@@ -3468,69 +2950,55 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
         page.drawText(hst, { x: (agentDesign.header_slogan_x||306) - hsw/2, y: PH - (agentDesign.header_slogan_y||18) - hss, size: hss, font: fontI, color: rgb(0,0,0) });
     }
 
-    // 1. Trabajador
-    let fullName = worker.apellidoPaterno ? `${worker.apellidoPaterno} ${worker.apellidoMaterno || ''} ${worker.nombres || ''}`.trim() : (worker.name || '');
-    T(30, 172.5, fullName.toUpperCase(), 9, true);
+    let workerFullName = worker.apellidoPaterno ? `${worker.apellidoPaterno} ${worker.apellidoMaterno || ''} ${worker.nombres || ''}`.trim() : (worker.name || '');
+    T(30, 172.5, workerFullName.toUpperCase(), 9, true);
 
-    // 2. CURP
-    const curp = (worker.curp||'').toUpperCase().replace(/\s/g,'').slice(0,18);
+    const curpStr = (worker.curp||'').toUpperCase().replace(/\s/g,'').slice(0,18);
     const CURP_CENTERS = [32.0,47.4,62.8,78.2,93.5,108.8,124.2,139.6,155.0,170.3,185.8,201.2,216.6,231.9,247.2,262.6,278.0,293.3];
-    for (let i = 0; i < curp.length; i++) {
-        const w = font.widthOfTextAtSize(curp[i], 8);
-        page.drawText(curp[i], { x: CURP_CENTERS[i] - w/2, y: PH - 196, size: 8, font, color: rgb(0,0,0) });
+    for (let i = 0; i < curpStr.length; i++) {
+        const w = font.widthOfTextAtSize(curpStr[i], 8);
+        page.drawText(curpStr[i], { x: CURP_CENTERS[i] - w/2, y: PH - 196, size: 8, font, color: rgb(0,0,0) });
     }
 
-    // 3. Ocupación y 4. Puesto
     T(307, 199, (worker.occupation||'').toUpperCase(), 9);
     page.drawRectangle({ x:26, y: PH-226, width:559, height:13, color: rgb(1,1,1) });
     T(30, 221, (worker.position||'').toUpperCase(), 9);
 
-    // 5. Empresa y 6. RFC
     page.drawRectangle({ x:26, y: PH-288, width:559, height:17, color: rgb(1,1,1) });
     T(30, 283, companyNameFinal, 9, true);
-    const rfc = (compObj.rfc||'').toUpperCase().replace(/\s/g,'').slice(0,15);
+    const rfcStr = (compObj.rfc||'').toUpperCase().replace(/\s/g,'').slice(0,15);
     const RFC_CENTERS = [34.9,52.1,66.0,80.8,95.4,109.8,124.0,138.3,152.8,167.0,181.2,195.5,209.8,227.4,245.1];
-    for (let i = 0; i < rfc.length; i++) {
-        const w = font.widthOfTextAtSize(rfc[i], 8);
-        page.drawText(rfc[i], { x: RFC_CENTERS[i] - w/2, y: PH - 311, size: 8, font, color: rgb(0,0,0) });
+    for (let i = 0; i < rfcStr.length; i++) {
+        const w = font.widthOfTextAtSize(rfcStr[i], 8);
+        page.drawText(rfcStr[i], { x: RFC_CENTERS[i] - w/2, y: PH - 311, size: 8, font, color: rgb(0,0,0) });
     }
 
-    // 7. Curso y 8. Duración
     page.drawRectangle({ x:26, y: PH-366, width:559, height:11, color: rgb(1,1,1) });
     T(30, 363, (course.name||'').toUpperCase(), 9);
     T(30, 390, (course.durationHours||'').toUpperCase(), 8);
 
-    // 9. Fechas
     const fStart = parseFecha(start), fEnd = parseFecha(end);
-    const FY = 389;
+    const FY_digits = 389;
     const centers = { iniA:[260.2,276.1,292.2,308.4], iniM:[326.9,348.2], iniD:[369.6,390.7], finA:[432.9,452.4,471.9,491.4], finM:[511.8,532.8], finD:[554.2,575.7] };
-    const drawD = (val, arr) => { for(let i=0; i<val.length; i++) { const w=font.widthOfTextAtSize(val[i],8); page.drawText(val[i],{x:arr[i]-w/2,y:PH-FY,size:8,font,color:rgb(0,0,0)}); } };
-    drawD(fStart.a, centers.iniA); drawD(fStart.m, centers.iniM); drawD(fStart.d, centers.iniD);
-    drawD(fEnd.a, centers.finA); drawD(fEnd.m, centers.finM); drawD(fEnd.d, centers.finD);
+    const drawDigits = (val, arr) => { for(let i=0; i<val.length; i++) { if(val[i] && val[i]!==' ') { const w=font.widthOfTextAtSize(val[i],8); page.drawText(val[i],{x:arr[i]-w/2,y:PH-FY_digits,size:8,font,color:rgb(0,0,0)}); } } };
+    drawDigits(fStart.a, centers.iniA); drawDigits(fStart.m, centers.iniM); drawDigits(fStart.d, centers.iniD);
+    drawDigits(fEnd.a, centers.finA); drawDigits(fEnd.m, centers.finM); drawDigits(fEnd.d, centers.finD);
 
-    // 10. Área y 11. Agente
     page.drawRectangle({ x:26, y: PH-416, width:559, height:9, color: rgb(1,1,1) });
     T(30, 413, (course.thematicArea||'').toUpperCase(), 8);
     page.drawRectangle({ x:26, y: PH-442, width:559, height:11, color: rgb(1,1,1) });
     T(30, 440, (agent.name + "  " + agent.stps).toUpperCase(), 8);
 
-    // 12. Firmas
     const SIG_Y = 512, NAME_Y = 522;
     page.drawRectangle({ x:63, y: PH-538, width:137, height:27, color: rgb(1,1,1) });
     page.drawRectangle({ x:218, y: PH-538, width:153, height:27, color: rgb(1,1,1) });
     page.drawRectangle({ x:389, y: PH-538, width:153, height:27, color: rgb(1,1,1) });
 
     if (agentDesign?.logo_base64) {
-        try {
-            const lImg = await embedBase64Img(pdfDoc, agentDesign.logo_base64);
-            page.drawImage(lImg, { x:agentDesign.logo_x||88, y:PH-((agentDesign.logo_y||SIG_Y)+(agentDesign.logo_h||50)), width:agentDesign.logo_w||90, height:agentDesign.logo_h||50, opacity:0.8 });
-        } catch(e) {}
+        try { const lImg = await embedBase64Img(pdfDoc, agentDesign.logo_base64); page.drawImage(lImg, { x:agentDesign.logo_x||88, y:PH-((agentDesign.logo_y||SIG_Y)+(agentDesign.logo_h||50)), width:agentDesign.logo_w||90, height:agentDesign.logo_h||50, opacity:0.8 }); } catch(e) {}
     }
     if (agentDesign?.firma_base64) {
-        try {
-            const fImg = await embedBase64Img(pdfDoc, agentDesign.firma_base64);
-            page.drawImage(fImg, { x:agentDesign.firma_x||88, y:PH-((agentDesign.firma_y||SIG_Y)+(agentDesign.firma_h||55)), width:agentDesign.firma_w||95, height:agentDesign.firma_h||55 });
-        } catch(e) {}
+        try { const fImg = await embedBase64Img(pdfDoc, agentDesign.firma_base64); page.drawImage(fImg, { x:agentDesign.firma_x||88, y:PH-((agentDesign.firma_y||SIG_Y)+(agentDesign.firma_h||55)), width:agentDesign.firma_w||95, height:agentDesign.firma_h||55 }); } catch(e) {}
     }
 
     T_C(132, NAME_Y, agent.name.toUpperCase(), 8);
@@ -3540,116 +3008,26 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     return await pdfDoc.save();
 }
 
-async function buildDC3PDFBytes(opts) { return await _buildDC3Core(opts); }
 
-async function buildDC3PDF(opts) {
-    const bytes = await _buildDC3Core(opts);
-    if (!bytes) return;
-    const blob = new Blob([bytes], { type: 'application/pdf' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `DC3_${sp2(opts.worker.name)}.pdf`; a.click();
-}
+// ─── FOTO DE TRABAJADOR ────────────────────────────────────────────────────
+// Foto guardada como base64 en la DB (sin Supabase Storage, sin RLS)
 
-async function previewDC3() {
-    const compName = document.getElementById('dc3-company').value;
-    const agentVal = document.getElementById('dc3-agent').value;
-    const courseVal = document.getElementById('dc3-course').value;
-    const start = document.getElementById('dc3-start').value;
-    const end = document.getElementById('dc3-end').value;
-    if (!start || !end) { alert('Faltan fechas'); return; }
-    const [agentName, agentStps] = agentVal.split('|');
-    const [courseName, courseDur, courseArea, courseStpsId] = courseVal.split('|');
-    const company = DATA.companies.find(c => c.name === compName) || { name: compName, rfc: '' };
-    document.getElementById('modal-dc3-preview').classList.add('open');
-    const container = document.getElementById('dc3-preview-container');
-    container.innerHTML = 'Generando...';
+async function handleWorkerPhoto(input) {
+    if (!input.files[0]) return;
+    const file = input.files[0];
+    const preview = document.getElementById('worker-photo-preview');
+    if (preview) preview.innerHTML = '<div class="w-full h-full flex items-center justify-center text-xs text-gray-400">Procesando…</div>';
     try {
-        _previewPdfBytes = await buildDC3PDFBytes({ worker: selectedWorker, company, agent: { name: agentName, stps: agentStps }, course: { name: courseName, durationHours: courseDur, thematicArea: courseArea, stpsId: courseStpsId }, start, end, result: 'Acreditado' });
-        showPDFInContainer(_previewPdfBytes, container);
-    } catch(e) { container.innerHTML = 'Error: ' + e.message; }
-}
-
-async function previewDC3FromRecord(record) {
-    document.getElementById('modal-dc3-preview').classList.add('open');
-    const container = document.getElementById('dc3-preview-container');
-    container.innerHTML = 'Cargando...';
-    try {
-        _previewPdfBytes = await buildDC3PDFBytes({ worker: { name: record.workerName, curp: record.workerId, position: record.workerPos }, company: { name: record.companyName, rfc: '', representanteLegal: record.representanteLegal, representanteTrabajadores: record.representanteTrabajadores }, agent: { name: record.agentName, stps: record.agentStps }, course: { name: record.courseName, durationHours: record.durationHours, thematicArea: record.thematicArea }, start: record.startDate, end: record.endDate, result: record.resultText });
-        showPDFInContainer(_previewPdfBytes, container);
-    } catch(e) { container.innerHTML = 'Error: ' + e.message; }
-}
-
-function showPDFInContainer(bytes, container) {
-    const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
-    container.innerHTML = `<iframe src="${url}" style="width:100%;height:100%;border:none;border-radius:8px"></iframe>`;
-}
-
-function downloadFromPreview() {
-    if (!_previewPdfBytes) return;
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([_previewPdfBytes], { type: 'application/pdf' }));
-    a.download = 'DC3_preview.pdf'; a.click();
-}
-
-async function openBulkDC3Modal() {
-    if (!selectedWorkers.length) return;
-    const compSel = document.getElementById('bulk-company');
-    const agentSel = document.getElementById('bulk-agent');
-    const courseSel = document.getElementById('bulk-course');
-    compSel.innerHTML = DATA.companies.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
-    agentSel.innerHTML = DATA.agents.map(a => `<option value="${a.name}|${a.stps}">${a.name}</option>`).join('');
-    courseSel.innerHTML = DATA.courses.map(c => `<option value="${c.name}|${c.durationHours}|${c.thematicArea}">${c.name}</option>`).join('');
-    document.getElementById('bulk-workers-list').innerHTML = selectedWorkers.map(w => `<p class="text-xs">• ${w.name}</p>`).join('');
-    document.getElementById('modal-bulk-dc3').classList.add('open');
-}
-
-async function generateBulkDC3() {
-    const compName = document.getElementById('bulk-company').value;
-    const agentVal = document.getElementById('bulk-agent').value;
-    const courseVal = document.getElementById('bulk-course').value;
-    const start = document.getElementById('bulk-start').value;
-    const end = document.getElementById('bulk-end').value;
-    const company = DATA.companies.find(c => c.name === compName);
-    const [agentName, agentStps] = agentVal.split('|');
-    const [courseName, courseDur, courseArea] = courseVal.split('|');
-    const { PDFDocument } = PDFLib;
-    const mergedPdf = await PDFDocument.create();
-    for (const worker of selectedWorkers) {
-        const bytes = await buildDC3PDFBytes({ worker, company, agent: { name: agentName, stps: agentStps }, course: { name: courseName, durationHours: courseDur, thematicArea: courseArea }, start, end, result: 'Acreditado' });
-        const doc = await PDFDocument.load(bytes);
-        const pages = await mergedPdf.copyPages(doc, doc.getPageIndices());
-        pages.forEach(p => mergedPdf.addPage(p));
-    }
-    const finalBytes = await mergedPdf.save();
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([finalBytes], { type: 'application/pdf' }));
-    a.download = 'DC3_Masivo.pdf'; a.click();
-    closeModal('modal-bulk-dc3');
-}
-
-function setDesignTab(tab) {
-    const isDc3 = tab === 'dc3';
-    const dc3Content = document.getElementById('design-content-dc3');
-    const diplomaContent = document.getElementById('design-content-diploma');
-
-    if (dc3Content) dc3Content.classList.toggle('hidden', !isDc3);
-    if (diplomaContent) diplomaContent.classList.toggle('hidden', isDc3);
-
-    const tabDc3 = document.getElementById('tab-design-dc3');
-    const tabDiploma = document.getElementById('tab-design-diploma');
-
-    if (tabDc3 && tabDiploma) {
-        if (isDc3) {
-            tabDc3.className = "px-6 py-3 text-sm font-bold text-blue-900 border-b-2 border-blue-900";
-            tabDiploma.className = "px-6 py-3 text-sm font-medium text-gray-500 hover:text-blue-900 transition-colors";
-        } else {
-            tabDiploma.className = "px-6 py-3 text-sm font-bold text-blue-900 border-b-2 border-blue-900";
-            tabDc3.className = "px-6 py-3 text-sm font-medium text-gray-500 hover:text-blue-900 transition-colors";
-            if (typeof updateDiplomaDesignPreview === 'function') updateDiplomaDesignPreview();
-        }
+        const base64 = await resizeImage(file, 300);
+        document.getElementById('f5_photo').value = base64;
+        if (preview) preview.innerHTML = '<img src="' + base64 + '" class="w-full h-full object-cover">';
+    } catch(e) {
+        console.error('Error procesando foto:', e);
+        if (preview) preview.innerHTML = '<span class="text-xs text-red-400 p-1">Error</span>';
+        alert('Error al procesar la foto: ' + e.message);
     }
 }
+
 function clearWorkerPhoto() {
     const el = document.getElementById('f5_photo');
     if (el) el.value = '';
@@ -3889,279 +3267,6 @@ function setDesignTab(tab) {
     }
 }
 
-// ─── PDF OFICIAL DC-3 STPS — rellena plantilla oficial ──────────
-async function _buildDC3Core({ worker, company, agent, course, start, end, result }) {
-    const { PDFDocument, StandardFonts, rgb } = PDFLib;
-
-    function sp(s) {
-        return String(s||'')
-            .replace(/[áà]/g,'a').replace(/[éè]/g,'e').replace(/[íì]/g,'i')
-            .replace(/[óò]/g,'o').replace(/[úùü]/g,'u').replace(/ñ/g,'n')
-            .replace(/[ÁÀ]/g,'A').replace(/[ÉÈ]/g,'E').replace(/[ÍÌ]/g,'I')
-            .replace(/[ÓÒ]/g,'O').replace(/[ÚÙÜ]/g,'U').replace(/Ñ/g,'N');
-    }
-
-    function parseFecha(f) {
-        if (!f) return { a:'    ', m:'  ', d:'  ' };
-        let parts;
-        if (f.includes('-')) {
-            parts = f.split('-');
-            return { a: parts[0].padStart(4,'0'), m: parts[1].padStart(2,'0'), d: parts[2].padStart(2,'0') };
-        } else {
-            parts = f.split('/');
-            return { a: (parts[2]||'    ').padStart(4,'0'), m: (parts[1]||'  ').padStart(2,'0'), d: (parts[0]||'  ').padStart(2,'0') };
-        }
-    }
-
-    let pdfBytes;
-    try {
-        const resp = await fetch('/plantilla_dc3.pdf');
-        if (!resp.ok) throw new Error('No se pudo cargar plantilla_dc3.pdf: ' + resp.status);
-        pdfBytes = await resp.arrayBuffer();
-    } catch(e) {
-        alert('Error cargando plantilla DC-3: ' + e.message);
-        return null;
-    }
-
-    const pdfDoc = await PDFDocument.load(pdfBytes);
-    const font   = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const fontB  = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-    const fontI  = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
-    const page   = pdfDoc.getPage(0);
-    const pageR  = pdfDoc.getPageCount() > 1 ? pdfDoc.getPage(1) : null;
-    const PH     = 792;
-
-    function T(x, yFitz, s, size, useBold) {
-        if (!s) return;
-        const sz = size || 9;
-        page.drawText(sp(String(s)), { x, y: PH - yFitz, size: sz, font: useBold ? fontB : font, color: rgb(0,0,0) });
-    }
-
-    function T_C(xCenter, yFitz, s, size, useBold) {
-        if (!s) return;
-        const sz = size || 9;
-        const f  = useBold ? fontB : font;
-        const w  = f.widthOfTextAtSize(sp(String(s)), sz);
-        page.drawText(sp(String(s)), { x: xCenter - w/2, y: PH - yFitz, size: sz, font: f, color: rgb(0,0,0) });
-    }
-
-    let agentDesign = null;
-    try {
-        const agentRecord = (DATA.agents || []).find(a => a.name && agent.name && a.name.toUpperCase().trim() === agent.name.toUpperCase().trim());
-        const agentEmail = agentRecord?.creatorEmail || currentUser?.email || '';
-        const dr = await api('find','agent_designs', { filter: { creatorEmail: agentEmail } });
-        agentDesign = (dr.documents && dr.documents.length > 0) ? dr.documents[0] : null;
-    } catch(e) {}
-
-    const compObj = (typeof company === 'object' && company !== null) ? company : { name: String(company || ''), rfc: '' };
-    const companyNameFinal = String(compObj.name || '').toUpperCase();
-
-    // Photo
-    if (worker && worker.photoUrl) {
-        try {
-            const photoBytes = await fetch(worker.photoUrl).then(r => r.arrayBuffer());
-            const photoImg = await pdfDoc.embedJpg(photoBytes).catch(() => pdfDoc.embedPng(photoBytes));
-            page.drawImage(photoImg, { x: 24, y: PH - 126, width: 72, height: 90 });
-        } catch(e) {}
-    }
-
-    // Cabecera
-    if (agentDesign?.header_logo_base64) {
-        try {
-            const hlImg = await embedBase64Img(pdfDoc, agentDesign.header_logo_base64);
-            const hlw = agentDesign.header_logo_w || 120, hlh = agentDesign.header_logo_h || 55;
-            page.drawImage(hlImg, { x: agentDesign.header_logo_x||30, y: PH - ((agentDesign.header_logo_y||10) + hlh), width: hlw, height: hlh });
-        } catch(e) {}
-    }
-    if (agentDesign?.header_slogan) {
-        const hss = agentDesign.header_slogan_size || 9;
-        const hst = sp(agentDesign.header_slogan);
-        const hsw = fontI.widthOfTextAtSize(hst, hss);
-        page.drawText(hst, { x: (agentDesign.header_slogan_x||306) - hsw/2, y: PH - (agentDesign.header_slogan_y||18) - hss, size: hss, font: fontI, color: rgb(0,0,0) });
-    }
-
-    // 1. Trabajador
-    let fullName = worker.apellidoPaterno ? `${worker.apellidoPaterno} ${worker.apellidoMaterno || ''} ${worker.nombres || ''}`.trim() : (worker.name || '');
-    T(30, 172.5, fullName.toUpperCase(), 9, true);
-
-    // 2. CURP
-    const curp = (worker.curp||'').toUpperCase().replace(/\s/g,'').slice(0,18);
-    const CURP_CENTERS = [32.0,47.4,62.8,78.2,93.5,108.8,124.2,139.6,155.0,170.3,185.8,201.2,216.6,231.9,247.2,262.6,278.0,293.3];
-    for (let i = 0; i < curp.length; i++) {
-        const w = font.widthOfTextAtSize(curp[i], 8);
-        page.drawText(curp[i], { x: CURP_CENTERS[i] - w/2, y: PH - 196, size: 8, font, color: rgb(0,0,0) });
-    }
-
-    // 3. Ocupación y 4. Puesto
-    T(307, 199, (worker.occupation||'').toUpperCase(), 9);
-    page.drawRectangle({ x:26, y: PH-226, width:559, height:13, color: rgb(1,1,1) });
-    T(30, 221, (worker.position||'').toUpperCase(), 9);
-
-    // 5. Empresa y 6. RFC
-    page.drawRectangle({ x:26, y: PH-288, width:559, height:17, color: rgb(1,1,1) });
-    T(30, 283, companyNameFinal, 9, true);
-    const rfc = (compObj.rfc||'').toUpperCase().replace(/\s/g,'').slice(0,15);
-    const RFC_CENTERS = [34.9,52.1,66.0,80.8,95.4,109.8,124.0,138.3,152.8,167.0,181.2,195.5,209.8,227.4,245.1];
-    for (let i = 0; i < rfc.length; i++) {
-        const w = font.widthOfTextAtSize(rfc[i], 8);
-        page.drawText(rfc[i], { x: RFC_CENTERS[i] - w/2, y: PH - 311, size: 8, font, color: rgb(0,0,0) });
-    }
-
-    // 7. Curso y 8. Duración
-    page.drawRectangle({ x:26, y: PH-366, width:559, height:11, color: rgb(1,1,1) });
-    T(30, 363, (course.name||'').toUpperCase(), 9);
-    T(30, 390, (course.durationHours||'').toUpperCase(), 8);
-
-    // 9. Fechas
-    const fStart = parseFecha(start), fEnd = parseFecha(end);
-    const FY = 389;
-    const centers = { iniA:[260.2,276.1,292.2,308.4], iniM:[326.9,348.2], iniD:[369.6,390.7], finA:[432.9,452.4,471.9,491.4], finM:[511.8,532.8], finD:[554.2,575.7] };
-    const drawD = (val, arr) => { for(let i=0; i<val.length; i++) { const w=font.widthOfTextAtSize(val[i],8); page.drawText(val[i],{x:arr[i]-w/2,y:PH-FY,size:8,font,color:rgb(0,0,0)}); } };
-    drawD(fStart.a, centers.iniA); drawD(fStart.m, centers.iniM); drawD(fStart.d, centers.iniD);
-    drawD(fEnd.a, centers.finA); drawD(fEnd.m, centers.finM); drawD(fEnd.d, centers.finD);
-
-    // 10. Área y 11. Agente
-    page.drawRectangle({ x:26, y: PH-416, width:559, height:9, color: rgb(1,1,1) });
-    T(30, 413, (course.thematicArea||'').toUpperCase(), 8);
-    page.drawRectangle({ x:26, y: PH-442, width:559, height:11, color: rgb(1,1,1) });
-    T(30, 440, (agent.name + "  " + agent.stps).toUpperCase(), 8);
-
-    // 12. Firmas
-    const SIG_Y = 512, NAME_Y = 522;
-    page.drawRectangle({ x:63, y: PH-538, width:137, height:27, color: rgb(1,1,1) });
-    page.drawRectangle({ x:218, y: PH-538, width:153, height:27, color: rgb(1,1,1) });
-    page.drawRectangle({ x:389, y: PH-538, width:153, height:27, color: rgb(1,1,1) });
-
-    if (agentDesign?.logo_base64) {
-        try {
-            const lImg = await embedBase64Img(pdfDoc, agentDesign.logo_base64);
-            page.drawImage(lImg, { x:agentDesign.logo_x||88, y:PH-((agentDesign.logo_y||SIG_Y)+(agentDesign.logo_h||50)), width:agentDesign.logo_w||90, height:agentDesign.logo_h||50, opacity:0.8 });
-        } catch(e) {}
-    }
-    if (agentDesign?.firma_base64) {
-        try {
-            const fImg = await embedBase64Img(pdfDoc, agentDesign.firma_base64);
-            page.drawImage(fImg, { x:agentDesign.firma_x||88, y:PH-((agentDesign.firma_y||SIG_Y)+(agentDesign.firma_h||55)), width:agentDesign.firma_w||95, height:agentDesign.firma_h||55 });
-        } catch(e) {}
-    }
-
-    T_C(132, NAME_Y, agent.name.toUpperCase(), 8);
-    T_C(295, NAME_Y, (compObj.representanteLegal||'').toUpperCase(), 8);
-    T_C(465, NAME_Y, (compObj.representanteTrabajadores||'').toUpperCase(), 8);
-
-    return await pdfDoc.save();
-}
-
-async function buildDC3PDFBytes(opts) { return await _buildDC3Core(opts); }
-
-async function buildDC3PDF(opts) {
-    const bytes = await _buildDC3Core(opts);
-    if (!bytes) return;
-    const blob = new Blob([bytes], { type: 'application/pdf' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `DC3_${sp2(opts.worker.name)}.pdf`; a.click();
-}
-
-async function previewDC3() {
-    const compName = document.getElementById('dc3-company').value;
-    const agentVal = document.getElementById('dc3-agent').value;
-    const courseVal = document.getElementById('dc3-course').value;
-    const start = document.getElementById('dc3-start').value;
-    const end = document.getElementById('dc3-end').value;
-    if (!start || !end) { alert('Faltan fechas'); return; }
-    const [agentName, agentStps] = agentVal.split('|');
-    const [courseName, courseDur, courseArea, courseStpsId] = courseVal.split('|');
-    const company = DATA.companies.find(c => c.name === compName) || { name: compName, rfc: '' };
-    document.getElementById('modal-dc3-preview').classList.add('open');
-    const container = document.getElementById('dc3-preview-container');
-    container.innerHTML = 'Generando...';
-    try {
-        _previewPdfBytes = await buildDC3PDFBytes({ worker: selectedWorker, company, agent: { name: agentName, stps: agentStps }, course: { name: courseName, durationHours: courseDur, thematicArea: courseArea, stpsId: courseStpsId }, start, end, result: 'Acreditado' });
-        showPDFInContainer(_previewPdfBytes, container);
-    } catch(e) { container.innerHTML = 'Error: ' + e.message; }
-}
-
-async function previewDC3FromRecord(record) {
-    document.getElementById('modal-dc3-preview').classList.add('open');
-    const container = document.getElementById('dc3-preview-container');
-    container.innerHTML = 'Cargando...';
-    try {
-        _previewPdfBytes = await buildDC3PDFBytes({ worker: { name: record.workerName, curp: record.workerId, position: record.workerPos }, company: { name: record.companyName, rfc: '', representanteLegal: record.representanteLegal, representanteTrabajadores: record.representanteTrabajadores }, agent: { name: record.agentName, stps: record.agentStps }, course: { name: record.courseName, durationHours: record.durationHours, thematicArea: record.thematicArea }, start: record.startDate, end: record.endDate, result: record.resultText });
-        showPDFInContainer(_previewPdfBytes, container);
-    } catch(e) { container.innerHTML = 'Error: ' + e.message; }
-}
-
-function showPDFInContainer(bytes, container) {
-    const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
-    container.innerHTML = `<iframe src="${url}" style="width:100%;height:100%;border:none;border-radius:8px"></iframe>`;
-}
-
-function downloadFromPreview() {
-    if (!_previewPdfBytes) return;
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([_previewPdfBytes], { type: 'application/pdf' }));
-    a.download = 'DC3_preview.pdf'; a.click();
-}
-
-async function openBulkDC3Modal() {
-    if (!selectedWorkers.length) return;
-    const compSel = document.getElementById('bulk-company');
-    const agentSel = document.getElementById('bulk-agent');
-    const courseSel = document.getElementById('bulk-course');
-    compSel.innerHTML = DATA.companies.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
-    agentSel.innerHTML = DATA.agents.map(a => `<option value="${a.name}|${a.stps}">${a.name}</option>`).join('');
-    courseSel.innerHTML = DATA.courses.map(c => `<option value="${c.name}|${c.durationHours}|${c.thematicArea}">${c.name}</option>`).join('');
-    document.getElementById('bulk-workers-list').innerHTML = selectedWorkers.map(w => `<p class="text-xs">• ${w.name}</p>`).join('');
-    document.getElementById('modal-bulk-dc3').classList.add('open');
-}
-
-async function generateBulkDC3() {
-    const compName = document.getElementById('bulk-company').value;
-    const agentVal = document.getElementById('bulk-agent').value;
-    const courseVal = document.getElementById('bulk-course').value;
-    const start = document.getElementById('bulk-start').value;
-    const end = document.getElementById('bulk-end').value;
-    const company = DATA.companies.find(c => c.name === compName);
-    const [agentName, agentStps] = agentVal.split('|');
-    const [courseName, courseDur, courseArea] = courseVal.split('|');
-    const { PDFDocument } = PDFLib;
-    const mergedPdf = await PDFDocument.create();
-    for (const worker of selectedWorkers) {
-        const bytes = await buildDC3PDFBytes({ worker, company, agent: { name: agentName, stps: agentStps }, course: { name: courseName, durationHours: courseDur, thematicArea: courseArea }, start, end, result: 'Acreditado' });
-        const doc = await PDFDocument.load(bytes);
-        const pages = await mergedPdf.copyPages(doc, doc.getPageIndices());
-        pages.forEach(p => mergedPdf.addPage(p));
-    }
-    const finalBytes = await mergedPdf.save();
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([finalBytes], { type: 'application/pdf' }));
-    a.download = 'DC3_Masivo.pdf'; a.click();
-    closeModal('modal-bulk-dc3');
-}
-
-function setDesignTab(tab) {
-    const isDc3 = tab === 'dc3';
-    const dc3Content = document.getElementById('design-content-dc3');
-    const diplomaContent = document.getElementById('design-content-diploma');
-
-    if (dc3Content) dc3Content.classList.toggle('hidden', !isDc3);
-    if (diplomaContent) diplomaContent.classList.toggle('hidden', isDc3);
-
-    const tabDc3 = document.getElementById('tab-design-dc3');
-    const tabDiploma = document.getElementById('tab-design-diploma');
-
-    if (tabDc3 && tabDiploma) {
-        if (isDc3) {
-            tabDc3.className = "px-6 py-3 text-sm font-bold text-blue-900 border-b-2 border-blue-900";
-            tabDiploma.className = "px-6 py-3 text-sm font-medium text-gray-500 hover:text-blue-900 transition-colors";
-        } else {
-            tabDiploma.className = "px-6 py-3 text-sm font-bold text-blue-900 border-b-2 border-blue-900";
-            tabDc3.className = "px-6 py-3 text-sm font-medium text-gray-500 hover:text-blue-900 transition-colors";
-            if (typeof updateDiplomaDesignPreview === 'function') updateDiplomaDesignPreview();
-        }
-    }
-}
 </script>
 </body>
 </html>
