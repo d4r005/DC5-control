@@ -43,7 +43,14 @@ data class DC3FormData(
     val logoBitmap: Bitmap? = null,
     val photoBitmap: Bitmap? = null,
     val headerLogoBitmap: Bitmap? = null,
-    val headerSlogan: String? = null
+    val headerSlogan: String? = null,
+    val slogan: String? = null,
+    // Coordenadas dinámicas
+    val logoX: Float? = null, val logoY: Float? = null, val logoW: Float? = null, val logoH: Float? = null,
+    val firmaX: Float? = null, val firmaY: Float? = null, val firmaW: Float? = null, val firmaH: Float? = null,
+    val headerLogoX: Float? = null, val headerLogoY: Float? = null, val headerLogoW: Float? = null, val headerLogoH: Float? = null,
+    val headerSloganX: Float? = null, val headerSloganY: Float? = null, val headerSloganSize: Float? = null,
+    val sloganX: Float? = null, val sloganY: Float? = null, val sloganSize: Float? = null
 )
 
 object PdfGenerator {
@@ -66,7 +73,7 @@ object PdfGenerator {
         logoBitmap: Bitmap?,
         photoBitmap: Bitmap? = null,
         headerLogoBitmap: Bitmap? = null,
-        headerSlogan: String? = null
+        design: com.example.dc5control.data.model.AgentDesign? = null
     ): File {
         val data = DC3FormData(
             nombreTrabajador = "${employee.apellidoPaterno} ${employee.apellidoMaterno} ${employee.nombres}".trim(),
@@ -89,7 +96,14 @@ object PdfGenerator {
             logoBitmap = logoBitmap,
             photoBitmap = photoBitmap,
             headerLogoBitmap = headerLogoBitmap,
-            headerSlogan = headerSlogan
+            headerSlogan = design?.headerSlogan,
+            slogan = design?.slogan,
+            // Nuevas coordenadas
+            logoX = design?.logoX, logoY = design?.logoY, logoW = design?.logoW, logoH = design?.logoH,
+            firmaX = design?.firmaX, firmaY = design?.firmaY, firmaW = design?.firmaW, firmaH = design?.firmaH,
+            headerLogoX = design?.headerLogoX, headerLogoY = design?.headerLogoY, headerLogoW = design?.headerLogoW, headerLogoH = design?.headerLogoH,
+            headerSloganX = design?.headerSloganX, headerSloganY = design?.headerSloganY, headerSloganSize = design?.headerSloganSize,
+            sloganX = design?.sloganX, sloganY = design?.sloganY, sloganSize = design?.sloganSize
         )
         return generate(context, data)
     }
@@ -153,10 +167,16 @@ object PdfGenerator {
         }
 
         // 0. Cabecera (Slogan Arriba, Logo Abajo)
-        d.headerSlogan?.let { textCentered(306f, 15f, it, 11f, italic = true) }
+        d.headerSlogan?.let { 
+            textCentered(d.headerSloganX ?: 306f, d.headerSloganY ?: 18f, it, d.headerSloganSize ?: 9f, italic = true) 
+        }
         d.headerLogoBitmap?.let {
             val img = PDImageXObject.createFromByteArray(document, bitmapToJpeg(it), "h")
-            cs.drawImage(img, 246f, PH - 90f, 120f, 65f)
+            val hlw = d.headerLogoW ?: 120f
+            val hlh = d.headerLogoH ?: 55f
+            val hlx = d.headerLogoX ?: 30f
+            val hly = d.headerLogoY ?: 10f
+            cs.drawImage(img, hlx, PH - hly - hlh, hlw, hlh)
         }
 
         // -1. Foto Trabajador
@@ -219,8 +239,32 @@ object PdfGenerator {
         rect(63f, 511f, 137f, 27f); rect(218f, 511f, 153f, 27f); rect(389f, 511f, 153f, 27f)
 
         val sIX = 132f; val sPX = 295f; val sRX = 465f; val sY1 = 522f; val sY2 = 532f
-        d.logoBitmap?.let { cs.drawImage(PDImageXObject.createFromByteArray(document, bitmapToJpeg(it), "l"), sIX-45f, PH-562f, 90f, 50f) }
-        d.signatureBitmap?.let { cs.drawImage(PDImageXObject.createFromByteArray(document, bitmapToJpeg(it), "s"), sIX-47.5f, PH-572f, 95f, 55f) }
+        val SIG_Y_BASE = 450f
+        
+        // Logo (sección de firmas)
+        d.logoBitmap?.let { 
+            val img = PDImageXObject.createFromByteArray(document, bitmapToJpeg(it), "l")
+            val lw = d.logoW ?: 90f
+            val lh = d.logoH ?: 50f
+            val lx = d.logoX ?: (sIX - 45f)
+            val ly = d.logoY ?: SIG_Y_BASE
+            cs.drawImage(img, lx, PH - ly - lh, lw, lh)
+        }
+        
+        // Firma
+        d.signatureBitmap?.let { 
+            val img = PDImageXObject.createFromByteArray(document, bitmapToJpeg(it), "s")
+            val fw = d.firmaW ?: 95f
+            val fh = d.firmaH ?: 55f
+            val fx = d.firmaX ?: (sIX - 47.5f)
+            val fy = d.firmaY ?: (SIG_Y_BASE + 3f)
+            cs.drawImage(img, fx, PH - fy - fh, fw, fh)
+        }
+
+        // Slogan al pie
+        d.slogan?.let {
+            textCentered(d.sloganX ?: 30f, d.sloganY ?: 445f, it, d.sloganSize ?: 7f)
+        }
 
         val insL = splitName(d.instructor, 26); textCentered(sIX, sY1, insL[0], 8f)
         if (insL.size > 1) textCentered(sIX, sY2, insL[1], 8f)

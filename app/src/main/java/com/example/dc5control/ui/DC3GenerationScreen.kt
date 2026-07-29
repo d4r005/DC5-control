@@ -160,7 +160,7 @@ fun DC3GenerationScreen(
                 val file = PdfGenerator.generateDC3(
                     context, employee, course, agent.copy(stps = finalStps), company.name, company.rfc,
                     company.representanteLegal, company.representanteTrabajadores,
-                    startDate, endDate, signature, logo, photo, hLogo, design?.headerSlogan
+                    startDate, endDate, signature, logo, photo, hLogo, design
                 )
                 PdfGenerator.openPdf(context, file)
             } else {
@@ -178,7 +178,7 @@ fun DC3GenerationScreen(
                         val file = PdfGenerator.generateDC3(
                             context, employee, course, agent.copy(stps = finalStps), company.name, company.rfc,
                             company.representanteLegal, company.representanteTrabajadores,
-                            startDate, endDate, signature, logo, photo, hLogo, design?.headerSlogan
+                            startDate, endDate, signature, logo, photo, hLogo, design
                         )
                         PdfGenerator.saveToDownloads(context, file)
                         if (totalDocs == 1) PdfGenerator.openPdf(context, file)
