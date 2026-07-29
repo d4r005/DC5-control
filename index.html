@@ -1014,7 +1014,7 @@ function toSnake(obj) {
         updatedAt:'updated_at',
         apellidoPaterno:'apellido_paterno', apellidoMaterno:'apellido_materno', nombres:'nombres',
         photoUrl:'photo_url',
-        diplomaBase64:'diploma_base64',
+        diplomaBase64:'diploma_template_base64',
         dipWorkerX:'dip_worker_x', dipWorkerY:'dip_worker_y', dipWorkerSz:'dip_worker_sz',
         dipCourseX:'dip_course_x', dipCourseY:'dip_course_y', dipCourseSz:'dip_course_sz',
         dipDurationX:'dip_duration_x', dipDurationY:'dip_duration_y', dipDurationSz:'dip_duration_sz',
@@ -1047,6 +1047,7 @@ function toCamel(obj) {
         apellido_paterno:'apellidoPaterno', apellido_materno:'apellidoMaterno', nombres:'nombres',
         photo_url:'photoUrl',
         diploma_base64:'diplomaBase64',
+        diploma_template_base64:'diplomaBase64',
         dip_worker_x:'dipWorkerX', dip_worker_y:'dipWorkerY', dip_worker_sz:'dipWorkerSz',
         dip_course_x:'dipCourseX', dip_course_y:'dipCourseY', dip_course_sz:'dipCourseSz',
         dip_duration_x:'dipDurationX', dip_duration_y:'dipDurationY', dip_duration_sz:'dipDurationSz',
@@ -1988,7 +1989,13 @@ async function loadDesign() {
         let d = null;
         try {
             const r = await api('find','agent_designs', { filter: { creatorEmail: currentUser?.email || '' } });
-            if (r.documents && r.documents.length > 0) d = toCamel(r.documents[0]);
+            if (r.documents && r.documents.length > 0) {
+                const doc = r.documents[0];
+                d = toCamel(doc);
+                // Si faltan columnas de diploma, intentar cargarlas de campos antiguos si existen
+                if (!d.diplomaBase64) d.diplomaBase64 = doc.diploma_template_base64 || doc.diploma_base64;
+                console.log('[DEBUG] Loaded agent_design:', d);
+            }
         } catch(e) {}
         if (!d) {
             const saved = localStorage.getItem('dc3_design');
@@ -2309,8 +2316,14 @@ async function saveDesign() {
 
         const existing = await api('find','agent_designs', { filter: { creatorEmail: p.creatorEmail } });
         if (existing.documents?.length > 0) {
-            // Usar api('update') para que pase por toSnake() y evitar errores de columnas camelCase
-            const res = await api('update','agent_designs', { id: existing.documents[0].id, document: payload });
+            const dbRecord = existing.documents[0];
+            const safePayload = {};
+            // Filtrar columnas: solo enviar las que EXISTEN en la tabla de Supabase
+            for (const key in payload) {
+                if (dbRecord.hasOwnProperty(key)) safePayload[key] = payload[key];
+            }
+            console.log('[DEBUG] Safe update payload:', safePayload);
+            const res = await api('update','agent_designs', { id: dbRecord.id, document: safePayload });
             if (res.error) throw new Error(res.error);
         } else {
             const res = await api('insertOne','agent_designs', { document: payload });
