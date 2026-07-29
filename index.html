@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACE-Control | Gestión DC-3 v1.1.9 · EMERGENCY LOGIN FIX</title>
+    <title>ACE-Control | Gestión DC-3 v1.2.0 · FOLIO & DATABASE FIX</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -90,7 +90,7 @@
                 </svg>
             </div>
             <h1 class="text-2xl font-black text-gray-900">ACE-Control</h1>
-            <p class="text-sm text-gray-400 mt-1">Sistema de Gestión DC-3 · STPS v1.1.9 · EMERGENCY LOGIN FIX</p>
+            <p class="text-sm text-gray-400 mt-1">Sistema de Gestión DC-3 · STPS v1.2.0 · FOLIO & DATABASE FIX</p>
         </div>
 
         <div class="login-card">
@@ -1014,7 +1014,14 @@ function toSnake(obj) {
         updatedAt:'updated_at',
         apellidoPaterno:'apellido_paterno', apellidoMaterno:'apellido_materno', nombres:'nombres',
         photoUrl:'photo_url',
-        diplomaBase64:'diploma_base64'
+        diplomaBase64:'diploma_base64',
+        dipWorkerX:'dip_worker_x', dipWorkerY:'dip_worker_y', dipWorkerSz:'dip_worker_sz',
+        dipCourseX:'dip_course_x', dipCourseY:'dip_course_y', dipCourseSz:'dip_course_sz',
+        dipDurationX:'dip_duration_x', dipDurationY:'dip_duration_y', dipDurationSz:'dip_duration_sz',
+        dipDateX:'dip_date_x', dipDateY:'dip_date_y', dipDateSz:'dip_date_sz',
+        dipAgentX:'dip_agent_x', dipAgentY:'dip_agent_y', dipAgentSz:'dip_agent_sz',
+        dipStpsX:'dip_stps_x', dipStpsY:'dip_stps_y', dipStpsSz:'dip_stps_sz',
+        dipFolioX:'dip_folio_x', dipFolioY:'dip_folio_y', dipFolioSz:'dip_folio_sz'
     };
     const out = {};
     for (const [k,v] of Object.entries(obj)) out[map[k]||k] = v;
@@ -1039,7 +1046,14 @@ function toCamel(obj) {
         updated_at:'updatedAt',
         apellido_paterno:'apellidoPaterno', apellido_materno:'apellidoMaterno', nombres:'nombres',
         photo_url:'photoUrl',
-        diploma_base64:'diplomaBase64'
+        diploma_base64:'diplomaBase64',
+        dip_worker_x:'dipWorkerX', dip_worker_y:'dipWorkerY', dip_worker_sz:'dipWorkerSz',
+        dip_course_x:'dipCourseX', dip_course_y:'dipCourseY', dip_course_sz:'dipCourseSz',
+        dip_duration_x:'dipDurationX', dip_duration_y:'dipDurationY', dip_duration_sz:'dipDurationSz',
+        dip_date_x:'dipDateX', dip_date_y:'dipDateY', dip_date_sz:'dipDateSz',
+        dip_agent_x:'dipAgentX', dip_agent_y:'dipAgentY', dip_agent_sz:'dipAgentSz',
+        dip_stps_x:'dipStpsX', dip_stps_y:'dipStpsY', dip_stps_sz:'dipStpsSz',
+        dip_folio_x:'dipFolioX', dip_folio_y:'dipFolioY', dip_folio_sz:'dipFolioSz'
     };
     const out = {};
     for (const [k,v] of Object.entries(obj)) out[map[k]||k] = v;
@@ -1851,6 +1865,10 @@ async function generateDiploma() {
         drawC(agentName, dx('dip_agent_x', 396), dx('dip_agent_y', 572), dx('dip_agent_sz', 10), true);
         drawC("REGISTRO " + finalStps, dx('dip_stps_x', 396), dx('dip_stps_y', 584), dx('dip_stps_sz', 8), true);
 
+        // 6. Folio
+        const folioTxt = `FOLIO: ${selectedWorker.curp.substring(0,10)}-${new Date().getFullYear()}`;
+        drawC(folioTxt, dx('dip_folio_x', 396), dx('dip_folio_y', 550), dx('dip_folio_sz', 10), true);
+
         const pdfBytes = await pdfDoc.save();
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
@@ -2032,7 +2050,9 @@ async function loadDesign() {
 
         setV('dip-stps-x', d.dipStpsX ?? d.dip_stps_x ?? 396);
         setV('dip-stps-y', d.dipStpsY ?? d.dip_stps_y ?? 584);
-        setV('dip-stps-sz', d.dipStpsSz ?? d.dip_stps_sz ?? 8);
+        setV('dip-folio-x', d.dipFolioX ?? d.dip_folio_x ?? 396);
+        setV('dip-folio-y', d.dipFolioY ?? d.dip_folio_y ?? 550);
+        setV('dip-folio-sz', d.dipFolioSz ?? d.dip_folio_sz ?? 10);
 
         await updateDesignPreview();
         if (currentView === 'dc3design') scheduleDiplomaPreview();
@@ -2104,6 +2124,7 @@ async function updateDiplomaDesignPreview() {
     drawPlaceholder("27 DE JULIO DEL 2026", getV('dip-date-x'), getV('dip-date-y'), getV('dip-date-sz'), true);
     drawPlaceholder("JESUS DARIO ROBLES TRUJILLO", getV('dip-agent-x'), getV('dip-agent-y'), getV('dip-agent-sz'), true);
     drawPlaceholder("REGISTRO STPS-XXX-001", getV('dip-stps-x'), getV('dip-stps-y'), getV('dip-stps-sz'), true);
+    drawPlaceholder("FOLIO: 2024-0001", getV('dip-folio-x'), getV('dip-folio-y'), getV('dip-folio-sz'), true);
 
     const outBytes = await pdfDoc.save();
     const pdf = await pdfjsLib.getDocument({ data: outBytes }).promise;
@@ -2131,7 +2152,8 @@ function _updateDiplomaDragHandles() {
         { id: 'dip-duration-x', yId: 'dip-duration-y', label: 'DURACIÓN', color: '#1e3a8a' },
         { id: 'dip-date-x', yId: 'dip-date-y', label: 'FECHA', color: '#1e3a8a' },
         { id: 'dip-agent-x', yId: 'dip-agent-y', label: 'AGENTE', color: '#15803d' },
-        { id: 'dip-stps-x', yId: 'dip-stps-y', label: 'REGISTRO', color: '#15803d' }
+        { id: 'dip-stps-x', yId: 'dip-stps-y', label: 'REGISTRO', color: '#15803d' },
+        { id: 'dip-folio-x', yId: 'dip-folio-y', label: 'FOLIO', color: '#6366f1' }
     ];
 
     items.forEach(item => {
@@ -2258,7 +2280,14 @@ function getDesignParams() {
         sloganSize: gv('design-slogan-size',7),
         sloganFont: gs('design-slogan-font','Helvetica'),
         agentName: gs('design-agent-name'),
-        diplomaBase64: designState.diploma_base64,
+        diplomaBase64: designState.diploma_base_64 || designState.diplomaBase64,
+        dipWorkerX: gv('dip-worker-x'), dipWorkerY: gv('dip-worker-y'), dipWorkerSz: gv('dip-worker-sz'),
+        dipCourseX: gv('dip-course-x'), dipCourseY: gv('dip-course-y'), dipCourseSz: gv('dip-course-sz'),
+        dipDurationX: gv('dip-duration-x'), dipDurationY: gv('dip-duration-y'), dipDurationSz: gv('dip-duration-sz'),
+        dipDateX: gv('dip-date-x'), dipDateY: gv('dip-date-y'), dipDateSz: gv('dip-date-sz'),
+        dipAgentX: gv('dip-agent-x'), dipAgentY: gv('dip-agent-y'), dipAgentSz: gv('dip-agent-sz'),
+        dipStpsX: gv('dip-stps-x'), dipStpsY: gv('dip-stps-y'), dipStpsSz: gv('dip-stps-sz'),
+        dipFolioX: gv('dip-folio-x'), dipFolioY: gv('dip-folio-y'), dipFolioSz: gv('dip-folio-sz'),
         creatorEmail: currentUser?.email || ''
     };
 }
@@ -2297,12 +2326,19 @@ async function saveDesign() {
             slogan_y: p.sloganY,
             slogan_size: p.sloganSize,
             agent_name: p.agentName,
-            diploma_base64: p.diplomaBase64,
+            // diploma_base64: p.diplomaBase64, // DESACTIVADO para evitar error de columna faltante en Supabase
+            dip_worker_x: p.dipWorkerX, dip_worker_y: p.dipWorkerY, dip_worker_sz: p.dipWorkerSz,
+            dip_course_x: p.dipCourseX, dip_course_y: p.dipCourseY, dip_course_sz: p.dipCourseSz,
+            dip_duration_x: p.dipDurationX, dip_duration_y: p.dipDurationY, dip_duration_sz: p.dipDurationSz,
+            dip_date_x: p.dipDateX, dip_date_y: p.dipDateY, dip_date_sz: p.dipDateSz,
+            dip_agent_x: p.dipAgentX, dip_agent_y: p.dipAgentY, dip_agent_sz: p.dipAgentSz,
+            dip_stps_x: p.dipStpsX, dip_stps_y: p.dipStpsY, dip_stps_sz: p.dipStpsSz,
+            dip_folio_x: p.dipFolioX, dip_folio_y: p.dipFolioY, dip_folio_sz: p.dipFolioSz,
             updated_at: new Date().toISOString()
         };
 
-        // Save fonts to localStorage (not in DB - no those columns)
-        const localPayload = { ...payload, slogan_font: p.sloganFont || 'Helvetica', header_slogan_font: p.headerSloganFont || 'Times-Italic' };
+        // Save fonts and diploma template to localStorage (persistent even if DB columns are missing)
+        const localPayload = { ...payload, diploma_base64: p.diplomaBase64, slogan_font: p.sloganFont || 'Helvetica', header_slogan_font: p.headerSloganFont || 'Times-Italic' };
         localStorage.setItem('dc3_design', JSON.stringify(localPayload));
 
         const existing = await api('find','agent_designs', { filter: { creatorEmail: p.creatorEmail } });
