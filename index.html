@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACE-Control | Gestión DC-3 v1.2.3 · COURSE FILTER FIX</title>
+    <title>ACE-Control | Gestión DC-3 v1.2.4 · DIPLOMA & UI FIX</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -90,7 +90,7 @@
                 </svg>
             </div>
             <h1 class="text-2xl font-black text-gray-900">ACE-Control</h1>
-            <p class="text-sm text-gray-400 mt-1">Sistema de Gestión DC-3 · STPS v1.2.3 · COURSE FILTER FIX</p>
+            <p class="text-sm text-gray-400 mt-1">Sistema de Gestión DC-3 · STPS v1.2.4 · DIPLOMA & UI FIX</p>
         </div>
 
         <div class="login-card">
@@ -669,14 +669,22 @@
             <!-- Resultado de evaluación eliminado -->
         </div>
 
-        <div class="flex justify-end gap-3 mt-7">
-            <button onclick="closeModal('modal-dc3')" class="btn-sm btn-outline px-5">Cancelar</button>
-            <button onclick="previewDC3()" class="btn-sm btn-outline px-5" style="border-color:#1e3a8a;color:#1e3a8a">
-                👁 Previsualizar
-            </button>
-            <button onclick="generateDC3()" class="btn-sm btn-indigo px-7">
-                ⬇ Generar PDF DC-3
-            </button>
+        <div class="grid grid-cols-2 gap-3 mt-7">
+            <div class="flex gap-2">
+                <button onclick="closeModal('modal-dc3')" class="btn-sm btn-outline px-5">Cancelar</button>
+            </div>
+            <div class="flex justify-end gap-2">
+                <div class="flex flex-col gap-2 w-full">
+                    <div class="flex gap-2 justify-end">
+                        <button onclick="previewDC3()" class="btn-sm btn-outline" style="border-color:#1e3a8a;color:#1e3a8a">👁 DC-3</button>
+                        <button onclick="generateDC3()" class="btn-sm btn-indigo px-4">⬇ DC-3</button>
+                    </div>
+                    <div class="flex gap-2 justify-end">
+                        <button onclick="previewDiploma()" class="btn-sm btn-outline" style="border-color:#15803d;color:#15803d">👁 Diploma</button>
+                        <button onclick="generateDiploma()" class="btn-sm" style="background:#15803d;color:#fff;border-radius:6px;padding:6px 16px;font-size:12px;font-weight:600">⬇ Diploma</button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -1326,11 +1334,15 @@ async function loadSection(v) {
                     <td class="text-xs text-gray-500">${x.occupation||''}</td>
                     <td>${x.position||''}</td>
                     <td class="text-right">
-                        <div class="flex justify-end gap-2 flex-wrap">
-                            <button onclick='openDC3(${JSON.stringify(x)})' class="btn-sm btn-indigo">DC-3</button>
-                            <button onclick='openWorkerCourses(${JSON.stringify(x)})' class="btn-sm" style="background:#1e3a8a;color:#fff;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:600">+ Cursos</button>
-                            <button onclick='openModal(${JSON.stringify(x)})' class="btn-sm btn-outline">✎</button>
-                            <button onclick="delItem('workers','${x.id}')" class="btn-sm btn-red">✕</button>
+                        <div class="flex flex-col gap-2 items-end">
+                            <div class="flex gap-2">
+                                <button onclick='openDC3(${JSON.stringify(x)})' class="btn-sm btn-indigo">DC-3</button>
+                                <button onclick='openWorkerCourses(${JSON.stringify(x)})' class="btn-sm btn-indigo">+ Cursos</button>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick='openModal(${JSON.stringify(x)})' class="btn-sm btn-outline">✎</button>
+                                <button onclick="delItem('workers','${x.id}')" class="btn-sm btn-red">✕</button>
+                            </div>
                         </div>
                     </td>
                   </tr>`;
@@ -1786,6 +1798,39 @@ async function generateDC3() {
 
 // ─── GENERATE DIPLOMA ──────────────────────────────────
 async function generateDiploma() {
+    try {
+        const pdfBytes = await _buildDiplomaCore();
+        if (!pdfBytes) return;
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Diploma_${selectedWorker.curp}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+    } catch(e) {
+        console.error("Error generating Diploma:", e);
+        alert("Error al generar diploma: " + e.message);
+    }
+}
+
+async function previewDiploma() {
+    const container = document.getElementById('dc3-preview-container');
+    document.getElementById('modal-dc3-preview').classList.add('open');
+    container.innerHTML = '<p class="text-gray-400 text-sm">Generando previsualización del diploma…</p>';
+
+    try {
+        const pdfBytes = await _buildDiplomaCore();
+        if (pdfBytes) {
+            _previewPdfBytes = pdfBytes;
+            showPDFInContainer(pdfBytes, container);
+        }
+    } catch(e) {
+        container.innerHTML = `<p class="text-red-500 text-sm">Error: ${e.message}</p>`;
+    }
+}
+
+async function _buildDiplomaCore() {
     const { PDFDocument, StandardFonts, rgb } = PDFLib;
 
     const companyName = document.getElementById('dc3-company').value;
@@ -1794,7 +1839,7 @@ async function generateDiploma() {
     const start       = document.getElementById('dc3-start').value;
     const end         = document.getElementById('dc3-end').value;
 
-    if (!start || !end) { alert('Selecciona las fechas'); return; }
+    if (!start || !end) { alert('Selecciona las fechas'); return null; }
 
     const [agentName, agentStps] = agentVal.split('|');
     const [courseName, courseDuration, courseArea, courseStpsId] = courseVal.split('|');
@@ -1808,95 +1853,83 @@ async function generateDiploma() {
         return "STPS-" + parts.slice(0, -1).join("-") + "-" + cId;
     })(agentStps, courseStpsId);
 
-    try {
-        let imgBytes = null;
-        // --- CARGAR DISEÑO (Prioridad LocalStorage > DB) ---
-        let d = null;
-        const localD = localStorage.getItem('dc3_design');
-        if (localD) {
-            d = JSON.parse(localD);
-        } else {
-            try {
-                const agentRecord = DATA.agents.find(a => a.name === agentName);
-                const dr = await api('find','agent_designs', { filter: { creatorEmail: agentRecord?.creatorEmail || currentUser.email } });
-                if (dr.documents?.length > 0) d = dr.documents[0];
-            } catch(e) {}
-        }
-
-        const diplomaB64 = d?.diploma_base64 || d?.diplomaBase64;
-        if (diplomaB64) {
-            const b64 = diplomaB64.split(',')[1];
-            imgBytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-        } else {
-            const resp = await fetch('plantilla_diploma.png?v=2');
-            imgBytes = await resp.arrayBuffer();
-        }
-
-        const pdfDoc = await PDFDocument.create();
-        const page = pdfDoc.addPage([792, 612]); // Letter Landscape
-        const PW = 792, PH = 612;
-
-        const img = await pdfDoc.embedPng(imgBytes).catch(() => pdfDoc.embedJpg(imgBytes));
-        page.drawImage(img, { x: 0, y: 0, width: PW, height: PH });
-
-        const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-        const fontB = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-
-        const drawC = (txt, x, y, sz, fb = false, color = rgb(0,0,0)) => {
-            const f = fb ? fontB : font;
-            const cleanTxt = (txt || '').toUpperCase();
-            const w = f.widthOfTextAtSize(cleanTxt, sz);
-            page.drawText(cleanTxt, { x: x - w/2, y: PH - y, size: sz, font: f, color: color });
-        };
-
-        // Coordenadas desde el Diseño (o defaults)
-        const dx = (id, def) => d?.[id] ?? def;
-
-        // 1. Nombre del Trabajador
-        const fullName = selectedWorker.apellidoPaterno ? `${selectedWorker.nombres} ${selectedWorker.apellidoPaterno} ${selectedWorker.apellidoMaterno || ''}`.trim() : selectedWorker.name;
-        drawC(fullName, dx('dip_worker_x', 396), dx('dip_worker_y', 245), dx('dip_worker_sz', 28), true, rgb(0.1, 0.2, 0.4));
-
-        // 2. Nombre del Curso
-        drawC(courseName, dx('dip_course_x', 396), dx('dip_course_y', 330), dx('dip_course_sz', 18), true);
-
-        // 3. Duración del Curso
-        drawC(courseDuration, dx('dip_duration_x', 396), dx('dip_duration_y', 405), dx('dip_duration_sz', 12), true);
-
-        // 4. Fecha
-        const months = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
-        const p = end.split('-');
-        const dateText = `${p[2]} DE ${months[parseInt(p[1])-1]} DEL ${p[0]}`;
-        drawC(dateText, dx('dip_date_x', 396), dx('dip_date_y', 445), dx('dip_date_sz', 11), true);
-
-        // 5. Firma y Datos del Agente
-        const fBase64 = d?.firma_base64 || d?.firmaBase64;
-        if (fBase64) {
-            try {
-                const fImgBytes = await fetch(fBase64).then(r => r.arrayBuffer());
-                const fImg = await pdfDoc.embedPng(fImgBytes);
-                // Firma centrada sobre el nombre
-                page.drawImage(fImg, { x: dx('dip_agent_x', 396) - 45, y: PH - dx('dip_agent_y', 572) + 10, width: 90, height: 50 });
-            } catch(e) {}
-        }
-
-        drawC(agentName, dx('dip_agent_x', 396), dx('dip_agent_y', 572), dx('dip_agent_sz', 10), true);
-        drawC("REGISTRO " + finalStps, dx('dip_stps_x', 396), dx('dip_stps_y', 584), dx('dip_stps_sz', 8), true);
-
-        // 6. Folio
-        const folioTxt = `FOLIO: ${selectedWorker.curp.substring(0,10)}-${new Date().getFullYear()}`;
-        drawC(folioTxt, dx('dip_folio_x', 396), dx('dip_folio_y', 550), dx('dip_folio_sz', 10), true);
-
-        const pdfBytes = await pdfDoc.save();
-        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Diploma_${selectedWorker.curp}.pdf`;
-        a.click();
-
-    } catch (e) {
-        alert('Error al generar diploma: ' + e.message);
+    let imgBytes = null;
+    // --- CARGAR DISEÑO (Prioridad LocalStorage > DB) ---
+    let d = null;
+    const localD = localStorage.getItem('dc3_design');
+    if (localD) {
+        d = JSON.parse(localD);
+    } else {
+        try {
+            const agentRecord = DATA.agents.find(a => a.name === agentName);
+            const dr = await api('find','agent_designs', { filter: { creatorEmail: agentRecord?.creatorEmail || currentUser.email } });
+            if (dr.documents?.length > 0) d = dr.documents[0];
+        } catch(e) {}
     }
+
+    const diplomaB64 = d?.diploma_template_base64 || d?.diploma_base64 || d?.diplomaBase64;
+    if (diplomaB64) {
+        const b64 = diplomaB64.split(',')[1];
+        imgBytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    } else {
+        const resp = await fetch('plantilla_diploma.png?v=2');
+        imgBytes = await resp.arrayBuffer();
+    }
+
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([792, 612]); // Letter Landscape
+    const PW = 792, PH = 612;
+
+    const img = await pdfDoc.embedPng(imgBytes).catch(() => pdfDoc.embedJpg(imgBytes));
+    page.drawImage(img, { x: 0, y: 0, width: PW, height: PH });
+
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const fontB = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+    const drawC = (txt, x, y, sz, fb = false, color = rgb(0,0,0)) => {
+        const f = fb ? fontB : font;
+        const cleanTxt = (txt || '').toUpperCase();
+        const w = f.widthOfTextAtSize(cleanTxt, sz);
+        page.drawText(cleanTxt, { x: x - w/2, y: PH - y, size: sz, font: f, color: color });
+    };
+
+    const dx = (id, def) => d?.[id] ?? def;
+
+    // 1. Nombre del Trabajador
+    const fullName = selectedWorker.apellidoPaterno ? `${selectedWorker.nombres} ${selectedWorker.apellidoPaterno} ${selectedWorker.apellidoMaterno || ''}`.trim() : selectedWorker.name;
+    drawC(fullName, dx('dip_worker_x', 396), dx('dip_worker_y', 245), dx('dip_worker_sz', 28), true, rgb(0.1, 0.2, 0.4));
+
+    // 2. Nombre del Curso
+    drawC(courseName, dx('dip_course_x', 396), dx('dip_course_y', 330), dx('dip_course_sz', 18), true);
+
+    // 3. Duración del Curso
+    drawC(courseDuration, dx('dip_duration_x', 396), dx('dip_duration_y', 405), dx('dip_duration_sz', 12), true);
+
+    // 4. Fecha
+    const months = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
+    const p = end.split('-');
+    const dateText = `${p[2]} DE ${months[parseInt(p[1])-1]} DEL ${p[0]}`;
+    drawC(dateText, dx('dip_date_x', 396), dx('dip_date_y', 445), dx('dip_date_sz', 11), true);
+
+    // 5. Firma y Datos del Agente
+    const fBase64 = d?.firma_base64 || d?.firmaBase64;
+    if (fBase64) {
+        try {
+            const fImgBytes = await fetch(fBase64).then(r => r.arrayBuffer());
+            const fImg = await pdfDoc.embedPng(fImgBytes);
+            // Firma centrada sobre el nombre
+            page.drawImage(fImg, { x: dx('dip_agent_x', 396) - 45, y: PH - dx('dip_agent_y', 572) + 10, width: 90, height: 50 });
+        } catch(e) {}
+    }
+
+    drawC(agentName, dx('dip_agent_x', 396), dx('dip_agent_y', 572), dx('dip_agent_sz', 10), true);
+    drawC("REGISTRO " + finalStps, dx('dip_stps_x', 396), dx('dip_stps_y', 584), dx('dip_stps_sz', 8), true);
+
+    // 6. Folio
+    const folioTxt = `FOLIO: ${selectedWorker.curp.substring(0,10)}-${new Date().getFullYear()}`;
+    drawC(folioTxt, dx('dip_folio_x', 396), dx('dip_folio_y', 550), dx('dip_folio_sz', 10), true);
+
+    return await pdfDoc.save();
 }
 
 // Regenerar desde historial
