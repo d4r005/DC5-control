@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACE-Control | Gestión DC-3 v1.1.6 · LOGIN REPAIRED</title>
+    <title>ACE-Control | Gestión DC-3 v1.1.8 · ULTIMATE STABILITY FIX</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -90,7 +90,7 @@
                 </svg>
             </div>
             <h1 class="text-2xl font-black text-gray-900">ACE-Control</h1>
-            <p class="text-sm text-gray-400 mt-1">Sistema de Gestión DC-3 · STPS v1.1.6 · LOGIN REPAIRED</p>
+            <p class="text-sm text-gray-400 mt-1">Sistema de Gestión DC-3 · STPS v1.1.8 · ULTIMATE STABILITY FIX</p>
         </div>
 
         <div class="login-card">
@@ -457,8 +457,9 @@
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Diploma Design Content -->
+        <!-- Diploma Design Content -->
             <div id="design-content-diploma" class="hidden">
                 <div style="display:grid;grid-template-columns:400px 1fr;gap:18px;min-height:82vh;">
                     <!-- Panel izquierdo: controles -->
@@ -561,7 +562,7 @@
                             <p class="text-xs font-bold text-gray-500 uppercase">Vista previa — Diploma (arrastra los recuadros)</p>
                             <span id="diploma-drag-hint" class="text-xs text-blue-900"></span>
                         </div>
-                        <div id="diploma-preview-wrap" style="position:relative;overflow-y:auto;overflow-x:hidden;flex:1;min-height:0;border-radius:8px;background:#f3f4f6;">
+                            <div id="diploma-preview-wrap" style="position:relative;overflow-y:auto;overflow-x:hidden;flex:1;min-height:0;border-radius:8px;background:#f3f4f6;">
                             <canvas id="diploma-preview-canvas" style="display:block;width:100%;"></canvas>
                             <svg id="diploma-drag-overlay" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;" viewBox="0 0 792 612" preserveAspectRatio="none"></svg>
                         </div>
@@ -1269,131 +1270,137 @@ function setView(v) {
 
 // ─── LOAD SECTIONS ─────────────────────────────────────
 async function loadSection(v) {
+    console.log('[DEBUG] loadSection called for:', v);
+    if (!currentUser) {
+        console.warn('[DEBUG] No currentUser, skipping loadSection');
+        return;
+    }
     const f = (currentUser.role === 'ADMIN') ? {} : { creatorEmail: currentUser.email };
+    console.log('[DEBUG] Filter f:', f);
 
-    if (v === 'dashboard') {
-        console.log('[DEBUG] loadSection dashboard, sb =', !!sb, 'currentUser =', !!currentUser);
-        const [w, d, co] = await Promise.all([
-            api('find','workers',{ filter: f }),
-            api('find','dc3_records',{ filter: {} }),
-            api('find','companies',{ filter: {} })
-        ]);
-        console.log('[DEBUG] dashboard API results:', { workers: w, dc3: d, companies: co });
-        document.getElementById('stat-workers').innerText = (w.documents||[]).length;
-        document.getElementById('stat-dc3').innerText = (d.documents||[]).length;
-        document.getElementById('stat-companies').innerText = (co.documents||[]).length;
+    try {
+        if (v === 'dashboard') {
+            const [w, d, co] = await Promise.all([
+                api('find','workers',{ filter: f }),
+                api('find','dc3_records',{ filter: {} }),
+                api('find','companies',{ filter: {} })
+            ]);
+            document.getElementById('stat-workers').innerText = (w.documents||[]).length;
+            document.getElementById('stat-dc3').innerText = (d.documents||[]).length;
+            document.getElementById('stat-companies').innerText = (co.documents||[]).length;
 
-    } else if (v === 'workers') {
-        const r = await api('find','workers',{ filter: f });
-        const rows = (r.documents||[]);
-        document.getElementById('tb-workers').innerHTML = rows.length
-            ? rows.map(x => {
-                const fullName = x.apellidoPaterno ? `${x.apellidoPaterno} ${x.apellidoMaterno || ''} ${x.nombres || ''}`.trim() : (x.name || '');
-                const photoHtml = x.photoUrl
-                    ? `<img src="${x.photoUrl}" class="w-9 h-9 rounded-full object-cover border border-gray-200" onerror="this.style.display='none'">`
-                    : `<div class="w-9 h-9 rounded-full bg-gray-50 flex items-center justify-center text-gray-300 border border-dashed border-gray-200" title="Sin foto">
-                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                       </div>`;
-                return `<tr>
-                <td><input type="checkbox" class="worker-chk w-4 h-4 accent-blue-900 rounded" data-worker='${JSON.stringify(x).replace(/'/g,"&apos;")}' onchange="onWorkerCheckChange()"></td>
-                <td>${photoHtml}</td>
-                <td class="font-semibold">${fullName}</td>
-                <td class="font-mono text-xs text-gray-500">${x.curp||''}</td>
-                <td class="text-xs text-gray-500">${x.occupation||''}</td>
-                <td>${x.position||''}</td>
-                <td class="text-right">
-                    <div class="flex justify-end gap-2 flex-wrap">
-                        <button onclick='openDC3(${JSON.stringify(x)})' class="btn-sm btn-indigo">DC-3</button>
-                        <button onclick='openWorkerCourses(${JSON.stringify(x)})' class="btn-sm" style="background:#1e3a8a;color:#fff;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:600">+ Cursos</button>
-                        <button onclick='openModal(${JSON.stringify(x)})' class="btn-sm btn-outline">✎</button>
-                        <button onclick="delItem('workers','${x.id}')" class="btn-sm btn-red">✕</button>
-                    </div>
-                </td>
-              </tr>`;
-            }).join('')
-            : `<tr><td colspan="5" class="text-center py-12 text-gray-300 text-sm">Sin personal registrado</td></tr>`;
+        } else if (v === 'workers') {
+            const r = await api('find','workers',{ filter: f });
+            const rows = (r.documents||[]);
+            const tb = document.getElementById('tb-workers');
+            if (tb) tb.innerHTML = rows.length
+                ? rows.map(x => {
+                    const fullName = x.apellidoPaterno ? `${x.apellidoPaterno} ${x.apellidoMaterno || ''} ${x.nombres || ''}`.trim() : (x.name || '');
+                    const photoHtml = x.photoUrl
+                        ? `<img src="${x.photoUrl}" class="w-9 h-9 rounded-full object-cover border border-gray-200" onerror="this.style.display='none'">`
+                        : `<div class="w-9 h-9 rounded-full bg-gray-50 flex items-center justify-center text-gray-300 border border-dashed border-gray-200" title="Sin foto">
+                               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                           </div>`;
+                    return `<tr>
+                    <td><input type="checkbox" class="worker-chk w-4 h-4 accent-blue-900 rounded" data-worker='${JSON.stringify(x).replace(/'/g,"&apos;")}' onchange="onWorkerCheckChange()"></td>
+                    <td>${photoHtml}</td>
+                    <td class="font-semibold">${fullName}</td>
+                    <td class="font-mono text-xs text-gray-500">${x.curp||''}</td>
+                    <td class="text-xs text-gray-500">${x.occupation||''}</td>
+                    <td>${x.position||''}</td>
+                    <td class="text-right">
+                        <div class="flex justify-end gap-2 flex-wrap">
+                            <button onclick='openDC3(${JSON.stringify(x)})' class="btn-sm btn-indigo">DC-3</button>
+                            <button onclick='openWorkerCourses(${JSON.stringify(x)})' class="btn-sm" style="background:#1e3a8a;color:#fff;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:600">+ Cursos</button>
+                            <button onclick='openModal(${JSON.stringify(x)})' class="btn-sm btn-outline">✎</button>
+                            <button onclick="delItem('workers','${x.id}')" class="btn-sm btn-red">✕</button>
+                        </div>
+                    </td>
+                  </tr>`;
+                }).join('')
+                : `<tr><td colspan="7" class="text-center py-12 text-gray-300 text-sm">Sin personal registrado</td></tr>`;
 
-    } else if (v === 'companies') {
-        const r = await api('find','companies',{ filter: {} });
-        const rows = (r.documents||[]);
-        DATA.companies = rows;
-        document.getElementById('tb-companies').innerHTML = rows.length
-            ? rows.map(x => `<tr>
-                <td class="font-semibold">${x.name||''}</td>
-                <td class="font-mono text-xs text-gray-500">${x.rfc||''}</td>
-                <td class="text-sm">${x.representanteLegal||'–'}</td>
-                <td class="text-sm">${x.representanteTrabajadores||'–'}</td>
-                <td class="text-right">
-                    <div class="flex justify-end gap-2">
-                        <button onclick='openModal(${JSON.stringify(x)})' class="btn-sm btn-outline">✎</button>
-                        <button onclick="delItem('companies','${x.id}')" class="btn-sm btn-red">✕</button>
-                    </div>
-                </td>
-              </tr>`).join('')
-            : `<tr><td colspan="5" class="text-center py-12 text-gray-300 text-sm">Sin empresas registradas</td></tr>`;
+        } else if (v === 'companies') {
+            const r = await api('find','companies',{ filter: {} });
+            const rows = (r.documents||[]);
+            DATA.companies = rows;
+            const tb = document.getElementById('tb-companies');
+            if (tb) tb.innerHTML = rows.length
+                ? rows.map(x => `<tr>
+                    <td class="font-semibold">${x.name||''}</td>
+                    <td class="font-mono text-xs text-gray-500">${x.rfc||''}</td>
+                    <td class="text-sm">${x.representanteLegal||'–'}</td>
+                    <td class="text-sm">${x.representanteTrabajadores||'–'}</td>
+                    <td class="text-right">
+                        <div class="flex justify-end gap-2">
+                            <button onclick='openModal(${JSON.stringify(x)})' class="btn-sm btn-outline">✎</button>
+                            <button onclick="delItem('companies','${x.id}')" class="btn-sm btn-red">✕</button>
+                        </div>
+                    </td>
+                  </tr>`).join('')
+                : `<tr><td colspan="5" class="text-center py-12 text-gray-300 text-sm">Sin empresas registradas</td></tr>`;
 
-    } else if (v === 'courses') {
-        const selectedAgentName = document.getElementById('filter-agent')?.value;
-        const selectedAgent = DATA.agents.find(a => a.name === selectedAgentName);
+        } else if (v === 'courses') {
+            const selectedAgentName = document.getElementById('filter-agent')?.value;
+            const selectedAgent = DATA.agents.find(a => a.name === selectedAgentName);
 
-        let list = (currentUser.role === 'ADMIN' ? DATA.courses : DATA.courses.filter(c => c.creatorEmail === currentUser.email))
-            .filter(c => c.thematicArea && c.thematicArea !== '' && c.thematicArea !== '–' && c.thematicArea !== '-');
+            let list = (currentUser.role === 'ADMIN' ? DATA.courses : DATA.courses.filter(c => c.creatorEmail === currentUser.email))
+                .filter(c => c.thematicArea && c.thematicArea !== '' && c.thematicArea !== '–' && c.thematicArea !== '-');
 
-        if (selectedAgent) {
-            list = list.filter(c => c.creatorEmail === selectedAgent.creatorEmail);
-        }
+            if (selectedAgent) {
+                list = list.filter(c => c.creatorEmail === selectedAgent.creatorEmail);
+            }
 
-        document.getElementById('tb-courses').innerHTML = list.length
-            ? list.map(c => `<tr>
-                <td class="font-semibold">${c.name}</td>
-                <td><span class="badge badge-admin">${c.durationHours}</span></td>
-                <td class="text-xs text-gray-500">${c.thematicArea||'–'}</td>
-                <td class="text-right">
-                    <div class="flex justify-end gap-2">
-                        <button onclick='openModal(${JSON.stringify(c)})' class="btn-sm btn-outline">✎</button>
-                        <button onclick="delItem('courses','${c.id}')" class="btn-sm btn-red">✕</button>
-                    </div>
-                </td>
-              </tr>`).join('')
-            : `<tr><td colspan="3" class="text-center py-12 text-gray-300 text-sm">Sin cursos</td></tr>`;
+            const tb = document.getElementById('tb-courses');
+            if (tb) tb.innerHTML = list.length
+                ? list.map(c => `<tr>
+                    <td class="font-semibold">${c.name}</td>
+                    <td><span class="badge badge-admin">${c.durationHours}</span></td>
+                    <td class="text-xs text-gray-500">${c.thematicArea||'–'}</td>
+                    <td class="text-right">
+                        <div class="flex justify-end gap-2">
+                            <button onclick='openModal(${JSON.stringify(c)})' class="btn-sm btn-outline">✎</button>
+                            <button onclick="delItem('courses','${c.id}')" class="btn-sm btn-red">✕</button>
+                        </div>
+                    </td>
+                  </tr>`).join('')
+                : `<tr><td colspan="4" class="text-center py-12 text-gray-300 text-sm">Sin cursos</td></tr>`;
 
-    } else if (v === 'dc3') {
-        const selectedAgentName = document.getElementById('filter-agent')?.value;
-        const r = await api('find','dc3_records',{ filter: {} });
-        let rows = (r.documents||[]);
+        } else if (v === 'dc3') {
+            const selectedAgentName = document.getElementById('filter-agent')?.value;
+            const r = await api('find','dc3_records',{ filter: {} });
+            let rows = (r.documents||[]);
+            if (selectedAgentName) {
+                rows = rows.filter(x => x.agentName === selectedAgentName);
+            }
+            const tb = document.getElementById('tb-dc3');
+            if (tb) tb.innerHTML = rows.length
+                ? rows.map(x => `<tr>
+                    <td>
+                        <p class="font-semibold text-sm">${x.workerName||'–'}</p>
+                        <p class="font-mono text-xs text-gray-400">${x.workerId||''}</p>
+                    </td>
+                    <td class="text-sm">${x.courseName||''}</td>
+                    <td class="text-sm text-gray-500">${x.companyName||''}</td>
+                    <td class="text-xs text-gray-400">${x.startDate||''} – ${x.endDate||''}</td>
+                    <td class="text-right">
+                        <div class="flex justify-end gap-2">
+                            <button onclick='previewDC3FromRecord(${JSON.stringify(x)})' title="Previsualizar DC-3" class="btn-sm btn-outline" style="border-color:#1e3a8a;color:#1e3a8a">👁 Ver</button>
+                            <button onclick='regenDC3(${JSON.stringify(x)})' title="Descargar PDF" class="btn-sm btn-indigo">⬇ PDF</button>
+                            <button onclick='prepareEditDC3(${JSON.stringify(x)})' title="Editar Registro" class="btn-sm btn-outline">✎</button>
+                            <button onclick="delItem('dc3_records','${x.id}')" title="Eliminar" class="btn-sm btn-red">✕</button>
+                        </div>
+                    </td>
+                  </tr>`).join('')
+                : `<tr><td colspan="5" class="text-center py-12 text-gray-300 text-sm">Sin historial de constancias</td></tr>`;
 
-        if (selectedAgentName) {
-            rows = rows.filter(x => x.agentName === selectedAgentName);
-        }
+        } else if (v === 'dc3design') {
+            await loadDesign();
 
-        document.getElementById('tb-dc3').innerHTML = rows.length
-            ? rows.map(x => `<tr>
-                <td>
-                    <p class="font-semibold text-sm">${x.workerName||'–'}</p>
-                    <p class="font-mono text-xs text-gray-400">${x.workerId||''}</p>
-                </td>
-                <td class="text-sm">${x.courseName||''}</td>
-                <td class="text-sm text-gray-500">${x.companyName||''}</td>
-                <td class="text-xs text-gray-400">${x.startDate||''} – ${x.endDate||''}</td>
-                <td class="text-right">
-                    <div class="flex justify-end gap-2">
-                        <button onclick='previewDC3FromRecord(${JSON.stringify(x)})' title="Previsualizar DC-3" class="btn-sm btn-outline" style="border-color:#1e3a8a;color:#1e3a8a">👁 Ver</button>
-                        <button onclick='regenDC3(${JSON.stringify(x)})' title="Descargar PDF" class="btn-sm btn-indigo">⬇ PDF</button>
-                        <button onclick='prepareEditDC3(${JSON.stringify(x)})' title="Editar Registro" class="btn-sm btn-outline">✎</button>
-                        <button onclick="delItem('dc3_records','${x.id}')" title="Eliminar" class="btn-sm btn-red">✕</button>
-                    </div>
-                </td>
-              </tr>`).join('')
-            : `<tr><td colspan="5" class="text-center py-12 text-gray-300 text-sm">Sin historial de constancias</td></tr>`;
-
-    } else if (v === 'dc3design') {
-        await loadDesign();
-
-    } else if (v === 'agents') {
-        const tb = document.getElementById('tb-agents');
-        if (!tb) return;
-        tb.innerHTML = '<tr><td colspan="3" class="text-center py-12 text-gray-300">Cargando agentes...</td></tr>';
-        try {
+        } else if (v === 'agents') {
+            const tb = document.getElementById('tb-agents');
+            if (!tb) return;
+            tb.innerHTML = '<tr><td colspan="3" class="text-center py-12 text-gray-300">Cargando agentes...</td></tr>';
             const r = await api('find','agents',{ filter: {} });
             const rows = (r.documents||[]);
             tb.innerHTML = rows.length
@@ -1408,22 +1415,22 @@ async function loadSection(v) {
                     </td>
                   </tr>`).join('')
                 : `<tr><td colspan="3" class="text-center py-12 text-gray-300 text-sm">Sin agentes registrados</td></tr>`;
-        } catch (e) {
-            console.error('Error loading agents:', e);
-            tb.innerHTML = `<tr><td colspan="3" class="text-center py-12 text-red-400 text-sm">Error al cargar agentes: ${e.message}</td></tr>`;
-        }
 
-    } else if (v === 'users') {
-        const tb = document.getElementById('tb-users');
-        if (!tb) return;
-        tb.innerHTML = (DATA.users || []).map(u => `<tr>
-            <td class="font-semibold">${u.name}</td>
-            <td class="text-gray-500 text-sm">${u.email}</td>
-            <td><span class="badge ${u.role==='ADMIN'?'badge-admin':'badge-user'}">${u.role}</span></td>
-            <td class="text-right">
-                <button onclick="alert('Edición de usuarios protegida')" class="btn-sm btn-outline">✎</button>
-            </td>
-          </tr>`).join('');
+        } else if (v === 'users') {
+            const tb = document.getElementById('tb-users');
+            if (!tb) return;
+            console.log('[DEBUG] Populating tb-users with:', DATA.users);
+            tb.innerHTML = (DATA.users || []).map(u => `<tr>
+                <td class="font-semibold">${u.name}</td>
+                <td class="text-gray-500 text-sm">${u.email}</td>
+                <td><span class="badge ${u.role==='ADMIN'?'badge-admin':'badge-user'}">${u.role}</span></td>
+                <td class="text-right">
+                    <button onclick="alert('Edición de usuarios protegida')" class="btn-sm btn-outline">✎</button>
+                </td>
+              </tr>`).join('');
+        }
+    } catch (e) {
+        console.error('[DEBUG] Error in loadSection:', e);
     }
 }
 
@@ -1743,6 +1750,7 @@ async function generateDC3() {
     else { alert('DC-3 generado y guardado exitosamente.'); }
 }
 
+// ─── GENERATE DIPLOMA ──────────────────────────────────
 async function generateDiploma() {
     const { PDFDocument, StandardFonts, rgb } = PDFLib;
 
@@ -1850,6 +1858,7 @@ async function generateDiploma() {
     else { alert('DC-3 generado y guardado exitosamente.'); }
 }
 
+// ─── GENERATE DIPLOMA ──────────────────────────────────
 async function generateDiploma() {
     const { PDFDocument, StandardFonts, rgb } = PDFLib;
 
