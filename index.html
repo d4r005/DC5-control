@@ -172,7 +172,7 @@
             </div>
             <div class="nav-link" onclick="setView('dc3design')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
-                Diseño DC-3
+                Diseño
             </div>
             <div class="nav-link" id="btn-agents" onclick="setView('agents')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
@@ -1381,23 +1381,33 @@ async function loadSection(v) {
         await loadDesign();
 
     } else if (v === 'agents') {
-        const r = await api('find','agents',{ filter: {} });
-        const rows = (r.documents||[]);
-        document.getElementById('tb-agents').innerHTML = rows.length
-            ? rows.map(a => `<tr>
-                <td class="font-semibold">${a.name}</td>
-                <td class="font-mono text-blue-900">${a.stps}</td>
-                <td class="text-right">
-                    <div class="flex justify-end gap-2">
-                        <button onclick='openModal(${JSON.stringify(a)})' class="btn-sm btn-outline">✎</button>
-                        <button onclick="delItem('agents','${a.id}')" class="btn-sm btn-red">✕</button>
-                    </div>
-                </td>
-              </tr>`).join('')
-            : `<tr><td colspan="3" class="text-center py-12 text-gray-300 text-sm">Sin agentes</td></tr>`;
+        const tb = document.getElementById('tb-agents');
+        if (!tb) return;
+        tb.innerHTML = '<tr><td colspan="3" class="text-center py-12 text-gray-300">Cargando agentes...</td></tr>';
+        try {
+            const r = await api('find','agents',{ filter: {} });
+            const rows = (r.documents||[]);
+            tb.innerHTML = rows.length
+                ? rows.map(a => `<tr>
+                    <td class="font-semibold">${a.name}</td>
+                    <td class="font-mono text-blue-900">${a.stps}</td>
+                    <td class="text-right">
+                        <div class="flex justify-end gap-2">
+                            <button onclick='openModal(${JSON.stringify(a)})' class="btn-sm btn-outline">✎</button>
+                            <button onclick="delItem('agents','${a.id}')" class="btn-sm btn-red">✕</button>
+                        </div>
+                    </td>
+                  </tr>`).join('')
+                : `<tr><td colspan="3" class="text-center py-12 text-gray-300 text-sm">Sin agentes registrados</td></tr>`;
+        } catch (e) {
+            console.error('Error loading agents:', e);
+            tb.innerHTML = `<tr><td colspan="3" class="text-center py-12 text-red-400 text-sm">Error al cargar agentes: ${e.message}</td></tr>`;
+        }
 
     } else if (v === 'users') {
-        document.getElementById('tb-users').innerHTML = DATA.users.map(u => `<tr>
+        const tb = document.getElementById('tb-users');
+        if (!tb) return;
+        tb.innerHTML = (DATA.users || []).map(u => `<tr>
             <td class="font-semibold">${u.name}</td>
             <td class="text-gray-500 text-sm">${u.email}</td>
             <td><span class="badge ${u.role==='ADMIN'?'badge-admin':'badge-user'}">${u.role}</span></td>
@@ -1722,6 +1732,109 @@ async function generateDC3() {
     closeModal('modal-dc3');
     if (currentView === 'dc3') loadSection('dc3');
     else { alert('DC-3 generado y guardado exitosamente.'); }
+}
+
+async function generateDiploma() {
+    const { PDFDocument, StandardFonts, rgb } = PDFLib;
+
+    const companyName = document.getElementById('dc3-company').value;
+    const agentVal    = document.getElementById('dc3-agent').value;
+    const courseVal   = document.getElementById('dc3-course').value;
+    const start       = document.getElementById('dc3-start').value;
+    const end         = document.getElementById('dc3-end').value;
+
+    if (!start || !end) { alert('Selecciona las fechas'); return; }
+
+    const [agentName, agentStps] = agentVal.split('|');
+    const [courseName, courseDuration, courseArea, courseStpsId] = courseVal.split('|');
+
+    // Calcular STPS final según el curso
+    const finalStps = (function(aStps, cId) {
+        let base = aStps.replace(/^STPS-/, '').replace(/^STPS-/, '').trim();
+        if (!cId) return "STPS-" + base;
+        let parts = base.split("-");
+        if (parts.length < 2) return "STPS-" + base + "-" + cId;
+        return "STPS-" + parts.slice(0, -1).join("-") + "-" + cId;
+    })(agentStps, courseStpsId);
+
+    try {
+        const resp = await fetch('plantilla_diploma.png?v=2');
+        const imgBytes = await resp.arrayBuffer();
+
+        const pdfDoc = await PDFDocument.create();
+        const page = pdfDoc.addPage([792, 612]); // Letter Landscape
+        const PW = 792, PH = 612;
+
+        const img = await pdfDoc.embedPng(imgBytes);
+        page.drawImage(img, { x: 0, y: 0, width: PW, height: PH });
+
+        const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+        const fontB = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+        // --- CARGAR DISEÑO (Prioridad LocalStorage > DB) ---
+        let d = null;
+        const localD = localStorage.getItem('dc3_design');
+        if (localD) {
+            d = JSON.parse(localD);
+        } else {
+            try {
+                const agentRecord = DATA.agents.find(a => a.name === agentName);
+                const dr = await api('find','agent_designs', { filter: { creatorEmail: agentRecord?.creatorEmail || currentUser.email } });
+                if (dr.documents?.length > 0) d = dr.documents[0];
+            } catch(e) {}
+        }
+
+        const drawC = (txt, x, y, sz, fb = false, color = rgb(0,0,0)) => {
+            const f = fb ? fontB : font;
+            const cleanTxt = (txt || '').toUpperCase();
+            const w = f.widthOfTextAtSize(cleanTxt, sz);
+            page.drawText(cleanTxt, { x: x - w/2, y: PH - y, size: sz, font: f, color: color });
+        };
+
+        // Coordenadas desde el Diseño (o defaults)
+        const dx = (id, def) => d?.[id] ?? def;
+
+        // 1. Nombre del Trabajador
+        const fullName = selectedWorker.apellidoPaterno ? `${selectedWorker.nombres} ${selectedWorker.apellidoPaterno} ${selectedWorker.apellidoMaterno || ''}`.trim() : selectedWorker.name;
+        drawC(fullName, dx('dip_worker_x', 396), dx('dip_worker_y', 245), dx('dip_worker_sz', 28), true, rgb(0.1, 0.2, 0.4));
+
+        // 2. Nombre del Curso
+        drawC(courseName, dx('dip_course_x', 396), dx('dip_course_y', 330), dx('dip_course_sz', 18), true);
+
+        // 3. Duración del Curso
+        drawC(courseDuration, dx('dip_duration_x', 396), dx('dip_duration_y', 405), dx('dip_duration_sz', 12), true);
+
+        // 4. Fecha
+        const months = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
+        const p = end.split('-');
+        const dateText = `${p[2]} DE ${months[parseInt(p[1])-1]} DEL ${p[0]}`;
+        drawC(dateText, dx('dip_date_x', 396), dx('dip_date_y', 445), dx('dip_date_sz', 11), true);
+
+        // 5. Firma y Datos del Agente
+        const fBase64 = d?.firma_base64 || d?.firmaBase64;
+        if (fBase64) {
+            try {
+                const fImgBytes = await fetch(fBase64).then(r => r.arrayBuffer());
+                const fImg = await pdfDoc.embedPng(fImgBytes);
+                // Firma centrada sobre el nombre
+                page.drawImage(fImg, { x: dx('dip_agent_x', 396) - 45, y: PH - dx('dip_agent_y', 572) + 10, width: 90, height: 50 });
+            } catch(e) {}
+        }
+
+        drawC(agentName, dx('dip_agent_x', 396), dx('dip_agent_y', 572), dx('dip_agent_sz', 10), true);
+        drawC("REGISTRO " + finalStps, dx('dip_stps_x', 396), dx('dip_stps_y', 584), dx('dip_stps_sz', 8), true);
+
+        const pdfBytes = await pdfDoc.save();
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Diploma_${selectedWorker.curp}.pdf`;
+        a.click();
+
+    } catch (e) {
+        alert('Error al generar diploma: ' + e.message);
+    }
 }
 
 // Regenerar desde historial
@@ -2293,8 +2406,171 @@ async function loadDesign() {
         setV('design-header-logo-x', d.headerLogoX ?? 30);
         setV('design-header-logo-y', d.headerLogoY ?? 10);
 
+        // Diploma coordinates
+        setV('dip-worker-x', d.dipWorkerX ?? d.dip_worker_x ?? 396);
+        setV('dip-worker-y', d.dipWorkerY ?? d.dip_worker_y ?? 245);
+        setV('dip-worker-sz', d.dipWorkerSz ?? d.dip_worker_sz ?? 28);
+
+        setV('dip-course-x', d.dipCourseX ?? d.dip_course_x ?? 396);
+        setV('dip-course-y', d.dipCourseY ?? d.dip_course_y ?? 330);
+        setV('dip-course-sz', d.dipCourseSz ?? d.dip_course_sz ?? 18);
+
+        setV('dip-duration-x', d.dipDurationX ?? d.dip_duration_x ?? 396);
+        setV('dip-duration-y', d.dipDurationY ?? d.dip_duration_y ?? 405);
+        setV('dip-duration-sz', d.dipDurationSz ?? d.dip_duration_sz ?? 12);
+
+        setV('dip-date-x', d.dipDateX ?? d.dip_date_x ?? 396);
+        setV('dip-date-y', d.dipDateY ?? d.dip_date_y ?? 445);
+        setV('dip-date-sz', d.dipDateSz ?? d.dip_date_sz ?? 11);
+
+        setV('dip-agent-x', d.dipAgentX ?? d.dip_agent_x ?? 396);
+        setV('dip-agent-y', d.dipAgentY ?? d.dip_agent_y ?? 572);
+        setV('dip-agent-sz', d.dipAgentSz ?? d.dip_agent_sz ?? 10);
+
+        setV('dip-stps-x', d.dipStpsX ?? d.dip_stps_x ?? 396);
+        setV('dip-stps-y', d.dipStpsY ?? d.dip_stps_y ?? 584);
+        setV('dip-stps-sz', d.dipStpsSz ?? d.dip_stps_sz ?? 8);
+
         await updateDesignPreview();
+        if (currentView === 'dc3design') scheduleDiplomaPreview();
     } catch(e) { console.warn('loadDesign error:', e); }
+}
+
+/** Dispara el preview del diploma con debounce */
+function scheduleDiplomaPreview() {
+    clearTimeout(designState._dipPreviewTimer);
+    designState._dipPreviewTimer = setTimeout(() => updateDiplomaDesignPreview(), 120);
+}
+
+// Dimensiones Diploma (Letter Landscape)
+const T_DIP_W = 792, T_DIP_H = 612;
+
+async function updateDiplomaDesignPreview() {
+    const canvas = document.getElementById('diploma-preview-canvas');
+    if (!canvas) return;
+
+    if (!designState._dipTemplateBytes) {
+        try {
+            const resp = await fetch('plantilla_diploma.png?v=2');
+            if (!resp.ok) throw new Error("HTTP " + resp.status);
+            designState._dipTemplateBytes = await resp.arrayBuffer();
+        } catch(e) {
+            console.error("Error cargando plantilla diploma:", e);
+            _showCanvasError(canvas, "No se pudo cargar plantilla_diploma.png");
+            return;
+        }
+    }
+
+    const { PDFDocument, StandardFonts, rgb } = PDFLib;
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([T_DIP_W, T_DIP_H]);
+
+    try {
+        const img = await pdfDoc.embedPng(designState._dipTemplateBytes);
+        page.drawImage(img, { x: 0, y: 0, width: T_DIP_W, height: T_DIP_H });
+    } catch(e) {
+        try {
+            const img = await pdfDoc.embedJpg(designState._dipTemplateBytes);
+            page.drawImage(img, { x: 0, y: 0, width: T_DIP_W, height: T_DIP_H });
+        } catch(e2) { console.error("Error embed imagen diploma:", e2); }
+    }
+
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const fontB = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+    const getV = (id) => +(document.getElementById(id)?.value ?? 0);
+
+    const drawPlaceholder = (txt, x, y, sz, fb = false, color = rgb(0,0,0)) => {
+        const f = fb ? fontB : font;
+        const w = f.widthOfTextAtSize(txt.toUpperCase(), sz);
+        page.drawText(txt.toUpperCase(), { x: x - w/2, y: T_DIP_H - y, size: sz, font: f, color });
+    };
+
+    drawPlaceholder("TRABAJADOR DE PRUEBA", getV('dip-worker-x'), getV('dip-worker-y'), getV('dip-worker-sz'), true, rgb(0.1, 0.2, 0.4));
+    drawPlaceholder("NOMBRE DEL CURSO DE PRUEBA", getV('dip-course-x'), getV('dip-course-y'), getV('dip-course-sz'), true);
+    drawPlaceholder("8 HORAS", getV('dip-duration-x'), getV('dip-duration-y'), getV('dip-duration-sz'), true);
+    drawPlaceholder("27 DE JULIO DEL 2026", getV('dip-date-x'), getV('dip-date-y'), getV('dip-date-sz'), true);
+    drawPlaceholder("JESUS DARIO ROBLES TRUJILLO", getV('dip-agent-x'), getV('dip-agent-y'), getV('dip-agent-sz'), true);
+    drawPlaceholder("REGISTRO STPS-XXX-001", getV('dip-stps-x'), getV('dip-stps-y'), getV('dip-stps-sz'), true);
+
+    const outBytes = await pdfDoc.save();
+    const pdf = await pdfjsLib.getDocument({ data: outBytes }).promise;
+    const pg = await pdf.getPage(1);
+    const vp = pg.getViewport({ scale: 1.2 });
+    canvas.width = vp.width; canvas.height = vp.height;
+    await pg.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+
+    designState._dipScale = vp.width / T_DIP_W;
+    _updateDiplomaDragHandles();
+}
+
+function _updateDiplomaDragHandles() {
+    const svg = document.getElementById('diploma-drag-overlay');
+    const canvas = document.getElementById('diploma-preview-canvas');
+    if (!svg || !canvas) return;
+
+    const sc = designState._dipScale;
+    svg.setAttribute('viewBox', `0 0 ${canvas.width} ${canvas.height}`);
+    svg.innerHTML = '';
+
+    const items = [
+        { id: 'dip-worker-x', yId: 'dip-worker-y', label: 'TRABAJADOR', color: '#1e3a8a' },
+        { id: 'dip-course-x', yId: 'dip-course-y', label: 'CURSO', color: '#1e3a8a' },
+        { id: 'dip-duration-x', yId: 'dip-duration-y', label: 'DURACIÓN', color: '#1e3a8a' },
+        { id: 'dip-date-x', yId: 'dip-date-y', label: 'FECHA', color: '#1e3a8a' },
+        { id: 'dip-agent-x', yId: 'dip-agent-y', label: 'AGENTE', color: '#15803d' },
+        { id: 'dip-stps-x', yId: 'dip-stps-y', label: 'REGISTRO', color: '#15803d' }
+    ];
+
+    items.forEach(item => {
+        const xEl = document.getElementById(item.id);
+        const yEl = document.getElementById(item.yId);
+        if (!xEl || !yEl) return;
+
+        const x = +xEl.value;
+        const y = +yEl.value;
+
+        const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+        g.style.cursor = 'move';
+        g.style.pointerEvents = 'all';
+
+        const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+        rect.setAttribute('x', (x - 100) * sc);
+        rect.setAttribute('y', (y - 15) * sc);
+        rect.setAttribute('width', 200 * sc);
+        rect.setAttribute('height', 30 * sc);
+        rect.setAttribute('fill', item.color + '22');
+        rect.setAttribute('stroke', item.color);
+        rect.setAttribute('rx', '4');
+
+        const text = document.createElementNS('http://www.w3.org/2000/svg','text');
+        text.setAttribute('x', (x - 95) * sc);
+        text.setAttribute('y', (y + 5) * sc);
+        text.setAttribute('fill', item.color);
+        text.setAttribute('font-size', '10');
+        text.setAttribute('font-weight', 'bold');
+        text.textContent = item.label;
+
+        g.appendChild(rect);
+        g.appendChild(text);
+        svg.appendChild(g);
+
+        g.addEventListener('mousedown', (e) => {
+            const startX = e.clientX, startY = e.clientY;
+            const startValX = x, startValY = y;
+
+            const onMove = (ev) => {
+                const canvasRect = canvas.getBoundingClientRect();
+                const pxPerPt = canvasRect.width / T_DIP_W;
+                document.getElementById(item.id).value = Math.round(startValX + (ev.clientX - startX) / pxPerPt);
+                document.getElementById(item.yId).value = Math.round(startValY + (ev.clientY - startY) / pxPerPt);
+                scheduleDiplomaPreview();
+            };
+            const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onUp);
+        });
+    });
 }
 
 function showDesignThumb(type, src) {
