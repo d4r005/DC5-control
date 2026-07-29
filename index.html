@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACE-Control | Gestión DC-3 v1.2.1 · SUPABASE SYNC FIX</title>
+    <title>ACE-Control | Gestión DC-3 v1.2.2 · QUOTA & DB FIX</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -90,7 +90,7 @@
                 </svg>
             </div>
             <h1 class="text-2xl font-black text-gray-900">ACE-Control</h1>
-            <p class="text-sm text-gray-400 mt-1">Sistema de Gestión DC-3 · STPS v1.2.1 · SUPABASE SYNC FIX</p>
+            <p class="text-sm text-gray-400 mt-1">Sistema de Gestión DC-3 · STPS v1.2.2 · QUOTA & DB FIX</p>
         </div>
 
         <div class="login-card">
@@ -2310,9 +2310,17 @@ async function saveDesign() {
         const payload = toSnake(p);
         payload.updated_at = new Date().toISOString();
 
-        // Save fonts and diploma template to localStorage (persistent even if DB columns are missing)
-        const localPayload = { ...payload, diploma_base64: p.diplomaBase64, slogan_font: p.sloganFont || 'Helvetica', header_slogan_font: p.headerSloganFont || 'Times-Italic' };
-        localStorage.setItem('dc3_design', JSON.stringify(localPayload));
+        // ─── LOCAL STORAGE SAVE (SAFE) ───
+        // We exclude the large diploma template from localStorage to avoid QuotaExceededError
+        try {
+            const localPayload = { ...payload };
+            // Remove large fields from local storage to stay within 5MB limit
+            delete localPayload.diploma_template_base64;
+            delete localPayload.diploma_base64;
+            localPayload.slogan_font = p.sloganFont || 'Helvetica';
+            localPayload.header_slogan_font = p.headerSloganFont || 'Times-Italic';
+            localStorage.setItem('dc3_design', JSON.stringify(localPayload));
+        } catch(e) { console.warn("Local storage quota exceeded, but design will still try to save to DB"); }
 
         const existing = await api('find','agent_designs', { filter: { creatorEmail: p.creatorEmail } });
         if (existing.documents?.length > 0) {
