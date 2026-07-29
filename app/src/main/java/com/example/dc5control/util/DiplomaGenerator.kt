@@ -43,9 +43,7 @@ object DiplomaGenerator {
         endDate: String,
         customTemplateBitmap: Bitmap? = null,
         folio: String? = null,
-        folioX: Float = 396f,
-        folioY: Float = 550f,
-        folioSz: Float = 10f
+        design: com.example.dc5control.data.model.AgentDesign? = null
     ): File {
         PDFBoxResourceLoader.init(context)
         val document = PDDocument()
@@ -103,49 +101,50 @@ object DiplomaGenerator {
             cs.setNonStrokingColor(0, 0, 0)
         }
 
-        val isDario = agent.name.contains("Dario", ignoreCase = true)
         val centerX = PW / 2f
+        
+        // Use design coordinates if available, otherwise use defaults
+        val workerX = design?.dipWorkerX ?: centerX
+        val workerY = design?.dipWorkerY ?: 245f
+        val workerSz = design?.dipWorkerSz ?: 28f
 
-        if (isDario) {
-            // --- DISEÑO AJUSTADO EHS SOLUTIONS (DARIO) ---
+        val courseX = design?.dipCourseX ?: centerX
+        val courseY = design?.dipCourseY ?: 330f
+        val courseSz = design?.dipCourseSz ?: 18f
 
-            // 1. Nombre del Trabajador: ENCIMA de la línea (Y=245)
-            val workerName = "${employee.nombres} ${employee.apellidoPaterno} ${employee.apellidoMaterno}".trim()
-            textCentered(centerX, 245f, workerName, 28f, true, 1)
+        val durationX = design?.dipDurationX ?: centerX
+        val durationY = design?.dipDurationY ?: 405f
+        val durationSz = design?.dipDurationSz ?: 12f
 
-            // 2. Nombre del Curso: Abajo de "Por haber concluido satisfactoriamente..." (Y=330)
-            textCentered(centerX, 330f, course.name, 18f, true)
+        val dateX = design?.dipDateX ?: centerX
+        val dateY = design?.dipDateY ?: 445f
+        val dateSz = design?.dipDateSz ?: 11f
 
-            // 3. Duración: Abajo de "Con duración de" (Y=405)
-            textCentered(centerX, 405f, course.durationHours, 12f, true)
+        val agentX = design?.dipAgentX ?: centerX
+        val agentY = design?.dipAgentY ?: 572f
+        val agentSz = design?.dipAgentSz ?: 10f
 
-            // 4. Fecha: Abajo de "Del" (Y=445)
-            textCentered(centerX, 445f, formatDateRange(startDate, endDate), 11f, true)
+        val stpsX = design?.dipStpsX ?: centerX
+        val stpsY = design?.dipStpsY ?: 584f
+        val stpsSz = design?.dipStpsSz ?: 8f
 
-            // 5. Datos del Agente (Sobre placeholders)
-            textCentered(centerX, 572f, "JESUS DARIO Robles Trujillo", 10f, true)
+        val folioX = design?.dipFolioX ?: 396f
+        val folioY = design?.dipFolioY ?: 550f
+        val folioSz = design?.dipFolioSz ?: 10f
 
-            val finalStps = calculateStps(agent.stps, course.stpsId)
-            textCentered(centerX, 584f, "REGISTRO $finalStps", 8f, true)
+        val workerName = "${employee.nombres} ${employee.apellidoPaterno} ${employee.apellidoMaterno}".trim()
+        textCentered(workerX, workerY, workerName, workerSz, true, 1)
 
-            // 6. Folio
-            folio?.let { textCentered(folioX, folioY, "folio: $it", folioSz, true, 2) }
+        textCentered(courseX, courseY, course.name, courseSz, true)
+        textCentered(durationX, durationY, course.durationHours, durationSz, true)
+        textCentered(dateX, dateY, formatDateRange(startDate, endDate), dateSz, true)
 
-        } else {
-            // --- DISEÑO GENÉRICO (OTROS) ---
-            val workerName = "${employee.nombres} ${employee.apellidoPaterno} ${employee.apellidoMaterno}".trim()
-            textCentered(centerX, 325f, workerName, 28f, true)
-            textCentered(centerX, 445f, course.name, 18f, true)
-            val dateText = "CON DURACIÓN DE ${course.durationHours} DEL ${formatDateRange(startDate, endDate)}"
-            textCentered(centerX, 480f, dateText, 11f)
+        textCentered(agentX, agentY, design?.agentName ?: agent.name, agentSz, true)
 
-            textCentered(centerX, 570f, agent.name, 10f, true)
-            val finalStps = calculateStps(agent.stps, course.stpsId)
-            textCentered(centerX, 582f, "REGISTRO $finalStps", 8f)
+        val finalStps = calculateStps(agent.stps, course.stpsId)
+        textCentered(stpsX, stpsY, "REGISTRO $finalStps", stpsSz, true)
 
-            // 6. Folio
-            folio?.let { textCentered(folioX, folioY, "folio: $it", folioSz, true, 2) }
-        }
+        folio?.let { textCentered(folioX, folioY, "folio: $it", folioSz, true, 2) }
 
         cs.close()
 

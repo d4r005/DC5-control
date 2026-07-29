@@ -240,9 +240,7 @@ fun DC3GenerationScreen(
                     val file = DiplomaGenerator.generateDiploma(
                         context, employee, course, agent, startDate, endDate, customTemplate,
                         folio = folioStr,
-                        folioX = design?.dipFolioX ?: 396f,
-                        folioY = design?.dipFolioY ?: 550f,
-                        folioSz = design?.dipFolioSz ?: 10f
+                        design = design
                     )
                     PdfGenerator.saveToDownloads(context, file)
                     if (totalDocs == 1) PdfGenerator.openPdf(context, file)

@@ -44,6 +44,10 @@ fun DesignScreen(
 
     val scope = rememberCoroutineScope()
     var headerSlogan by remember { mutableStateOf("") }
+    var headerSloganX by remember { mutableStateOf(306f) }
+    var headerSloganY by remember { mutableStateOf(18f) }
+    var headerSloganSize by remember { mutableStateOf(9f) }
+    var headerSloganFont by remember { mutableStateOf("Times-Italic") }
     var agentName by remember { mutableStateOf(user.name) }
     var slogan by remember { mutableStateOf("") }
     var diplomaTemplateBase64 by remember { mutableStateOf<String?>(null) }
@@ -70,6 +74,30 @@ fun DesignScreen(
     var dipFolioX by remember { mutableStateOf(396f) }
     var dipFolioY by remember { mutableStateOf(550f) }
     var dipFolioSz by remember { mutableStateOf(10f) }
+
+    var dipWorkerX by remember { mutableStateOf(396f) }
+    var dipWorkerY by remember { mutableStateOf(245f) }
+    var dipWorkerSz by remember { mutableStateOf(28f) }
+
+    var dipCourseX by remember { mutableStateOf(396f) }
+    var dipCourseY by remember { mutableStateOf(330f) }
+    var dipCourseSz by remember { mutableStateOf(18f) }
+
+    var dipDurationX by remember { mutableStateOf(396f) }
+    var dipDurationY by remember { mutableStateOf(405f) }
+    var dipDurationSz by remember { mutableStateOf(12f) }
+
+    var dipDateX by remember { mutableStateOf(396f) }
+    var dipDateY by remember { mutableStateOf(445f) }
+    var dipDateSz by remember { mutableStateOf(11f) }
+
+    var dipAgentX by remember { mutableStateOf(396f) }
+    var dipAgentY by remember { mutableStateOf(572f) }
+    var dipAgentSz by remember { mutableStateOf(10f) }
+
+    var dipStpsX by remember { mutableStateOf(396f) }
+    var dipStpsY by remember { mutableStateOf(584f) }
+    var dipStpsSz by remember { mutableStateOf(8f) }
 
     var isLoading by remember { mutableStateOf(true) }
     var isSaving by remember { mutableStateOf(false) }
@@ -107,6 +135,11 @@ fun DesignScreen(
             val userDesign = designs.find { it.creatorEmail == user.email }
             if (userDesign != null) {
                 headerSlogan = userDesign.headerSlogan ?: ""
+                headerSloganX = userDesign.headerSloganX ?: 306f
+                headerSloganY = userDesign.headerSloganY ?: 18f
+                headerSloganSize = userDesign.headerSloganSize ?: 9f
+                headerSloganFont = userDesign.headerSloganFont ?: "Times-Italic"
+                
                 agentName = userDesign.agentName ?: user.name
                 slogan = userDesign.slogan ?: ""
                 diplomaTemplateBase64 = userDesign.diplomaTemplateBase64
@@ -133,6 +166,30 @@ fun DesignScreen(
                 dipFolioX = userDesign.dipFolioX ?: 396f
                 dipFolioY = userDesign.dipFolioY ?: 550f
                 dipFolioSz = userDesign.dipFolioSz ?: 10f
+
+                dipWorkerX = userDesign.dipWorkerX ?: 396f
+                dipWorkerY = userDesign.dipWorkerY ?: 245f
+                dipWorkerSz = userDesign.dipWorkerSz ?: 28f
+
+                dipCourseX = userDesign.dipCourseX ?: 396f
+                dipCourseY = userDesign.dipCourseY ?: 330f
+                dipCourseSz = userDesign.dipCourseSz ?: 18f
+
+                dipDurationX = userDesign.dipDurationX ?: 396f
+                dipDurationY = userDesign.dipDurationY ?: 405f
+                dipDurationSz = userDesign.dipDurationSz ?: 12f
+
+                dipDateX = userDesign.dipDateX ?: 396f
+                dipDateY = userDesign.dipDateY ?: 445f
+                dipDateSz = userDesign.dipDateSz ?: 11f
+
+                dipAgentX = userDesign.dipAgentX ?: 396f
+                dipAgentY = userDesign.dipAgentY ?: 572f
+                dipAgentSz = userDesign.dipAgentSz ?: 10f
+
+                dipStpsX = userDesign.dipStpsX ?: 396f
+                dipStpsY = userDesign.dipStpsY ?: 584f
+                dipStpsSz = userDesign.dipStpsSz ?: 8f
             }
             isLoading = false
         }
@@ -274,6 +331,12 @@ fun DesignScreen(
                                     unfocusedBorderColor = Gray200
                                 )
                             )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                CoordinateField("X", headerSloganX) { headerSloganX = it }
+                                CoordinateField("Y", headerSloganY) { headerSloganY = it }
+                                CoordinateField("Tam.", headerSloganSize) { headerSloganSize = it }
+                            }
                         }
 
                         // Agent info
@@ -452,6 +515,10 @@ fun DesignScreen(
                                     val design = com.example.dc5control.data.model.AgentDesign(
                                         creatorEmail = user.email,
                                         headerSlogan = headerSlogan,
+                                        headerSloganX = headerSloganX,
+                                        headerSloganY = headerSloganY,
+                                        headerSloganSize = headerSloganSize,
+                                        headerSloganFont = headerSloganFont,
                                         agentName = agentName,
                                         slogan = slogan,
                                         logoBase64 = logoBase64,
@@ -472,7 +539,25 @@ fun DesignScreen(
                                         diplomaTemplateBase64 = diplomaTemplateBase64,
                                         dipFolioX = dipFolioX,
                                         dipFolioY = dipFolioY,
-                                        dipFolioSz = dipFolioSz
+                                        dipFolioSz = dipFolioSz,
+                                        dipWorkerX = dipWorkerX,
+                                        dipWorkerY = dipWorkerY,
+                                        dipWorkerSz = dipWorkerSz,
+                                        dipCourseX = dipCourseX,
+                                        dipCourseY = dipCourseY,
+                                        dipCourseSz = dipCourseSz,
+                                        dipDurationX = dipDurationX,
+                                        dipDurationY = dipDurationY,
+                                        dipDurationSz = dipDurationSz,
+                                        dipDateX = dipDateX,
+                                        dipDateY = dipDateY,
+                                        dipDateSz = dipDateSz,
+                                        dipAgentX = dipAgentX,
+                                        dipAgentY = dipAgentY,
+                                        dipAgentSz = dipAgentSz,
+                                        dipStpsX = dipStpsX,
+                                        dipStpsY = dipStpsY,
+                                        dipStpsSz = dipStpsSz
                                     )
 
                                     try {
@@ -591,30 +676,61 @@ fun DesignScreen(
                             Text("Ajusta la posición y tamaño del identificador único del diploma.", fontSize = 13.sp, color = Gray500)
                             Spacer(modifier = Modifier.height(12.dp))
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                OutlinedTextField(
-                                    value = dipFolioX.toString(),
-                                    onValueChange = { dipFolioX = it.toFloatOrNull() ?: dipFolioX },
-                                    label = { Text("X") },
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(8.dp),
-                                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = NavyPrimary, unfocusedBorderColor = Gray200)
-                                )
-                                OutlinedTextField(
-                                    value = dipFolioY.toString(),
-                                    onValueChange = { dipFolioY = it.toFloatOrNull() ?: dipFolioY },
-                                    label = { Text("Y") },
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(8.dp),
-                                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = NavyPrimary, unfocusedBorderColor = Gray200)
-                                )
-                                OutlinedTextField(
-                                    value = dipFolioSz.toString(),
-                                    onValueChange = { dipFolioSz = it.toFloatOrNull() ?: dipFolioSz },
-                                    label = { Text("Tam.") },
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(8.dp),
-                                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = NavyPrimary, unfocusedBorderColor = Gray200)
-                                )
+                                CoordinateField("X", dipFolioX) { dipFolioX = it }
+                                CoordinateField("Y", dipFolioY) { dipFolioY = it }
+                                CoordinateField("Tam.", dipFolioSz) { dipFolioSz = it }
+                            }
+                        }
+
+                        DesignCard("Posiciones del Texto en Diploma") {
+                            Text("Ajusta las coordenadas X, Y y el tamaño de cada campo.", fontSize = 13.sp, color = Gray500)
+                            Spacer(modifier = Modifier.height(12.dp))
+                            
+                            Text("Nombre del Trabajador", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                CoordinateField("X", dipWorkerX) { dipWorkerX = it }
+                                CoordinateField("Y", dipWorkerY) { dipWorkerY = it }
+                                CoordinateField("Tam.", dipWorkerSz) { dipWorkerSz = it }
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Text("Nombre del Curso", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                CoordinateField("X", dipCourseX) { dipCourseX = it }
+                                CoordinateField("Y", dipCourseY) { dipCourseY = it }
+                                CoordinateField("Tam.", dipCourseSz) { dipCourseSz = it }
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Text("Duración", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                CoordinateField("X", dipDurationX) { dipDurationX = it }
+                                CoordinateField("Y", dipDurationY) { dipDurationY = it }
+                                CoordinateField("Tam.", dipDurationSz) { dipDurationSz = it }
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Text("Fecha", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                CoordinateField("X", dipDateX) { dipDateX = it }
+                                CoordinateField("Y", dipDateY) { dipDateY = it }
+                                CoordinateField("Tam.", dipDateSz) { dipDateSz = it }
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Text("Agente Capacitador", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                CoordinateField("X", dipAgentX) { dipAgentX = it }
+                                CoordinateField("Y", dipAgentY) { dipAgentY = it }
+                                CoordinateField("Tam.", dipAgentSz) { dipAgentSz = it }
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Text("Registro STPS", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                CoordinateField("X", dipStpsX) { dipStpsX = it }
+                                CoordinateField("Y", dipStpsY) { dipStpsY = it }
+                                CoordinateField("Tam.", dipStpsSz) { dipStpsSz = it }
                             }
                         }
 
@@ -625,6 +741,10 @@ fun DesignScreen(
                                     val design = com.example.dc5control.data.model.AgentDesign(
                                         creatorEmail = user.email,
                                         headerSlogan = headerSlogan,
+                                        headerSloganX = headerSloganX,
+                                        headerSloganY = headerSloganY,
+                                        headerSloganSize = headerSloganSize,
+                                        headerSloganFont = headerSloganFont,
                                         agentName = agentName,
                                         slogan = slogan,
                                         logoBase64 = logoBase64,
@@ -645,7 +765,25 @@ fun DesignScreen(
                                         diplomaTemplateBase64 = diplomaTemplateBase64,
                                         dipFolioX = dipFolioX,
                                         dipFolioY = dipFolioY,
-                                        dipFolioSz = dipFolioSz
+                                        dipFolioSz = dipFolioSz,
+                                        dipWorkerX = dipWorkerX,
+                                        dipWorkerY = dipWorkerY,
+                                        dipWorkerSz = dipWorkerSz,
+                                        dipCourseX = dipCourseX,
+                                        dipCourseY = dipCourseY,
+                                        dipCourseSz = dipCourseSz,
+                                        dipDurationX = dipDurationX,
+                                        dipDurationY = dipDurationY,
+                                        dipDurationSz = dipDurationSz,
+                                        dipDateX = dipDateX,
+                                        dipDateY = dipDateY,
+                                        dipDateSz = dipDateSz,
+                                        dipAgentX = dipAgentX,
+                                        dipAgentY = dipAgentY,
+                                        dipAgentSz = dipAgentSz,
+                                        dipStpsX = dipStpsX,
+                                        dipStpsY = dipStpsY,
+                                        dipStpsSz = dipStpsSz
                                     )
                                     val existing = SupabaseRepository.fetchDataFilteredSuspend("agent_designs", "creator_email=eq.${user.email}", AgentDesign.serializer()).firstOrNull()
                                     if (existing != null) {
@@ -675,6 +813,21 @@ fun DesignScreen(
             }
         }
     }
+}
+
+@Composable
+private fun RowScope.CoordinateField(label: String, value: Float, onValueChange: (Float) -> Unit) {
+    OutlinedTextField(
+        value = value.toString(),
+        onValueChange = { onValueChange(it.toFloatOrNull() ?: value) },
+        label = { Text(label) },
+        modifier = Modifier.weight(1f),
+        shape = RoundedCornerShape(8.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = NavyPrimary,
+            unfocusedBorderColor = Gray200
+        )
+    )
 }
 
 @Composable

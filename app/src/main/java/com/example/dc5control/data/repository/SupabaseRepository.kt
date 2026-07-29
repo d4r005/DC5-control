@@ -4,24 +4,24 @@ import android.content.Context
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
-import com.example.dc5control.R
 import com.example.dc5control.data.model.*
 import kotlinx.serialization.json.*
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
-import java.security.cert.CertificateEncodingException
-import java.security.cert.CertificateException
-import java.security.cert.X509Certificate
-import javax.net.ssl.SSLHandshakeException
-import javax.net.ssl.SSLPeerUnverifiedException
 
 /**
  * Repositorio que se conecta directamente a Supabase REST API.
  * Sincronizado con las credenciales y estructura de index.html.
  */
 object SupabaseRepository {
+    private const val SUPABASE_HOST = "osgfwgedjdltrmvwycjd.supabase.co"
+    private const val SUPABASE_URL = "https://$SUPABASE_HOST/rest/v1"
+    private const val SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zZ2Z3Z2VkamRsdHJtdnd5Y2pkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyNDAxMzcsImV4cCI6MjA5OTgxNjEzN30.jeV98eAfhQzkXiGj88DUOLqLPLFr_IKPrcnTaefEgj0"
+    private const val SUPABASE_STORAGE_URL = "https://$SUPABASE_HOST/storage/v1/object/worker-photos"
+    private const val SUPABASE_PUBLIC_STORAGE_URL = "https://$SUPABASE_HOST/storage/v1/object/public/worker-photos"
+
     private val json = Json {
         ignoreUnknownKeys = true
         encodeDefaults = true
@@ -29,36 +29,24 @@ object SupabaseRepository {
     }
     private val mainHandler = Handler(Looper.getMainLooper())
 
-    // Credenciales de la plataforma web (osgfwgedjdltrmvwycjd.supabase.co)
-    private fun getSupabaseUrl(context: Context): String = context.getString(R.string.supabase_url)
-    private fun getSupabaseKey(context: Context): String = context.getString(R.string.supabase_anon_key)
-
-    // Certificate pinning for Supabase
-    private val certificatePinner: CertificatePinner by lazy {
-        CertificatePinner.Builder()
-            .add("osgfwgedjdltrmvwycjd.supabase.co", "sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=")
-            .build()
-    }
-
     private val client: OkHttpClient by lazy {
         OkHttpClient.Builder()
-            .certificatePinner(certificatePinner)
             .build()
     }
 
-    private fun getBaseRequest(context: Context, table: String, query: String = ""): Request.Builder {
-        val url = if (query.isNotEmpty()) "${getSupabaseUrl(context)}/$table?$query" else "${getSupabaseUrl(context)}/$table"
+    fun getBaseRequest(table: String, query: String = ""): Request.Builder {
+        val url = if (query.isNotEmpty()) "$SUPABASE_URL/$table?$query" else "$SUPABASE_URL/$table"
         return Request.Builder()
             .url(url)
-            .addHeader("apikey", getSupabaseKey(context))
-            .addHeader("Authorization", "Bearer ${getSupabaseKey(context)}")
+            .addHeader("apikey", SUPABASE_KEY)
+            .addHeader("Authorization", "Bearer $SUPABASE_KEY")
             .addHeader("Content-Type", "application/json")
             .addHeader("Accept", "application/json")
     }
 
     // ─── FETCH (SELECT) ───────────────────────────────────────────
-    fun <T> fetchData(context: Context, table: String, serializer: kotlinx.serialization.KSerializer<T>, onResult: (List<T>) -> Unit) {
-        val request = getBaseRequest(context, table, "select=*")
+    fun <T> fetchData(table: String, serializer: kotlinx.serialization.KSerializer<T>, onResult: (List<T>) -> Unit) {
+        val request = getBaseRequest(table, "select=*")
             .get()
             .build()
 
@@ -136,8 +124,7 @@ object SupabaseRepository {
     // ─── UPDATE ────────────────────────────────────────────────────
     fun <T> updateData(table: String, id: String, item: T, serializer: kotlinx.serialization.KSerializer<T>, onResult: (Boolean) -> Unit) {
         val bodyString = json.encodeToString(serializer, item)
-        val request = getBaseRequest(table)
-            .url("$SUPABASE_URL/$table?id=eq.$id")
+        val request = getBaseRequest(table, "id=eq.$id")
             .patch(bodyString.toRequestBody("application/json".toMediaType()))
             .build()
 
@@ -159,8 +146,7 @@ object SupabaseRepository {
     suspend fun <T> updateDataSuspend(table: String, id: String, item: T, serializer: kotlinx.serialization.KSerializer<T>): Boolean =
         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
             val bodyString = json.encodeToString(serializer, item)
-            val request = getBaseRequest(table)
-                .url("$SUPABASE_URL/$table?id=eq.$id")
+            val request = getBaseRequest(table, "id=eq.$id")
                 .patch(bodyString.toRequestBody("application/json".toMediaType()))
                 .build()
 
@@ -170,6 +156,7 @@ object SupabaseRepository {
                 false
             }
         }
+
     fun insertWorkers(workers: List<Employee>, onResult: (Boolean) -> Unit) {
         val bodyString = json.encodeToString(kotlinx.serialization.builtins.ListSerializer(Employee.serializer()), workers)
         val request = getBaseRequest("workers")
@@ -187,8 +174,7 @@ object SupabaseRepository {
 
     // ─── DELETE ────────────────────────────────────────────────────
     fun deleteData(table: String, id: String, onResult: (Boolean) -> Unit) {
-        val request = getBaseRequest(table)
-            .url("$SUPABASE_URL/$table?id=eq.$id")
+        val request = getBaseRequest(table, "id=eq.$id")
             .delete()
             .build()
 
@@ -239,8 +225,6 @@ object SupabaseRepository {
         }
 
     // ─── UPLOAD PHOTO TO SUPABASE STORAGE ─────────────────────────────
-    private const val SUPABASE_STORAGE_URL = "https://osgfwgedjdltrmvwycjd.supabase.co/storage/v1/object/worker-photos"
-
     fun uploadWorkerPhoto(context: Context, uri: Uri, workerId: String, onResult: (String?) -> Unit) {
         Thread {
             try {
@@ -271,7 +255,7 @@ object SupabaseRepository {
 
                 client.newCall(request).execute().use { response ->
                     if (response.isSuccessful) {
-                        val publicUrl = "https://osgfwgedjdltrmvwycjd.supabase.co/storage/v1/object/public/worker-photos/$fileName"
+                        val publicUrl = "$SUPABASE_PUBLIC_STORAGE_URL/$fileName"
                         mainHandler.post { onResult(publicUrl) }
                     } else {
                         android.util.Log.e("Supabase", "Upload failed: ${response.code} ${response.body?.string()}")

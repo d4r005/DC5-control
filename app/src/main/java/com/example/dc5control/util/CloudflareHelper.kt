@@ -13,8 +13,9 @@ object CloudflareHelper {
 
     fun uploadPdf(file: File, onSuccess: () -> Unit, onError: (String) -> Unit) {
         val requestBody = file.asRequestBody("application/pdf".toMediaType())
+        val encodedName = try { java.net.URLEncoder.encode(file.name, "UTF-8") } catch (_: Exception) { file.name }
         val request = Request.Builder()
-            .url("$PAGES_URL/api/upload?name=${file.name}")
+            .url("$PAGES_URL/api/upload?name=$encodedName")
             .post(requestBody)
             .build()
 
