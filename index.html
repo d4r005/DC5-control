@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACE-Control | Gestión DC-3 v1.2.6 · TEMPLATE FIX</title>
+    <title>ACE-Control | Gestión DC-3 v1.2.8 · DIPLOMA TEMPLATE REPAIRED</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -90,7 +90,7 @@
                 </svg>
             </div>
             <h1 class="text-2xl font-black text-gray-900">ACE-Control</h1>
-            <p class="text-sm text-gray-400 mt-1">Sistema de Gestión DC-3 · STPS v1.2.6 · TEMPLATE FIX</p>
+            <p class="text-sm text-gray-400 mt-1">Sistema de Gestión DC-3 · STPS v1.2.8 · DIPLOMA TEMPLATE REPAIRED</p>
         </div>
 
         <div class="login-card">
@@ -1854,25 +1854,46 @@ async function _buildDiplomaCore() {
     })(agentStps, courseStpsId);
 
     let imgBytes = null;
-    // --- CARGAR DISEÑO (Prioridad LocalStorage > DB) ---
     let d = null;
+
+    // 1. Prioridad: Memoria actual (si acaba de subir algo en esta sesión)
+    if (designState.diploma_base64) {
+        const b64 = designState.diploma_base64.split(',')[1];
+        imgBytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    }
+
+    // 2. Cargar de la Base de Datos (para obtener la imagen si no está en memoria)
+    try {
+        const agentRecord = DATA.agents.find(a => a.name === agentName);
+        const ownerEmail = agentRecord?.creatorEmail || currentUser.email;
+        const dr = await api('find','agent_designs', { filter: { creatorEmail: ownerEmail } });
+        if (dr.documents?.length > 0) {
+            const doc = dr.documents[0];
+            const dbD = toCamel(doc);
+            d = d ? { ...dbD, ...d } : dbD;
+
+            if (!imgBytes) {
+                // Try all known image columns
+                const b64Data = doc.diploma_base64 || doc.diploma_template_base64 || doc.diploma_template_base_64 || doc.diploma_base_64;
+                if (b64Data && b64Data.includes(',')) {
+                    const b64 = b64Data.split(',')[1];
+                    imgBytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+                }
+            }
+        }
+    } catch(e) { console.warn("Error loading design from DB:", e); }
+
+    // 3. Overlay con LocalStorage (coordenadas locales si existen)
     const localD = localStorage.getItem('dc3_design');
     if (localD) {
-        try { d = JSON.parse(localD); } catch(e) {}
-    } else {
         try {
-            const agentRecord = DATA.agents.find(a => a.name === agentName);
-            const dr = await api('find','agent_designs', { filter: { creatorEmail: agentRecord?.creatorEmail || currentUser.email } });
-            if (dr.documents?.length > 0) d = toCamel(dr.documents[0]);
+            const parsedLocal = JSON.parse(localD);
+            // No sobreescribir la imagen si ya la tenemos de la memoria o DB
+            d = d ? { ...d, ...parsedLocal } : parsedLocal;
         } catch(e) {}
     }
 
-    // Try all possible column names for the template
-    const diplomaB64 = d?.diplomaBase64 || d?.diploma_base64 || d?.diploma_template_base64;
-    if (diplomaB64) {
-        const b64 = diplomaB64.split(',')[1];
-        imgBytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-    } else {
+    if (!imgBytes) {
         const resp = await fetch('plantilla_diploma.png?v=2');
         imgBytes = await resp.arrayBuffer();
     }
@@ -2044,7 +2065,7 @@ async function loadDesign() {
                 const doc = r.documents[0];
                 d = toCamel(doc);
                 // Si faltan columnas de diploma, intentar cargarlas de campos antiguos si existen
-                if (!d.diplomaBase64) d.diplomaBase64 = doc.diploma_base64 || doc.diploma_template_base64;
+                if (!d.diplomaBase64) d.diplomaBase64 = doc.diploma_base64 || doc.diploma_template_base64 || doc.diploma_template_base_64 || doc.diploma_base_64;
                 console.log('[DEBUG] Loaded agent_design:', d);
             }
         } catch(e) {}
@@ -2376,13 +2397,8 @@ async function saveDesign() {
         const existing = await api('find','agent_designs', { filter: { creatorEmail: p.creatorEmail } });
         if (existing.documents?.length > 0) {
             const dbRecord = existing.documents[0];
-            const safePayload = {};
-            // Filtrar columnas: solo enviar las que EXISTEN en la tabla de Supabase
-            for (const key in payload) {
-                if (dbRecord.hasOwnProperty(key)) safePayload[key] = payload[key];
-            }
-            console.log('[DEBUG] Safe update payload:', safePayload);
-            const res = await api('update','agent_designs', { id: dbRecord.id, document: safePayload });
+            // No filtering - send the whole payload to see if Supabase accepts it
+            const res = await api('update','agent_designs', { id: dbRecord.id, document: payload });
             if (res.error) throw new Error(res.error);
         } else {
             const res = await api('insertOne','agent_designs', { document: payload });
