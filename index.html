@@ -1022,7 +1022,7 @@ function toSnake(obj) {
         updatedAt:'updated_at',
         apellidoPaterno:'apellido_paterno', apellidoMaterno:'apellido_materno', nombres:'nombres',
         photoUrl:'photo_url',
-        diplomaBase64:'diploma_base64',
+        diplomaBase64:'diploma_template_base64',
         dipWorkerX:'dip_worker_x', dipWorkerY:'dip_worker_y', dipWorkerSz:'dip_worker_sz',
         dipCourseX:'dip_course_x', dipCourseY:'dip_course_y', dipCourseSz:'dip_course_sz',
         dipDurationX:'dip_duration_x', dipDurationY:'dip_duration_y', dipDurationSz:'dip_duration_sz',
@@ -1054,7 +1054,6 @@ function toCamel(obj) {
         updated_at:'updatedAt',
         apellido_paterno:'apellidoPaterno', apellido_materno:'apellidoMaterno', nombres:'nombres',
         photo_url:'photoUrl',
-        diploma_base64:'diplomaBase64',
         diploma_template_base64:'diplomaBase64',
         dip_worker_x:'dipWorkerX', dip_worker_y:'dipWorkerY', dip_worker_sz:'dipWorkerSz',
         dip_course_x:'dipCourseX', dip_course_y:'dipCourseY', dip_course_sz:'dipCourseSz',
@@ -1857,8 +1856,8 @@ async function _buildDiplomaCore() {
     let d = null;
 
     // 1. Prioridad: Memoria actual (si acaba de subir algo en esta sesión)
-    if (designState.diploma_base64) {
-        const b64 = designState.diploma_base64.split(',')[1];
+    if (designState.diploma_template_base64) {
+        const b64 = designState.diploma_template_base64.split(',')[1];
         imgBytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
     }
 
@@ -1874,7 +1873,7 @@ async function _buildDiplomaCore() {
 
             if (!imgBytes) {
                 // Try all known image columns
-                const b64Data = doc.diploma_base64 || doc.diploma_template_base64 || doc.diploma_template_base_64 || doc.diploma_base_64;
+                const b64Data = doc.diploma_template_base64 || doc.diploma_template_base_64 || doc.diploma_base_64 || doc.diploma_base_64;
                 if (b64Data && b64Data.includes(',')) {
                     const b64 = b64Data.split(',')[1];
                     imgBytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
@@ -2019,7 +2018,7 @@ function togglePassword() {
 
 const designState = {
     logo_base64: null, firma_base64: null, header_logo_base64: null,
-    diploma_base64: null,
+    diploma_template_base64: null,
     _previewTimer: null, _pdfTemplateBytes: null, _scale: 1.0
 };
 
@@ -2065,7 +2064,7 @@ async function loadDesign() {
                 const doc = r.documents[0];
                 d = toCamel(doc);
                 // Si faltan columnas de diploma, intentar cargarlas de campos antiguos si existen
-                if (!d.diplomaBase64) d.diplomaBase64 = doc.diploma_base64 || doc.diploma_template_base64 || doc.diploma_template_base_64 || doc.diploma_base_64;
+                if (!d.diplomaBase64) d.diplomaBase64 = doc.diploma_template_base64 || doc.diploma_template_base_64 || doc.diploma_base_64 || doc.diploma_base_64;
                 console.log('[DEBUG] Loaded agent_design:', d);
             }
         } catch(e) {}
@@ -2080,7 +2079,7 @@ async function loadDesign() {
         if (d.logoBase64)        { designState.logo_base64 = d.logoBase64;             showDesignThumb('logo', d.logoBase64); }
         if (d.firmaBase64)       { designState.firma_base64 = d.firmaBase64;           showDesignThumb('firma', d.firmaBase64); }
         if (d.headerLogoBase64)  { designState.header_logo_base64 = d.headerLogoBase64; showDesignThumb('headerLogo', d.headerLogoBase64); }
-        if (d.diplomaBase64)     { designState.diploma_base64 = d.diplomaBase64;       showDesignThumb('diploma', d.diplomaBase64); }
+        if (d.diplomaBase64)     { designState.diploma_template_base64 = d.diplomaBase64;       showDesignThumb('diploma', d.diplomaBase64); }
 
         setV('design-agent-name', d.agentName);
         setV('design-slogan', d.slogan);
@@ -2152,8 +2151,8 @@ async function updateDiplomaDesignPreview() {
     if (!canvas) return;
 
     let imgBytes = null;
-    if (designState.diploma_base64) {
-        const b64 = designState.diploma_base64.split(',')[1];
+    if (designState.diploma_template_base64) {
+        const b64 = designState.diploma_template_base64.split(',')[1];
         imgBytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
     } else {
         if (!designState._dipTemplateBytes) {
@@ -2313,13 +2312,13 @@ async function handleDiplomaTemplate(input) {
     const file = input.files[0];
     if (!file) return;
     const dataUrl = await fileToDataUrl(file);
-    designState.diploma_base64 = dataUrl;
+    designState.diploma_template_base64 = dataUrl;
     showDesignThumb('diploma', dataUrl);
     updateDiplomaDesignPreview();
 }
 
 function clearDiplomaTemplate() {
-    designState.diploma_base64 = null;
+    designState.diploma_template_base64 = null;
     const el = document.getElementById('diploma-template-thumb');
     if (el) el.innerHTML = `<img src="/plantilla_diploma.png" alt="Vista previa plantilla" class="w-full h-full object-contain">`;
     updateDiplomaDesignPreview();
@@ -2359,7 +2358,7 @@ function getDesignParams() {
         sloganSize: gv('design-slogan-size',7),
         sloganFont: gs('design-slogan-font','Helvetica'),
         agentName: gs('design-agent-name'),
-        diplomaBase64: designState.diploma_base64 || designState.diplomaBase64,
+        diplomaBase64: designState.diploma_template_base64 || designState.diplomaBase64,
         dipWorkerX: gv('dip-worker-x'), dipWorkerY: gv('dip-worker-y'), dipWorkerSz: gv('dip-worker-sz'),
         dipCourseX: gv('dip-course-x'), dipCourseY: gv('dip-course-y'), dipCourseSz: gv('dip-course-sz'),
         dipDurationX: gv('dip-duration-x'), dipDurationY: gv('dip-duration-y'), dipDurationSz: gv('dip-duration-sz'),
@@ -2388,7 +2387,6 @@ async function saveDesign() {
             const localPayload = { ...payload };
             // Remove large fields from local storage to stay within 5MB limit
             delete localPayload.diploma_template_base64;
-            delete localPayload.diploma_base64;
             localPayload.slogan_font = p.sloganFont || 'Helvetica';
             localPayload.header_slogan_font = p.headerSloganFont || 'Times-Italic';
             localStorage.setItem('dc3_design', JSON.stringify(localPayload));
