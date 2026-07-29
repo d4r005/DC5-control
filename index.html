@@ -930,49 +930,53 @@ const DATA = {
 // Cargar catálogos desde Supabase al iniciar
 async function loadCatalogs() {
     console.log('[DEBUG] loadCatalogs called, sb =', !!sb);
-    const [coursesR, agentsR, companiesR] = await Promise.all([
-        api('find','courses',{ filter: {} }),
-        api('find','agents',{ filter: {} }),
-        api('find','companies',{ filter: {} })
-    ]);
-    console.log('[DEBUG] loadCatalogs results:', { courses: coursesR, agents: agentsR, companies: companiesR });
+    try {
+        const [coursesR, agentsR, companiesR] = await Promise.all([
+            api('find','courses',{ filter: {} }),
+            api('find','agents',{ filter: {} }),
+            api('find','companies',{ filter: {} })
+        ]);
+        console.log('[DEBUG] loadCatalogs results:', { courses: coursesR, agents: agentsR, companies: companiesR });
 
-    // Combinar cursos pre-cargados con los de la base de datos
-    const dbCourses = coursesR.documents || [];
-    dbCourses.forEach(dbc => {
-        // Filtrar cursos sin área temática
-        if (!dbc.thematicArea || dbc.thematicArea === '' || dbc.thematicArea === '–' || dbc.thematicArea === '-') return;
+        // Combinar cursos pre-cargados con los de la base de datos
+        const dbCourses = coursesR.documents || [];
+        dbCourses.forEach(dbc => {
+            // Filtrar cursos sin área temática
+            if (!dbc.thematicArea || dbc.thematicArea === '' || dbc.thematicArea === '–' || dbc.thematicArea === '-') return;
 
-        const exists = DATA.courses.find(c => c.name === dbc.name && c.creatorEmail === dbc.creatorEmail);
-        if (!exists) DATA.courses.push(dbc);
-    });
+            const exists = DATA.courses.find(c => c.name === dbc.name && c.creatorEmail === dbc.creatorEmail);
+            if (!exists) DATA.courses.push(dbc);
+        });
 
-    // Combinar agentes pre-cargados
-    const dbAgents = agentsR.documents || [];
-    dbAgents.forEach(dba => {
-        // Normalización para evitar duplicados sin alterar el orden del nombre
-        const norm = (s) => {
-            if (!s) return '';
-            return s.toUpperCase()
-                .replace('ING.', ' ')
-                .replace(/\s+/g, ' ')
-                .trim();
-        };
+        // Combinar agentes pre-cargados
+        const dbAgents = agentsR.documents || [];
+        dbAgents.forEach(dba => {
+            // Normalización para evitar duplicados sin alterar el orden del nombre
+            const norm = (s) => {
+                if (!s) return '';
+                return s.toUpperCase()
+                    .replace('ING.', ' ')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+            };
 
-        const dbaNorm = norm(dba.name);
+            const dbaNorm = norm(dba.name);
 
-        // Buscar si ya existe un agente con el mismo nombre normalizado o mismo STPS
-        const existsIdx = DATA.agents.findIndex(a => norm(a.name) === dbaNorm || a.stps === dba.stps);
+            // Buscar si ya existe un agente con el mismo nombre normalizado o mismo STPS
+            const existsIdx = DATA.agents.findIndex(a => norm(a.name) === dbaNorm || a.stps === dba.stps);
 
-        if (existsIdx === -1) {
-            DATA.agents.push(dba);
-        } else if (dba.name.toUpperCase().includes('JESUS')) {
-            // Prioridad a la versión con el nombre correcto
-            DATA.agents[existsIdx] = dba;
-        }
-    });
+            if (existsIdx === -1) {
+                DATA.agents.push(dba);
+            } else if (dba.name.toUpperCase().includes('JESUS')) {
+                // Prioridad a la versión con el nombre correcto
+                DATA.agents[existsIdx] = dba;
+            }
+        });
 
-    DATA.companies = companiesR.documents || [];
+        DATA.companies = companiesR.documents || [];
+    } catch (e) {
+        console.error('[DEBUG] Error in loadCatalogs:', e);
+    }
 }
 
 let currentUser = null, currentView = 'dashboard', selectedWorker = null, editingDC3Id = null, editingItemId = null;
@@ -1827,6 +1831,104 @@ async function generateDiploma() {
         const pdfBytes = await pdfDoc.save();
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
+    closeModal('modal-dc3');
+    if (currentView === 'dc3') loadSection('dc3');
+    else { alert('DC-3 generado y guardado exitosamente.'); }
+}
+
+async function generateDiploma() {
+    const { PDFDocument, StandardFonts, rgb } = PDFLib;
+
+    const companyName = document.getElementById('dc3-company').value;
+    const agentVal    = document.getElementById('dc3-agent').value;
+    const courseVal   = document.getElementById('dc3-course').value;
+    const start       = document.getElementById('dc3-start').value;
+    const end         = document.getElementById('dc3-end').value;
+
+    if (!start || !end) { alert('Selecciona las fechas'); return; }
+
+    const [agentName, agentStps] = agentVal.split('|');
+    const [courseName, courseDuration, courseArea, courseStpsId] = courseVal.split('|');
+
+    // Calcular STPS final según el curso
+    const finalStps = (function(aStps, cId) {
+        let base = aStps.replace(/^STPS-/, '').replace(/^STPS-/, '').trim();
+        if (!cId) return "STPS-" + base;
+        let parts = base.split("-");
+        if (parts.length < 2) return "STPS-" + base + "-" + cId;
+        return "STPS-" + parts.slice(0, -1).join("-") + "-" + cId;
+    })(agentStps, courseStpsId);
+
+    try {
+        const resp = await fetch('plantilla_diploma.png?v=2');
+        const imgBytes = await resp.arrayBuffer();
+
+        const pdfDoc = await PDFDocument.create();
+        const page = pdfDoc.addPage([792, 612]); // Letter Landscape
+        const PW = 792, PH = 612;
+
+        const img = await pdfDoc.embedPng(imgBytes);
+        page.drawImage(img, { x: 0, y: 0, width: PW, height: PH });
+
+        const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+        const fontB = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+        // --- CARGAR DISEÑO (Prioridad LocalStorage > DB) ---
+        let d = null;
+        const localD = localStorage.getItem('dc3_design');
+        if (localD) {
+            d = JSON.parse(localD);
+        } else {
+            try {
+                const agentRecord = DATA.agents.find(a => a.name === agentName);
+                const dr = await api('find','agent_designs', { filter: { creatorEmail: agentRecord?.creatorEmail || currentUser.email } });
+                if (dr.documents?.length > 0) d = dr.documents[0];
+            } catch(e) {}
+        }
+
+        const drawC = (txt, x, y, sz, fb = false, color = rgb(0,0,0)) => {
+            const f = fb ? fontB : font;
+            const cleanTxt = (txt || '').toUpperCase();
+            const w = f.widthOfTextAtSize(cleanTxt, sz);
+            page.drawText(cleanTxt, { x: x - w/2, y: PH - y, size: sz, font: f, color: color });
+        };
+
+        // Coordenadas desde el Diseño (o defaults)
+        const dx = (id, def) => d?.[id] ?? def;
+
+        // 1. Nombre del Trabajador
+        const fullName = selectedWorker.apellidoPaterno ? `${selectedWorker.nombres} ${selectedWorker.apellidoPaterno} ${selectedWorker.apellidoMaterno || ''}`.trim() : selectedWorker.name;
+        drawC(fullName, dx('dip_worker_x', 396), dx('dip_worker_y', 245), dx('dip_worker_sz', 28), true, rgb(0.1, 0.2, 0.4));
+
+        // 2. Nombre del Curso
+        drawC(courseName, dx('dip_course_x', 396), dx('dip_course_y', 330), dx('dip_course_sz', 18), true);
+
+        // 3. Duración del Curso
+        drawC(courseDuration, dx('dip_duration_x', 396), dx('dip_duration_y', 405), dx('dip_duration_sz', 12), true);
+
+        // 4. Fecha
+        const months = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
+        const p = end.split('-');
+        const dateText = `${p[2]} DE ${months[parseInt(p[1])-1]} DEL ${p[0]}`;
+        drawC(dateText, dx('dip_date_x', 396), dx('dip_date_y', 445), dx('dip_date_sz', 11), true);
+
+        // 5. Firma y Datos del Agente
+        const fBase64 = d?.firma_base64 || d?.firmaBase64;
+        if (fBase64) {
+            try {
+                const fImgBytes = await fetch(fBase64).then(r => r.arrayBuffer());
+                const fImg = await pdfDoc.embedPng(fImgBytes);
+                // Firma centrada sobre el nombre
+                page.drawImage(fImg, { x: dx('dip_agent_x', 396) - 45, y: PH - dx('dip_agent_y', 572) + 10, width: 90, height: 50 });
+            } catch(e) {}
+        }
+
+        drawC(agentName, dx('dip_agent_x', 396), dx('dip_agent_y', 572), dx('dip_agent_sz', 10), true);
+        drawC("REGISTRO " + finalStps, dx('dip_stps_x', 396), dx('dip_stps_y', 584), dx('dip_stps_sz', 8), true);
+
+        const pdfBytes = await pdfDoc.save();
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
         a.download = `Diploma_${selectedWorker.curp}.pdf`;
@@ -1850,431 +1952,6 @@ async function regenDC3(record) {
         end:     record.endDate,
         result:  record.resultText || 'Aprobado'
     });
-}
-
-// ─── PDF OFICIAL DC-3 STPS — rellena plantilla oficial ──────────
-// Usa pdf-lib para superponer texto sobre la plantilla PDF real.
-// La plantilla se carga desde /plantilla_dc3.pdf (mismo origen).
-
-async function _buildDC3Core({ worker, company, agent, course, start, end, result }) {
-    const { PDFDocument, StandardFonts, rgb } = PDFLib;
-
-    // ── Helpers de texto ───────────────────────────────────────────────────
-    function sp(s) {
-        return String(s||'')
-            .replace(/[áà]/g,'a').replace(/[éè]/g,'e').replace(/[íì]/g,'i')
-            .replace(/[óò]/g,'o').replace(/[úùü]/g,'u').replace(/ñ/g,'n')
-            .replace(/[ÁÀ]/g,'A').replace(/[ÉÈ]/g,'E').replace(/[ÍÌ]/g,'I')
-            .replace(/[ÓÒ]/g,'O').replace(/[ÚÙÜ]/g,'U').replace(/Ñ/g,'N');
-    }
-
-    // Parsear fecha "yyyy-mm-dd" o "dd/mm/yyyy"
-    function parseFecha(f) {
-        if (!f) return { a:'    ', m:'  ', d:'  ' };
-        let parts;
-        if (f.includes('-')) {
-            parts = f.split('-');
-            return { a: parts[0].padStart(4,'0'), m: parts[1].padStart(2,'0'), d: parts[2].padStart(2,'0') };
-        } else {
-            parts = f.split('/');
-            return { a: (parts[2]||'    ').padStart(4,'0'), m: (parts[1]||'  ').padStart(2,'0'), d: (parts[0]||'  ').padStart(2,'0') };
-        }
-    }
-
-    // Cargar plantilla oficial
-    let pdfBytes;
-    try {
-        const resp = await fetch('/plantilla_dc3.pdf');
-        if (!resp.ok) throw new Error('No se pudo cargar plantilla_dc3.pdf: ' + resp.status);
-        pdfBytes = await resp.arrayBuffer();
-    } catch(e) {
-        alert('Error cargando plantilla DC-3: ' + e.message);
-        return;
-    }
-
-    const pdfDoc = await PDFDocument.load(pdfBytes);
-    const font   = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const fontB  = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-    const fontI  = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
-    const page   = pdfDoc.getPage(0);
-    const pageR  = pdfDoc.getPageCount() > 1 ? pdfDoc.getPage(1) : null;
-    const PH     = 792;  // altura en puntos
-
-    // ── Helpers de dibujo ─────────────────────────────────────────────────
-    // T: texto en coordenadas Fitz (y desde arriba)
-    function T(x, yFitz, s, size, useBold) {
-        if (!s) return;
-        const sz = size || 9;
-        page.drawText(sp(String(s)), {
-            x, y: PH - yFitz,
-            size: sz, font: useBold ? fontB : font,
-            color: rgb(0,0,0)
-        });
-    }
-
-    // T_C: texto centrado en X
-    function T_C(xCenter, yFitz, s, size, useBold) {
-        if (!s) return;
-        const sz = size || 9;
-        const f  = useBold ? fontB : font;
-        const w  = f.widthOfTextAtSize(sp(String(s)), sz);
-        page.drawText(sp(String(s)), {
-            x: xCenter - w/2, y: PH - yFitz,
-            size: sz, font: f, color: rgb(0,0,0)
-        });
-    }
-
-    // drawInCell: un carácter centrado dentro de x0..x1
-    function drawInCell(ch, x0, x1, yFitz, sz) {
-        if (!ch || ch === ' ') return;
-        const w = font.widthOfTextAtSize(ch, sz||9);
-        const cx = (x0 + x1) / 2;
-        page.drawText(ch, {
-            x: cx - w/2, y: PH - yFitz,
-            size: sz||9, font, color: rgb(0,0,0)
-        });
-    }
-
-    // ── Cargar diseño personalizado del agente ────────────────────────────
-    let agentDesign = null;
-    try {
-        // Buscar diseño por email del agente capacitador específico
-        const agentRecord = (DATA.agents || []).find(a =>
-            a.name && agent.name && a.name.toUpperCase().trim() === agent.name.toUpperCase().trim()
-        );
-        const agentEmail = agentRecord?.creatorEmail || agentRecord?.email || currentUser?.email || '';
-        const dr = await api('find','agent_designs', { filter: { creatorEmail: agentEmail } });
-        agentDesign = (dr.documents && dr.documents.length > 0) ? dr.documents[0] : null;
-        // Fallback al diseño del usuario actual si no se encontró
-        if (!agentDesign && agentEmail !== (currentUser?.email || '')) {
-            const dr2 = await api('find','agent_designs', { filter: { creatorEmail: currentUser?.email || '' } });
-            agentDesign = (dr2.documents && dr2.documents.length > 0) ? dr2.documents[0] : null;
-        }
-    } catch(e) { console.warn('No se pudo cargar diseño del agente:', e); }
-
-    // ── Asegurar que compObj sea un objeto válido ──────────────────────────
-    const compObj = (typeof company === 'object' && company !== null) ? company : { name: String(company || ''), rfc: '', representante_legal: '', representante_trabajadores: '' };
-
-    const companyNameFinal = String(compObj.name || company || '').toUpperCase();
-
-    // ══════════════════════════════════════════════════════════════════════
-    // -1. FOTO DEL TRABAJADOR (esquina superior izquierda)
-    // ══════════════════════════════════════════════════════════════════════
-    if (worker && worker.photoUrl) {
-        try {
-            const photoBytes = await fetch(worker.photoUrl).then(r => {
-                if (!r.ok) throw new Error(r.status);
-                return r.arrayBuffer();
-            });
-            let photoImg;
-            try { photoImg = await pdfDoc.embedJpg(photoBytes); }
-            catch(e) { photoImg = await pdfDoc.embedPng(photoBytes); }
-            // Zona: x=25, yFitz=14..114 → 85×100 pts
-            // Foto: borde izquierdo exacto del formulario (x=24.7≈24) [build-v2]
-            page.drawImage(photoImg, { x: 24, y: PH - 126, width: 72, height: 90 });
-        } catch(e) { console.warn('Foto trabajador no disponible:', e.message); }
-    }
-
-    // ══════════════════════════════════════════════════════════════════════
-    // 0. CABECERA: logo y slogan del agente (encima del formulario oficial)
-    //    Se dibuja en AMBAS páginas (anverso y reverso)
-    // ══════════════════════════════════════════════════════════════════════
-    try {
-        const sloganFont = fontI;
-        const hlBase64 = agentDesign?.headerLogoBase64 || null;
-        if (hlBase64) {
-            const hlBytes = await fetch(hlBase64).then(r => r.arrayBuffer());
-            let hlImg;
-            try {
-                if (hlBase64.startsWith('data:image/jpeg') || hlBase64.startsWith('data:image/jpg')) {
-                    hlImg = await pdfDoc.embedJpg(hlBytes);
-                } else {
-                    try { hlImg = await pdfDoc.embedPng(hlBytes); } catch(e3) { hlImg = await pdfDoc.embedJpg(hlBytes); }
-                }
-            } catch(eImg) { console.warn('Header logo embed error:', eImg); hlImg = null; }
-            const hlw = agentDesign.headerLogoW || 120;
-            const hlh = agentDesign.headerLogoH || 65;
-            const hlx = agentDesign.headerLogoX || 240;
-            const hly = agentDesign.headerLogoY || 45;
-            const drawLogo = (pg) => pg.drawImage(hlImg, { x: hlx, y: PH - (hly + hlh), width: hlw, height: hlh, opacity: 1.0 });
-            drawLogo(page);
-            // Reverso: zona libre y_top=28→79 (51pt). Logo reducido para no tapar texto.
-            if (pageR) {
-                const scaleR = Math.min(1, 48 / hlh);           // escalar para caber en 48pt
-                const hlwR = Math.round(hlw * scaleR);
-                const hlhR = Math.round(hlh * scaleR);
-                const hlxR = Math.round(hlx + (hlw - hlwR) / 2); // centrado horizontalmente
-                const hlyR = 29;                                  // y_top desde arriba
-                pageR.drawImage(hlImg, { x: hlxR, y: PH - (hlyR + hlhR), width: hlwR, height: hlhR, opacity: 1.0 });
-            }
-        }
-        const hSlogan = agentDesign?.headerSlogan || '';
-        if (hSlogan) {
-            const hss = agentDesign.headerSloganSize || 14;
-            const hst = sp(hSlogan);
-            const hsw = sloganFont.widthOfTextAtSize(hst, hss);
-            const rawHsx = agentDesign.headerSloganX || 306;
-            const hsx = (rawHsx > 0 && rawHsx <= 200) ? 306 : rawHsx; // migrar default viejo 160→306
-            const hsy = agentDesign.headerSloganY || 40;
-            const drawSlogan = (pg) => pg.drawText(hst, { x: hsx - hsw/2, y: PH - hsy - hss/2, size: hss, font: sloganFont, color: rgb(0.1,0.1,0.1) });
-            drawSlogan(page);
-            // Reverso: slogan en la zona libre superior (y_top≈18, zona 28→79)
-            if (pageR) {
-                const hsyR = 20;  // y_top fijo en zona segura del reverso
-                pageR.drawText(hst, { x: hsx - hsw/2, y: PH - hsyR - hss/2, size: hss, font: sloganFont, color: rgb(0.1,0.1,0.1) });
-            }
-        }
-    } catch(e) { console.warn('Error cabecera:', e); }
-
-    // ── 1. NOMBRE DEL TRABAJADOR ───────────────────────────────────────────
-    // Formato: Apellido Paterno, Apellido Materno, Nombre(s)
-    let fullName = "";
-    if (worker.apellidoPaterno) {
-        fullName = `${worker.apellidoPaterno} ${worker.apellidoMaterno || ''} ${worker.nombres || ''}`.trim();
-    } else {
-        fullName = worker.name || '';
-    }
-    T(30, 172.5, fullName.toUpperCase(), 9, true);
-
-    // ── 2. CURP ────────────────────────────────────────────────────────────
-    const CURP_CENTERS = [32.0,47.4,62.8,78.2,93.5,108.8,124.2,139.6,
-                          155.0,170.3,185.8,201.2,216.6,231.9,247.2,262.6,278.0,293.3];
-    const curp = (worker.curp||'').toUpperCase().replace(/\s/g,'').slice(0,18);
-    const CURP_Y = 196;
-    for (let i = 0; i < curp.length && i < 18; i++) {
-        const w = font.widthOfTextAtSize(curp[i], 8);
-        page.drawText(curp[i], { x: CURP_CENTERS[i] - w/2, y: PH - CURP_Y, size: 8, font, color: rgb(0,0,0) });
-    }
-
-    // ── 3. OCUPACIÓN ───────────────────────────────────────────────────────
-    const occupationFinal = (worker.occupation || worker.position || '').toUpperCase().slice(0,50);
-    T(307, 199, occupationFinal, 9);
-
-    // ══════════════════════════════════════════════════════════════════════
-    // 4. PUESTO — zona y_doc=201..226. Label en 201, texto en ~218
-    //    Rect solo sobre texto (evita label "Puesto*" en y=201..211)
-    // ══════════════════════════════════════════════════════════════════════
-    page.drawRectangle({ x:26, y: PH-226, width:559, height:13, color: rgb(1,1,1) });
-    T(30, 221, (worker.position||'').toUpperCase(), 9);
-
-    // ══════════════════════════════════════════════════════════════════════
-    // 5. NOMBRE EMPRESA — zona y_doc=255.3..289.0
-    //    Label "Nombre o razón social" en y=260..270 (termina en 270)
-    //    Solo limpiar zona de escritura: y_doc=271..288
-    //    y_pdf_bot = PH-288 = 504, height = 17
-    // ══════════════════════════════════════════════════════════════════════
-    page.drawRectangle({ x:26, y: PH-288, width:559, height:17, color: rgb(1,1,1) });
-    T(30, 283, companyNameFinal.slice(0,80), 9, true);
-
-    // ══════════════════════════════════════════════════════════════════════
-    // 6. RFC — 15 celdas medidas de la plantilla real
-    //    Centros calculados de bordes exactos del PDF
-    // ══════════════════════════════════════════════════════════════════════
-    const RFC_CENTERS = [34.9,52.1,66.0,80.8,95.4,109.8,124.0,138.3,
-                         152.8,167.0,181.2,195.5,209.8,227.4,245.1];
-    const rfcClean = (compObj.rfc||'').toUpperCase().replace(/\s/g,'').slice(0,15);
-    const RFC_Y = 311;
-    for (let i = 0; i < rfcClean.length && i < 15; i++) {
-        const w = font.widthOfTextAtSize(rfcClean[i], 8);
-        page.drawText(rfcClean[i], { x: RFC_CENTERS[i] - w/2, y: PH - RFC_Y, size: 8, font, color: rgb(0,0,0) });
-    }
-
-    // ══════════════════════════════════════════════════════════════════════
-    // 7. NOMBRE DEL CURSO — zona y_doc=343.9..368.5
-    //    Label "Nombre del curso" en y=343.9..353.9
-    //    Solo limpiar zona de escritura: y_doc=355..368
-    // ══════════════════════════════════════════════════════════════════════
-    page.drawRectangle({ x:26, y: PH-366, width:559, height:11, color: rgb(1,1,1) });
-    T(30, 363, (String(course.name||course||'')).toUpperCase().slice(0,80), 9);
-
-    // ══════════════════════════════════════════════════════════════════════
-    // 8. DURACIÓN — y_doc=364..393 (fila delgada)
-    //    Label "Duración en horas": x=29-89, y_doc=368.6-378.6 (preimpreso)
-    //    Campo de escritura: x=90..183 (ANTES de "Periodo de ejecución" en x=185)
-    //    Limpiar el campo y escribir SOLO el número dentro del espacio correcto
-    // ══════════════════════════════════════════════════════════════════════
-    // Escribir horas a la derecha del label "Duración en horas" (label termina en x=89)
-    T(30, 390, (course.durationHours||course.duration||'').toUpperCase(), 8);
-
-    // ══════════════════════════════════════════════════════════════════════
-    // 9. FECHAS — Coordenadas medidas pixel-perfect de la plantilla real
-    //    Celdas en y_doc=380.4..393.9 (h=13.5)
-    //    Bordes verticales EXACTOS extraídos con PyMuPDF
-    // ══════════════════════════════════════════════════════════════════════
-    const fStart = parseFecha(start);
-    const fEnd   = parseFecha(end);
-
-    // Limpiar SOLO el interior de celdas de dígitos (NO la celda "De" ni la celda "a")
-    // Bordes medidos con PyMuPDF — separadores en: 252.3|268.1|284.0|300.4|316.3|337.4|359.1|380.2|401.2 ... 423.1|442.6|462.2|481.7|501.2|522.3|543.3|565.2|586.2
-    // Interior: x + 0.4 para evitar el borde izquierdo
-    // Las celdas de fechas están vacías en la plantilla — no se necesita limpiar
-    // Escribir dígitos directamente encima sin drawRectangle blancos
-
-    // Centros exactos calculados del promedio de bordes reales de la plantilla
-    const AÑO_INI = [260.2, 276.1, 292.2, 308.4];
-    const MES_INI = [326.9, 348.2];
-    const DIA_INI = [369.6, 390.7];
-    const AÑO_FIN = [432.9, 452.4, 471.9, 491.4];
-    const MES_FIN = [511.8, 532.8];
-    const DIA_FIN = [554.2, 575.7];
-
-    // Y baseline: centrado en celdas y_doc=380.4..393.9 → baseline y_doc≈389
-    const FY_digits = 389;
-
-    for (let i=0; i<4; i++) {
-        const ch = fStart.a[i]||'';
-        if (ch) { const w=font.widthOfTextAtSize(ch,8); page.drawText(ch,{x:AÑO_INI[i]-w/2,y:PH-FY_digits,size:8,font,color:rgb(0,0,0)}); }
-    }
-    for (let i=0; i<2; i++) {
-        const ch = fStart.m[i]||'';
-        if (ch) { const w=font.widthOfTextAtSize(ch,8); page.drawText(ch,{x:MES_INI[i]-w/2,y:PH-FY_digits,size:8,font,color:rgb(0,0,0)}); }
-        const ch2 = fStart.d[i]||'';
-        if (ch2) { const w=font.widthOfTextAtSize(ch2,8); page.drawText(ch2,{x:DIA_INI[i]-w/2,y:PH-FY_digits,size:8,font,color:rgb(0,0,0)}); }
-    }
-    for (let i=0; i<4; i++) {
-        const ch = fEnd.a[i]||'';
-        if (ch) { const w=font.widthOfTextAtSize(ch,8); page.drawText(ch,{x:AÑO_FIN[i]-w/2,y:PH-FY_digits,size:8,font,color:rgb(0,0,0)}); }
-    }
-    for (let i=0; i<2; i++) {
-        const ch = fEnd.m[i]||'';
-        if (ch) { const w=font.widthOfTextAtSize(ch,8); page.drawText(ch,{x:MES_FIN[i]-w/2,y:PH-FY_digits,size:8,font,color:rgb(0,0,0)}); }
-        const ch2 = fEnd.d[i]||'';
-        if (ch2) { const w=font.widthOfTextAtSize(ch2,8); page.drawText(ch2,{x:DIA_FIN[i]-w/2,y:PH-FY_digits,size:8,font,color:rgb(0,0,0)}); }
-    }
-
-    // ══════════════════════════════════════════════════════════════════════
-    // 10. ÁREA TEMÁTICA — zona y_doc=394.6..418.6
-    //     Label "Área temática del curso" en y=394.9..404.9
-    //     Solo limpiar zona de texto: y_doc=406..418
-    // ══════════════════════════════════════════════════════════════════════
-    page.drawRectangle({ x:26, y: PH-416, width:559, height:9, color: rgb(1,1,1) });
-    T(30, 413, (course.thematicArea||course.area||'').toUpperCase().slice(0,80), 8);
-
-    // ══════════════════════════════════════════════════════════════════════
-    // 11. NOMBRE AGENTE CAPACITADOR — zona y_doc=419.4..443.5
-    //     Label "Nombre del agente" en y=418.8..428.8
-    //     Solo limpiar zona de texto: y_doc=430..443
-    // ══════════════════════════════════════════════════════════════════════
-    page.drawRectangle({ x:26, y: PH-442.25, width:559, height:11, color: rgb(1,1,1) });
-
-    // Calcular STPS final
-    const rawStps = (agent.stps||'').replace(/^STPS-/, '').replace(/^STPS-/, '').trim();
-    const stpsSuffix = course.stpsId || rawStps.split('-').pop();
-    const stpsBase = rawStps.split('-').slice(0, -1).join('-');
-    const finalStps = 'STPS-' + (stpsBase ? stpsBase + '-' + stpsSuffix : stpsSuffix);
-
-    const agentLine = sp(((agent.name||'') + '   ' + finalStps).toUpperCase().trim());
-    T(30, 440, agentLine.slice(0,80), 8);
-
-    // ── 12. SECCIÓN FIRMAS — Reconstrucción total personalizada ──────
-    // Centros de columnas (calculados de bordes exactos de la plantilla)
-    const SIG_INS_X  = 132;  // centro col instructor: (61.9+201.6)/2 = 131.8
-    const SIG_PAT_X  = 295;  // centro col patron: (216.8+372.9)/2 = 294.9
-    const SIG_REP_X  = 465;  // centro col rep: (387.2+542.7)/2 = 464.9
-    // Zona limpia: y_doc=491..538
-    const SIG_IMG_Y  = 512;  // top de imagen (zona limpia: y_doc=511..538)
-    const SIG_NAME_Y1= 522;  // primera línea de nombre (dentro de zona 511..538)
-    const SIG_NAME_Y2= 532;  // segunda línea de nombre
-
-    // Limpiar SOLO la zona de imagen/firma (debajo de labels de columna)
-    // Labels "Instructor o tutor", "Patrón...", "Representante" en y_doc=497..510
-    // Línea "Nombre y firma" en y_doc=539.9 → terminar en y_doc=538
-    // Zona limpia: y_doc=511..538 → height=27
-    // Columna Instructor: x=61.9..201.6
-    page.drawRectangle({ x:63,  y: PH-538, width:137, height:27, color: rgb(1,1,1) });
-    // Columna Patrón: x=216.8..372.9
-    page.drawRectangle({ x:218, y: PH-538, width:153, height:27, color: rgb(1,1,1) });
-    // Columna Rep: x=387.2..542.7
-    page.drawRectangle({ x:389, y: PH-538, width:153, height:27, color: rgb(1,1,1) });
-
-    // ── Helper: embeber imagen (dataURL o URL relativa) ────────────────
-    async function embedSig(src) {
-        if (!src) return null;
-        try {
-            const bytes = await fetch(src).then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); });
-            try { return await pdfDoc.embedPng(bytes); } catch(e) { return await pdfDoc.embedJpg(bytes); }
-        } catch(e) { console.warn('embedSig error:', src?.slice(0,40), e.message); return null; }
-    }
-
-    // ── Logo LUBER (Fondo Instructor) ─────────────────────────────────
-    const lImg = await embedSig(agentDesign?.logoBase64 || '/signatures/logo_luber.png');
-    if (lImg) {
-        const lw = agentDesign?.logoW || 90;
-        const lh = agentDesign?.logoH || 50;
-        const lx = agentDesign?.logoX !== undefined ? agentDesign.logoX : (SIG_INS_X - lw/2);
-        const ly = agentDesign?.logoY !== undefined ? agentDesign.logoY : SIG_IMG_Y;
-        page.drawImage(lImg, { x:lx, y:PH-(ly+lh), width:lw, height:lh, opacity:0.85 });
-    }
-
-    // ── Firma Instructor (Sobrepuesta) ────────────────────────────────
-    const fImg = await embedSig(agentDesign?.firmaBase64 || '/signatures/cynthia_firma_oficial.png');
-    if (fImg) {
-        const fw = agentDesign?.firmaW || 95;
-        const fh = agentDesign?.firmaH || 55;
-        const fx = agentDesign?.firmaX !== undefined ? agentDesign.firmaX : (SIG_INS_X - fw/2);
-        const fy = agentDesign?.firmaY !== undefined ? agentDesign.firmaY : (SIG_IMG_Y + 5);
-        page.drawImage(fImg, { x:fx, y:PH-(fy+fh), width:fw, height:fh });
-    }
-
-    // ── Nombres y Títulos reconstruidos ──────────────────────────────────
-    // No reescribir labels — la plantilla ya los tiene ("Instructor o tutor", etc.)
-    // Solo escribir nombres encima de la zona limpia
-    let insName = sp((agentDesign?.agentName || agent.name || '').toUpperCase());
-    if (insName.includes("CYNTHIA YADIRA GARZA LUGO") && !insName.includes("ING.")) {
-        insName = "ING. " + insName;
-    }
-    const insLines = splitNameJS(insName, 26);
-    T_C(SIG_INS_X, SIG_NAME_Y1, insLines[0], 8);
-    if (insLines[1]) T_C(SIG_INS_X, SIG_NAME_Y2, insLines[1], 8);
-
-    // Línea Instructor
-    // línea firma instructor: ya existe en plantilla
-    // "Nombre y firma": ya existe en plantilla
-
-    // --- Columna PATRÓN ---
-    // Patron label: ya existe en plantilla
-    const patName = sp((compObj.representante_legal || compObj.representanteLegal || '').toUpperCase());
-    const patLines = splitNameJS(patName, 28);
-    T_C(SIG_PAT_X, SIG_NAME_Y1, patLines[0], 8);
-    if (patLines[1]) T_C(SIG_PAT_X, SIG_NAME_Y2, patLines[1], 8);
-
-    // Línea Patrón
-    // línea firma patron: ya existe en plantilla
-    // "Nombre y firma": ya existe en plantilla
-
-    // --- Columna REPRESENTANTE ---
-    // Rep label: ya existe en plantilla
-    const repName = sp((compObj.representante_trabajadores || compObj.representanteTrabajadores || '').toUpperCase());
-    if (repName) {
-        const repLines = splitNameJS(repName, 26);
-        T_C(SIG_REP_X, SIG_NAME_Y1, repLines[0], 8);
-        if (repLines[1]) T_C(SIG_REP_X, SIG_NAME_Y2, repLines[1], 8);
-    }
-
-    // Línea Representante
-    // línea firma rep: ya existe en plantilla
-    // "Nombre y firma": ya existe en plantilla
-
-    // ── Slogan extra en sección de firmas (si está configurado) ─────────
-    if (agentDesign && agentDesign.slogan) {
-        T(agentDesign.sloganX||30, agentDesign.sloganY||445, agentDesign.slogan, agentDesign.sloganSize||7);
-    }
-
-    // Retornar bytes (quien llama decide qué hacer)
-    return await pdfDoc.save();
-}
-
-// Wrapper que descarga directamente
-async function buildDC3PDF(opts) {
-    const outBytes = await _buildDC3Core(opts);
-    if (!outBytes) { alert('Error: No se pudo generar el PDF. Verifica que la plantilla DC-3 esté disponible.'); return; }
-    const blob = new Blob([outBytes], { type: 'application/pdf' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href = url;
-    a.download = `DC3_${(function sp(s){return String(s||'').replace(/[áà]/g,'a').replace(/[éè]/g,'e').replace(/[íì]/g,'i').replace(/[óò]/g,'o').replace(/[úùü]/g,'u').replace(/ñ/g,'n').replace(/[ÁÀ]/g,'A').replace(/[ÉÈ]/g,'E').replace(/[ÍÌ]/g,'I').replace(/[ÓÒ]/g,'O').replace(/[ÚÙÜ]/g,'U').replace(/Ñ/g,'N');})(opts.worker?.name||'trabajador').replace(/\s+/g,'_')}.pdf`;
-    a.click();
-    URL.revokeObjectURL(url);
 }
 
 
