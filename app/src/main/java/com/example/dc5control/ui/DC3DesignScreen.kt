@@ -50,6 +50,11 @@ fun DesignScreen(
     var headerSloganFont by remember { mutableStateOf("Times-Italic") }
     var agentName by remember { mutableStateOf(user.name) }
     var slogan by remember { mutableStateOf("") }
+    var sloganX by remember { mutableStateOf(30f) }
+    var sloganY by remember { mutableStateOf(445f) }
+    var sloganSize by remember { mutableStateOf(7f) }
+    var sloganFont by remember { mutableStateOf("Helvetica") }
+    
     var diplomaTemplateBase64 by remember { mutableStateOf<String?>(null) }
     var headerLogoBase64 by remember { mutableStateOf<String?>(null) }
     var signatureBase64 by remember { mutableStateOf<String?>(null) }
@@ -142,6 +147,11 @@ fun DesignScreen(
                 
                 agentName = userDesign.agentName ?: user.name
                 slogan = userDesign.slogan ?: ""
+                sloganX = userDesign.sloganX ?: 30f
+                sloganY = userDesign.sloganY ?: 445f
+                sloganSize = userDesign.sloganSize ?: 7f
+                sloganFont = userDesign.sloganFont ?: "Helvetica"
+                
                 diplomaTemplateBase64 = userDesign.diplomaTemplateBase64
                 headerLogoBase64 = userDesign.headerLogoBase64
                 signatureBase64 = userDesign.firmaBase64
@@ -487,7 +497,7 @@ fun DesignScreen(
 
                         // Slogan at bottom
                         DesignCard("Slogan al pie") {
-                            Text("Texto que aparece in the parte inferior del DC-3", fontSize = 13.sp, color = Gray500)
+                            Text("Texto que aparece en la parte inferior del DC-3", fontSize = 13.sp, color = Gray500)
                             Spacer(modifier = Modifier.height(8.dp))
                             OutlinedTextField(
                                 value = slogan,
@@ -501,6 +511,12 @@ fun DesignScreen(
                                     unfocusedBorderColor = Gray200
                                 )
                             )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                CoordinateField("X", sloganX) { sloganX = it }
+                                CoordinateField("Y", sloganY) { sloganY = it }
+                                CoordinateField("Tam.", sloganSize) { sloganSize = it }
+                            }
                         }
 
                         // Save button
@@ -521,6 +537,10 @@ fun DesignScreen(
                                         headerSloganFont = headerSloganFont,
                                         agentName = agentName,
                                         slogan = slogan,
+                                        sloganX = sloganX,
+                                        sloganY = sloganY,
+                                        sloganSize = sloganSize,
+                                        sloganFont = sloganFont,
                                         logoBase64 = logoBase64,
                                         logoX = logoX,
                                         logoY = logoY,
@@ -747,6 +767,10 @@ fun DesignScreen(
                                         headerSloganFont = headerSloganFont,
                                         agentName = agentName,
                                         slogan = slogan,
+                                        sloganX = sloganX,
+                                        sloganY = sloganY,
+                                        sloganSize = sloganSize,
+                                        sloganFont = sloganFont,
                                         logoBase64 = logoBase64,
                                         logoX = logoX,
                                         logoY = logoY,
