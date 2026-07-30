@@ -989,8 +989,8 @@ async function loadCatalogs() {
 
             if (existsIdx === -1) {
                 DATA.agents.push(dba);
-            } else if (dba.name.toUpperCase().includes('JESUS')) {
-                // Prioridad a la versión con el nombre correcto
+            } else {
+                // Siempre priorizar datos de la base de datos (contienen cédula, etc.)
                 DATA.agents[existsIdx] = dba;
             }
         });
@@ -1448,6 +1448,7 @@ async function loadSection(v) {
             tb.innerHTML = '<tr><td colspan="3" class="text-center py-12 text-gray-300">Cargando agentes...</td></tr>';
             const r = await api('find','agents',{ filter: {} });
             const rows = (r.documents||[]);
+            DATA.agents = rows; // Sincronizar catálogo global
             tb.innerHTML = rows.length
                 ? rows.map(a => `<tr>
                     <td class="font-semibold">${a.name}</td>
@@ -2328,7 +2329,7 @@ async function updateDiplomaDesignPreview() {
     drawPlaceholder("27 DE JULIO DEL 2026", getV('dip-date-x'), getV('dip-date-y'), getV('dip-date-sz'), true);
     drawPlaceholder("JESUS DARIO ROBLES TRUJILLO", getV('dip-agent-x'), getV('dip-agent-y'), getV('dip-agent-sz'), true);
     drawPlaceholder("REGISTRO STPS-XXX-001", getV('dip-stps-x'), getV('dip-stps-y'), getV('dip-stps-sz'), true);
-    drawPlaceholder("FOLIO: 2024-0001", getV('dip-folio-x'), getV('dip-folio-y'), getV('dip-folio-sz'), true);
+    drawPlaceholder("EHS-CON-2024-0001", getV('dip-folio-x'), getV('dip-folio-y'), getV('dip-folio-sz'), true);
     drawPlaceholder("CÉDULA PROFESIONAL: 12345678", getV('dip-cedula-x'), getV('dip-cedula-y'), getV('dip-cedula-sz'), true);
 
     const outBytes = await pdfDoc.save();
