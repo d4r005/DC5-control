@@ -138,6 +138,13 @@ object DiplomaGenerator {
         val finalStps = calculateStps(agent.stps)
         textCentered(stpsX, stpsY, "REGISTRO $finalStps", stpsSz, true)
 
+        agent.cedulaProfesional?.let { cp ->
+            val cedX = design?.dipCedulaX ?: centerX
+            val cedY = design?.dipCedulaY ?: 596f
+            val cedSz = design?.dipCedulaSz ?: 8f
+            textCentered(cedX, cedY, "CÉDULA PROFESIONAL: $cp", cedSz, true)
+        }
+
         folio?.let { textCentered(folioX, folioY, it, folioSz, true, 2) }
 
         cs.close()

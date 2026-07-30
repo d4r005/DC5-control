@@ -104,6 +104,10 @@ fun DesignScreen(
     var dipStpsY by remember { mutableStateOf(584f) }
     var dipStpsSz by remember { mutableStateOf(8f) }
 
+    var dipCedulaX by remember { mutableStateOf(396f) }
+    var dipCedulaY by remember { mutableStateOf(596f) }
+    var dipCedulaSz by remember { mutableStateOf(8f) }
+
     var isLoading by remember { mutableStateOf(true) }
     var isSaving by remember { mutableStateOf(false) }
     var saveMessage by remember { mutableStateOf<String?>(null) }
@@ -200,6 +204,10 @@ fun DesignScreen(
                 dipStpsX = userDesign.dipStpsX ?: 396f
                 dipStpsY = userDesign.dipStpsY ?: 584f
                 dipStpsSz = userDesign.dipStpsSz ?: 8f
+
+                dipCedulaX = userDesign.dipCedulaX ?: 396f
+                dipCedulaY = userDesign.dipCedulaY ?: 596f
+                dipCedulaSz = userDesign.dipCedulaSz ?: 8f
             }
             isLoading = false
         }
@@ -577,7 +585,10 @@ fun DesignScreen(
                                         dipAgentSz = dipAgentSz,
                                         dipStpsX = dipStpsX,
                                         dipStpsY = dipStpsY,
-                                        dipStpsSz = dipStpsSz
+                                        dipStpsSz = dipStpsSz,
+                                        dipCedulaX = dipCedulaX,
+                                        dipCedulaY = dipCedulaY,
+                                        dipCedulaSz = dipCedulaSz
                                     )
 
                                     try {
@@ -752,6 +763,14 @@ fun DesignScreen(
                                 CoordinateField("Y", dipStpsY) { dipStpsY = it }
                                 CoordinateField("Tam.", dipStpsSz) { dipStpsSz = it }
                             }
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Text("Cédula Profesional", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                CoordinateField("X", dipCedulaX) { dipCedulaX = it }
+                                CoordinateField("Y", dipCedulaY) { dipCedulaY = it }
+                                CoordinateField("Tam.", dipCedulaSz) { dipCedulaSz = it }
+                            }
                         }
 
                         Button(
@@ -807,7 +826,10 @@ fun DesignScreen(
                                         dipAgentSz = dipAgentSz,
                                         dipStpsX = dipStpsX,
                                         dipStpsY = dipStpsY,
-                                        dipStpsSz = dipStpsSz
+                                        dipStpsSz = dipStpsSz,
+                                        dipCedulaX = dipCedulaX,
+                                        dipCedulaY = dipCedulaY,
+                                        dipCedulaSz = dipCedulaSz
                                     )
                                     val existing = SupabaseRepository.fetchDataFilteredSuspend("agent_designs", "creator_email=eq.${user.email}", AgentDesign.serializer()).firstOrNull()
                                     if (existing != null) {

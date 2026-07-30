@@ -52,6 +52,7 @@ data class Agent(
     val id: String? = null,
     val name: String = "",
     val stps: String = "",
+    @SerialName("cedula_profesional") val cedulaProfesional: String? = null,
     @SerialName("creator_email") val creatorEmail: String? = null
 )
 
@@ -155,5 +156,8 @@ data class AgentDesign(
     @SerialName("dip_folio_x") val dipFolioX: Float? = null,
     @SerialName("dip_folio_y") val dipFolioY: Float? = null,
     @SerialName("dip_folio_sz") val dipFolioSz: Float? = null,
+    @SerialName("dip_cedula_x") val dipCedulaX: Float? = null,
+    @SerialName("dip_cedula_y") val dipCedulaY: Float? = null,
+    @SerialName("dip_cedula_sz") val dipCedulaSz: Float? = null,
     @SerialName("updated_at") val updatedAt: String? = null
 )

@@ -151,21 +151,28 @@ fun AgentListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                             ) {
                                 Text(
                                     text = "Nombre",
-                                    modifier = Modifier.weight(0.5f),
+                                    modifier = Modifier.weight(0.4f),
                                     fontWeight = FontWeight.Bold,
                                     color = Gray700,
                                     style = MaterialTheme.typography.titleSmall
                                 )
                                 Text(
                                     text = "Registro STPS",
-                                    modifier = Modifier.weight(0.3f),
+                                    modifier = Modifier.weight(0.25f),
+                                    fontWeight = FontWeight.Bold,
+                                    color = Gray700,
+                                    style = MaterialTheme.typography.titleSmall
+                                )
+                                Text(
+                                    text = "Cédula",
+                                    modifier = Modifier.weight(0.2f),
                                     fontWeight = FontWeight.Bold,
                                     color = Gray700,
                                     style = MaterialTheme.typography.titleSmall
                                 )
                                 Text(
                                     text = "Acciones",
-                                    modifier = Modifier.weight(0.2f),
+                                    modifier = Modifier.weight(0.15f),
                                     fontWeight = FontWeight.Bold,
                                     color = Gray700,
                                     style = MaterialTheme.typography.titleSmall,
@@ -185,21 +192,27 @@ fun AgentListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                                     ) {
                                         Text(
                                             text = agent.name,
-                                            modifier = Modifier.weight(0.5f),
+                                            modifier = Modifier.weight(0.4f),
                                             fontWeight = FontWeight.Bold,
                                             color = Gray900,
                                             style = MaterialTheme.typography.bodyMedium
                                         )
                                         Text(
                                             text = agent.stps,
-                                            modifier = Modifier.weight(0.3f),
+                                            modifier = Modifier.weight(0.25f),
                                             color = NavyPrimary,
                                             fontFamily = FontFamily.Monospace,
                                             fontWeight = FontWeight.SemiBold,
                                             style = MaterialTheme.typography.bodyMedium
                                         )
-                                        Row(
+                                        Text(
+                                            text = agent.cedulaProfesional ?: "—",
                                             modifier = Modifier.weight(0.2f),
+                                            color = Gray500,
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                        Row(
+                                            modifier = Modifier.weight(0.15f),
                                             horizontalArrangement = Arrangement.Center,
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
@@ -267,6 +280,24 @@ fun AgentListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                                             style = MaterialTheme.typography.bodyMedium
                                         )
                                     }
+                                    if (!agent.cedulaProfesional.isNullOrBlank()) {
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Text(
+                                                text = "Cédula: ",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = Gray500
+                                            )
+                                            Text(
+                                                text = agent.cedulaProfesional,
+                                                color = Gray900,
+                                                style = MaterialTheme.typography.bodyMedium
+                                            )
+                                        }
+                                    }
                                     Spacer(modifier = Modifier.height(8.dp))
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
@@ -324,10 +355,11 @@ fun AgentListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
         AgentAddEditDialog(
             agent = null,
             onDismiss = { showAddDialog = false },
-            onSave = { name, stps ->
+            onSave = { name, stps, cedula ->
                 val newAgent = Agent(
                     name = name,
                     stps = stps,
+                    cedulaProfesional = cedula,
                     creatorEmail = user.email
                 )
                 SupabaseRepository.insertData("agents", newAgent, Agent.serializer()) { success ->
@@ -345,10 +377,11 @@ fun AgentListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
         AgentAddEditDialog(
             agent = agent,
             onDismiss = { editingAgent = null },
-            onSave = { name, stps ->
+            onSave = { name, stps, cedula ->
                 val updated = agent.copy(
                     name = name,
-                    stps = stps
+                    stps = stps,
+                    cedulaProfesional = cedula
                 )
                 agent.id?.let { id ->
                     SupabaseRepository.updateData("agents", id.toString(), updated, Agent.serializer()) { success ->
@@ -367,10 +400,11 @@ fun AgentListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
 fun AgentAddEditDialog(
     agent: Agent?,
     onDismiss: () -> Unit,
-    onSave: (name: String, stps: String) -> Unit
+    onSave: (name: String, stps: String, cedula: String?) -> Unit
 ) {
     var name by remember { mutableStateOf(agent?.name ?: "") }
     var stps by remember { mutableStateOf(agent?.stps ?: "") }
+    var cedula by remember { mutableStateOf(agent?.cedulaProfesional ?: "") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -409,13 +443,25 @@ fun AgentAddEditDialog(
                     ),
                     shape = RoundedCornerShape(8.dp)
                 )
+
+                OutlinedTextField(
+                    value = cedula,
+                    onValueChange = { cedula = it },
+                    label = { Text("Cédula Profesional (Opcional)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = NavyPrimary,
+                        focusedLabelColor = NavyPrimary
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                )
             }
         },
         confirmButton = {
             Button(
                 onClick = {
                     if (name.isNotBlank() && stps.isNotBlank()) {
-                        onSave(name, stps.toUpperCase())
+                        onSave(name, stps.toUpperCase(), cedula.ifBlank { null })
                     }
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),

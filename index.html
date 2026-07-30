@@ -543,6 +543,16 @@
                             </div>
                         </div>
 
+                        <!-- Cédula -->
+                        <div class="border rounded-xl p-4 mb-4 bg-gray-50">
+                            <p class="text-xs font-bold text-gray-600 uppercase mb-2">Cédula Profesional</p>
+                            <div class="grid grid-cols-3 gap-2">
+                                <div><label class="text-[10px] text-gray-400">X</label><input id="dip-cedula-x" type="number" class="input-field !p-1 !text-xs" value="396" oninput="scheduleDiplomaPreview()"></div>
+                                <div><label class="text-[10px] text-gray-400">Y</label><input id="dip-cedula-y" type="number" class="input-field !p-1 !text-xs" value="596" oninput="scheduleDiplomaPreview()"></div>
+                                <div><label class="text-[10px] text-gray-400">Tam.</label><input id="dip-cedula-sz" type="number" class="input-field !p-1 !text-xs" value="8" oninput="scheduleDiplomaPreview()"></div>
+                            </div>
+                        </div>
+
                         <!-- Folio -->
                         <div class="border rounded-xl p-4 mb-6 bg-gray-50">
                             <p class="text-xs font-bold text-gray-600 uppercase mb-2">Folio (Identificador único)</p>
@@ -1029,7 +1039,9 @@ function toSnake(obj) {
         dipDateX:'dip_date_x', dipDateY:'dip_date_y', dipDateSz:'dip_date_sz',
         dipAgentX:'dip_agent_x', dipAgentY:'dip_agent_y', dipAgentSz:'dip_agent_sz',
         dipStpsX:'dip_stps_x', dipStpsY:'dip_stps_y', dipStpsSz:'dip_stps_sz',
-        dipFolioX:'dip_folio_x', dipFolioY:'dip_folio_y', dipFolioSz:'dip_folio_sz'
+        dipFolioX:'dip_folio_x', dipFolioY:'dip_folio_y', dipFolioSz:'dip_folio_sz',
+        dipCedulaX:'dip_cedula_x', dipCedulaY:'dip_cedula_y', dipCedulaSz:'dip_cedula_sz',
+        cedulaProfesional:'cedula_profesional'
     };
     const out = {};
     for (const [k,v] of Object.entries(obj)) out[map[k]||k] = v;
@@ -1061,7 +1073,9 @@ function toCamel(obj) {
         dip_date_x:'dipDateX', dip_date_y:'dipDateY', dip_date_sz:'dipDateSz',
         dip_agent_x:'dipAgentX', dip_agent_y:'dipAgentY', dip_agent_sz:'dipAgentSz',
         dip_stps_x:'dipStpsX', dip_stps_y:'dipStpsY', dip_stps_sz:'dipStpsSz',
-        dip_folio_x:'dipFolioX', dip_folio_y:'dipFolioY', dip_folio_sz:'dipFolioSz'
+        dip_folio_x:'dipFolioX', dip_folio_y:'dipFolioY', dip_folio_sz:'dipFolioSz',
+        dip_cedula_x:'dipCedulaX', dip_cedula_y:'dipCedulaY', dip_cedula_sz:'dipCedulaSz',
+        cedula_profesional:'cedulaProfesional'
     };
     const out = {};
     for (const [k,v] of Object.entries(obj)) out[map[k]||k] = v;
@@ -1436,6 +1450,7 @@ async function loadSection(v) {
                 ? rows.map(a => `<tr>
                     <td class="font-semibold">${a.name}</td>
                     <td class="font-mono text-blue-900">${a.stps}</td>
+                    <td class="text-sm text-gray-500">${a.cedulaProfesional || '—'}</td>
                     <td class="text-right">
                         <div class="flex justify-end gap-2">
                             <button onclick='openModal(${JSON.stringify(a)})' class="btn-sm btn-outline">✎</button>
@@ -1443,7 +1458,7 @@ async function loadSection(v) {
                         </div>
                     </td>
                   </tr>`).join('')
-                : `<tr><td colspan="3" class="text-center py-12 text-gray-300 text-sm">Sin agentes registrados</td></tr>`;
+                : `<tr><td colspan="4" class="text-center py-12 text-gray-300 text-sm">Sin agentes registrados</td></tr>`;
 
         } else if (v === 'users') {
             const tb = document.getElementById('tb-users');
@@ -1561,6 +1576,10 @@ else if (currentView === 'courses') {
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Registro STPS</label>
                 <input id="f2" class="input-field" value="${item ? item.stps : ''}" placeholder="Ej. STPS-XXXXX-001" style="text-transform:uppercase">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Cédula Profesional (Opcional)</label>
+                <input id="f3" class="input-field" value="${item ? (item.cedulaProfesional || '') : ''}" placeholder="Número de cédula">
             </div>`;
     }
 }
@@ -1610,9 +1629,10 @@ async function saveItem() {
     } else if (currentView === 'agents') {
         const name = document.getElementById('f1').value.trim();
         const stps = document.getElementById('f2').value.trim().toUpperCase();
+        const cedulaProfesional = document.getElementById('f3').value.trim() || null;
         if (!name || !stps) { alert('Completa todos los campos'); return; }
-        payload.document = { name, stps, creatorEmail: currentUser.email };
-        if (editingItemId) {
+        payload.document = { name, stps, cedulaProfesional, creatorEmail: currentUser.email };
+    }   if (editingItemId) {
             const idx = DATA.agents.findIndex(a => a.id === editingItemId);
             if (idx >= 0) DATA.agents[idx] = { ...DATA.agents[idx], ...payload.document };
         } else {
@@ -1944,6 +1964,10 @@ async function _buildDiplomaCore() {
     drawC(agentName, dx('dip_agent_x', 396), dx('dip_agent_y', 572), dx('dip_agent_sz', 10), true);
     drawC("REGISTRO " + finalStps, dx('dip_stps_x', 396), dx('dip_stps_y', 584), dx('dip_stps_sz', 8), true);
 
+    if (agentRecord?.cedulaProfesional) {
+        drawC("CÉDULA PROFESIONAL: " + agentRecord.cedulaProfesional, dx('dip_cedula_x', 396), dx('dip_cedula_y', 596), dx('dip_cedula_sz', 8), true);
+    }
+
     // 6. Folio Consecutivo (EHS-CON-YYYY-XXXX)
     let folioTxt = "";
     try {
@@ -2174,6 +2198,10 @@ async function loadDesign() {
         setV('dip-folio-y', d.dipFolioY ?? d.dip_folio_y ?? 550);
         setV('dip-folio-sz', d.dipFolioSz ?? d.dip_folio_sz ?? 10);
 
+        setV('dip-cedula-x', d.dipCedulaX ?? d.dip_cedula_x ?? 396);
+        setV('dip-cedula-y', d.dipCedulaY ?? d.dip_cedula_y ?? 596);
+        setV('dip-cedula-sz', d.dipCedulaSz ?? d.dip_cedula_sz ?? 8);
+
         await updateDesignPreview();
         if (currentView === 'dc3design') scheduleDiplomaPreview();
     } catch(e) { console.warn('loadDesign error:', e); }
@@ -2245,6 +2273,7 @@ async function updateDiplomaDesignPreview() {
     drawPlaceholder("JESUS DARIO ROBLES TRUJILLO", getV('dip-agent-x'), getV('dip-agent-y'), getV('dip-agent-sz'), true);
     drawPlaceholder("REGISTRO STPS-XXX-001", getV('dip-stps-x'), getV('dip-stps-y'), getV('dip-stps-sz'), true);
     drawPlaceholder("FOLIO: 2024-0001", getV('dip-folio-x'), getV('dip-folio-y'), getV('dip-folio-sz'), true);
+    drawPlaceholder("CÉDULA PROFESIONAL: 12345678", getV('dip-cedula-x'), getV('dip-cedula-y'), getV('dip-cedula-sz'), true);
 
     const outBytes = await pdfDoc.save();
     const pdf = await pdfjsLib.getDocument({ data: outBytes }).promise;
@@ -2273,7 +2302,8 @@ function _updateDiplomaDragHandles() {
         { id: 'dip-date-x', yId: 'dip-date-y', label: 'FECHA', color: '#1e3a8a' },
         { id: 'dip-agent-x', yId: 'dip-agent-y', label: 'AGENTE', color: '#15803d' },
         { id: 'dip-stps-x', yId: 'dip-stps-y', label: 'REGISTRO', color: '#15803d' },
-        { id: 'dip-folio-x', yId: 'dip-folio-y', label: 'FOLIO', color: '#6366f1' }
+        { id: 'dip-folio-x', yId: 'dip-folio-y', label: 'FOLIO', color: '#6366f1' },
+        { id: 'dip-cedula-x', yId: 'dip-cedula-y', label: 'CÉDULA', color: '#d97706' }
     ];
 
     items.forEach(item => {
@@ -2408,6 +2438,7 @@ function getDesignParams() {
         dipAgentX: gv('dip-agent-x'), dipAgentY: gv('dip-agent-y'), dipAgentSz: gv('dip-agent-sz'),
         dipStpsX: gv('dip-stps-x'), dipStpsY: gv('dip-stps-y'), dipStpsSz: gv('dip-stps-sz'),
         dipFolioX: gv('dip-folio-x'), dipFolioY: gv('dip-folio-y'), dipFolioSz: gv('dip-folio-sz'),
+        dipCedulaX: gv('dip-cedula-x'), dipCedulaY: gv('dip-cedula-y'), dipCedulaSz: gv('dip-cedula-sz'),
         creatorEmail: currentUser?.email || ''
     };
 }
