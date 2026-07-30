@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACE-Control | Gestión DC-3 v1.2.9 · UNIFIED PDF READY</title>
+    <title>ACE-Control | Gestión DC-3 v1.3.0 · QR & UNIFIED PDF</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -91,7 +91,7 @@
                 </svg>
             </div>
             <h1 class="text-2xl font-black text-gray-900">ACE-Control</h1>
-            <p class="text-sm text-gray-400 mt-1">Sistema de Gestión DC-3 · STPS v1.2.9 · UNIFIED PDF READY</p>
+            <p class="text-sm text-gray-400 mt-1">Sistema de Gestión DC-3 · STPS v1.3.0 · QR & UNIFIED PDF READY</p>
         </div>
 
         <div class="login-card">
@@ -1967,7 +1967,6 @@ async function generateDC3() {
     a.download = `DC3_${(function sp(s){return String(s||'').replace(/[áà]/g,'a').replace(/[éè]/g,'e').replace(/[íì]/g,'i').replace(/[óò]/g,'o').replace(/[úùü]/g,'u').replace(/ñ/g,'n').replace(/[ÁÀ]/g,'A').replace(/[ÉÈ]/g,'E').replace(/[ÍÌ]/g,'I').replace(/[ÓÒ]/g,'O').replace(/[ÚÙÜ]/g,'U').replace(/Ñ/g,'N');})(selectedWorker.name||'constancia').replace(/\s+/g,'_')}.pdf`;
     a.click();
     URL.revokeObjectURL(url);
-}
 
     closeModal('modal-dc3');
     if (currentView === 'dc3') loadSection('dc3');
@@ -3307,7 +3306,7 @@ async function buildDC3PDFBytes(opts) {
     return await _buildDC3Core(opts);
 }
 
-async function _buildDC3Core({ worker, company, agent, course, start, end, result }) {
+async function _buildDC3Core({ worker, company, agent, course, start, end, result, qrUrl }) {
     const { PDFDocument, StandardFonts, rgb } = PDFLib;
 
     function sp(s) {
@@ -3462,12 +3461,12 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     }
 
     // Dibujar QR si se proporciona
-    if (agentDesign?.qr_x && opts.qrUrl) {
+    if (agentDesign?.qrX && qrUrl) {
         try {
-            const qrBase64 = await generateQRBase64(opts.qrUrl);
+            const qrBase64 = await generateQRBase64(qrUrl);
             const qrImg = await embedBase64Img(pdfDoc, qrBase64);
-            const qsz = agentDesign.qr_sz || 60;
-            page.drawImage(qrImg, { x: agentDesign.qr_x, y: PH - agentDesign.qr_y - qsz, width: qsz, height: qsz });
+            const qsz = agentDesign.qrSz || 60;
+            page.drawImage(qrImg, { x: agentDesign.qrX, y: PH - agentDesign.qrY - qsz, width: qsz, height: qsz });
         } catch(e) {}
     }
 
