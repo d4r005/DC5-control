@@ -195,6 +195,7 @@ fun DC3GenerationScreen(
                             agentStps = finalStps,
                             startDate = startDate,
                             endDate = endDate,
+                            documentType = "DC3",
                             creatorEmail = employee.creatorEmail ?: user.email
                         )
                         SupabaseRepository.insertDataSuspend("dc3_records", record, DC3Record.serializer())
@@ -242,6 +243,25 @@ fun DC3GenerationScreen(
                     )
                     PdfGenerator.saveToDownloads(context, file)
                     if (totalDocs == 1) PdfGenerator.openPdf(context, file)
+
+                    // Guardar en historial
+                    val record = DC3Record(
+                        workerId = employee.curp,
+                        workerName = "${employee.apellidoPaterno} ${employee.nombres}".trim(),
+                        workerPos = employee.position,
+                        courseName = course.name,
+                        durationHours = course.durationHours,
+                        thematicArea = course.thematicArea ?: "",
+                        companyName = selectedCompany?.name ?: "",
+                        agentName = agent.name,
+                        agentStps = agent.stps,
+                        startDate = startDate,
+                        endDate = endDate,
+                        documentType = "DIPLOMA",
+                        folio = folioStr,
+                        creatorEmail = employee.creatorEmail ?: user.email
+                    )
+                    SupabaseRepository.insertDataSuspend("dc3_records", record, DC3Record.serializer())
                 }
             }
             withContext(Dispatchers.Main) {

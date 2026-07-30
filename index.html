@@ -169,7 +169,7 @@
             </div>
             <div class="nav-link" onclick="setView('dc3')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                Constancias DC-3
+                Constancias
             </div>
             <div class="nav-link" onclick="setView('dc3design')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
@@ -230,7 +230,7 @@
                     <p class="text-xs text-gray-400 mt-1">Trabajadores</p>
                 </div>
                 <div class="stat-card">
-                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Constancias DC-3</p>
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Constancias</p>
                     <p id="stat-dc3" class="text-4xl font-black text-blue-900">–</p>
                     <p class="text-xs text-gray-400 mt-1">Generadas</p>
                 </div>
@@ -310,11 +310,19 @@
             </div>
         </div>
 
-        <!-- DC3 History -->
+        <!-- Constancias History -->
         <div id="section-dc3" class="hidden">
+            <!-- Sub-Tabs for History -->
+            <div class="flex border-b border-gray-200 mb-6 bg-white rounded-t-xl overflow-hidden">
+                <button onclick="setHistoryTab('DC3')" id="tab-history-dc3" class="px-6 py-3 text-sm font-bold text-blue-900 border-b-2 border-blue-900">Historial DC-3</button>
+                <button onclick="setHistoryTab('DIPLOMA')" id="tab-history-diploma" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-blue-900 transition-colors">Historial Diplomas</button>
+            </div>
+
             <div class="card overflow-hidden">
                 <table>
-                    <thead><tr><th>Trabajador (CURP)</th><th>Curso</th><th>Empresa</th><th>Periodo</th><th>Acciones</th></tr></thead>
+                    <thead><tr id="th-history">
+                        <th>Trabajador (CURP)</th><th>Curso</th><th>Empresa</th><th>Periodo</th><th id="th-folio" class="hidden">Folio</th><th>Acciones</th>
+                    </tr></thead>
                     <tbody id="tb-dc3"><tr><td colspan="5" class="text-center py-12 text-gray-300">Cargando…</td></tr></tbody>
                 </table>
             </div>
@@ -1002,6 +1010,7 @@ async function loadCatalogs() {
 }
 
 let currentUser = null, currentView = 'dashboard', selectedWorker = null, editingDC3Id = null, editingItemId = null;
+let currentHistoryTab = 'DC3';
 
 // ─── INIT ──────────────────────────────────────────────
 window.onload = () => {
@@ -1022,7 +1031,7 @@ function toSnake(obj) {
         workerId:'worker_id', workerName:'worker_name', workerPos:'worker_pos',
         courseName:'course_name', companyName:'company_name', agentName:'agent_name', agentStps:'agent_stps',
         startDate:'start_date', endDate:'end_date', resultText:'result_text', durationHours:'duration_hours',
-        thematicArea:'thematic_area',
+        thematicArea:'thematic_area', documentType:'document_type', folio:'folio',
         creatorEmail:'creator_email', representanteLegal:'representante_legal', representanteTrabajadores:'representante_trabajadores',
         headerSlogan:'header_slogan', headerSloganX:'header_slogan_x', headerSloganY:'header_slogan_y', headerSloganSize:'header_slogan_size',
         headerLogoW:'header_logo_w', headerLogoH:'header_logo_h', headerLogoX:'header_logo_x', headerLogoY:'header_logo_y',
@@ -1056,7 +1065,7 @@ function toCamel(obj) {
         worker_id:'workerId', worker_name:'workerName', worker_pos:'workerPos',
         course_name:'courseName', company_name:'companyName', agent_name:'agentName', agent_stps:'agentStps',
         start_date:'startDate', end_date:'endDate', result_text:'resultText', duration_hours:'durationHours',
-        thematic_area:'thematicArea', created_at:'createdAt',
+        thematic_area:'thematicArea', created_at:'createdAt', document_type:'documentType', folio:'folio',
         creator_email:'creatorEmail', representante_legal:'representanteLegal', representante_trabajadores:'representanteTrabajadores',
         header_slogan:'headerSlogan', header_slogan_x:'headerSloganX', header_slogan_y:'headerSloganY', header_slogan_size:'headerSloganSize',
         header_logo_w:'headerLogoW', header_logo_h:'headerLogoH', header_logo_x:'headerLogoX', header_logo_y:'headerLogoY',
@@ -1273,7 +1282,7 @@ const TITLES = {
     workers:   ['Personal', 'Trabajadores registrados con su CURP y puesto'],
     companies: ['Empresas', 'Empresas cliente registradas en el sistema'],
     courses:   ['Cursos', 'Catálogo de cursos disponibles por agente'],
-    dc3:       ['Constancias DC-3', 'Historial de constancias generadas'],
+    dc3:       ['Constancias', 'Historial de documentos generados'],
     dc3design: ['Diseño', 'Personaliza el formato de tus documentos'],
     agents:    ['Agentes Capacitadores', 'Agentes Externos registrados ante la STPS'],
     users:     ['Usuarios', 'Gestión de accesos al sistema'],
@@ -1415,6 +1424,15 @@ async function loadSection(v) {
             const selectedAgentName = document.getElementById('filter-agent')?.value;
             const r = await api('find','dc3_records',{ filter: {} });
             let rows = (r.documents||[]);
+
+            if (currentHistoryTab === 'DC3') {
+                rows = rows.filter(x => x.documentType === 'DC3' || !x.documentType);
+                document.getElementById('th-folio').classList.add('hidden');
+            } else {
+                rows = rows.filter(x => x.documentType === 'DIPLOMA' || x.documentType === 'BOTH');
+                document.getElementById('th-folio').classList.remove('hidden');
+            }
+
             if (selectedAgentName) {
                 rows = rows.filter(x => x.agentName === selectedAgentName);
             }
@@ -1428,16 +1446,17 @@ async function loadSection(v) {
                     <td class="text-sm">${x.courseName||''}</td>
                     <td class="text-sm text-gray-500">${x.companyName||''}</td>
                     <td class="text-xs text-gray-400">${x.startDate||''} – ${x.endDate||''}</td>
+                    <td class="${currentHistoryTab === 'DIPLOMA' ? '' : 'hidden'} font-mono text-xs text-blue-900">${x.folio || '—'}</td>
                     <td class="text-right">
                         <div class="flex justify-end gap-2">
-                            <button onclick='previewDC3FromRecord(${JSON.stringify(x)})' title="Previsualizar DC-3" class="btn-sm btn-outline" style="border-color:#1e3a8a;color:#1e3a8a">👁 Ver</button>
+                            <button onclick='previewDC3FromRecord(${JSON.stringify(x)})' title="Previsualizar" class="btn-sm btn-outline" style="border-color:#1e3a8a;color:#1e3a8a">👁 Ver</button>
                             <button onclick='regenDC3(${JSON.stringify(x)})' title="Descargar PDF" class="btn-sm btn-indigo">⬇ PDF</button>
                             <button onclick='prepareEditDC3(${JSON.stringify(x)})' title="Editar Registro" class="btn-sm btn-outline">✎</button>
                             <button onclick="delItem('dc3_records','${x.id}')" title="Eliminar" class="btn-sm btn-red">✕</button>
                         </div>
                     </td>
                   </tr>`).join('')
-                : `<tr><td colspan="5" class="text-center py-12 text-gray-300 text-sm">Sin historial de constancias</td></tr>`;
+                : `<tr><td colspan="6" class="text-center py-12 text-gray-300 text-sm">Sin historial de ${currentHistoryTab}</td></tr>`;
 
         } else if (v === 'dc3design') {
             await loadDesign();
@@ -1806,6 +1825,7 @@ async function generateDC3() {
         startDate:   start,
         endDate:     end,
         resultText:  'Acreditado',
+        documentType: 'DC3',
         creatorEmail: currentUser.email
     }});
 
@@ -1832,6 +1852,33 @@ async function generateDiploma() {
         a.download = `Diploma_${selectedWorker.curp}.pdf`;
         a.click();
         URL.revokeObjectURL(url);
+
+        // Save to DB
+        const companyName = document.getElementById('dc3-company').value;
+        const agentVal    = document.getElementById('dc3-agent').value;
+        const courseVal   = document.getElementById('dc3-course').value;
+        const start       = document.getElementById('dc3-start').value;
+        const end         = document.getElementById('dc3-end').value;
+        const [agentName, agentStps] = agentVal.split('|');
+        const [courseName, courseDuration, courseArea, courseStpsId] = courseVal.split('|');
+
+        await api('insertOne','dc3_records',{ document: {
+            workerId:    selectedWorker.curp,
+            workerName:  selectedWorker.name,
+            workerPos:   selectedWorker.position,
+            courseName,
+            durationHours: courseDuration,
+            thematicArea:  courseArea,
+            companyName: companyName,
+            agentName,
+            agentStps,
+            startDate:   start,
+            endDate:     end,
+            resultText:  'Acreditado',
+            documentType: 'DIPLOMA',
+            folio: (await getNextFolio()),
+            creatorEmail: currentUser.email
+        }});
     } catch(e) {
         console.error("Error generating Diploma:", e);
         alert("Error al generar diploma: " + e.message);
@@ -1884,6 +1931,25 @@ async function generateBoth() {
         a.download = `DC3_Diploma_${selectedWorker.curp}.pdf`;
         a.click();
         URL.revokeObjectURL(url);
+
+        // Save to DB
+        await api('insertOne','dc3_records',{ document: {
+            workerId:    selectedWorker.curp,
+            workerName:  selectedWorker.name,
+            workerPos:   selectedWorker.position,
+            courseName,
+            durationHours: courseDuration,
+            thematicArea:  courseArea,
+            companyName: company.name,
+            agentName,
+            agentStps,
+            startDate:   start,
+            endDate:     end,
+            resultText:  'Acreditado',
+            documentType: 'BOTH',
+            folio: (await getNextFolio()),
+            creatorEmail: currentUser.email
+        }});
     } catch(e) {
         console.error("Error generating unified PDF:", e);
         alert("Error al generar archivo unificado: " + e.message);
@@ -2026,18 +2092,22 @@ async function _buildDiplomaCore() {
     }
 
     // 6. Folio Consecutivo (EHS-CON-YYYY-XXXX)
-    let folioTxt = "";
-    try {
-        const year = new Date().getFullYear();
-        const r = await api('find','dc3_records', { filter: { startDate: `gte.${year}-01-01` } });
-        const count = (r.documents?.length || 0) + 1;
-        folioTxt = `EHS-CON-${year}-${String(count).padStart(4, '0')}`;
-    } catch(e) {
-        folioTxt = `EHS-CON-${new Date().getFullYear()}-${Math.floor(Math.random()*9000)+1000}`;
-    }
+    const folioTxt = await getNextFolio();
     drawC(folioTxt, dx('dip_folio_x', 396), dx('dip_folio_y', 550), dx('dip_folio_sz', 10), true);
 
     return await pdfDoc.save();
+}
+
+async function getNextFolio() {
+    try {
+        const year = new Date().getFullYear();
+        const r = await api('find','dc3_records', { filter: { startDate: `gte.${year}-01-01` } });
+        // Contar registros que son Diploma o Ambos y tienen folio
+        const count = (r.documents?.filter(x => x.folio && (x.documentType === 'DIPLOMA' || x.documentType === 'BOTH')).length || 0) + 1;
+        return `EHS-CON-${year}-${String(count).padStart(4, '0')}`;
+    } catch(e) {
+        return `EHS-CON-${new Date().getFullYear()}-${Math.floor(Math.random()*9000)+1000}`;
+    }
 }
 
 // Regenerar desde historial
@@ -2937,6 +3007,7 @@ async function generateBulkDC3() {
                 workerId: worker.curp, workerName: worker.name, workerPos: worker.position,
                 courseName, companyName: company.name, agentName, agentStps,
                 startDate: start, endDate: end, resultText: 'Acreditado',
+                documentType: 'DC3',
                 creatorEmail: currentUser?.email || ''
             }});
         } catch(e) {
@@ -3448,6 +3519,25 @@ function splitNameJS(name, maxChars) {
     const mid = name.lastIndexOf(' ', maxChars);
     if (mid > 0) return [name.substring(0, mid), name.substring(mid + 1)];
     return [name.substring(0, maxChars), name.substring(maxChars)];
+}
+
+function setHistoryTab(tab) {
+    currentHistoryTab = tab;
+    const isDc3 = tab === 'DC3';
+
+    const tabDc3 = document.getElementById('tab-history-dc3');
+    const tabDiploma = document.getElementById('tab-history-diploma');
+
+    if (tabDc3 && tabDiploma) {
+        if (isDc3) {
+            tabDc3.className = "px-6 py-3 text-sm font-bold text-blue-900 border-b-2 border-blue-900";
+            tabDiploma.className = "px-6 py-3 text-sm font-medium text-gray-500 hover:text-blue-900 transition-colors";
+        } else {
+            tabDiploma.className = "px-6 py-3 text-sm font-bold text-blue-900 border-b-2 border-blue-900";
+            tabDc3.className = "px-6 py-3 text-sm font-medium text-gray-500 hover:text-blue-900 transition-colors";
+        }
+    }
+    loadSection('dc3');
 }
 
 function setDesignTab(tab) {

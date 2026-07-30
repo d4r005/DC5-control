@@ -93,6 +93,8 @@ data class DC3Record(
     @SerialName("start_date") val startDate: String = "",
     @SerialName("end_date") val endDate: String = "",
     @SerialName("result_text") val resultText: String = "Acreditado",
+    @SerialName("document_type") val documentType: String = "DC3",
+    val folio: String? = null,
     @SerialName("creator_email") val creatorEmail: String? = null
 )
 

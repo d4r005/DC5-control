@@ -25,6 +25,7 @@ import com.example.dc5control.data.model.*
 import com.example.dc5control.data.repository.SupabaseRepository
 import com.example.dc5control.ui.theme.*
 import com.example.dc5control.util.PdfGenerator
+import com.example.dc5control.util.DiplomaGenerator
 import kotlinx.coroutines.launch
 
 @Composable
@@ -34,6 +35,8 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
     val records = remember { mutableStateListOf<DC3Record>() }
     val agents = remember { mutableStateListOf<Agent>() }
     var selectedAgentFilter by remember { mutableStateOf<Agent?>(null) }
+    var selectedTab by remember { mutableStateOf(0) }
+    val tabs = listOf("DC-3", "Diplomas")
     var isLoading by remember { mutableStateOf(true) }
     var isAgentsExpanded by remember { mutableStateOf(false) }
 
@@ -91,20 +94,32 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                         val agent = agents.find { it.name == record.agentName }
                         
                         if (employee != null && agent != null) {
-                            val file = PdfGenerator.generateDC3(
-                                context = context,
-                                employee = employee,
-                                course = Course(name = record.courseName, durationHours = record.durationHours, thematicArea = record.thematicArea),
-                                agent = agent,
-                                companyName = record.companyName,
-                                companyRfc = "", // Need RFC in record really
-                                companyPatron = "",
-                                companyRepresentante = null,
-                                startDate = record.startDate,
-                                endDate = record.endDate,
-                                signatureBitmap = null,
-                                logoBitmap = null
-                            )
+                            val file = if (record.documentType == "DIPLOMA" || record.documentType == "BOTH") {
+                                DiplomaGenerator.generateDiploma(
+                                    context = context,
+                                    employee = employee,
+                                    course = Course(name = record.courseName, durationHours = record.durationHours, thematicArea = record.thematicArea),
+                                    agent = agent,
+                                    startDate = record.startDate,
+                                    endDate = record.endDate,
+                                    folio = record.folio
+                                )
+                            } else {
+                                PdfGenerator.generateDC3(
+                                    context = context,
+                                    employee = employee,
+                                    course = Course(name = record.courseName, durationHours = record.durationHours, thematicArea = record.thematicArea),
+                                    agent = agent,
+                                    companyName = record.companyName,
+                                    companyRfc = "", // Need RFC in record really
+                                    companyPatron = "",
+                                    companyRepresentante = null,
+                                    startDate = record.startDate,
+                                    endDate = record.endDate,
+                                    signatureBitmap = null,
+                                    logoBitmap = null
+                                )
+                            }
                             PdfGenerator.openPdf(context, file)
                         }
                     }
@@ -120,20 +135,32 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                 SupabaseRepository.fetchData("agents", Agent.serializer()) { agents ->
                     val agent = agents.find { it.name == record.agentName }
                     if (employee != null && agent != null) {
-                        val file = PdfGenerator.generateDC3(
-                            context = context,
-                            employee = employee,
-                            course = Course(name = record.courseName, durationHours = record.durationHours, thematicArea = record.thematicArea),
-                            agent = agent,
-                            companyName = record.companyName,
-                            companyRfc = "",
-                            companyPatron = "",
-                            companyRepresentante = null,
-                            startDate = record.startDate,
-                            endDate = record.endDate,
-                            signatureBitmap = null,
-                            logoBitmap = null
-                        )
+                        val file = if (record.documentType == "DIPLOMA" || record.documentType == "BOTH") {
+                            DiplomaGenerator.generateDiploma(
+                                context = context,
+                                employee = employee,
+                                course = Course(name = record.courseName, durationHours = record.durationHours, thematicArea = record.thematicArea),
+                                agent = agent,
+                                startDate = record.startDate,
+                                endDate = record.endDate,
+                                folio = record.folio
+                            )
+                        } else {
+                            PdfGenerator.generateDC3(
+                                context = context,
+                                employee = employee,
+                                course = Course(name = record.courseName, durationHours = record.durationHours, thematicArea = record.thematicArea),
+                                agent = agent,
+                                companyName = record.companyName,
+                                companyRfc = "",
+                                companyPatron = "",
+                                companyRepresentante = null,
+                                startDate = record.startDate,
+                                endDate = record.endDate,
+                                signatureBitmap = null,
+                                logoBitmap = null
+                            )
+                        }
                         PdfGenerator.saveToDownloads(context, file)
                         android.widget.Toast.makeText(context, "Archivo guardado en Descargas", android.widget.Toast.LENGTH_SHORT).show()
                     }
@@ -161,8 +188,8 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
-                        Text("Constancias DC-3", fontSize = if (isExpanded) 20.sp else 18.sp, fontWeight = FontWeight.Bold, color = Gray900)
-                        Text("Historial de constancias generadas", fontSize = 14.sp, color = Gray400)
+                        Text("Constancias", fontSize = if (isExpanded) 20.sp else 18.sp, fontWeight = FontWeight.Bold, color = Gray900)
+                        Text("Historial de documentos generados", fontSize = 14.sp, color = Gray400)
                     }
                     
                     if (agents.isNotEmpty()) {
@@ -207,6 +234,21 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                     }
                 }
                 HorizontalDivider(color = Gray200)
+
+                TabRow(
+                    selectedTabIndex = selectedTab,
+                    containerColor = SurfaceWhite,
+                    contentColor = NavyPrimary,
+                    divider = { HorizontalDivider(color = Gray200) }
+                ) {
+                    tabs.forEachIndexed { index, title ->
+                        Tab(
+                            selected = selectedTab == index,
+                            onClick = { selectedTab = index },
+                            text = { Text(title, fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Normal) }
+                        )
+                    }
+                }
             }
         }
 
@@ -218,16 +260,22 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
             return@Column
         }
 
-        if (records.isEmpty()) {
+        val filteredRecords = remember(records, selectedAgentFilter, selectedTab) {
+            val byType = if (selectedTab == 0) {
+                records.filter { it.documentType == "DC3" }
+            } else {
+                records.filter { it.documentType == "DIPLOMA" || it.documentType == "BOTH" }
+            }
+            
+            if (selectedAgentFilter == null) byType
+            else byType.filter { it.agentName == selectedAgentFilter?.name }
+        }
+
+        if (filteredRecords.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Sin historial de constancias", color = Gray300, fontSize = 14.sp)
+                Text("Sin historial de ${tabs[selectedTab]}", color = Gray300, fontSize = 14.sp)
             }
             return@Column
-        }
-        
-        val filteredRecords = remember(records, selectedAgentFilter) {
-            if (selectedAgentFilter == null) records
-            else records.filter { it.agentName == selectedAgentFilter?.name }
         }
 
         Card(
@@ -250,6 +298,9 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                     Text("CURSO", modifier = Modifier.weight(1f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Gray400)
                     Text("EMPRESA", modifier = Modifier.weight(1f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Gray400)
                     Text("FECHAS", modifier = Modifier.weight(1f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Gray400)
+                    if (selectedTab == 1) {
+                        Text("FOLIO", modifier = Modifier.weight(0.8f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Gray400)
+                    }
                     Text("ACCIONES", modifier = Modifier.weight(1f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Gray400)
                 }
                 HorizontalDivider(color = Gray100)
@@ -258,7 +309,7 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
             LazyColumn {
                 items(filteredRecords) { record ->
                     if (isExpanded) {
-                        DC3RecordRow(record, onView = { handleView(it) }, onDownload = { handleDownload(it) }, onDelete = { refresh() })
+                        DC3RecordRow(record, showFolio = selectedTab == 1, onView = { handleView(it) }, onDownload = { handleDownload(it) }, onDelete = { refresh() })
                     } else {
                         DC3RecordCard(record, onView = { handleView(it) }, onDownload = { handleDownload(it) }, onDelete = { refresh() })
                     }
@@ -270,7 +321,7 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
 }
 
 @Composable
-fun DC3RecordRow(record: DC3Record, onView: (DC3Record) -> Unit, onDownload: (DC3Record) -> Unit, onDelete: () -> Unit) {
+fun DC3RecordRow(record: DC3Record, showFolio: Boolean = false, onView: (DC3Record) -> Unit, onDownload: (DC3Record) -> Unit, onDelete: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -284,6 +335,9 @@ fun DC3RecordRow(record: DC3Record, onView: (DC3Record) -> Unit, onDownload: (DC
         Text(record.courseName.ifBlank { "–" }, modifier = Modifier.weight(1f), fontSize = 14.sp, color = Gray700)
         Text(record.companyName.ifBlank { "–" }, modifier = Modifier.weight(1f), fontSize = 14.sp, color = Gray500)
         Text("${record.startDate} – ${record.endDate}", modifier = Modifier.weight(1f), fontSize = 12.sp, color = Gray400)
+        if (showFolio) {
+            Text(record.folio ?: "—", modifier = Modifier.weight(0.8f), fontSize = 12.sp, color = NavyPrimary, fontFamily = FontFamily.Monospace)
+        }
         Row(
             modifier = Modifier.weight(1f),
             horizontalArrangement = Arrangement.End,
@@ -368,6 +422,14 @@ fun DC3RecordCard(record: DC3Record, onView: (DC3Record) -> Unit, onDownload: (D
             Text(record.companyName, fontSize = 13.sp, color = Gray500)
             Spacer(modifier = Modifier.weight(1f))
             Text("${record.startDate} – ${record.endDate}", fontSize = 12.sp, color = Gray400)
+        }
+        if (!record.folio.isNullOrBlank()) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Tag, contentDescription = null, tint = Gray400, modifier = Modifier.size(14.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(record.folio, fontSize = 12.sp, color = NavyPrimary, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+            }
         }
         Spacer(modifier = Modifier.height(8.dp))
         Row(
