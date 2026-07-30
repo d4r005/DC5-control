@@ -1632,7 +1632,8 @@ async function saveItem() {
         const cedulaProfesional = document.getElementById('f3').value.trim() || null;
         if (!name || !stps) { alert('Completa todos los campos'); return; }
         payload.document = { name, stps, cedulaProfesional, creatorEmail: currentUser.email };
-    }   if (editingItemId) {
+
+        if (editingItemId) {
             const idx = DATA.agents.findIndex(a => a.id === editingItemId);
             if (idx >= 0) DATA.agents[idx] = { ...DATA.agents[idx], ...payload.document };
         } else {
