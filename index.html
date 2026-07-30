@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACE-Control | Gestión DC-3 v1.3.1 · QR DESIGN FIXED</title>
+    <title>ACE-Control | Gestión DC-3 v1.3.2 · PDF COORDS FIXED</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -91,7 +91,7 @@
                 </svg>
             </div>
             <h1 class="text-2xl font-black text-gray-900">ACE-Control</h1>
-            <p class="text-sm text-gray-400 mt-1">Sistema de Gestión DC-3 · STPS v1.3.1 · QR DESIGN FIXED</p>
+            <p class="text-sm text-gray-400 mt-1">Sistema de Gestión DC-3 · STPS v1.3.2 · PDF COORDS FIXED</p>
         </div>
 
         <div class="login-card">
@@ -2204,36 +2204,36 @@ async function _buildDiplomaCore(opts = {}) {
 
     // 1. Nombre del Trabajador
     const fullName = selectedWorker.apellidoPaterno ? `${selectedWorker.nombres} ${selectedWorker.apellidoPaterno} ${selectedWorker.apellidoMaterno || ''}`.trim() : selectedWorker.name;
-    drawC(fullName, dx('dip_worker_x', 396), dx('dip_worker_y', 245), dx('dip_worker_sz', 28), true, rgb(0.1, 0.2, 0.4));
+    drawC(fullName, dx('dipWorkerX', 396), dx('dipWorkerY', 245), dx('dipWorkerSz', 28), true, rgb(0.1, 0.2, 0.4));
 
     // 2. Nombre del Curso
-    drawC(courseName, dx('dip_course_x', 396), dx('dip_course_y', 330), dx('dip_course_sz', 18), true);
+    drawC(courseName, dx('dipCourseX', 396), dx('dipCourseY', 330), dx('dipCourseSz', 18), true);
 
     // 3. Duración del Curso
-    drawC(courseDuration, dx('dip_duration_x', 396), dx('dip_duration_y', 405), dx('dip_duration_sz', 12), true);
+    drawC(courseDuration, dx('dipDurationX', 396), dx('dipDurationY', 405), dx('dipDurationSz', 12), true);
 
     // 4. Fecha
     const months = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
     const p = end.split('-');
     const dateText = `${p[2]} DE ${months[parseInt(p[1])-1]} DEL ${p[0]}`;
-    drawC(dateText, dx('dip_date_x', 396), dx('dip_date_y', 445), dx('dip_date_sz', 11), true);
+    drawC(dateText, dx('dipDateX', 396), dx('dipDateY', 445), dx('dipDateSz', 11), true);
 
     // 5. Firma y Datos del Agente
-    const fBase64 = d?.firma_base64 || d?.firmaBase64;
+    const fBase64 = d?.firmaBase64;
     if (fBase64) {
         try {
             const fImgBytes = await fetch(fBase64).then(r => r.arrayBuffer());
             const fImg = await pdfDoc.embedPng(fImgBytes);
             // Firma centrada sobre el nombre
-            page.drawImage(fImg, { x: dx('dip_agent_x', 396) - 45, y: PH - dx('dip_agent_y', 572) + 10, width: 90, height: 50 });
+            page.drawImage(fImg, { x: dx('dipAgentX', 396) - 45, y: PH - dx('dipAgentY', 572) + 10, width: 90, height: 50 });
         } catch(e) {}
     }
 
-    drawC(agentName, dx('dip_agent_x', 396), dx('dip_agent_y', 572), dx('dip_agent_sz', 10), true);
-    drawC("REGISTRO " + finalStps, dx('dip_stps_x', 396), dx('dip_stps_y', 584), dx('dip_stps_sz', 8), true);
+    drawC(agentName, dx('dipAgentX', 396), dx('dipAgentY', 572), dx('dipAgentSz', 10), true);
+    drawC("REGISTRO " + finalStps, dx('dipStpsX', 396), dx('dipStpsY', 584), dx('dipStpsSz', 8), true);
 
     if (agentRecord?.cedulaProfesional) {
-        drawC("CÉDULA PROFESIONAL: " + agentRecord.cedulaProfesional, dx('dip_cedula_x', 396), dx('dip_cedula_y', 596), dx('dip_cedula_sz', 8), true);
+        drawC("CÉDULA PROFESIONAL: " + agentRecord.cedulaProfesional, dx('dipCedulaX', 396), dx('dipCedulaY', 596), dx('dipCedulaSz', 8), true);
     }
 
     // Dibujar QR si se proporciona
@@ -2241,14 +2241,14 @@ async function _buildDiplomaCore(opts = {}) {
         try {
             const qrBase64 = await generateQRBase64(opts.qrUrl);
             const qrImg = await embedBase64Img(pdfDoc, qrBase64);
-            const qsz = dx('dip_qr_sz', 50);
-            page.drawImage(qrImg, { x: dx('dip_qr_x', 680) - qsz/2, y: PH - dx('dip_qr_y', 500) - qsz/2, width: qsz, height: qsz });
+            const qsz = dx('dipQrSz', 50);
+            page.drawImage(qrImg, { x: dx('dipQrX', 680) - qsz/2, y: PH - dx('dipQrY', 500) - qsz/2, width: qsz, height: qsz });
         } catch(e) {}
     }
 
     // 6. Folio Consecutivo (EHS-CON-YYYY-XXXX)
     const folioTxt = await getNextFolio();
-    drawC(folioTxt, dx('dip_folio_x', 396), dx('dip_folio_y', 550), dx('dip_folio_sz', 10), true);
+    drawC(folioTxt, dx('dipFolioX', 396), dx('dipFolioY', 550), dx('dipFolioSz', 10), true);
 
     return await pdfDoc.save();
 }
@@ -3458,19 +3458,21 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     page.drawRectangle({ x:389, y: PH-538, width:153, height:27, color: rgb(1,1,1) });
 
     if (agentDesign?.logoBase64) {
-        try { const lImg = await embedBase64Img(pdfDoc, agentDesign.logoBase64); page.drawImage(lImg, { x:agentDesign.logoX??88, y:PH-((agentDesign.logoY??SIG_Y)+(agentDesign.logoH??50)), width:agentDesign.logoW??90, height:agentDesign.logoH??50, opacity:0.8 }); } catch(e) {}
+        try { const lImg = await embedBase64Img(pdfDoc, agentDesign.logoBase64); page.drawImage(lImg, { x:agentDesign.logoX??58, y:PH-((agentDesign.logoY??454)+(agentDesign.logoH??65)), width:agentDesign.logoW??115, height:agentDesign.logoH??65, opacity:0.8 }); } catch(e) {}
     }
     if (agentDesign?.firmaBase64) {
-        try { const fImg = await embedBase64Img(pdfDoc, agentDesign.firmaBase64); page.drawImage(fImg, { x:agentDesign.firmaX??88, y:PH-((agentDesign.firmaY??SIG_Y)+(agentDesign.firmaH??55)), width:agentDesign.firmaW??95, height:agentDesign.firmaH??55 }); } catch(e) {}
+        try { const fImg = await embedBase64Img(pdfDoc, agentDesign.firmaBase64); page.drawImage(fImg, { x:agentDesign.firmaX??88, y:PH-((agentDesign.firmaY??457)+(agentDesign.firmaH??60)), width:agentDesign.firmaW??85, height:agentDesign.firmaH??60 }); } catch(e) {}
     }
 
     // Dibujar QR si se proporciona
-    if (agentDesign?.qrX && qrUrl) {
+    if (qrUrl) {
         try {
             const qrBase64 = await generateQRBase64(qrUrl);
             const qrImg = await embedBase64Img(pdfDoc, qrBase64);
-            const qsz = agentDesign.qrSz || 60;
-            page.drawImage(qrImg, { x: agentDesign.qrX, y: PH - agentDesign.qrY - qsz, width: qsz, height: qsz });
+            const qsz = agentDesign.qrSz ?? 60;
+            const qx = agentDesign.qrX ?? 480;
+            const qy = agentDesign.qrY ?? 60;
+            page.drawImage(qrImg, { x: qx, y: PH - qy - qsz, width: qsz, height: qsz });
         } catch(e) {}
     }
 
