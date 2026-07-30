@@ -1243,6 +1243,7 @@ async function initApp() {
 
 function logout() {
     currentUser = null;
+    resetDesignState();
     localStorage.removeItem('ace_session');
     sessionStorage.removeItem('ace_session');
     document.getElementById('view-login').style.display = '';
@@ -1880,7 +1881,7 @@ async function _buildDiplomaCore() {
     } catch(e) { console.warn("Error loading design from DB:", e); }
 
     // 3. Overlay con LocalStorage (coordenadas locales si existen)
-    const localD = localStorage.getItem('dc3_design');
+    const localD = localStorage.getItem(`dc3_design_${currentUser?.email}`);
     if (localD) {
         try {
             const parsedLocal = JSON.parse(localD);
@@ -2060,7 +2061,43 @@ function schedulePreview() {
     designState._previewTimer = setTimeout(() => updateDesignPreview(), 120);
 }
 
+function resetDesignState() {
+    designState.logo_base64 = null;
+    designState.firma_base64 = null;
+    designState.header_logo_base64 = null;
+    designState.diploma_template_base64 = null;
+
+    // Reset thumbnails
+    ['logo','firma','headerLogo','diploma'].forEach(t => {
+        const el = document.getElementById({logo:'design-logo-preview',firma:'design-firma-preview',headerLogo:'design-header-logo-preview',diploma:'diploma-template-thumb'}[t]);
+        if (el) {
+            if (t==='diploma') el.innerHTML = `<img src="/plantilla_diploma.png" alt="Vista previa" class="w-full h-full object-contain">`;
+            else el.innerHTML = t==='firma' ? 'Sin firma' : 'Sin logo';
+        }
+    });
+
+    // Reset inputs to defaults
+    const defaults = {
+        'design-agent-name':'', 'design-slogan':'', 'design-slogan-x':30, 'design-slogan-y':445, 'design-slogan-size':7, 'design-slogan-font':'Helvetica',
+        'design-logo-x':58, 'design-logo-y':454, 'design-logo-w':115, 'design-logo-h':65,
+        'design-firma-x':88, 'design-firma-y':457, 'design-firma-w':85, 'design-firma-h':60,
+        'design-header-slogan':'', 'design-header-slogan-x':306, 'design-header-slogan-y':18, 'design-header-slogan-size':9, 'design-header-slogan-font':'Times-Italic',
+        'design-header-logo-w':120, 'design-header-logo-h':55, 'design-header-logo-x':30, 'design-header-logo-y':10,
+        'dip-worker-x':396, 'dip-worker-y':245, 'dip-worker-sz':28,
+        'dip-course-x':396, 'dip-course-y':330, 'dip-course-sz':18,
+        'dip-duration-x':396, 'dip-duration-y':405, 'dip-duration-sz':12,
+        'dip-date-x':396, 'dip-date-y':445, 'dip-date-sz':11,
+        'dip-agent-x':396, 'dip-agent-y':572, 'dip-agent-sz':10,
+        'dip-stps-x':396, 'dip-stps-y':584, 'dip-folio-x':396, 'dip-folio-y':550, 'dip-folio-sz':10
+    };
+    for (const [id,val] of Object.entries(defaults)) {
+        const el = document.getElementById(id);
+        if (el) el.value = val;
+    }
+}
+
 async function loadDesign() {
+    resetDesignState();
     try {
         let d = null;
         try {
@@ -2074,7 +2111,7 @@ async function loadDesign() {
             }
         } catch(e) {}
         if (!d) {
-            const saved = localStorage.getItem('dc3_design');
+            const saved = localStorage.getItem(`dc3_design_${currentUser?.email}`);
             if (saved) d = JSON.parse(saved);
         }
         if (!d) { await updateDesignPreview(); return; }
@@ -2394,7 +2431,7 @@ async function saveDesign() {
             delete localPayload.diploma_template_base64;
             localPayload.slogan_font = p.sloganFont || 'Helvetica';
             localPayload.header_slogan_font = p.headerSloganFont || 'Times-Italic';
-            localStorage.setItem('dc3_design', JSON.stringify(localPayload));
+            localStorage.setItem(`dc3_design_${currentUser?.email}`, JSON.stringify(localPayload));
         } catch(e) { console.warn("Local storage quota exceeded, but design will still try to save to DB"); }
 
         const existing = await api('find','agent_designs', { filter: { creatorEmail: p.creatorEmail } });
