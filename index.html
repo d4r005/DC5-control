@@ -693,6 +693,7 @@
                         <button onclick="previewDiploma()" class="btn-sm btn-outline" style="border-color:#15803d;color:#15803d">👁 Diploma</button>
                         <button onclick="generateDiploma()" class="btn-sm" style="background:#15803d;color:#fff;border-radius:6px;padding:6px 16px;font-size:12px;font-weight:600">⬇ Diploma</button>
                     </div>
+                    <button onclick="generateBoth()" class="btn-sm w-full mt-1" style="background:#1e293b;color:#fff;border-radius:6px;padding:8px 16px;font-size:13px;font-weight:700">⬇ Descargar DC-3 + DIPLOMA (PDF Único)</button>
                 </div>
             </div>
         </div>
@@ -1835,6 +1836,58 @@ async function generateDiploma() {
     }
 }
 
+async function generateBoth() {
+    try {
+        const companyName = document.getElementById('dc3-company').value;
+        const agentVal    = document.getElementById('dc3-agent').value;
+        const courseVal   = document.getElementById('dc3-course').value;
+        const start       = document.getElementById('dc3-start').value;
+        const end         = document.getElementById('dc3-end').value;
+
+        if (!start || !end) { alert('Selecciona las fechas'); return; }
+
+        const company = DATA.companies.find(c => c.name === companyName) || { name: companyName, rfc: '', representante_legal: '', representante_trabajadores: '' };
+        const [agentName, agentStps] = agentVal.split('|');
+        const [courseName, courseDuration, courseArea, courseStpsId] = courseVal.split('|');
+
+        const dc3Bytes = await _buildDC3Core({
+            worker: selectedWorker,
+            company,
+            agent: { name: agentName, stps: agentStps },
+            course: { name: courseName, durationHours: courseDuration, thematicArea: courseArea, stpsId: courseStpsId },
+            start, end, result: 'Acreditado'
+        });
+
+        const diplomaBytes = await _buildDiplomaCore();
+
+        if (!dc3Bytes || !diplomaBytes) return;
+
+        const { PDFDocument } = PDFLib;
+        const mergedPdf = await PDFDocument.create();
+
+        const dc3Doc = await PDFDocument.load(dc3Bytes);
+        const diplomaDoc = await PDFDocument.load(diplomaBytes);
+
+        const dc3Pages = await mergedPdf.copyPages(dc3Doc, dc3Doc.getPageIndices());
+        dc3Pages.forEach(p => mergedPdf.addPage(p));
+
+        const diplomaPages = await mergedPdf.copyPages(diplomaDoc, diplomaDoc.getPageIndices());
+        diplomaPages.forEach(p => mergedPdf.addPage(p));
+
+        const mergedBytes = await mergedPdf.save();
+        const blob = new Blob([mergedBytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `DC3_Diploma_${selectedWorker.curp}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+    } catch(e) {
+        console.error("Error generating unified PDF:", e);
+        alert("Error al generar archivo unificado: " + e.message);
+    }
+}
+
 async function previewDiploma() {
     const container = document.getElementById('dc3-preview-container');
     document.getElementById('modal-dc3-preview').classList.add('open');
@@ -1873,6 +1926,7 @@ async function _buildDiplomaCore() {
 
     let imgBytes = null;
     let d = null;
+    let agentRecord = null;
 
     // 1. Prioridad: Memoria actual (si acaba de subir algo en esta sesión)
     if (designState.diploma_template_base64) {
@@ -1882,7 +1936,7 @@ async function _buildDiplomaCore() {
 
     // 2. Cargar de la Base de Datos (para obtener la imagen si no está en memoria)
     try {
-        const agentRecord = DATA.agents.find(a => a.name === agentName);
+        agentRecord = DATA.agents.find(a => a.name === agentName);
         const ownerEmail = agentRecord?.creatorEmail || currentUser.email;
         const dr = await api('find','agent_designs', { filter: { creatorEmail: ownerEmail } });
         if (dr.documents?.length > 0) {
