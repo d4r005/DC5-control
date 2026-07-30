@@ -175,15 +175,8 @@ fun DC3GenerationScreen(
                         
                         val finalStps = calculateStps(agent.stps)
                         
-                        val file = PdfGenerator.generateDC3(
-                            context, employee, course, agent.copy(stps = finalStps), company.name, company.rfc,
-                            company.representanteLegal, company.representanteTrabajadores,
-                            startDate, endDate, signature, logo, photo, hLogo, design
-                        )
-                        PdfGenerator.saveToDownloads(context, file)
-                        if (totalDocs == 1) PdfGenerator.openPdf(context, file)
-
-                        val record = DC3Record(
+                        // 1. Guardar primero para obtener ID para el QR
+                        val recordToSave = DC3Record(
                             workerId = employee.curp,
                             workerName = "${employee.apellidoPaterno} ${employee.nombres}".trim(),
                             workerPos = employee.position,
@@ -198,7 +191,20 @@ fun DC3GenerationScreen(
                             documentType = "DC3",
                             creatorEmail = employee.creatorEmail ?: user.email
                         )
-                        SupabaseRepository.insertDataSuspend("dc3_records", record, DC3Record.serializer())
+                        
+                        val insertedId = SupabaseRepository.insertDataGetIdSuspend("dc3_records", recordToSave, DC3Record.serializer())
+                        val qrUrl = if (insertedId != null) "https://ace-control.pages.dev/?v=$insertedId" else null
+
+                        // 2. Generar PDF con el QR
+                        val file = PdfGenerator.generateDC3(
+                            context, employee, course, agent.copy(stps = finalStps), company.name, company.rfc,
+                            company.representanteLegal, company.representanteTrabajadores,
+                            startDate, endDate, signature, logo, photo, hLogo, design,
+                            qrUrl = qrUrl
+                        )
+                        PdfGenerator.saveToDownloads(context, file)
+                        if (totalDocs == 1) PdfGenerator.openPdf(context, file)
+                        
                         try { CloudflareHelper.uploadPdfSuspend(file) } catch(e: Exception) {}
                     }
                 }
@@ -236,15 +242,7 @@ fun DC3GenerationScreen(
                     
                     val folioStr = "EHS-CON-$year-${String.format(java.util.Locale.US, "%04d", initialCount + currentDoc)}"
                     
-                    val file = DiplomaGenerator.generateDiploma(
-                        context, employee, course, agent, startDate, endDate, customTemplate,
-                        folio = folioStr,
-                        design = design
-                    )
-                    PdfGenerator.saveToDownloads(context, file)
-                    if (totalDocs == 1) PdfGenerator.openPdf(context, file)
-
-                    // Guardar en historial
+                    // 1. Guardar primero para obtener ID para el QR
                     val record = DC3Record(
                         workerId = employee.curp,
                         workerName = "${employee.apellidoPaterno} ${employee.nombres}".trim(),
@@ -261,7 +259,18 @@ fun DC3GenerationScreen(
                         folio = folioStr,
                         creatorEmail = employee.creatorEmail ?: user.email
                     )
-                    SupabaseRepository.insertDataSuspend("dc3_records", record, DC3Record.serializer())
+                    
+                    val insertedId = SupabaseRepository.insertDataGetIdSuspend("dc3_records", record, DC3Record.serializer())
+                    val qrUrl = if (insertedId != null) "https://ace-control.pages.dev/?v=$insertedId" else "https://ace-control.pages.dev/?v=preview"
+
+                    val file = DiplomaGenerator.generateDiploma(
+                        context, employee, course, agent, startDate, endDate, customTemplate,
+                        folio = folioStr,
+                        design = design,
+                        qrUrl = qrUrl
+                    )
+                    PdfGenerator.saveToDownloads(context, file)
+                    if (totalDocs == 1) PdfGenerator.openPdf(context, file)
                 }
             }
             withContext(Dispatchers.Main) {

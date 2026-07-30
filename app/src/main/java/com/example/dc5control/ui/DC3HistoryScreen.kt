@@ -102,7 +102,8 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                                     agent = agent,
                                     startDate = record.startDate,
                                     endDate = record.endDate,
-                                    folio = record.folio
+                                    folio = record.folio,
+                                    qrUrl = if (record.id != null) "https://ace-control.pages.dev/?v=${record.id}" else null
                                 )
                             } else {
                                 PdfGenerator.generateDC3(
@@ -117,7 +118,8 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                                     startDate = record.startDate,
                                     endDate = record.endDate,
                                     signatureBitmap = null,
-                                    logoBitmap = null
+                                    logoBitmap = null,
+                                    qrUrl = if (record.id != null) "https://ace-control.pages.dev/?v=${record.id}" else null
                                 )
                             }
                             PdfGenerator.openPdf(context, file)
@@ -143,7 +145,8 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                                 agent = agent,
                                 startDate = record.startDate,
                                 endDate = record.endDate,
-                                folio = record.folio
+                                folio = record.folio,
+                                qrUrl = if (record.id != null) "https://ace-control.pages.dev/?v=${record.id}" else null
                             )
                         } else {
                             PdfGenerator.generateDC3(
@@ -158,7 +161,8 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                                 startDate = record.startDate,
                                 endDate = record.endDate,
                                 signatureBitmap = null,
-                                logoBitmap = null
+                                logoBitmap = null,
+                                qrUrl = if (record.id != null) "https://ace-control.pages.dev/?v=${record.id}" else null
                             )
                         }
                         PdfGenerator.saveToDownloads(context, file)

@@ -1,72 +1,60 @@
-# Plan de Implementación: Incorporación de Cédula Profesional
+# Plan de Implementación: Sistema de Verificación vía Código QR
 
-Añadir el soporte para registrar y mostrar la Cédula Profesional de los agentes capacitadores en los diplomas, permitiendo su personalización en el diseño.
+Este plan describe la integración de códigos QR en los documentos DC-3 y Diplomas, vinculados a un sistema de verificación pública que permite validar la autenticidad de la constancia.
 
 ## User Review Required
 
 > [!IMPORTANT]
 > **Cambio en Base de Datos:**
-> Este plan requiere añadir una columna a la tabla `agents` y tres columnas a `agent_designs` en Supabase. Se proporciona el script SQL al final.
+> Se requiere añadir 6 columnas a la tabla `agent_designs` para almacenar la posición del QR en ambos formatos. El script SQL se incluye al final.
+
+> [!NOTE]
+> **URL de Verificación:**
+> El código QR apuntará a `https://ace-control.pages.dev/?v=[ID_REGISTRO]`. Al escanearlo, cualquier persona podrá ver los datos de la constancia sin necesidad de iniciar sesión.
 
 ## Proposed Changes
 
-### 1. Base de Datos (Supabase)
-- Añadir `cedula_profesional` a la tabla `agents`.
-- Añadir `dip_cedula_x`, `dip_cedula_y` y `dip_cedula_sz` a la tabla `agent_designs`.
+### 1. Librerías de Generación de QR
+- **Web:** Añadir `qrcode.js` vía CDN en `index.html`.
+- **Android:** Añadir dependencia `com.google.zxing:core` o similar para generar el bitmap del QR.
 
-### 2. Modelos de Datos (Android)
+### 2. Base de Datos (Supabase)
+Añadir soporte para posicionar el QR en los diseños:
+- `qr_x`, `qr_y`, `qr_sz` (para DC-3).
+- `dip_qr_x`, `dip_qr_y`, `dip_qr_sz` (para Diploma).
 
-#### [MODIFY] [Models.kt](file:///C:/Users/dtruj/AndroidStudioProjects/DC5-control/app/src/main/java/com/example/dc5control/data/model/Models.kt)
-- Actualizar `Agent` para incluir `cedula_profesional`.
-- Actualizar `AgentDesign` para incluir coordenadas y tamaño de la cédula en el diploma.
+### 3. Personalización del Diseño (Web y Android)
+- **UI:** Añadir controles de coordenadas y tamaño para el QR en las pestañas "DC-3" e "Investigación".
+- **Preview Web:** Añadir un recuadro de arrastre (drag handle) para posicionar el QR visualmente.
 
-### 3. Panel de Agentes (Web y Android)
+### 4. Generación de Documentos (PDF)
+- **Lógica:** Al generar el PDF, obtener el ID del registro creado en Supabase, generar el QR con la URL de verificación y dibujarlo en las coordenadas configuradas.
 
-#### [MODIFY] [index.html](file:///C:/Users/dtruj/AndroidStudioProjects/DC5-control/index.html)
-- Añadir campo "Cédula Profesional" en el modal de creación/edición de agentes.
-- Mostrar la cédula en la tabla de agentes.
-
-#### [MODIFY] [AgentListScreen.kt](file:///C:/Users/dtruj/AndroidStudioProjects/DC5-control/app/src/main/java/com/example/dc5control/ui/AgentListScreen.kt)
-- Añadir el campo de texto en el `AgentAddEditDialog`.
-- Mostrar el valor en las listas compactas y expandidas.
-
-### 4. Personalización del Diseño (Web y Android)
-
-#### [MODIFY] [DC3DesignScreen.kt](file:///C:/Users/dtruj/AndroidStudioProjects/DC5-control/app/src/main/java/com/example/dc5control/ui/DC3DesignScreen.kt)
-- Añadir controles de posición y tamaño para la cédula en la pestaña de "Diploma".
-- Actualizar la lógica de carga y guardado del diseño.
-
-#### [MODIFY] [index.html](file:///C:/Users/dtruj/AndroidStudioProjects/DC5-control/index.html)
-- Añadir el campo al estado de diseño (`designState`) y mapeos (`toSnake`/`toCamel`).
-- Añadir el elemento visual y el control de arrastre (drag handle) en la previsualización del diploma.
-
-### 5. Generación de Diplomas (Web y Android)
-
-#### [MODIFY] [DiplomaGenerator.kt](file:///C:/Users/dtruj/AndroidStudioProjects/DC5-control/app/src/main/java/com/example/dc5control/util/DiplomaGenerator.kt)
-- Renderizar el texto "CÉDULA PROFESIONAL: [VALOR]" si el agente la tiene registrada, usando las coordenadas personalizadas.
-
-#### [MODIFY] [index.html](file:///C:/Users/dtruj/AndroidStudioProjects/DC5-control/index.html) (función `_buildDiplomaCore`)
-- Añadir la lógica de dibujado de la cédula en el PDF generado desde la web.
+### 5. Pantalla de Verificación Pública (Web)
+- **Detección:** Al cargar `index.html`, detectar si existe el parámetro `v` en la URL (ej. `?v=uuid`).
+- **Interfaz:** Si existe el parámetro, mostrar una tarjeta elegante (similar a la imagen de referencia) con:
+    - Estado: "Constancia Válida" (check verde).
+    - Datos: Capacitador, Empleado, CURP, Empresa, Puesto, Curso, Duración y Fechas.
+    - Botón para cerrar y volver al login.
 
 ## Plan de Verificación
 
 ### Manual Verification
-1.  **Registro:** Editar el perfil de Cynthia en el panel de Agentes y añadir una cédula de prueba.
-2.  **Diseño:** Ir a la pestaña Diploma y verificar que aparezca el nuevo recuadro de "CÉDULA". Ajustar su posición.
-3.  **Generación:** Generar un diploma para un curso impartido por Cynthia y confirmar que la cédula aparezca en la posición configurada.
-4.  **En Blanco:** Generar un diploma para un agente sin cédula y confirmar que el espacio quede vacío sin errores.
+1.  **Diseño:** Mover el QR en la pantalla de diseño y guardar.
+2.  **Generación:** Crear una constancia y verificar que el QR aparezca en el PDF.
+3.  **Escaneo:** Escanear el QR con un celular. Debe abrir la página de verificación mostrando los datos exactos del trabajador.
+4.  **Privacidad:** Confirmar que no se requiere login para ver la página de verificación, pero que solo se puede acceder con un ID válido.
 
 ---
 
 ## SQL de Actualización para Supabase
 
 ```sql
--- 1. Añadir campo a Agentes
-ALTER TABLE agents ADD COLUMN IF NOT EXISTS cedula_profesional TEXT;
-
--- 2. Añadir soporte para diseño de Cédula en Diplomas
 ALTER TABLE agent_designs
-ADD COLUMN IF NOT EXISTS dip_cedula_x FLOAT8 DEFAULT 396,
-ADD COLUMN IF NOT EXISTS dip_cedula_y FLOAT8 DEFAULT 596,
-ADD COLUMN IF NOT EXISTS dip_cedula_sz FLOAT8 DEFAULT 8;
+ADD COLUMN IF NOT EXISTS qr_x FLOAT8 DEFAULT 480,
+ADD COLUMN IF NOT EXISTS qr_y FLOAT8 DEFAULT 60,
+ADD COLUMN IF NOT EXISTS qr_sz FLOAT8 DEFAULT 60,
+ADD COLUMN IF NOT EXISTS dip_qr_x FLOAT8 DEFAULT 680,
+ADD COLUMN IF NOT EXISTS dip_qr_y FLOAT8 DEFAULT 500,
+ADD COLUMN IF NOT EXISTS dip_qr_sz FLOAT8 DEFAULT 50;
 ```

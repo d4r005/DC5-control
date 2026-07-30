@@ -161,5 +161,11 @@ data class AgentDesign(
     @SerialName("dip_cedula_x") val dipCedulaX: Float? = null,
     @SerialName("dip_cedula_y") val dipCedulaY: Float? = null,
     @SerialName("dip_cedula_sz") val dipCedulaSz: Float? = null,
+    @SerialName("qr_x") val qrX: Float? = null,
+    @SerialName("qr_y") val qrY: Float? = null,
+    @SerialName("qr_sz") val qrSz: Float? = null,
+    @SerialName("dip_qr_x") val dipQrX: Float? = null,
+    @SerialName("dip_qr_y") val dipQrY: Float? = null,
+    @SerialName("dip_qr_sz") val dipQrSz: Float? = null,
     @SerialName("updated_at") val updatedAt: String? = null
 )

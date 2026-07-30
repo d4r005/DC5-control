@@ -45,12 +45,14 @@ data class DC3FormData(
     val headerLogoBitmap: Bitmap? = null,
     val headerSlogan: String? = null,
     val slogan: String? = null,
+    val qrUrl: String? = null,
     // Coordenadas dinámicas
     val logoX: Float? = null, val logoY: Float? = null, val logoW: Float? = null, val logoH: Float? = null,
     val firmaX: Float? = null, val firmaY: Float? = null, val firmaW: Float? = null, val firmaH: Float? = null,
     val headerLogoX: Float? = null, val headerLogoY: Float? = null, val headerLogoW: Float? = null, val headerLogoH: Float? = null,
     val headerSloganX: Float? = null, val headerSloganY: Float? = null, val headerSloganSize: Float? = null,
-    val sloganX: Float? = null, val sloganY: Float? = null, val sloganSize: Float? = null
+    val sloganX: Float? = null, val sloganY: Float? = null, val sloganSize: Float? = null,
+    val qrX: Float? = null, val qrY: Float? = null, val qrSz: Float? = null
 )
 
 object PdfGenerator {
@@ -73,7 +75,8 @@ object PdfGenerator {
         logoBitmap: Bitmap?,
         photoBitmap: Bitmap? = null,
         headerLogoBitmap: Bitmap? = null,
-        design: com.example.dc5control.data.model.AgentDesign? = null
+        design: com.example.dc5control.data.model.AgentDesign? = null,
+        qrUrl: String? = null
     ): File {
         val data = DC3FormData(
             nombreTrabajador = "${employee.apellidoPaterno} ${employee.apellidoMaterno} ${employee.nombres}".trim(),
@@ -98,12 +101,14 @@ object PdfGenerator {
             headerLogoBitmap = headerLogoBitmap,
             headerSlogan = design?.headerSlogan,
             slogan = design?.slogan,
+            qrUrl = qrUrl,
             // Nuevas coordenadas
             logoX = design?.logoX, logoY = design?.logoY, logoW = design?.logoW, logoH = design?.logoH,
             firmaX = design?.firmaX, firmaY = design?.firmaY, firmaW = design?.firmaW, firmaH = design?.firmaH,
             headerLogoX = design?.headerLogoX, headerLogoY = design?.headerLogoY, headerLogoW = design?.headerLogoW, headerLogoH = design?.headerLogoH,
             headerSloganX = design?.headerSloganX, headerSloganY = design?.headerSloganY, headerSloganSize = design?.headerSloganSize,
-            sloganX = design?.sloganX, sloganY = design?.sloganY, sloganSize = design?.sloganSize
+            sloganX = design?.sloganX, sloganY = design?.sloganY, sloganSize = design?.sloganSize,
+            qrX = design?.qrX, qrY = design?.qrY, qrSz = design?.qrSz
         )
         return generate(context, data)
     }
@@ -261,9 +266,19 @@ object PdfGenerator {
             cs.drawImage(img, fx, PH - fy - fh, fw, fh)
         }
 
-        // Slogan al pie
         d.slogan?.let {
             textCentered(d.sloganX ?: 30f, d.sloganY ?: 445f, it, d.sloganSize ?: 7f)
+        }
+
+        // QR Code
+        d.qrUrl?.let { url ->
+            QRGenerator.generateQR(url)?.let { qrBitmap ->
+                val img = PDImageXObject.createFromByteArray(document, bitmapToJpeg(qrBitmap), "qr")
+                val qsz = d.qrSz ?: 60f
+                val qx = d.qrX ?: 480f
+                val qy = d.qrY ?: 60f
+                cs.drawImage(img, qx, PH - qy - qsz, qsz, qsz)
+            }
         }
 
         val insL = splitName(d.instructor, 26); textCentered(sIX, sY1, insL[0], 8f)

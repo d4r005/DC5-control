@@ -121,6 +121,31 @@ object SupabaseRepository {
             }
         }
 
+    suspend fun <T> insertDataGetIdSuspend(table: String, item: T, serializer: kotlinx.serialization.KSerializer<T>): String? =
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            val bodyString = json.encodeToString(serializer, item)
+            val request = getBaseRequest(table)
+                .addHeader("Prefer", "return=representation")
+                .post(bodyString.toRequestBody("application/json".toMediaType()))
+                .build()
+
+            try {
+                client.newCall(request).execute().use { response ->
+                    val body = response.body?.string() ?: ""
+                    if (response.isSuccessful) {
+                        val jsonElement = json.parseToJsonElement(body)
+                        if (jsonElement is JsonArray && jsonElement.isNotEmpty()) {
+                            jsonElement[0].jsonObject["id"]?.jsonPrimitive?.content
+                        } else if (jsonElement is JsonObject) {
+                            jsonElement["id"]?.jsonPrimitive?.content
+                        } else null
+                    } else null
+                }
+            } catch (e: Exception) {
+                null
+            }
+        }
+
     // ─── UPDATE ────────────────────────────────────────────────────
     fun <T> updateData(table: String, id: String, item: T, serializer: kotlinx.serialization.KSerializer<T>, onResult: (Boolean) -> Unit) {
         val bodyString = json.encodeToString(serializer, item)

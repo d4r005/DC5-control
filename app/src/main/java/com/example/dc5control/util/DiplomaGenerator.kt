@@ -37,7 +37,8 @@ object DiplomaGenerator {
         endDate: String,
         customTemplateBitmap: Bitmap? = null,
         folio: String? = null,
-        design: com.example.dc5control.data.model.AgentDesign? = null
+        design: com.example.dc5control.data.model.AgentDesign? = null,
+        qrUrl: String? = null
     ): File {
         PDFBoxResourceLoader.init(context)
         val document = PDDocument()
@@ -146,6 +147,19 @@ object DiplomaGenerator {
         }
 
         folio?.let { textCentered(folioX, folioY, it, folioSz, true, 2) }
+
+        // QR Code
+        qrUrl?.let { url ->
+            QRGenerator.generateQR(url)?.let { qrBitmap ->
+                val stream = java.io.ByteArrayOutputStream()
+                qrBitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+                val img = PDImageXObject.createFromByteArray(document, stream.toByteArray(), "qr")
+                val qsz = design?.dipQrSz ?: 50f
+                val qx = design?.dipQrX ?: 680f
+                val qy = design?.dipQrY ?: 500f
+                cs.drawImage(img, qx - qsz/2, PH - qy - qsz/2, qsz, qsz)
+            }
+        }
 
         cs.close()
 

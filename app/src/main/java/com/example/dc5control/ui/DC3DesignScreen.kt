@@ -60,6 +60,10 @@ fun DesignScreen(
     var signatureBase64 by remember { mutableStateOf<String?>(null) }
     var logoBase64 by remember { mutableStateOf<String?>(null) }
 
+    var qrX by remember { mutableStateOf(480f) }
+    var qrY by remember { mutableStateOf(60f) }
+    var qrSz by remember { mutableStateOf(60f) }
+
     // Position state variables for DC-3 elements
     var logoX by remember { mutableStateOf(16f) }
     var logoY by remember { mutableStateOf(16f) }
@@ -107,6 +111,10 @@ fun DesignScreen(
     var dipCedulaX by remember { mutableStateOf(396f) }
     var dipCedulaY by remember { mutableStateOf(596f) }
     var dipCedulaSz by remember { mutableStateOf(8f) }
+
+    var dipQrX by remember { mutableStateOf(680f) }
+    var dipQrY by remember { mutableStateOf(500f) }
+    var dipQrSz by remember { mutableStateOf(50f) }
 
     var isLoading by remember { mutableStateOf(true) }
     var isSaving by remember { mutableStateOf(false) }
@@ -161,6 +169,10 @@ fun DesignScreen(
                 signatureBase64 = userDesign.firmaBase64
                 logoBase64 = userDesign.logoBase64
 
+                qrX = userDesign.qrX ?: 480f
+                qrY = userDesign.qrY ?: 60f
+                qrSz = userDesign.qrSz ?: 60f
+
                 // Load position data with defaults
                 logoX = userDesign.logoX ?: 16f
                 logoY = userDesign.logoY ?: 16f
@@ -208,6 +220,10 @@ fun DesignScreen(
                 dipCedulaX = userDesign.dipCedulaX ?: 396f
                 dipCedulaY = userDesign.dipCedulaY ?: 596f
                 dipCedulaSz = userDesign.dipCedulaSz ?: 8f
+
+                dipQrX = userDesign.dipQrX ?: 680f
+                dipQrY = userDesign.dipQrY ?: 500f
+                dipQrSz = userDesign.dipQrSz ?: 50f
             }
             isLoading = false
         }
@@ -527,6 +543,17 @@ fun DesignScreen(
                             }
                         }
 
+                        // QR Code DC-3
+                        DesignCard("Código QR (Verificación)") {
+                            Text("Ajusta la posición y tamaño del QR en el DC-3", fontSize = 13.sp, color = Gray500)
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                CoordinateField("X", qrX) { qrX = it }
+                                CoordinateField("Y", qrY) { qrY = it }
+                                CoordinateField("Tam.", qrSz) { qrSz = it }
+                            }
+                        }
+
                         // Save button
                         if (saveMessage != null) {
                             Text(saveMessage!!, fontSize = 14.sp, color = if (saveMessage!!.startsWith("✓")) ComplianceGreen else ErrorRed, modifier = Modifier.padding(horizontal = 4.dp))
@@ -588,7 +615,13 @@ fun DesignScreen(
                                         dipStpsSz = dipStpsSz,
                                         dipCedulaX = dipCedulaX,
                                         dipCedulaY = dipCedulaY,
-                                        dipCedulaSz = dipCedulaSz
+                                        dipCedulaSz = dipCedulaSz,
+                                        qrX = qrX,
+                                        qrY = qrY,
+                                        qrSz = qrSz,
+                                        dipQrX = dipQrX,
+                                        dipQrY = dipQrY,
+                                        dipQrSz = dipQrSz
                                     )
 
                                     try {
@@ -771,6 +804,14 @@ fun DesignScreen(
                                 CoordinateField("Y", dipCedulaY) { dipCedulaY = it }
                                 CoordinateField("Tam.", dipCedulaSz) { dipCedulaSz = it }
                             }
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Text("Código QR (Verificación)", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                CoordinateField("X", dipQrX) { dipQrX = it }
+                                CoordinateField("Y", dipQrY) { dipQrY = it }
+                                CoordinateField("Tam.", dipQrSz) { dipQrSz = it }
+                            }
                         }
 
                         Button(
@@ -829,7 +870,13 @@ fun DesignScreen(
                                         dipStpsSz = dipStpsSz,
                                         dipCedulaX = dipCedulaX,
                                         dipCedulaY = dipCedulaY,
-                                        dipCedulaSz = dipCedulaSz
+                                        dipCedulaSz = dipCedulaSz,
+                                        qrX = qrX,
+                                        qrY = qrY,
+                                        qrSz = qrSz,
+                                        dipQrX = dipQrX,
+                                        dipQrY = dipQrY,
+                                        dipQrSz = dipQrSz
                                     )
                                     val existing = SupabaseRepository.fetchDataFilteredSuspend("agent_designs", "creator_email=eq.${user.email}", AgentDesign.serializer()).firstOrNull()
                                     if (existing != null) {

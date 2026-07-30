@@ -97,6 +97,8 @@ dependencies {
 
     // Coil — carga de imágenes desde URL (fotos de trabajadores)
     implementation(libs.coil.compose)
+    // QR Code generation
+    implementation("com.google.zxing:core:3.5.3")
     // Security Crypto for EncryptedSharedPreferences
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
