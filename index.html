@@ -2437,7 +2437,7 @@ function resetDesignState() {
         'dip-cedula-x':396, 'dip-cedula-y':596, 'dip-cedula-sz':8,
         'design-qr-x':480, 'design-qr-y':60, 'design-qr-sz':60,
         'dip-qr-x':680, 'dip-qr-y':500, 'dip-qr-sz':50,
-        'design-dc3-folio-x':480, 'design-dc3-folio-y':740, 'design-dc3-folio-sz':9
+        'design-dc3-folio-x':480, 'design-dc3-folio-y':700, 'design-dc3-folio-sz':9
     };
     for (const [id,val] of Object.entries(defaults)) {
         const el = document.getElementById(id);
@@ -2996,6 +2996,7 @@ const DRAG_ITEMS = [
     { key:'hslogan',    xId:'design-header-slogan-x', yId:'design-header-slogan-y', wId:null, hId:null,         label:'CAB.SLOGAN',  color:'#0d9488', isText:true },
     { key:'slogan',     xId:'design-slogan-x',        yId:'design-slogan-y',        wId:null, hId:null,         label:'SLOGAN',      color:'#ea580c', isText:true },
     { key:'qr',         xId:'design-qr-x',            yId:'design-qr-y',            wId:'design-qr-sz',         hId:'design-qr-sz',         label:'QR',          color:'#111827' },
+    { key:'dc3folio',   xId:'design-dc3-folio-x',     yId:'design-dc3-folio-y',     wId:null,                   hId:'design-dc3-folio-sz',  label:'FOLIO',       color:'#6366f1', isText:true },
 ];
 
 let _dragState = null;
