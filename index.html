@@ -971,6 +971,9 @@ try {
     console.error("Error initializing Supabase:", e);
 }
 
+// CRITICAL FIX: Load user data FIRST before any auth operations
+await loadCatalogs();
+
 // Check for existing valid session on page load
 function checkExistingSession() {
     // Check localStorage first (persistent "remember me" session), then sessionStorage
@@ -1114,7 +1117,10 @@ let currentUser = null, currentView = 'dashboard', selectedWorker = null, editin
 let currentHistoryTab = 'DC3';
 
 // ─── INIT ──────────────────────────────────────────────
-window.onload = () => {
+window.onload = async () => {
+    // CRITICAL FIX: Load user data FIRST before any auth operations
+    await loadCatalogs();
+
     const params = new URLSearchParams(window.location.search);
     const verifyId = params.get('v');
     if (verifyId && verifyId !== 'preview') {
