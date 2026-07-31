@@ -77,14 +77,21 @@ object DiplomaGenerator {
         val font = PDType1Font.HELVETICA
         val fontB = PDType1Font.HELVETICA_BOLD
 
-        fun textCentered(xC: Float, yF: Float, t: String, sz: Float, bold: Boolean = false, colorType: Int = 0) {
+        fun textCentered(xC: Float, yF: Float, t: String, sz: Float, bold: Boolean = false, colorType: Int = 0, maxWidth: Float = 0f) {
             if (t.isBlank()) return
             val f = if (bold) fontB else font
             val st = t.toUpperCase(Locale.ROOT)
-            val w = f.getStringWidth(st) / 1000 * sz
+            
+            var currentSz = sz
+            var w = f.getStringWidth(st) / 1000 * currentSz
+            
+            if (maxWidth > 0 && w > maxWidth) {
+                currentSz = (maxWidth / w) * sz
+                w = f.getStringWidth(st) / 1000 * currentSz
+            }
 
             cs.beginText()
-            cs.setFont(f, sz)
+            cs.setFont(f, currentSz)
             when (colorType) {
                 1 -> cs.setNonStrokingColor(25, 51, 102) // Azul marino
                 2 -> cs.setNonStrokingColor(76, 102, 0) // Verde oliva para folio
@@ -128,9 +135,9 @@ object DiplomaGenerator {
         val folioSz = design?.dipFolioSz ?: 10f
 
         val workerName = "${employee.nombres} ${employee.apellidoPaterno} ${employee.apellidoMaterno}".trim()
-        textCentered(workerX, workerY, workerName, workerSz, true, 1)
+        textCentered(workerX, workerY, workerName, workerSz, true, 1, 600f)
 
-        textCentered(courseX, courseY, course.name, courseSz, true)
+        textCentered(courseX, courseY, course.name, courseSz, true, 0, 600f)
         textCentered(durationX, durationY, course.durationHours, durationSz, true)
         textCentered(dateX, dateY, formatDateRange(startDate, endDate), dateSz, true)
 
