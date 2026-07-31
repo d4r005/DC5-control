@@ -3392,6 +3392,10 @@ function downloadFromPreview() {
     URL.revokeObjectURL(url);
 }
 
+async function buildDC3PDFBytes(opts) {
+    return await _buildDC3Core(opts);
+}
+
 async function downloadRecordPDF(record) {
     const worker = {
         name: record.workerName,
