@@ -8,6 +8,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -45,7 +47,7 @@ fun DesignScreen(
     val scope = rememberCoroutineScope()
 
     // --- Estado compartido entre lista y editor ---
-    var designs by remember { mutableStateListOf<AgentDesign>() }
+    val designs = remember { mutableStateListOf<AgentDesign>() }
     var selectedDesign by remember { mutableStateOf<AgentDesign?>(null) }
     var isLoadingDesigns by remember { mutableStateOf(false) }
 
@@ -936,7 +938,7 @@ fun DesignScreen(
                                     colors = ButtonDefaults.buttonColors(containerColor = NavySurface, contentColor = NavyPrimary)
                                 ) {
                                     Icon(Icons.Default.Image, contentDescription = null, modifier = Modifier.size(18.dp))
-                                    Spacer(modifier = Modifier.fillMaxWidth(8.dp)
+                                    Spacer(modifier = Modifier.width(8.dp))
                                     Text("Subir nueva plantilla")
                                 }
 
@@ -1252,7 +1254,7 @@ private fun DesignCard(title: String, content: @Composable ColumnScope.() -> Uni
         Column(modifier = Modifier.padding(20.dp)) {
             Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Gray900)
             Spacer(modifier = Modifier.height(12.dp))
-            content()
+            content(this)
         }
     }
 }

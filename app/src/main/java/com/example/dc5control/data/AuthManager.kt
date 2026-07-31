@@ -7,7 +7,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import android.util.Log
-import java.nio.charset.Charsets
+import kotlin.text.Charsets
 import java.security.MessageDigest
 
 /**

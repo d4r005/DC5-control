@@ -1,6 +1,7 @@
 package com.example.dc5control.util
 
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
 import java.io.IOException
@@ -17,7 +18,7 @@ object SecurePreferences {
      * Gets an instance of EncryptedSharedPreferences
      */
     @Throws(GeneralSecurityException::class, IOException::class)
-    private fun getEncryptedPreferences(context: Context): EncryptedSharedPreferences {
+    private fun getEncryptedPreferences(context: Context): SharedPreferences {
         val mainKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
         return EncryptedSharedPreferences.create(
             PREFS_NAME,
@@ -47,7 +48,7 @@ object SecurePreferences {
     fun getEmail(context: Context): String? {
         val prefs = getEncryptedPreferences(context)
         val email = prefs.getString(KEY_EMAIL, "")
-        return if (email.isEmpty()) null else email
+        return if (email.isNullOrEmpty()) null else email
     }
 
     /**
