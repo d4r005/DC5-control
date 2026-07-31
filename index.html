@@ -971,9 +971,6 @@ try {
     console.error("Error initializing Supabase:", e);
 }
 
-// CRITICAL FIX: Load user data FIRST before any auth operations
-await loadCatalogs();
-
 // Check for existing valid session on page load
 function checkExistingSession() {
     // Check localStorage first (persistent "remember me" session), then sessionStorage
@@ -1022,7 +1019,7 @@ const CATALOGS = {
 const DATA = {
     users: [
         { name: "Dario Robles", email: "d4r005@gmail.com", role: "ADMIN", passHash: "dd080657906b80be4ea5f3b67af9a02ccf2bc6d9a004d10c1e9bfd42e0cc7754" },
-        { name: "Cynthia Garza Lugo", email: "lugga.advisors@gmail.com", role: "USER", passHash: "c625194773dbb816d11f159af7702363e7ccc64d213ea54d17c7f31aeab9921f" }
+        { name: "Cynthia Garza Lugo", email: "lugga.advisors@gmail.com", role: "USER", passHash: "c625194773dbb816d11f159af7702363e7ccc64d213ea54d17c7f31aeab9921f" },
     ],
     courses: [
         { name: "SEGURIDAD EN TRABAJOS DE SOLDADURAS Y OXICORTE", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", stpsId: "001", creatorEmail: "lugga.advisors@gmail.com" },
