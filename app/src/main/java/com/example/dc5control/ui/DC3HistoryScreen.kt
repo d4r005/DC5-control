@@ -94,7 +94,7 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                         val agent = agents.find { it.name == record.agentName }
                         
                         if (employee != null && agent != null) {
-                            val file = if (record.documentType == "DIPLOMA" || record.documentType == "BOTH") {
+                            val file = if (selectedTab == 1) {
                                 DiplomaGenerator.generateDiploma(
                                     context = context,
                                     employee = employee,
@@ -119,7 +119,8 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                                     endDate = record.endDate,
                                     signatureBitmap = null,
                                     logoBitmap = null,
-                                    qrUrl = if (record.id != null) "https://ace-control.pages.dev/?v=${record.id}" else null
+                                    qrUrl = if (record.id != null) "https://ace-control.pages.dev/?v=${record.id}" else null,
+                                    folio = record.folioDc3 ?: record.folio
                                 )
                             }
                             PdfGenerator.openPdf(context, file)
@@ -137,7 +138,7 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                 SupabaseRepository.fetchData("agents", Agent.serializer()) { agents ->
                     val agent = agents.find { it.name == record.agentName }
                     if (employee != null && agent != null) {
-                        val file = if (record.documentType == "DIPLOMA" || record.documentType == "BOTH") {
+                        val file = if (selectedTab == 1) {
                             DiplomaGenerator.generateDiploma(
                                 context = context,
                                 employee = employee,
@@ -162,7 +163,8 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                                 endDate = record.endDate,
                                 signatureBitmap = null,
                                 logoBitmap = null,
-                                qrUrl = if (record.id != null) "https://ace-control.pages.dev/?v=${record.id}" else null
+                                qrUrl = if (record.id != null) "https://ace-control.pages.dev/?v=${record.id}" else null,
+                                folio = record.folioDc3 ?: record.folio
                             )
                         }
                         PdfGenerator.saveToDownloads(context, file)
@@ -266,7 +268,7 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
 
         val filteredRecords = remember(records, selectedAgentFilter, selectedTab) {
             val byType = if (selectedTab == 0) {
-                records.filter { it.documentType == "DC3" }
+                records.filter { it.documentType == "DC3" || it.documentType == "BOTH" }
             } else {
                 records.filter { it.documentType == "DIPLOMA" || it.documentType == "BOTH" }
             }
@@ -312,10 +314,11 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
 
             LazyColumn {
                 items(filteredRecords) { record ->
+                    val contextualFolio = if (selectedTab == 0) record.folioDc3 ?: record.folio else record.folio
                     if (isExpanded) {
-                        DC3RecordRow(record, showFolio = selectedTab == 1, onView = { handleView(it) }, onDownload = { handleDownload(it) }, onDelete = { refresh() })
+                        DC3RecordRow(record, showFolio = true, contextualFolio = contextualFolio, onView = { handleView(it) }, onDownload = { handleDownload(it) }, onDelete = { refresh() })
                     } else {
-                        DC3RecordCard(record, onView = { handleView(it) }, onDownload = { handleDownload(it) }, onDelete = { refresh() })
+                        DC3RecordCard(record, contextualFolio = contextualFolio, onView = { handleView(it) }, onDownload = { handleDownload(it) }, onDelete = { refresh() })
                     }
                     HorizontalDivider(color = Gray50, modifier = Modifier.padding(horizontal = if (isExpanded) 0.dp else 16.dp))
                 }
@@ -325,7 +328,7 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
 }
 
 @Composable
-fun DC3RecordRow(record: DC3Record, showFolio: Boolean = false, onView: (DC3Record) -> Unit, onDownload: (DC3Record) -> Unit, onDelete: () -> Unit) {
+fun DC3RecordRow(record: DC3Record, showFolio: Boolean = false, contextualFolio: String? = null, onView: (DC3Record) -> Unit, onDownload: (DC3Record) -> Unit, onDelete: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -340,7 +343,7 @@ fun DC3RecordRow(record: DC3Record, showFolio: Boolean = false, onView: (DC3Reco
         Text(record.companyName.ifBlank { "–" }, modifier = Modifier.weight(1f), fontSize = 14.sp, color = Gray500)
         Text("${record.startDate} – ${record.endDate}", modifier = Modifier.weight(1f), fontSize = 12.sp, color = Gray400)
         if (showFolio) {
-            Text(record.folio ?: "—", modifier = Modifier.weight(0.8f), fontSize = 12.sp, color = NavyPrimary, fontFamily = FontFamily.Monospace)
+            Text(contextualFolio ?: "—", modifier = Modifier.weight(0.8f), fontSize = 12.sp, color = NavyPrimary, fontFamily = FontFamily.Monospace)
         }
         Row(
             modifier = Modifier.weight(1f),
@@ -380,7 +383,7 @@ fun DC3RecordRow(record: DC3Record, showFolio: Boolean = false, onView: (DC3Reco
 }
 
 @Composable
-fun DC3RecordCard(record: DC3Record, onView: (DC3Record) -> Unit, onDownload: (DC3Record) -> Unit, onDelete: () -> Unit) {
+fun DC3RecordCard(record: DC3Record, contextualFolio: String? = null, onView: (DC3Record) -> Unit, onDownload: (DC3Record) -> Unit, onDelete: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -427,12 +430,12 @@ fun DC3RecordCard(record: DC3Record, onView: (DC3Record) -> Unit, onDownload: (D
             Spacer(modifier = Modifier.weight(1f))
             Text("${record.startDate} – ${record.endDate}", fontSize = 12.sp, color = Gray400)
         }
-        if (!record.folio.isNullOrBlank()) {
+        if (!contextualFolio.isNullOrBlank()) {
             Spacer(modifier = Modifier.height(4.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.Tag, contentDescription = null, tint = Gray400, modifier = Modifier.size(14.dp))
                 Spacer(modifier = Modifier.width(4.dp))
-                Text(record.folio, fontSize = 12.sp, color = NavyPrimary, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+                Text(contextualFolio, fontSize = 12.sp, color = NavyPrimary, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
             }
         }
         Spacer(modifier = Modifier.height(8.dp))

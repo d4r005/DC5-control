@@ -1581,7 +1581,7 @@ async function loadSection(v) {
             let rows = (r.documents||[]);
 
             if (currentHistoryTab === 'DC3') {
-                rows = rows.filter(x => x.documentType === 'DC3' || !x.documentType);
+                rows = rows.filter(x => x.documentType === 'DC3' || x.documentType === 'BOTH' || !x.documentType);
             } else {
                 rows = rows.filter(x => x.documentType === 'DIPLOMA' || x.documentType === 'BOTH');
             }
@@ -1591,7 +1591,9 @@ async function loadSection(v) {
             }
             const tb = document.getElementById('tb-dc3');
             if (tb) tb.innerHTML = rows.length
-                ? rows.map(x => `<tr>
+                ? rows.map(x => {
+                    const contextualFolio = currentHistoryTab === 'DC3' ? (x.folioDc3 || x.folio || '—') : (x.folio || '—');
+                    return `<tr>
                     <td>
                         <p class="font-semibold text-sm">${x.workerName||'–'}</p>
                         <p class="font-mono text-xs text-gray-400">${x.workerId||''}</p>
@@ -1599,7 +1601,7 @@ async function loadSection(v) {
                     <td class="text-sm">${x.courseName||''}</td>
                     <td class="text-sm text-gray-500">${x.companyName||''}</td>
                     <td class="text-xs text-gray-400">${x.startDate||''} – ${x.endDate||''}</td>
-                    <td class="font-mono text-xs text-blue-900">${x.folio || x.folioDc3 || '—'}</td>
+                    <td class="font-mono text-xs text-blue-900">${contextualFolio}</td>
                     <td class="text-right">
                         <div class="flex justify-end gap-2">
                             <button onclick='previewRecordPDF(${JSON.stringify(x)})' title="Previsualizar" class="btn-sm btn-outline" style="border-color:#1e3a8a;color:#1e3a8a">👁 Ver</button>
@@ -1608,7 +1610,8 @@ async function loadSection(v) {
                             <button onclick="delItem('dc3_records','${x.id}')" title="Eliminar" class="btn-sm btn-red">✕</button>
                         </div>
                     </td>
-                  </tr>`).join('')
+                  </tr>`;
+                }).join('')
                 : `<tr><td colspan="6" class="text-center py-12 text-gray-300 text-sm">Sin historial de ${currentHistoryTab}</td></tr>`;
 
         } else if (v === 'dc3design') {
@@ -3340,10 +3343,10 @@ async function previewRecordPDF(record) {
 
     document.getElementById('modal-dc3-preview').classList.add('open');
     const container = document.getElementById('dc3-preview-container');
-    container.innerHTML = `<p class="text-gray-400 text-sm">Cargando ${record.documentType}…</p>`;
+    container.innerHTML = `<p class="text-gray-400 text-sm">Cargando ${currentHistoryTab}…</p>`;
 
     try {
-        if (record.documentType === 'DIPLOMA') {
+        if (currentHistoryTab === 'DIPLOMA') {
             _previewPdfBytes = await _buildDiplomaCore({
                 worker,
                 companyName: record.companyName,
@@ -3365,7 +3368,7 @@ async function previewRecordPDF(record) {
                 end: record.endDate,
                 result: record.resultText || 'Acreditado',
                 qrUrl: `https://ace-control.pages.dev/?v=${record.id}`,
-                folio: record.folio || record.folioDc3
+                folio: record.folioDc3 || record.folio
             });
         }
         showPDFInContainer(_previewPdfBytes, container);
@@ -3411,7 +3414,7 @@ async function downloadRecordPDF(record) {
 
     try {
         let pdfBytes;
-        if (record.documentType === 'DIPLOMA') {
+        if (currentHistoryTab === 'DIPLOMA') {
             pdfBytes = await _buildDiplomaCore({
                 worker,
                 companyName: record.companyName,
@@ -3423,35 +3426,6 @@ async function downloadRecordPDF(record) {
                 qrUrl: `https://ace-control.pages.dev/?v=${record.id}`,
                 quiet: true
             });
-        } else if (record.documentType === 'BOTH') {
-            const dc3Bytes = await _buildDC3Core({
-                worker, company: regenCompany,
-                agent: { name: record.agentName, stps: record.agentStps },
-                course: { name: record.courseName, durationHours: record.durationHours, thematicArea: record.thematicArea },
-                start: record.startDate, end: record.endDate, result: record.resultText,
-                qrUrl: `https://ace-control.pages.dev/?v=${record.id}`,
-                folio: record.folioDc3
-            });
-            const diplomaBytes = await _buildDiplomaCore({
-                worker,
-                companyName: record.companyName,
-                agentVal: `${record.agentName}|${record.agentStps}`,
-                courseVal: `${record.courseName}|${record.durationHours}|${record.thematicArea}`,
-                startDate: record.startDate,
-                endDate: record.endDate,
-                folio: record.folio,
-                qrUrl: `https://ace-control.pages.dev/?v=${record.id}`,
-                quiet: true
-            });
-            const { PDFDocument } = PDFLib;
-            const mergedPdf = await PDFDocument.create();
-            const dc3Doc = await PDFDocument.load(dc3Bytes);
-            const diplomaDoc = await PDFDocument.load(diplomaBytes);
-            const dc3Pages = await mergedPdf.copyPages(dc3Doc, dc3Doc.getPageIndices());
-            dc3Pages.forEach(p => mergedPdf.addPage(p));
-            const diplomaPages = await mergedPdf.copyPages(diplomaDoc, diplomaDoc.getPageIndices());
-            diplomaPages.forEach(p => mergedPdf.addPage(p));
-            pdfBytes = await mergedPdf.save();
         } else {
             pdfBytes = await _buildDC3Core({
                 worker,
@@ -3462,7 +3436,7 @@ async function downloadRecordPDF(record) {
                 end: record.endDate,
                 result: record.resultText || 'Acreditado',
                 qrUrl: `https://ace-control.pages.dev/?v=${record.id}`,
-                folio: record.folio || record.folioDc3
+                folio: record.folioDc3 || record.folio
             });
         }
 
