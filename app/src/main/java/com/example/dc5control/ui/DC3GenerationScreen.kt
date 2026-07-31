@@ -175,7 +175,12 @@ fun DC3GenerationScreen(
                         
                         val finalStps = calculateStps(agent.stps)
                         
-                        // 1. Guardar primero para obtener ID para el QR
+                        // 1. Guardar primero para obtener ID para el QR y Folio
+                        val year = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
+                        val initialDC3Records = SupabaseRepository.fetchDataFilteredSuspend("dc3_records", "start_date=gte.$year-01-01", DC3Record.serializer())
+                        val dc3Count = initialDC3Records.count { it.folio?.startsWith("EHS-DC3") == true || it.folioDc3?.startsWith("EHS-DC3") == true }
+                        val folioDC3 = "EHS-DC3-$year-${String.format(java.util.Locale.US, "%04d", dc3Count + currentDoc)}"
+
                         val recordToSave = DC3Record(
                             workerId = employee.curp,
                             workerName = "${employee.apellidoPaterno} ${employee.nombres}".trim(),
@@ -189,18 +194,20 @@ fun DC3GenerationScreen(
                             startDate = startDate,
                             endDate = endDate,
                             documentType = "DC3",
+                            folio = folioDC3,
                             creatorEmail = employee.creatorEmail ?: user.email
                         )
                         
                         val insertedId = SupabaseRepository.insertDataGetIdSuspend("dc3_records", recordToSave, DC3Record.serializer())
                         val qrUrl = if (insertedId != null) "https://ace-control.pages.dev/?v=$insertedId" else null
 
-                        // 2. Generar PDF con el QR
+                        // 2. Generar PDF con el QR y Folio
                         val file = PdfGenerator.generateDC3(
                             context, employee, course, agent.copy(stps = finalStps), company.name, company.rfc,
                             company.representanteLegal, company.representanteTrabajadores,
                             startDate, endDate, signature, logo, photo, hLogo, design,
-                            qrUrl = qrUrl
+                            qrUrl = qrUrl,
+                            folio = folioDC3
                         )
                         PdfGenerator.saveToDownloads(context, file)
                         if (totalDocs == 1) PdfGenerator.openPdf(context, file)
@@ -231,14 +238,14 @@ fun DC3GenerationScreen(
 
             val year = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
             val initialRecords = SupabaseRepository.fetchDataFilteredSuspend("dc3_records", "start_date=gte.$year-01-01", DC3Record.serializer())
-            // Contar solo los que tienen folio del año actual y son de tipo diploma o ambos
+            // Contar solo los que tienen folio de diploma del año actual
             val initialCount = initialRecords.count { 
-                it.folio?.contains("-$year-") == true && 
-                (it.documentType == "DIPLOMA" || it.documentType == "BOTH")
+                it.folio?.startsWith("EHS-CON") == true 
             }
 
             var currentDoc = 0
             val totalDocs = selectedEmployees.size * selectedCourses.size
+
             selectedEmployees.forEach { employee ->
                 selectedCourses.forEach { course ->
                     currentDoc++

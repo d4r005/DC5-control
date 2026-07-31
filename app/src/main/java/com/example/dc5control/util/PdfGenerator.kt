@@ -52,7 +52,9 @@ data class DC3FormData(
     val headerLogoX: Float? = null, val headerLogoY: Float? = null, val headerLogoW: Float? = null, val headerLogoH: Float? = null,
     val headerSloganX: Float? = null, val headerSloganY: Float? = null, val headerSloganSize: Float? = null,
     val sloganX: Float? = null, val sloganY: Float? = null, val sloganSize: Float? = null,
-    val qrX: Float? = null, val qrY: Float? = null, val qrSz: Float? = null
+    val qrX: Float? = null, val qrY: Float? = null, val qrSz: Float? = null,
+    val folio: String? = null,
+    val folioX: Float? = null, val folioY: Float? = null, val folioSize: Float? = null
 )
 
 object PdfGenerator {
@@ -76,7 +78,8 @@ object PdfGenerator {
         photoBitmap: Bitmap? = null,
         headerLogoBitmap: Bitmap? = null,
         design: com.example.dc5control.data.model.AgentDesign? = null,
-        qrUrl: String? = null
+        qrUrl: String? = null,
+        folio: String? = null
     ): File {
         val data = DC3FormData(
             nombreTrabajador = "${employee.apellidoPaterno} ${employee.apellidoMaterno} ${employee.nombres}".trim(),
@@ -108,7 +111,9 @@ object PdfGenerator {
             headerLogoX = design?.headerLogoX, headerLogoY = design?.headerLogoY, headerLogoW = design?.headerLogoW, headerLogoH = design?.headerLogoH,
             headerSloganX = design?.headerSloganX, headerSloganY = design?.headerSloganY, headerSloganSize = design?.headerSloganSize,
             sloganX = design?.sloganX, sloganY = design?.sloganY, sloganSize = design?.sloganSize,
-            qrX = design?.qrX, qrY = design?.qrY, qrSz = design?.qrSz
+            qrX = design?.qrX, qrY = design?.qrY, qrSz = design?.qrSz,
+            folio = folio,
+            folioX = design?.dc3FolioX, folioY = design?.dc3FolioY, folioSize = design?.dc3FolioSz
         )
         return generate(context, data)
     }
@@ -279,6 +284,19 @@ object PdfGenerator {
                 val qy = d.qrY ?: 60f
                 cs.drawImage(img, qx, PH - qy - qsz, qsz, qsz)
             }
+        }
+
+        // Dibujar Folio si se proporciona (DC-3)
+        d.folio?.let { f ->
+            val fx = d.folioX ?: 480f
+            val fy = d.folioY ?: 740f
+            val fsz = d.folioSize ?: 9f
+            cs.beginText()
+            cs.setFont(fontB, fsz)
+            cs.setNonStrokingColor(0, 0, 0)
+            cs.newLineAtOffset(fx, PH - fy - fsz)
+            cs.showText(f)
+            cs.endText()
         }
 
         val insL = splitName(d.instructor, 26); textCentered(sIX, sY1, insL[0], 8f)

@@ -95,6 +95,7 @@ data class DC3Record(
     @SerialName("result_text") val resultText: String = "Acreditado",
     @SerialName("document_type") val documentType: String = "DC3",
     val folio: String? = null,
+    @SerialName("folio_dc3") val folioDc3: String? = null,
     @SerialName("creator_email") val creatorEmail: String? = null
 )
 
@@ -167,5 +168,8 @@ data class AgentDesign(
     @SerialName("dip_qr_x") val dipQrX: Float? = null,
     @SerialName("dip_qr_y") val dipQrY: Float? = null,
     @SerialName("dip_qr_sz") val dipQrSz: Float? = null,
+    @SerialName("dc3_folio_x") val dc3FolioX: Float? = null,
+    @SerialName("dc3_folio_y") val dc3FolioY: Float? = null,
+    @SerialName("dc3_folio_sz") val dc3FolioSz: Float? = null,
     @SerialName("updated_at") val updatedAt: String? = null
 )
