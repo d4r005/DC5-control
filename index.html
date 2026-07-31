@@ -2908,17 +2908,6 @@ async function _renderPreview() {
         await di(qrBase64, p.qrX, p.qrY, p.qrSz, p.qrSz);
     } catch(e) {}
 
-    // Dibujar Folio Placeholder (DC-3)
-    try {
-        const font = await embedFont('Helvetica-Bold');
-        const txt = "EHS-DC3-2024-0001";
-        page.drawText(txt, {
-            x: p.dc3FolioX,
-            y: PDF_H - p.dc3FolioY - p.dc3FolioSz,
-            size: p.dc3FolioSz, font, color: rgb(0,0,0)
-        });
-    } catch(e) {}
-
     // Helper: embedir fuente por nombre (soporta fuentes custom via CDN)
     const CUSTOM_FONT_URLS = {
         'KunstlerScript': 'https://fonts.gstatic.com/s/greatvibes/v19/RWmMoKWR9v4ksMfaWd_JN9XFiaQ.woff2',
@@ -2929,15 +2918,26 @@ async function _renderPreview() {
         if (CUSTOM_FONT_URLS[name]) {
             try {
                 const fontBytes = await fetch(CUSTOM_FONT_URLS[name]).then(r => r.arrayBuffer());
-                return pdfDoc.embedFont(fontBytes);
+                return await pdfDoc.embedFont(fontBytes);
             } catch(e) {
                 console.warn('Custom font load failed, fallback to Helvetica:', e);
             }
         }
         const sfName = FONT_MAP[name] || 'Helvetica';
         const sfKey  = StandardFonts[sfName] || StandardFonts.Helvetica;
-        return pdfDoc.embedFont(sfKey);
+        return await pdfDoc.embedFont(sfKey);
     }
+
+    // Dibujar Folio Placeholder (DC-3)
+    try {
+        const fontBld = await embedFont('Helvetica-Bold');
+        const txtFolio = "EHS-DC3-2024-0001";
+        page.drawText(txtFolio, {
+            x: p.dc3FolioX,
+            y: PDF_H - p.dc3FolioY - p.dc3FolioSz,
+            size: p.dc3FolioSz, font: fontBld, color: rgb(0,0,0)
+        });
+    } catch(e) { console.warn("Folio draw error:", e); }
 
     // Dibujar textos — headerSloganX es el CENTRO del texto (igual que en buildDC3PDF)
     if (p.headerSlogan?.trim()) {
@@ -3373,6 +3373,23 @@ async function previewRecordPDF(record) {
         console.error("Preview error:", e);
         container.innerHTML = `<p class="text-red-500 text-sm">Error: ${e.message}</p>`;
     }
+}
+
+function showPDFInContainer(pdfBytes, container) {
+    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    const url  = URL.createObjectURL(blob);
+    container.innerHTML = `<iframe src="${url}" style="width:100%;height:100%;border:none;border-radius:8px" title="DC-3 Preview"></iframe>`;
+}
+
+function downloadFromPreview() {
+    if (!_previewPdfBytes) return;
+    const blob = new Blob([_previewPdfBytes], { type: 'application/pdf' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `Documento_ACE.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
 }
 
 async function downloadRecordPDF(record) {
