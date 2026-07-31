@@ -135,9 +135,9 @@ object DiplomaGenerator {
         val folioSz = design?.dipFolioSz ?: 10f
 
         val workerName = "${employee.nombres} ${employee.apellidoPaterno} ${employee.apellidoMaterno}".trim()
-        textCentered(workerX, workerY, workerName, workerSz, true, 1, 520f)
+        textCentered(workerX, workerY, workerName, workerSz, true, 1, 450f)
 
-        textCentered(courseX, courseY, course.name, courseSz, true, 0, 520f)
+        textCentered(courseX, courseY, course.name, courseSz, true, 0, 450f)
         textCentered(durationX, durationY, course.durationHours, durationSz, true)
         textCentered(dateX, dateY, formatDateRange(startDate, endDate), dateSz, true)
 
