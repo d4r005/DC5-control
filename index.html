@@ -2211,8 +2211,8 @@ async function _buildDiplomaCore(opts = {}) {
         let currentSz = sz;
         let w = f.widthOfTextAtSize(cleanTxt, currentSz);
 
-        // Auto-ajuste de tamaño si el texto es muy largo (máximo 600 pts de ancho)
-        const maxW = 600;
+        // Auto-ajuste de tamaño si el texto es muy largo (máximo 520 pts de ancho para evitar zona azul)
+        const maxW = 520;
         if (w > maxW) {
             currentSz = (maxW / w) * sz;
             w = f.widthOfTextAtSize(cleanTxt, currentSz);
