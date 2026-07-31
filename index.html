@@ -392,7 +392,7 @@
             <div class="card overflow-hidden">
                 <table>
                     <thead><tr id="th-history">
-                        <th>Trabajador (CURP)</th><th>Curso</th><th>Empresa</th><th>Periodo</th><th id="th-folio" class="hidden">Folio</th><th>Acciones</th>
+                        <th>Trabajador (CURP)</th><th>Curso</th><th>Empresa</th><th>Periodo</th><th id="th-folio">Folio</th><th>Acciones</th>
                     </tr></thead>
                     <tbody id="tb-dc3"><tr><td colspan="5" class="text-center py-12 text-gray-300">Cargando…</td></tr></tbody>
                 </table>
@@ -523,6 +523,16 @@
                             <div><label class="text-[10px] text-gray-400">X</label><input id="design-qr-x" type="number" class="input-field !p-1 !text-xs" value="480" oninput="schedulePreview()"></div>
                             <div><label class="text-[10px] text-gray-400">Y</label><input id="design-qr-y" type="number" class="input-field !p-1 !text-xs" value="60" oninput="schedulePreview()"></div>
                             <div><label class="text-[10px] text-gray-400">Tam.</label><input id="design-qr-sz" type="number" class="input-field !p-1 !text-xs" value="60" oninput="schedulePreview()"></div>
+                        </div>
+                    </div>
+
+                    <!-- FOLIO DC-3 -->
+                    <div class="border rounded-xl p-4 mb-4 bg-gray-50">
+                        <p class="text-xs font-bold text-gray-600 uppercase mb-2">Folio (Identificador único)</p>
+                        <div class="grid grid-cols-3 gap-2">
+                            <div><label class="text-[10px] text-gray-400">X</label><input id="design-dc3-folio-x" type="number" class="input-field !p-1 !text-xs" value="480" oninput="schedulePreview()"></div>
+                            <div><label class="text-[10px] text-gray-400">Y</label><input id="design-dc3-folio-y" type="number" class="input-field !p-1 !text-xs" value="740" oninput="schedulePreview()"></div>
+                            <div><label class="text-[10px] text-gray-400">Tam.</label><input id="design-dc3-folio-sz" type="number" class="input-field !p-1 !text-xs" value="9" oninput="schedulePreview()"></div>
                         </div>
                     </div>
 
@@ -1130,6 +1140,7 @@ function toSnake(obj) {
         courseName:'course_name', companyName:'company_name', agentName:'agent_name', agentStps:'agent_stps',
         startDate:'start_date', endDate:'end_date', resultText:'result_text', durationHours:'duration_hours',
         thematicArea:'thematic_area', documentType:'document_type', folio:'folio',
+        folioDc3:'folio_dc3',
         creatorEmail:'creator_email', representanteLegal:'representante_legal', representanteTrabajadores:'representante_trabajadores',
         headerSlogan:'header_slogan', headerSloganX:'header_slogan_x', headerSloganY:'header_slogan_y', headerSloganSize:'header_slogan_size',
         headerLogoW:'header_logo_w', headerLogoH:'header_logo_h', headerLogoX:'header_logo_x', headerLogoY:'header_logo_y',
@@ -1152,6 +1163,7 @@ function toSnake(obj) {
         dipCedulaX:'dip_cedula_x', dipCedulaY:'dip_cedula_y', dipCedulaSz:'dip_cedula_sz',
         qrX:'qr_x', qrY:'qr_y', qrSz:'qr_sz',
         dipQrX:'dip_qr_x', dipQrY:'dip_qr_y', dipQrSz:'dip_qr_sz',
+        dc3FolioX:'dc3_folio_x', dc3FolioY:'dc3_folio_y', dc3FolioSz:'dc3_folio_sz',
         cedulaProfesional:'cedula_profesional'
     };
     const out = {};
@@ -1166,6 +1178,7 @@ function toCamel(obj) {
         course_name:'courseName', company_name:'companyName', agent_name:'agentName', agent_stps:'agentStps',
         start_date:'startDate', end_date:'endDate', result_text:'resultText', duration_hours:'durationHours',
         thematic_area:'thematicArea', created_at:'createdAt', document_type:'documentType', folio:'folio',
+        folio_dc3:'folioDc3',
         creator_email:'creatorEmail', representante_legal:'representanteLegal', representante_trabajadores:'representanteTrabajadores',
         header_slogan:'headerSlogan', header_slogan_x:'headerSloganX', header_slogan_y:'headerSloganY', header_slogan_size:'headerSloganSize',
         header_logo_w:'headerLogoW', header_logo_h:'headerLogoH', header_logo_x:'headerLogoX', header_logo_y:'headerLogoY',
@@ -1188,6 +1201,7 @@ function toCamel(obj) {
         dip_cedula_x:'dipCedulaX', dip_cedula_y:'dipCedulaY', dip_cedula_sz:'dipCedulaSz',
         qr_x:'qrX', qr_y:'qrY', qr_sz:'qrSz',
         dip_qr_x:'dipQrX', dip_qr_y:'dipQrY', dip_qr_sz:'dipQrSz',
+        dc3_folio_x:'dc3FolioX', dc3_folio_y:'dc3FolioY', dc3_folio_sz:'dc3FolioSz',
         cedula_profesional:'cedulaProfesional'
     };
     const out = {};
@@ -1568,10 +1582,8 @@ async function loadSection(v) {
 
             if (currentHistoryTab === 'DC3') {
                 rows = rows.filter(x => x.documentType === 'DC3' || !x.documentType);
-                document.getElementById('th-folio').classList.add('hidden');
             } else {
                 rows = rows.filter(x => x.documentType === 'DIPLOMA' || x.documentType === 'BOTH');
-                document.getElementById('th-folio').classList.remove('hidden');
             }
 
             if (selectedAgentName) {
@@ -1587,7 +1599,7 @@ async function loadSection(v) {
                     <td class="text-sm">${x.courseName||''}</td>
                     <td class="text-sm text-gray-500">${x.companyName||''}</td>
                     <td class="text-xs text-gray-400">${x.startDate||''} – ${x.endDate||''}</td>
-                    <td class="${currentHistoryTab === 'DIPLOMA' ? '' : 'hidden'} font-mono text-xs text-blue-900">${x.folio || '—'}</td>
+                    <td class="font-mono text-xs text-blue-900">${x.folio || x.folioDc3 || '—'}</td>
                     <td class="text-right">
                         <div class="flex justify-end gap-2">
                             <button onclick='previewRecordPDF(${JSON.stringify(x)})' title="Previsualizar" class="btn-sm btn-outline" style="border-color:#1e3a8a;color:#1e3a8a">👁 Ver</button>
@@ -1931,7 +1943,8 @@ async function generateDC3() {
     const [agentName, agentStps] = agentVal.split('|');
     const [courseName, courseDuration, courseArea, courseStpsId] = courseVal.split('|');
 
-    // 1. Guardar primero para obtener un ID para el QR
+    // 1. Guardar primero para obtener un ID para el QR y Folio
+    const folio = await getNextFolio('DC3');
     const saveRes = await api('insertOne','dc3_records',{ document: {
         workerId:    selectedWorker.curp,
         workerName:  selectedWorker.name,
@@ -1948,6 +1961,7 @@ async function generateDC3() {
         endDate:     end,
         resultText:  'Acreditado',
         documentType: 'DC3',
+        folio: folio,
         creatorEmail: currentUser.email
     }});
 
@@ -1958,14 +1972,15 @@ async function generateDC3() {
 
     const qrUrl = `https://ace-control.pages.dev/?v=${saveRes.insertedId}`;
 
-    // 2. Generar PDF con el QR
+    // 2. Generar PDF con el QR y Folio
     const pdfBytes = await _buildDC3Core({
         worker: selectedWorker,
         company,
         agent: { name: agentName, stps: agentStps },
         course: { name: courseName, durationHours: courseDuration, thematicArea: courseArea, stpsId: courseStpsId },
         start, end, result,
-        qrUrl: qrUrl
+        qrUrl: qrUrl,
+        folio: folio
     });
 
     if (!pdfBytes) return;
@@ -1975,7 +1990,7 @@ async function generateDC3() {
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
     a.href = url;
-    a.download = `DC3_${(function sp(s){return String(s||'').replace(/[áà]/g,'a').replace(/[éè]/g,'e').replace(/[íì]/g,'i').replace(/[óò]/g,'o').replace(/[úùü]/g,'u').replace(/ñ/g,'n').replace(/[ÁÀ]/g,'A').replace(/[ÉÈ]/g,'E').replace(/[ÍÌ]/g,'I').replace(/[ÓÒ]/g,'O').replace(/[ÚÙÜ]/g,'U').replace(/Ñ/g,'N');})(selectedWorker.name||'constancia').replace(/\s+/g,'_')}.pdf`;
+    a.download = `DC3_${selectedWorker.curp}.pdf`;
     a.click();
     URL.revokeObjectURL(url);
 
@@ -1997,7 +2012,7 @@ async function generateDiploma() {
         const [courseName, courseDuration, courseArea, courseStpsId] = courseVal.split('|');
 
         // 1. Guardar para obtener ID
-        const folio = await getNextFolio();
+        const folio = await getNextFolio('DIPLOMA');
         const saveRes = await api('insertOne','dc3_records',{ document: {
             workerId:    selectedWorker.curp,
             workerName:  selectedWorker.name,
@@ -2051,7 +2066,8 @@ async function generateBoth() {
         const [courseName, courseDuration, courseArea, courseStpsId] = courseVal.split('|');
 
         // 1. Guardar para obtener ID
-        const folio = await getNextFolio();
+        const folioDiploma = await getNextFolio('DIPLOMA');
+        const folioDC3 = await getNextFolio('DC3');
         const saveRes = await api('insertOne','dc3_records',{ document: {
             workerId:    selectedWorker.curp,
             workerName:  selectedWorker.name,
@@ -2066,7 +2082,8 @@ async function generateBoth() {
             endDate:     end,
             resultText:  'Acreditado',
             documentType: 'BOTH',
-            folio: folio,
+            folio: folioDiploma, // Guardamos el de diploma en el campo principal
+            folioDc3: folioDC3,
             creatorEmail: currentUser.email
         }});
 
@@ -2079,10 +2096,11 @@ async function generateBoth() {
             agent: { name: agentName, stps: agentStps },
             course: { name: courseName, durationHours: courseDuration, thematicArea: courseArea, stpsId: courseStpsId },
             start, end, result: 'Acreditado',
-            qrUrl: qrUrl
+            qrUrl: qrUrl,
+            folio: folioDC3
         });
 
-        const diplomaBytes = await _buildDiplomaCore({ qrUrl, folio });
+        const diplomaBytes = await _buildDiplomaCore({ qrUrl, folio: folioDiploma });
 
         if (!dc3Bytes || !diplomaBytes) return;
 
@@ -2276,21 +2294,26 @@ async function _buildDiplomaCore(opts = {}) {
     return await pdfDoc.save();
 }
 
-async function getNextFolio() {
+async function getNextFolio(type = 'DIPLOMA') {
     try {
         const year = new Date().getFullYear();
-        const r = await api('find','dc3_records', { filter: { startDate: `gte.${year}-01-01` } });
-        // Filtrar robustamente por año actual y que posean un folio válido
+        const prefix = type === 'DC3' ? 'EHS-DC3' : 'EHS-CON';
+
+        const r = await api('find','dc3_records', {
+            filter: { startDate: `gte.${year}-01-01` }
+        });
+
+        // Filtrar robustamente por año actual y que posean el prefijo correcto
         const count = (r.documents?.filter(x => {
-            return x.folio &&
-                   x.folio.includes(`-${year}-`) &&
-                   (x.documentType === 'DIPLOMA' || x.documentType === 'BOTH');
+            const f = x.folio || x.folioDc3;
+            return f && f.startsWith(prefix) && f.includes(`-${year}-`);
         }).length || 0) + 1;
 
-        return `EHS-CON-${year}-${String(count).padStart(4, '0')}`;
+        return `${prefix}-${year}-${String(count).padStart(4, '0')}`;
     } catch(e) {
         console.error("Folio calculation error:", e);
-        return `EHS-CON-${new Date().getFullYear()}-${Math.floor(Math.random()*9000)+1000}`;
+        const prefix = type === 'DC3' ? 'EHS-DC3' : 'EHS-CON';
+        return `${prefix}-${new Date().getFullYear()}-${Math.floor(Math.random()*9000)+1000}`;
     }
 }
 
@@ -2413,7 +2436,8 @@ function resetDesignState() {
         'dip-stps-x':396, 'dip-stps-y':584, 'dip-folio-x':396, 'dip-folio-y':550, 'dip-folio-sz':10,
         'dip-cedula-x':396, 'dip-cedula-y':596, 'dip-cedula-sz':8,
         'design-qr-x':480, 'design-qr-y':60, 'design-qr-sz':60,
-        'dip-qr-x':680, 'dip-qr-y':500, 'dip-qr-sz':50
+        'dip-qr-x':680, 'dip-qr-y':500, 'dip-qr-sz':50,
+        'design-dc3-folio-x':480, 'design-dc3-folio-y':740, 'design-dc3-folio-sz':9
     };
     for (const [id,val] of Object.entries(defaults)) {
         const el = document.getElementById(id);
@@ -2510,6 +2534,10 @@ async function loadDesign() {
         setV('dip-qr-x', d.dipQrX ?? d.dip_qr_x ?? 680);
         setV('dip-qr-y', d.dipQrY ?? d.dip_qr_y ?? 500);
         setV('dip-qr-sz', d.dipQrSz ?? d.dip_qr_sz ?? 50);
+
+        setV('design-dc3-folio-x', d.dc3FolioX ?? d.dc3_folio_x ?? 480);
+        setV('design-dc3-folio-y', d.dc3FolioY ?? d.dc3_folio_y ?? 740);
+        setV('design-dc3-folio-sz', d.dc3FolioSz ?? d.dc3_folio_sz ?? 9);
 
         await updateDesignPreview();
         if (currentView === 'dc3design') scheduleDiplomaPreview();
@@ -2761,6 +2789,7 @@ function getDesignParams() {
         dipCedulaX: gv('dip-cedula-x'), dipCedulaY: gv('dip-cedula-y'), dipCedulaSz: gv('dip-cedula-sz'),
         qrX: gv('design-qr-x'), qrY: gv('design-qr-y'), qrSz: gv('design-qr-sz'),
         dipQrX: gv('dip-qr-x'), dipQrY: gv('dip-qr-y'), dipQrSz: gv('dip-qr-sz'),
+        dc3FolioX: gv('design-dc3-folio-x'), dc3FolioY: gv('design-dc3-folio-y'), dc3FolioSz: gv('design-dc3-folio-sz'),
         creatorEmail: currentUser?.email || ''
     };
 }
@@ -2879,6 +2908,17 @@ async function _renderPreview() {
         await di(qrBase64, p.qrX, p.qrY, p.qrSz, p.qrSz);
     } catch(e) {}
 
+    // Dibujar Folio Placeholder (DC-3)
+    try {
+        const font = await embedFont('Helvetica-Bold');
+        const txt = "EHS-DC3-2024-0001";
+        page.drawText(txt, {
+            x: p.dc3FolioX,
+            y: PDF_H - p.dc3FolioY - p.dc3FolioSz,
+            size: p.dc3FolioSz, font, color: rgb(0,0,0)
+        });
+    } catch(e) {}
+
     // Helper: embedir fuente por nombre (soporta fuentes custom via CDN)
     const CUSTOM_FONT_URLS = {
         'KunstlerScript': 'https://fonts.gstatic.com/s/greatvibes/v19/RWmMoKWR9v4ksMfaWd_JN9XFiaQ.woff2',
@@ -2981,6 +3021,7 @@ function _updateDragHandles(p) {
         { key:'hslogan',    x:(p.headerSloganX - Math.max(40,p.headerSloganSize*(p.headerSlogan||'').length*0.28))*sc, y:cy(p.headerSloganY, p.headerSloganSize), w:Math.max(80,p.headerSloganSize*(p.headerSlogan||'').length*0.55)*sc, h:(p.headerSloganSize+4)*sc, label:'CAB.SLOGAN', color:'#0d9488', xId:'design-header-slogan-x', yId:'design-header-slogan-y', isText:true, isCentered:true },
         { key:'slogan',     x:p.sloganX*sc,       y:cy(p.sloganY, p.sloganSize),       w:Math.max(60,p.sloganSize*(p.slogan||'SLOGAN').length*0.55)*sc, h:(p.sloganSize+4)*sc, label:'SLOGAN', color:'#ea580c', xId:'design-slogan-x', yId:'design-slogan-y', isText:true },
         { key:'qr',         x:p.qrX*sc,           y:cy(p.qrY, p.qrSz),                 w:p.qrSz*sc,         h:p.qrSz*sc,         label:'QR',         color:'#111827', xId:'design-qr-x', yId:'design-qr-y' },
+        { key:'dc3folio',   x:p.dc3FolioX*sc,     y:cy(p.dc3FolioY, p.dc3FolioSz),     w:100*sc,            h:(p.dc3FolioSz+4)*sc, label:'FOLIO',      color:'#6366f1', xId:'design-dc3-folio-x', yId:'design-dc3-folio-y', isText:true },
     ];
 
     items.forEach(item => {
@@ -3322,7 +3363,8 @@ async function previewRecordPDF(record) {
                 start: record.startDate,
                 end: record.endDate,
                 result: record.resultText || 'Acreditado',
-                qrUrl: `https://ace-control.pages.dev/?v=${record.id}`
+                qrUrl: `https://ace-control.pages.dev/?v=${record.id}`,
+                folio: record.folio || record.folioDc3
             });
         }
         showPDFInContainer(_previewPdfBytes, container);
@@ -3365,7 +3407,8 @@ async function downloadRecordPDF(record) {
                 agent: { name: record.agentName, stps: record.agentStps },
                 course: { name: record.courseName, durationHours: record.durationHours, thematicArea: record.thematicArea },
                 start: record.startDate, end: record.endDate, result: record.resultText,
-                qrUrl: `https://ace-control.pages.dev/?v=${record.id}`
+                qrUrl: `https://ace-control.pages.dev/?v=${record.id}`,
+                folio: record.folioDc3
             });
             const diplomaBytes = await _buildDiplomaCore({
                 worker,
@@ -3396,7 +3439,8 @@ async function downloadRecordPDF(record) {
                 start: record.startDate,
                 end: record.endDate,
                 result: record.resultText || 'Acreditado',
-                qrUrl: `https://ace-control.pages.dev/?v=${record.id}`
+                qrUrl: `https://ace-control.pages.dev/?v=${record.id}`,
+                folio: record.folio || record.folioDc3
             });
         }
 
@@ -3413,6 +3457,200 @@ async function downloadRecordPDF(record) {
         console.error("Regen error:", e);
         alert("Error al regenerar PDF: " + e.message);
     }
+}
+
+async function _buildDC3Core({ worker, company, agent, course, start, end, result, qrUrl, folio }) {
+    const { PDFDocument, StandardFonts, rgb } = PDFLib;
+
+    function sp(s) {
+        return String(s||'')
+            .replace(/[áà]/g,'a').replace(/[éè]/g,'e').replace(/[íì]/g,'i')
+            .replace(/[óò]/g,'o').replace(/[úùü]/g,'u').replace(/ñ/g,'n')
+            .replace(/[ÁÀ]/g,'A').replace(/[ÉÈ]/g,'E').replace(/[ÍÌ]/g,'I')
+            .replace(/[ÓÒ]/g,'O').replace(/[ÚÙÜ]/g,'U').replace(/Ñ/g,'N');
+    }
+
+    function parseFecha(f) {
+        if (!f) return { a:'    ', m:'  ', d:'  ' };
+        let parts;
+        if (f.includes('-')) {
+            parts = f.split('-');
+            return { a: parts[0].padStart(4,'0'), m: parts[1].padStart(2,'0'), d: parts[2].padStart(2,'0') };
+        } else {
+            parts = f.split('/');
+            return { a: (parts[2]||'    ').padStart(4,'0'), m: (parts[1]||'  ').padStart(2,'0'), d: (parts[0]||'  ').padStart(2,'0') };
+        }
+    }
+
+    let pdfTemplateBytes;
+    try {
+        const resp = await fetch('/plantilla_dc3.pdf');
+        if (!resp.ok) throw new Error('No se pudo cargar plantilla_dc3.pdf: ' + resp.status);
+        pdfTemplateBytes = await resp.arrayBuffer();
+    } catch(e) {
+        alert('Error cargando plantilla DC-3: ' + e.message);
+        return null;
+    }
+
+    const pdfDoc = await PDFDocument.load(pdfTemplateBytes);
+    const font   = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const fontB  = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const fontI  = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
+    const page   = pdfDoc.getPage(0);
+    const pageR  = pdfDoc.getPageCount() > 1 ? pdfDoc.getPage(1) : null;
+    const PH     = 792;
+
+    function T(x, yFitz, s, size, useBold) {
+        if (!s) return;
+        const sz = size || 9;
+        page.drawText(sp(String(s)), { x, y: PH - yFitz, size: sz, font: useBold ? fontB : font, color: rgb(0,0,0) });
+    }
+
+    function T_C(xCenter, yFitz, s, size, useBold) {
+        if (!s) return;
+        const sz = size || 9;
+        const f  = useBold ? fontB : font;
+        const w  = f.widthOfTextAtSize(sp(String(s)), sz);
+        page.drawText(sp(String(s)), { x: xCenter - w/2, y: PH - yFitz, size: sz, font: f, color: rgb(0,0,0) });
+    }
+
+    let agentDesign = null;
+    try {
+        const agentRecord = (DATA.agents || []).find(a => a.name && agent.name && a.name.toUpperCase().trim() === agent.name.toUpperCase().trim());
+        const agentEmail = agentRecord?.creatorEmail || currentUser?.email || '';
+        const dr = await api('find','agent_designs', { filter: { creatorEmail: agentEmail } });
+        if (dr.documents && dr.documents.length > 0) {
+            agentDesign = toCamel(dr.documents[0]);
+        }
+    } catch(e) {}
+
+    const compObj = (typeof company === 'object' && company !== null) ? company : { name: String(company || ''), rfc: '' };
+    const companyNameFinal = String(compObj.name || '').toUpperCase();
+
+    if (worker && worker.photoUrl) {
+        try {
+            const photoBytes = await fetch(worker.photoUrl).then(r => r.arrayBuffer());
+            const photoImg = await pdfDoc.embedJpg(photoBytes).catch(() => pdfDoc.embedPng(photoBytes));
+            page.drawImage(photoImg, { x: 24, y: PH - 126, width: 72, height: 90 });
+        } catch(e) {}
+    }
+
+    if (agentDesign?.headerLogoBase64) {
+        try {
+            const hlImg = await embedBase64Img(pdfDoc, agentDesign.headerLogoBase64);
+            const hlw = agentDesign.headerLogoW ?? 120, hlh = agentDesign.headerLogoH ?? 55;
+            page.drawImage(hlImg, { x: agentDesign.headerLogoX?? 30, y: PH - ((agentDesign.headerLogoY?? 10) + hlh), width: hlw, height: hlh });
+        } catch(e) {}
+    }
+    if (agentDesign?.headerSlogan) {
+        const hss = agentDesign.headerSloganSize || 9;
+        const hst = sp(agentDesign.headerSlogan);
+        const hsw = fontI.widthOfTextAtSize(hst, hss);
+        page.drawText(hst, { x: (agentDesign.headerSloganX?? 306) - hsw/2, y: PH - (agentDesign.headerSloganY?? 18) - hss, size: hss, font: fontI, color: rgb(0,0,0) });
+    }
+
+    if (agentDesign?.slogan) {
+        const ss = agentDesign.sloganSize ?? 7;
+        const st = sp(agentDesign.slogan);
+        const sw = font.widthOfTextAtSize(st, ss);
+        page.drawText(st, { x: (agentDesign.sloganX?? 30) - sw/2, y: PH - (agentDesign.sloganY?? 445) - ss, size: ss, font: font, color: rgb(0,0,0) });
+    }
+
+    let workerFullName = worker.apellidoPaterno ? `${worker.apellidoPaterno} ${worker.apellidoMaterno || ''} ${worker.nombres || ''}`.trim() : (worker.name || '');
+    T(30, 172.5, workerFullName.toUpperCase(), 9, true);
+
+    const curpStr = (worker.curp||'').toUpperCase().replace(/\s/g,'').slice(0,18);
+    const CURP_CENTERS = [32.0,47.4,62.8,78.2,93.5,108.8,124.2,139.6,155.0,170.3,185.8,201.2,216.6,231.9,247.2,262.6,278.0,293.3];
+    for (let i = 0; i < curpStr.length; i++) {
+        const w = font.widthOfTextAtSize(curpStr[i], 8);
+        page.drawText(curpStr[i], { x: CURP_CENTERS[i] - w/2, y: PH - 196, size: 8, font, color: rgb(0,0,0) });
+    }
+
+    T(307, 199, (worker.occupation||'').toUpperCase(), 9);
+    page.drawRectangle({ x:26, y: PH-226, width:559, height:13, color: rgb(1,1,1) });
+    T(30, 221, (worker.position||'').toUpperCase(), 9);
+
+    page.drawRectangle({ x:26, y: PH-288, width:559, height:17, color: rgb(1,1,1) });
+    T(30, 283, companyNameFinal, 9, true);
+    const rfcStr = (compObj.rfc||'').toUpperCase().replace(/\s/g,'').slice(0,15);
+    const RFC_CENTERS = [34.9,52.1,66.0,80.8,95.4,109.8,124.0,138.3,152.8,167.0,181.2,195.5,209.8,227.4,245.1];
+    for (let i = 0; i < rfcStr.length; i++) {
+        const w = font.widthOfTextAtSize(rfcStr[i], 8);
+        page.drawText(rfcStr[i], { x: RFC_CENTERS[i] - w/2, y: PH - 311, size: 8, font, color: rgb(0,0,0) });
+    }
+
+    page.drawRectangle({ x:26, y: PH-366, width:559, height:11, color: rgb(1,1,1) });
+    T(30, 363, (course.name||'').toUpperCase(), 9);
+    T(30, 390, (course.durationHours||'').toUpperCase(), 8);
+
+    const fStart = parseFecha(start), fEnd = parseFecha(end);
+    const FY_digits = 389;
+    const centers = { iniA:[260.2,276.1,292.2,308.4], iniM:[326.9,348.2], iniD:[369.6,390.7], finA:[432.9,452.4,471.9,491.4], finM:[511.8,532.8], finD:[554.2,575.7] };
+    const drawDigits = (val, arr) => { for(let i=0; i<val.length; i++) { if(val[i] && val[i]!==' ') { const w=font.widthOfTextAtSize(val[i],8); page.drawText(val[i],{x:arr[i]-w/2,y:PH-FY_digits,size:8,font,color:rgb(0,0,0)}); } } };
+    drawDigits(fStart.a, centers.iniA); drawDigits(fStart.m, centers.iniM); drawDigits(fStart.d, centers.iniD);
+    drawDigits(fEnd.a, centers.finA); drawDigits(fEnd.m, centers.finM); drawDigits(fEnd.d, centers.finD);
+
+    page.drawRectangle({ x:26, y: PH-416, width:559, height:9, color: rgb(1,1,1) });
+    T(30, 413, (course.thematicArea||'').toUpperCase(), 8);
+    page.drawRectangle({ x:26, y: PH-442, width:559, height:11, color: rgb(1,1,1) });
+    T(30, 440, (agent.name + "  " + agent.stps).toUpperCase(), 8);
+
+    const SIG_Y = 512, NAME_Y = 522;
+    page.drawRectangle({ x:63, y: PH-538, width:137, height:27, color: rgb(1,1,1) });
+    page.drawRectangle({ x:218, y: PH-538, width:153, height:27, color: rgb(1,1,1) });
+    page.drawRectangle({ x:389, y: PH-538, width:153, height:27, color: rgb(1,1,1) });
+
+    if (agentDesign?.logoBase64) {
+        try { const lImg = await embedBase64Img(pdfDoc, agentDesign.logoBase64); page.drawImage(lImg, { x:agentDesign.logoX??58, y:PH-((agentDesign.logoY??454)+(agentDesign.logoH??65)), width:agentDesign.logoW??115, height:agentDesign.logoH??65, opacity:0.8 }); } catch(e) {}
+    }
+    if (agentDesign?.firmaBase64) {
+        try { const fImg = await embedBase64Img(pdfDoc, agentDesign.firmaBase64); page.drawImage(fImg, { x:agentDesign.firmaX??88, y:PH-((agentDesign.firmaY??457)+(agentDesign.firmaH??60)), width:agentDesign.firmaW??85, height:agentDesign.firmaH??60 }); } catch(e) {}
+    }
+
+    // Dibujar QR si se proporciona
+    if (qrUrl) {
+        try {
+            const qrBase64 = await generateQRBase64(qrUrl);
+            const qrImg = await embedBase64Img(pdfDoc, qrBase64);
+            const qsz = agentDesign?.qrSz ?? 60;
+            const qx = agentDesign?.qrX ?? 480;
+            const qy = agentDesign?.qrY ?? 60;
+            page.drawImage(qrImg, { x: qx, y: PH - qy - qsz, width: qsz, height: qsz });
+        } catch(e) {}
+    }
+
+    // Dibujar Folio si se proporciona
+    if (folio) {
+        try {
+            const fx = agentDesign?.dc3FolioX ?? 480;
+            const fy = agentDesign?.dc3FolioY ?? 740;
+            const fsz = agentDesign?.dc3FolioSz ?? 9;
+            page.drawText(folio, { x: fx, y: PH - fy - fsz, size: fsz, font: fontB, color: rgb(0,0,0) });
+        } catch(e) {}
+    }
+
+    T_C(132, NAME_Y, agent.name.toUpperCase(), 8);
+    T_C(295, NAME_Y, (compObj.representanteLegal||'').toUpperCase(), 8);
+    T_C(465, NAME_Y, (compObj.representanteTrabajadores||'').toUpperCase(), 8);
+
+    // --- PÁGINA 2 (Reverso) ---
+    if (pageR) {
+        if (agentDesign?.headerLogoBase64) {
+            try {
+                const hlImg = await embedBase64Img(pdfDoc, agentDesign.headerLogoBase64);
+                const hlw = agentDesign.headerLogoW ?? 120, hlh = agentDesign.headerLogoH ?? 55;
+                pageR.drawImage(hlImg, { x: agentDesign.headerLogoX?? 30, y: PH - ((agentDesign.headerLogoY?? 10) + hlh), width: hlw, height: hlh });
+            } catch(e) {}
+        }
+        if (agentDesign?.headerSlogan) {
+            const hss = agentDesign.headerSloganSize || 9;
+            const hst = sp(agentDesign.headerSlogan);
+            const hsw = fontI.widthOfTextAtSize(hst, hss);
+            pageR.drawText(hst, { x: (agentDesign.headerSloganX?? 306) - hsw/2, y: PH - (agentDesign.headerSloganY?? 18) - hss, size: hss, font: fontI, color: rgb(0,0,0) });
+        }
+    }
+
+    return await pdfDoc.save();
 }
 
 
