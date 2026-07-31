@@ -1590,8 +1590,8 @@ async function loadSection(v) {
                     <td class="${currentHistoryTab === 'DIPLOMA' ? '' : 'hidden'} font-mono text-xs text-blue-900">${x.folio || '—'}</td>
                     <td class="text-right">
                         <div class="flex justify-end gap-2">
-                            <button onclick='previewDC3FromRecord(${JSON.stringify(x)})' title="Previsualizar" class="btn-sm btn-outline" style="border-color:#1e3a8a;color:#1e3a8a">👁 Ver</button>
-                            <button onclick='regenDC3(${JSON.stringify(x)})' title="Descargar PDF" class="btn-sm btn-indigo">⬇ PDF</button>
+                            <button onclick='previewRecordPDF(${JSON.stringify(x)})' title="Previsualizar" class="btn-sm btn-outline" style="border-color:#1e3a8a;color:#1e3a8a">👁 Ver</button>
+                            <button onclick='downloadRecordPDF(${JSON.stringify(x)})' title="Descargar PDF" class="btn-sm btn-indigo">⬇ PDF</button>
                             <button onclick='prepareEditDC3(${JSON.stringify(x)})' title="Editar Registro" class="btn-sm btn-outline">✎</button>
                             <button onclick="delItem('dc3_records','${x.id}')" title="Eliminar" class="btn-sm btn-red">✕</button>
                         </div>
@@ -2021,7 +2021,7 @@ async function generateDiploma() {
         const qrUrl = `https://ace-control.pages.dev/?v=${saveRes.insertedId}`;
 
         // 2. Generar PDF
-        const pdfBytes = await _buildDiplomaCore({ qrUrl });
+        const pdfBytes = await _buildDiplomaCore({ qrUrl, folio });
         if (!pdfBytes) return;
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
@@ -2082,7 +2082,7 @@ async function generateBoth() {
             qrUrl: qrUrl
         });
 
-        const diplomaBytes = await _buildDiplomaCore({ qrUrl });
+        const diplomaBytes = await _buildDiplomaCore({ qrUrl, folio });
 
         if (!dc3Bytes || !diplomaBytes) return;
 
@@ -2131,13 +2131,15 @@ async function previewDiploma() {
 async function _buildDiplomaCore(opts = {}) {
     const { PDFDocument, StandardFonts, rgb } = PDFLib;
 
-    const companyName = document.getElementById('dc3-company').value;
-    const agentVal    = document.getElementById('dc3-agent').value;
-    const courseVal   = document.getElementById('dc3-course').value;
-    const start       = document.getElementById('dc3-start').value;
-    const end         = document.getElementById('dc3-end').value;
+    // Obtener valores de opts (historial) o del DOM (modal actual)
+    const worker = opts.worker || selectedWorker;
+    const companyName = opts.companyName || document.getElementById('dc3-company')?.value;
+    const agentVal    = opts.agentVal || document.getElementById('dc3-agent')?.value;
+    const courseVal   = opts.courseVal || document.getElementById('dc3-course')?.value;
+    const start       = opts.startDate || document.getElementById('dc3-start')?.value;
+    const end         = opts.endDate || document.getElementById('dc3-end')?.value;
 
-    if (!start || !end) { alert('Selecciona las fechas'); return null; }
+    if (!start || !end) { if (!opts.quiet) alert('Selecciona las fechas'); return null; }
 
     const [agentName, agentStps] = agentVal.split('|');
     const [courseName, courseDuration, courseArea, courseStpsId] = courseVal.split('|');
@@ -2268,7 +2270,7 @@ async function _buildDiplomaCore(opts = {}) {
     }
 
     // 6. Folio Consecutivo (EHS-CON-YYYY-XXXX)
-    const folioTxt = await getNextFolio();
+    const folioTxt = opts.folio || await getNextFolio();
     drawC(folioTxt, dx('dipFolioX', 396), dx('dipFolioY', 550), dx('dipFolioSz', 10), true);
 
     return await pdfDoc.save();
@@ -2292,20 +2294,7 @@ async function getNextFolio() {
     }
 }
 
-// Regenerar desde historial
-async function regenDC3(record) {
-    const worker  = { name: record.workerName, curp: record.workerId, position: record.workerPos };
-    const regenCompany = DATA.companies.find(c => c.name === record.companyName) || { name: record.companyName, rfc: '', representanteLegal: '', representanteTrabajadores: null };
-    await buildDC3PDF({
-        worker,
-        company: regenCompany,
-        agent:   { name: record.agentName || '–', stps: record.agentStps || '–' },
-        course:  { name: record.courseName, duration: record.durationHours, area: record.thematicArea },
-        start:   record.startDate,
-        end:     record.endDate,
-        result:  record.resultText || 'Aprobado'
-    });
-}
+// Regenerar desde historial eliminado a favor de downloadRecordPDF y previewRecordPDF
 
 
 // ─── EXCEL IMPORT ──────────────────────────────────────
@@ -3294,237 +3283,136 @@ async function previewDC3() {
     }
 }
 
-async function previewDC3FromRecord(record) {
-    const worker  = { name: record.workerName, curp: record.workerId, position: record.workerPos };
-    const regenCompany = DATA.companies.find(c => c.name === record.companyName) || { name: record.companyName, rfc: '' };
+async function previewRecordPDF(record) {
+    const worker = {
+        name: record.workerName,
+        curp: record.workerId,
+        position: record.workerPos
+    };
+    const regenCompany = DATA.companies.find(c => c.name === record.companyName) || {
+        name: record.companyName,
+        rfc: '',
+        representanteLegal: record.representanteLegal,
+        representanteTrabajadores: record.representanteTrabajadores
+    };
 
     document.getElementById('modal-dc3-preview').classList.add('open');
     const container = document.getElementById('dc3-preview-container');
-    container.innerHTML = '<p class="text-gray-400 text-sm">Cargando DC-3…</p>';
+    container.innerHTML = `<p class="text-gray-400 text-sm">Cargando ${record.documentType}…</p>`;
 
     try {
-        _previewPdfBytes = await buildDC3PDFBytes({
-            worker, company: regenCompany,
-            agent:  { name: record.agentName || '–', stps: record.agentStps || '–' },
-            course: { name: record.courseName, duration: record.durationHours, area: record.thematicArea },
-            start: record.startDate, end: record.endDate, result: record.resultText || 'Acreditado'
-        });
+        if (record.documentType === 'DIPLOMA') {
+            _previewPdfBytes = await _buildDiplomaCore({
+                worker,
+                companyName: record.companyName,
+                agentVal: `${record.agentName}|${record.agentStps}`,
+                courseVal: `${record.courseName}|${record.durationHours}|${record.thematicArea}`,
+                startDate: record.startDate,
+                endDate: record.endDate,
+                folio: record.folio,
+                qrUrl: `https://ace-control.pages.dev/?v=${record.id}`,
+                quiet: true
+            });
+        } else {
+            _previewPdfBytes = await _buildDC3Core({
+                worker,
+                company: regenCompany,
+                agent: { name: record.agentName || '–', stps: record.agentStps || '–' },
+                course: { name: record.courseName, durationHours: record.durationHours, thematicArea: record.thematicArea },
+                start: record.startDate,
+                end: record.endDate,
+                result: record.resultText || 'Acreditado',
+                qrUrl: `https://ace-control.pages.dev/?v=${record.id}`
+            });
+        }
         showPDFInContainer(_previewPdfBytes, container);
-    } catch(e) {
+    } catch (e) {
+        console.error("Preview error:", e);
         container.innerHTML = `<p class="text-red-500 text-sm">Error: ${e.message}</p>`;
     }
 }
 
-function showPDFInContainer(pdfBytes, container) {
-    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-    const url  = URL.createObjectURL(blob);
-    container.innerHTML = `<iframe src="${url}" style="width:100%;height:100%;border:none;border-radius:8px" title="DC-3 Preview"></iframe>`;
-}
+async function downloadRecordPDF(record) {
+    const worker = {
+        name: record.workerName,
+        curp: record.workerId,
+        position: record.workerPos
+    };
+    const regenCompany = DATA.companies.find(c => c.name === record.companyName) || {
+        name: record.companyName,
+        rfc: '',
+        representanteLegal: record.representanteLegal,
+        representanteTrabajadores: record.representanteTrabajadores
+    };
 
-function downloadFromPreview() {
-    if (!_previewPdfBytes) return;
-    const blob = new Blob([_previewPdfBytes], { type: 'application/pdf' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href = url;
-    a.download = `DC3_preview.pdf`;
-    a.click();
-    URL.revokeObjectURL(url);
-}
-
-// ─── buildDC3PDFBytes: igual que buildDC3PDF pero retorna bytes en vez de descargar ──
-async function buildDC3PDFBytes(opts) {
-    return await _buildDC3Core(opts);
-}
-
-async function _buildDC3Core({ worker, company, agent, course, start, end, result, qrUrl }) {
-    const { PDFDocument, StandardFonts, rgb } = PDFLib;
-
-    function sp(s) {
-        return String(s||'')
-            .replace(/[áà]/g,'a').replace(/[éè]/g,'e').replace(/[íì]/g,'i')
-            .replace(/[óò]/g,'o').replace(/[úùü]/g,'u').replace(/ñ/g,'n')
-            .replace(/[ÁÀ]/g,'A').replace(/[ÉÈ]/g,'E').replace(/[ÍÌ]/g,'I')
-            .replace(/[ÓÒ]/g,'O').replace(/[ÚÙÜ]/g,'U').replace(/Ñ/g,'N');
-    }
-
-    function parseFecha(f) {
-        if (!f) return { a:'    ', m:'  ', d:'  ' };
-        let parts;
-        if (f.includes('-')) {
-            parts = f.split('-');
-            return { a: parts[0].padStart(4,'0'), m: parts[1].padStart(2,'0'), d: parts[2].padStart(2,'0') };
+    try {
+        let pdfBytes;
+        if (record.documentType === 'DIPLOMA') {
+            pdfBytes = await _buildDiplomaCore({
+                worker,
+                companyName: record.companyName,
+                agentVal: `${record.agentName}|${record.agentStps}`,
+                courseVal: `${record.courseName}|${record.durationHours}|${record.thematicArea}`,
+                startDate: record.startDate,
+                endDate: record.endDate,
+                folio: record.folio,
+                qrUrl: `https://ace-control.pages.dev/?v=${record.id}`,
+                quiet: true
+            });
+        } else if (record.documentType === 'BOTH') {
+            const dc3Bytes = await _buildDC3Core({
+                worker, company: regenCompany,
+                agent: { name: record.agentName, stps: record.agentStps },
+                course: { name: record.courseName, durationHours: record.durationHours, thematicArea: record.thematicArea },
+                start: record.startDate, end: record.endDate, result: record.resultText,
+                qrUrl: `https://ace-control.pages.dev/?v=${record.id}`
+            });
+            const diplomaBytes = await _buildDiplomaCore({
+                worker,
+                companyName: record.companyName,
+                agentVal: `${record.agentName}|${record.agentStps}`,
+                courseVal: `${record.courseName}|${record.durationHours}|${record.thematicArea}`,
+                startDate: record.startDate,
+                endDate: record.endDate,
+                folio: record.folio,
+                qrUrl: `https://ace-control.pages.dev/?v=${record.id}`,
+                quiet: true
+            });
+            const { PDFDocument } = PDFLib;
+            const mergedPdf = await PDFDocument.create();
+            const dc3Doc = await PDFDocument.load(dc3Bytes);
+            const diplomaDoc = await PDFDocument.load(diplomaBytes);
+            const dc3Pages = await mergedPdf.copyPages(dc3Doc, dc3Doc.getPageIndices());
+            dc3Pages.forEach(p => mergedPdf.addPage(p));
+            const diplomaPages = await mergedPdf.copyPages(diplomaDoc, diplomaDoc.getPageIndices());
+            diplomaPages.forEach(p => mergedPdf.addPage(p));
+            pdfBytes = await mergedPdf.save();
         } else {
-            parts = f.split('/');
-            return { a: (parts[2]||'    ').padStart(4,'0'), m: (parts[1]||'  ').padStart(2,'0'), d: (parts[0]||'  ').padStart(2,'0') };
+            pdfBytes = await _buildDC3Core({
+                worker,
+                company: regenCompany,
+                agent: { name: record.agentName || '–', stps: record.agentStps || '–' },
+                course: { name: record.courseName, durationHours: record.durationHours, thematicArea: record.thematicArea },
+                start: record.startDate,
+                end: record.endDate,
+                result: record.resultText || 'Acreditado',
+                qrUrl: `https://ace-control.pages.dev/?v=${record.id}`
+            });
         }
-    }
 
-    let pdfBytes;
-    try {
-        const resp = await fetch('/plantilla_dc3.pdf');
-        if (!resp.ok) throw new Error('No se pudo cargar plantilla_dc3.pdf: ' + resp.status);
-        pdfBytes = await resp.arrayBuffer();
-    } catch(e) {
-        alert('Error cargando plantilla DC-3: ' + e.message);
-        return null;
-    }
-
-    const pdfDoc = await PDFDocument.load(pdfBytes);
-    const font   = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const fontB  = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-    const fontI  = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
-    const page   = pdfDoc.getPage(0);
-    const pageR  = pdfDoc.getPageCount() > 1 ? pdfDoc.getPage(1) : null;
-    const PH     = 792;
-
-    function T(x, yFitz, s, size, useBold) {
-        if (!s) return;
-        const sz = size || 9;
-        page.drawText(sp(String(s)), { x, y: PH - yFitz, size: sz, font: useBold ? fontB : font, color: rgb(0,0,0) });
-    }
-
-    function T_C(xCenter, yFitz, s, size, useBold) {
-        if (!s) return;
-        const sz = size || 9;
-        const f  = useBold ? fontB : font;
-        const w  = f.widthOfTextAtSize(sp(String(s)), sz);
-        page.drawText(sp(String(s)), { x: xCenter - w/2, y: PH - yFitz, size: sz, font: f, color: rgb(0,0,0) });
-    }
-
-    let agentDesign = null;
-    try {
-        const agentRecord = (DATA.agents || []).find(a => a.name && agent.name && a.name.toUpperCase().trim() === agent.name.toUpperCase().trim());
-        const agentEmail = agentRecord?.creatorEmail || currentUser?.email || '';
-        const dr = await api('find','agent_designs', { filter: { creatorEmail: agentEmail } });
-        if (dr.documents && dr.documents.length > 0) {
-            agentDesign = toCamel(dr.documents[0]);
+        if (pdfBytes) {
+            const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${record.documentType}_${record.workerId}.pdf`;
+            a.click();
+            URL.revokeObjectURL(url);
         }
-    } catch(e) {}
-
-    // Usar estado actual si coincide con el agente (para permitir generar sin guardar antes)
-    if (designState.agent_name && agent.name && designState.agent_name.toUpperCase().trim() === agent.name.toUpperCase().trim()) {
-        const currentD = toCamel(getDesignParams());
-        agentDesign = { ...agentDesign, ...currentD };
+    } catch (e) {
+        console.error("Regen error:", e);
+        alert("Error al regenerar PDF: " + e.message);
     }
-
-    const compObj = (typeof company === 'object' && company !== null) ? company : { name: String(company || ''), rfc: '' };
-    const companyNameFinal = String(compObj.name || '').toUpperCase();
-
-    if (worker && worker.photoUrl) {
-        try {
-            const photoBytes = await fetch(worker.photoUrl).then(r => r.arrayBuffer());
-            const photoImg = await pdfDoc.embedJpg(photoBytes).catch(() => pdfDoc.embedPng(photoBytes));
-            page.drawImage(photoImg, { x: 24, y: PH - 126, width: 72, height: 90 });
-        } catch(e) {}
-    }
-
-    if (agentDesign?.headerLogoBase64) {
-        try {
-            const hlImg = await embedBase64Img(pdfDoc, agentDesign.headerLogoBase64);
-            const hlw = agentDesign.headerLogoW ?? 120, hlh = agentDesign.headerLogoH ?? 55;
-            page.drawImage(hlImg, { x: agentDesign.headerLogoX?? 30, y: PH - ((agentDesign.headerLogoY?? 10) + hlh), width: hlw, height: hlh });
-        } catch(e) {}
-    }
-    if (agentDesign?.headerSlogan) {
-        const hss = agentDesign.headerSloganSize || 9;
-        const hst = sp(agentDesign.headerSlogan);
-        const hsw = fontI.widthOfTextAtSize(hst, hss);
-        page.drawText(hst, { x: (agentDesign.headerSloganX?? 306) - hsw/2, y: PH - (agentDesign.headerSloganY?? 18) - hss, size: hss, font: fontI, color: rgb(0,0,0) });
-    }
-
-    if (agentDesign?.slogan) {
-        const ss = agentDesign.sloganSize ?? 7;
-        const st = sp(agentDesign.slogan);
-        const sw = font.widthOfTextAtSize(st, ss);
-        page.drawText(st, { x: (agentDesign.sloganX?? 30) - sw/2, y: PH - (agentDesign.sloganY?? 445) - ss, size: ss, font: font, color: rgb(0,0,0) });
-    }
-
-    let workerFullName = worker.apellidoPaterno ? `${worker.apellidoPaterno} ${worker.apellidoMaterno || ''} ${worker.nombres || ''}`.trim() : (worker.name || '');
-    T(30, 172.5, workerFullName.toUpperCase(), 9, true);
-
-    const curpStr = (worker.curp||'').toUpperCase().replace(/\s/g,'').slice(0,18);
-    const CURP_CENTERS = [32.0,47.4,62.8,78.2,93.5,108.8,124.2,139.6,155.0,170.3,185.8,201.2,216.6,231.9,247.2,262.6,278.0,293.3];
-    for (let i = 0; i < curpStr.length; i++) {
-        const w = font.widthOfTextAtSize(curpStr[i], 8);
-        page.drawText(curpStr[i], { x: CURP_CENTERS[i] - w/2, y: PH - 196, size: 8, font, color: rgb(0,0,0) });
-    }
-
-    T(307, 199, (worker.occupation||'').toUpperCase(), 9);
-    page.drawRectangle({ x:26, y: PH-226, width:559, height:13, color: rgb(1,1,1) });
-    T(30, 221, (worker.position||'').toUpperCase(), 9);
-
-    page.drawRectangle({ x:26, y: PH-288, width:559, height:17, color: rgb(1,1,1) });
-    T(30, 283, companyNameFinal, 9, true);
-    const rfcStr = (compObj.rfc||'').toUpperCase().replace(/\s/g,'').slice(0,15);
-    const RFC_CENTERS = [34.9,52.1,66.0,80.8,95.4,109.8,124.0,138.3,152.8,167.0,181.2,195.5,209.8,227.4,245.1];
-    for (let i = 0; i < rfcStr.length; i++) {
-        const w = font.widthOfTextAtSize(rfcStr[i], 8);
-        page.drawText(rfcStr[i], { x: RFC_CENTERS[i] - w/2, y: PH - 311, size: 8, font, color: rgb(0,0,0) });
-    }
-
-    page.drawRectangle({ x:26, y: PH-366, width:559, height:11, color: rgb(1,1,1) });
-    T(30, 363, (course.name||'').toUpperCase(), 9);
-    T(30, 390, (course.durationHours||'').toUpperCase(), 8);
-
-    const fStart = parseFecha(start), fEnd = parseFecha(end);
-    const FY_digits = 389;
-    const centers = { iniA:[260.2,276.1,292.2,308.4], iniM:[326.9,348.2], iniD:[369.6,390.7], finA:[432.9,452.4,471.9,491.4], finM:[511.8,532.8], finD:[554.2,575.7] };
-    const drawDigits = (val, arr) => { for(let i=0; i<val.length; i++) { if(val[i] && val[i]!==' ') { const w=font.widthOfTextAtSize(val[i],8); page.drawText(val[i],{x:arr[i]-w/2,y:PH-FY_digits,size:8,font,color:rgb(0,0,0)}); } } };
-    drawDigits(fStart.a, centers.iniA); drawDigits(fStart.m, centers.iniM); drawDigits(fStart.d, centers.iniD);
-    drawDigits(fEnd.a, centers.finA); drawDigits(fEnd.m, centers.finM); drawDigits(fEnd.d, centers.finD);
-
-    page.drawRectangle({ x:26, y: PH-416, width:559, height:9, color: rgb(1,1,1) });
-    T(30, 413, (course.thematicArea||'').toUpperCase(), 8);
-    page.drawRectangle({ x:26, y: PH-442, width:559, height:11, color: rgb(1,1,1) });
-    T(30, 440, (agent.name + "  " + agent.stps).toUpperCase(), 8);
-
-    const SIG_Y = 512, NAME_Y = 522;
-    page.drawRectangle({ x:63, y: PH-538, width:137, height:27, color: rgb(1,1,1) });
-    page.drawRectangle({ x:218, y: PH-538, width:153, height:27, color: rgb(1,1,1) });
-    page.drawRectangle({ x:389, y: PH-538, width:153, height:27, color: rgb(1,1,1) });
-
-    if (agentDesign?.logoBase64) {
-        try { const lImg = await embedBase64Img(pdfDoc, agentDesign.logoBase64); page.drawImage(lImg, { x:agentDesign.logoX??58, y:PH-((agentDesign.logoY??454)+(agentDesign.logoH??65)), width:agentDesign.logoW??115, height:agentDesign.logoH??65, opacity:0.8 }); } catch(e) {}
-    }
-    if (agentDesign?.firmaBase64) {
-        try { const fImg = await embedBase64Img(pdfDoc, agentDesign.firmaBase64); page.drawImage(fImg, { x:agentDesign.firmaX??88, y:PH-((agentDesign.firmaY??457)+(agentDesign.firmaH??60)), width:agentDesign.firmaW??85, height:agentDesign.firmaH??60 }); } catch(e) {}
-    }
-
-    // Dibujar QR si se proporciona
-    if (qrUrl) {
-        try {
-            const qrBase64 = await generateQRBase64(qrUrl);
-            const qrImg = await embedBase64Img(pdfDoc, qrBase64);
-            const qsz = agentDesign.qrSz ?? 60;
-            const qx = agentDesign.qrX ?? 480;
-            const qy = agentDesign.qrY ?? 60;
-            page.drawImage(qrImg, { x: qx, y: PH - qy - qsz, width: qsz, height: qsz });
-        } catch(e) {}
-    }
-
-    T_C(132, NAME_Y, agent.name.toUpperCase(), 8);
-    T_C(295, NAME_Y, (compObj.representanteLegal||'').toUpperCase(), 8);
-    T_C(465, NAME_Y, (compObj.representanteTrabajadores||'').toUpperCase(), 8);
-
-    // --- PÁGINA 2 (Reverso) ---
-    if (pageR) {
-        if (agentDesign?.headerLogoBase64) {
-            try {
-                const hlImg = await embedBase64Img(pdfDoc, agentDesign.headerLogoBase64);
-                const hlw = agentDesign.headerLogoW ?? 120, hlh = agentDesign.headerLogoH ?? 55;
-                pageR.drawImage(hlImg, { x: agentDesign.headerLogoX?? 30, y: PH - ((agentDesign.headerLogoY?? 10) + hlh), width: hlw, height: hlh });
-            } catch(e) {}
-        }
-        if (agentDesign?.headerSlogan) {
-            const hss = agentDesign.headerSloganSize ?? 9;
-            const hst = sp(agentDesign.headerSlogan);
-            const hsw = fontI.widthOfTextAtSize(hst, hss);
-            pageR.drawText(hst, { x: (agentDesign.headerSloganX?? 306) - hsw/2, y: PH - (agentDesign.headerSloganY?? 18) - hss, size: hss, font: fontI, color: rgb(0,0,0) });
-        }
-    }
-
-    return await pdfDoc.save();
 }
 
 
