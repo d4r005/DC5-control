@@ -2247,7 +2247,7 @@ async function _buildDiplomaCore(opts = {}) {
     const dx = (id, def) => d?.[id] ?? def;
 
     // 1. Nombre del Trabajador
-    const fullName = selectedWorker.apellidoPaterno ? `${selectedWorker.nombres} ${selectedWorker.apellidoPaterno} ${selectedWorker.apellidoMaterno || ''}`.trim() : selectedWorker.name;
+    const fullName = worker.apellidoPaterno ? `${worker.nombres} ${worker.apellidoPaterno} ${worker.apellidoMaterno || ''}`.trim() : worker.name;
     drawC(fullName, dx('dipWorkerX', 396), dx('dipWorkerY', 245), dx('dipWorkerSz', 28), true, rgb(0.1, 0.2, 0.4));
 
     // 2. Nombre del Curso
@@ -3329,11 +3329,20 @@ async function previewDC3() {
 }
 
 async function previewRecordPDF(record) {
-    const worker = {
+    let worker = {
         name: record.workerName,
         curp: record.workerId,
         position: record.workerPos
     };
+
+    // Intentar obtener datos completos del trabajador (foto, etc)
+    try {
+        const res = await api('find', 'workers', { filter: { curp: record.workerId } });
+        if (res.documents && res.documents.length > 0) {
+            worker = { ...worker, ...res.documents[0] };
+        }
+    } catch (e) { console.warn("Could not fetch full worker data for preview", e); }
+
     const regenCompany = DATA.companies.find(c => c.name === record.companyName) || {
         name: record.companyName,
         rfc: '',
@@ -3400,11 +3409,20 @@ async function buildDC3PDFBytes(opts) {
 }
 
 async function downloadRecordPDF(record) {
-    const worker = {
+    let worker = {
         name: record.workerName,
         curp: record.workerId,
         position: record.workerPos
     };
+
+    // Intentar obtener datos completos del trabajador (foto, etc)
+    try {
+        const res = await api('find', 'workers', { filter: { curp: record.workerId } });
+        if (res.documents && res.documents.length > 0) {
+            worker = { ...worker, ...res.documents[0] };
+        }
+    } catch (e) { console.warn("Could not fetch full worker data for download", e); }
+
     const regenCompany = DATA.companies.find(c => c.name === record.companyName) || {
         name: record.companyName,
         rfc: '',
