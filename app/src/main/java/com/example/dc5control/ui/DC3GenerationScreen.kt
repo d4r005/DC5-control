@@ -231,7 +231,11 @@ fun DC3GenerationScreen(
 
             val year = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
             val initialRecords = SupabaseRepository.fetchDataFilteredSuspend("dc3_records", "start_date=gte.$year-01-01", DC3Record.serializer())
-            val initialCount = initialRecords.size
+            // Contar solo los que tienen folio del año actual y son de tipo diploma o ambos
+            val initialCount = initialRecords.count { 
+                it.folio?.contains("-$year-") == true && 
+                (it.documentType == "DIPLOMA" || it.documentType == "BOTH")
+            }
 
             var currentDoc = 0
             val totalDocs = selectedEmployees.size * selectedCourses.size

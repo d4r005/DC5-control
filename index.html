@@ -1204,7 +1204,18 @@ async function api(action, collection, payload = {}) {
             let q = sb.from(table).select('*');
             if (payload.filter) {
                 for (const [k,v] of Object.entries(toSnake(payload.filter))) {
-                    if (v && v !== '') q = q.eq(k, v);
+                    if (v && v !== '') {
+                        if (typeof v === 'string' && v.includes('.')) {
+                            const dotIdx = v.indexOf('.');
+                            const op = v.substring(0, dotIdx);
+                            const val = v.substring(dotIdx + 1);
+                            if (['eq','neq','gt','gte','lt','lte','like','ilike','is','in'].includes(op)) {
+                                q = q[op](k, val);
+                                continue;
+                            }
+                        }
+                        q = q.eq(k, v);
+                    }
                 }
             }
             q = q.order('created_at', { ascending: false });
@@ -2257,10 +2268,16 @@ async function getNextFolio() {
     try {
         const year = new Date().getFullYear();
         const r = await api('find','dc3_records', { filter: { startDate: `gte.${year}-01-01` } });
-        // Contar registros que son Diploma o Ambos y tienen folio
-        const count = (r.documents?.filter(x => x.folio && (x.documentType === 'DIPLOMA' || x.documentType === 'BOTH')).length || 0) + 1;
+        // Filtrar robustamente por año actual y que posean un folio válido
+        const count = (r.documents?.filter(x => {
+            return x.folio &&
+                   x.folio.includes(`-${year}-`) &&
+                   (x.documentType === 'DIPLOMA' || x.documentType === 'BOTH');
+        }).length || 0) + 1;
+
         return `EHS-CON-${year}-${String(count).padStart(4, '0')}`;
     } catch(e) {
+        console.error("Folio calculation error:", e);
         return `EHS-CON-${new Date().getFullYear()}-${Math.floor(Math.random()*9000)+1000}`;
     }
 }
