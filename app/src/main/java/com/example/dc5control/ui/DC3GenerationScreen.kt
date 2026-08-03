@@ -48,7 +48,7 @@ import kotlinx.coroutines.withContext
 suspend fun loadBitmap(context: Context, source: String?): Bitmap? {
     if (source.isNullOrBlank()) return null
     return try {
-        if (source.startsWith("data:image")) {
+        val bmp = if (source.startsWith("data:image")) {
             val base64String = source.substringAfter("base64,")
             val decodedBytes = Base64.decode(base64String, Base64.DEFAULT)
             BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
@@ -61,7 +61,12 @@ suspend fun loadBitmap(context: Context, source: String?): Bitmap? {
             val result = (loader.execute(request) as? SuccessResult)?.drawable
             (result as? android.graphics.drawable.BitmapDrawable)?.bitmap
         }
+        if (bmp == null) {
+            android.util.Log.e("loadBitmap", "Decode devolvió null. source(50)=${source.take(50)}")
+        }
+        bmp
     } catch (e: Exception) {
+        android.util.Log.e("loadBitmap", "Fallo al cargar bitmap. source(50)=${source.take(50)}", e)
         null
     }
 }
@@ -145,7 +150,7 @@ fun DC3GenerationScreen(
         val company = selectedCompany ?: return
         
         try {
-            val design = SupabaseRepository.fetchDataFilteredSuspend("agent_designs", "creator_email=eq.${agent.creatorEmail ?: user.email}", AgentDesign.serializer()).firstOrNull()
+            val design = SupabaseRepository.fetchDataFilteredSuspend("agent_designs", "creator_email=eq.${agent.creatorEmail ?: user.email}&order=created_at.desc", AgentDesign.serializer()).firstOrNull()
             
             val signature = loadBitmap(context, design?.firmaBase64)
             val logo = loadBitmap(context, design?.logoBase64)
@@ -234,7 +239,7 @@ fun DC3GenerationScreen(
         val agent = selectedAgent ?: return
         isGenerating = true
         try {
-            val design = SupabaseRepository.fetchDataFilteredSuspend("agent_designs", "creator_email=eq.${agent.creatorEmail ?: user.email}", AgentDesign.serializer()).firstOrNull()
+            val design = SupabaseRepository.fetchDataFilteredSuspend("agent_designs", "creator_email=eq.${agent.creatorEmail ?: user.email}&order=created_at.desc", AgentDesign.serializer()).firstOrNull()
             val customTemplate = loadBitmap(context, design?.diplomaTemplateBase64)
 
             val year = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)

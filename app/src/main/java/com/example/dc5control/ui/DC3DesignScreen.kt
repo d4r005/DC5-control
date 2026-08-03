@@ -876,7 +876,7 @@ fun DesignScreen(
                                             val success = if (selectedDesign != null) {
                                                 SupabaseRepository.updateDataSuspend("agent_designs", selectedDesign!!.id!!, updated!!, AgentDesign.serializer())
                                             } else {
-                                                val existing = SupabaseRepository.fetchDataFilteredSuspend("agent_designs", "creator_email=eq.${user.email}", AgentDesign.serializer()).firstOrNull()
+                                                val existing = SupabaseRepository.fetchDataFilteredSuspend("agent_designs", "creator_email=eq.${user.email}&order=created_at.desc", AgentDesign.serializer()).firstOrNull()
                                                 if (existing != null) {
                                                     SupabaseRepository.updateDataSuspend("agent_designs", existing.id!!, updated!!, AgentDesign.serializer())
                                                 } else {
@@ -1212,7 +1212,7 @@ fun DesignScreen(
                                             val success = if (selectedDesign != null) {
                                                 SupabaseRepository.updateDataSuspend("agent_designs", selectedDesign!!.id!!, updated!!, AgentDesign.serializer())
                                             } else {
-                                                val existing = SupabaseRepository.fetchDataFilteredSuspend("agent_designs", "creator_email=eq.${user.email}", AgentDesign.serializer()).firstOrNull()
+                                                val existing = SupabaseRepository.fetchDataFilteredSuspend("agent_designs", "creator_email=eq.${user.email}&order=created_at.desc", AgentDesign.serializer()).firstOrNull()
                                                 if (existing != null) {
                                                     SupabaseRepository.updateDataSuspend("agent_designs", existing.id!!, updated!!, AgentDesign.serializer())
                                                 } else {
