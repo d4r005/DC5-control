@@ -241,6 +241,7 @@ fun DC3GenerationScreen(
         try {
             val design = SupabaseRepository.fetchDataFilteredSuspend("agent_designs", "creator_email=eq.${agent.creatorEmail ?: user.email}&order=created_at.desc", AgentDesign.serializer()).firstOrNull()
             val customTemplate = loadBitmap(context, design?.diplomaTemplateBase64)
+            val firmaBitmap = loadBitmap(context, design?.firmaBase64)
 
             val year = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
             val initialRecords = SupabaseRepository.fetchDataFilteredSuspend("dc3_records", "start_date=gte.$year-01-01", DC3Record.serializer())
@@ -284,7 +285,8 @@ fun DC3GenerationScreen(
                         context, employee, course, agent, startDate, endDate, customTemplate,
                         folio = folioStr,
                         design = design,
-                        qrUrl = qrUrl
+                        qrUrl = qrUrl,
+                        signatureBitmap = firmaBitmap
                     )
                     PdfGenerator.saveToDownloads(context, file)
                     if (totalDocs == 1) PdfGenerator.openPdf(context, file)

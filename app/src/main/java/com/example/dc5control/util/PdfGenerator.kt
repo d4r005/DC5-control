@@ -19,9 +19,9 @@ import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.pdmodel.PDPageContentStream
 import com.tom_roush.pdfbox.pdmodel.font.PDType1Font
 import com.tom_roush.pdfbox.pdmodel.graphics.image.PDImageXObject
+import com.tom_roush.pdfbox.pdmodel.graphics.state.PDExtendedGraphicsState
 import java.io.ByteArrayOutputStream
 import java.io.File
-import java.io.FileOutputStream
 
 data class DC3FormData(
     val nombreTrabajador: String,
@@ -47,7 +47,6 @@ data class DC3FormData(
     val headerSlogan: String? = null,
     val slogan: String? = null,
     val qrUrl: String? = null,
-    // Coordenadas dinámicas
     val logoX: Float? = null, val logoY: Float? = null, val logoW: Float? = null, val logoH: Float? = null,
     val firmaX: Float? = null, val firmaY: Float? = null, val firmaW: Float? = null, val firmaH: Float? = null,
     val headerLogoX: Float? = null, val headerLogoY: Float? = null, val headerLogoW: Float? = null, val headerLogoH: Float? = null,
@@ -61,8 +60,7 @@ data class DC3FormData(
 object PdfGenerator {
     private const val TAG = "PdfGenerator"
     private const val TEMPLATE_ASSET = "plantilla_dc3.pdf"
-    private const val PH = 792f // Altura en puntos (Letter)
-
+    private const val PH = 792f
 
     fun base64ToBitmap(base64: String): Bitmap? {
         return try {
@@ -115,7 +113,6 @@ object PdfGenerator {
             headerSlogan = design?.headerSlogan,
             slogan = design?.slogan,
             qrUrl = qrUrl,
-            // Nuevas coordenadas
             logoX = design?.logoX, logoY = design?.logoY, logoW = design?.logoW, logoH = design?.logoH,
             firmaX = design?.firmaX, firmaY = design?.firmaY, firmaW = design?.firmaW, firmaH = design?.firmaH,
             headerLogoX = design?.headerLogoX, headerLogoY = design?.headerLogoY, headerLogoW = design?.headerLogoW, headerLogoH = design?.headerLogoH,
@@ -128,6 +125,14 @@ object PdfGenerator {
         return generate(context, data)
     }
 
+    // PNG preserves alpha/transparency for logos and signatures
+    private fun bitmapToPng(bitmap: Bitmap): ByteArray {
+        val stream = ByteArrayOutputStream()
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+        return stream.toByteArray()
+    }
+
+    // JPEG for photos (no transparency needed, smaller size)
     private fun bitmapToJpeg(bitmap: Bitmap): ByteArray {
         val stream = ByteArrayOutputStream()
         bitmap.compress(Bitmap.CompressFormat.JPEG, 90, stream)
@@ -144,7 +149,7 @@ object PdfGenerator {
         val fontB = PDType1Font.HELVETICA_BOLD
         val fontI = PDType1Font.TIMES_ITALIC
 
-        // --- PÁGINA 1 ---
+        // --- PAGINA 1 ---
         val page = document.getPage(0)
         val cs = PDPageContentStream(document, page, PDPageContentStream.AppendMode.APPEND, true, true)
 
@@ -186,12 +191,12 @@ object PdfGenerator {
             cs.endText()
         }
 
-        // 0. Cabecera (Slogan Arriba, Logo Abajo)
-        d.headerSlogan?.let { 
-            textCentered(d.headerSloganX ?: 306f, d.headerSloganY ?: 18f, it, d.headerSloganSize ?: 9f, italic = true) 
+        // 0. Cabecera (Slogan + Logo) — alineado con web
+        d.headerSlogan?.let {
+            textCentered(d.headerSloganX ?: 306f, d.headerSloganY ?: 18f, it, d.headerSloganSize ?: 9f, italic = true)
         }
         d.headerLogoBitmap?.let {
-            val img = PDImageXObject.createFromByteArray(document, bitmapToJpeg(it), "h")
+            val img = PDImageXObject.createFromByteArray(document, bitmapToPng(it), "h")
             val hlw = d.headerLogoW ?: 120f
             val hlh = d.headerLogoH ?: 55f
             val hlx = d.headerLogoX ?: 30f
@@ -199,7 +204,7 @@ object PdfGenerator {
             cs.drawImage(img, hlx, PH - hly - hlh, hlw, hlh)
         }
 
-        // -1. Foto Trabajador
+        // Foto del trabajador (JPEG is fine here, no transparency)
         d.photoBitmap?.let {
             val img = PDImageXObject.createFromByteArray(document, bitmapToJpeg(it), "p")
             cs.drawImage(img, 24f, PH - 126f, 72f, 90f)
@@ -212,72 +217,76 @@ object PdfGenerator {
         val curpC = floatArrayOf(32.0f,47.4f,62.8f,78.2f,93.5f,108.8f,124.2f,139.6f,155.0f,170.3f,185.8f,201.2f,216.6f,231.9f,247.2f,262.6f,278.0f,293.3f)
         d.curp.replace(" ","").take(18).forEachIndexed { i, c -> if (i < curpC.size) cell(c.toString(), curpC[i], 196f) }
 
-        // 3. Ocupación
+        // 3. Ocupacion
         text(307f, 199f, d.ocupacion.take(50), 9f)
 
-        // 4. Puesto (Limpiar etiqueta)
-        rect(26f, 210f, 559f, 16f)
+        // 4. Puesto — rectangulo blanco alineado con web (y=226, h=13)
+        rect(26f, 213f, 559f, 13f)
         text(30f, 221f, d.puesto, 9f)
 
-        // 5. Empresa (Limpiar etiqueta)
-        rect(26f, 270f, 559f, 18f)
+        // 5. Empresa — rectangulo blanco alineado con web (y=288, h=17)
+        rect(26f, 271f, 559f, 17f)
         text(30f, 283f, d.razonSocial, 9f, true)
 
         // 6. RFC
         val rfcC = floatArrayOf(34.9f,52.1f,66.0f,80.8f,95.4f,109.8f,124.0f,138.3f,152.8f,167.0f,181.2f,195.5f,209.8f,227.4f,245.1f)
         d.rfc.replace(" ","").take(15).forEachIndexed { i, c -> if (i < rfcC.size) cell(c.toString(), rfcC[i], 311f) }
 
-        // 7. Curso (Limpiar etiqueta)
-        rect(26f, 355f, 559f, 12f)
+        // 7. Curso — rectangulo blanco alineado con web (y=366, h=11)
+        rect(26f, 355f, 559f, 11f)
         text(30f, 363f, d.nombreCurso, 9f)
 
-        // 8. Duración
+        // 8. Duracion
         text(30f, 390f, d.duracionHoras, 8f)
 
-        // 9. Fechas
-        val p = d.fechaInicio.split("/"); val p2 = d.fechaFin.split("/")
-        val yi = p.getOrElse(2){"    "}; val mi = p.getOrElse(1){"  "}; val di = p.getOrElse(0){"  "}
-        val yf = p2.getOrElse(2){"    "}; val mf = p2.getOrElse(1){"  "}; val df = p2.getOrElse(0){"  "}
+        // 9. Fechas — soporta separador / y - como la web
+        val (fStart, fEnd) = parseFechas(d.fechaInicio, d.fechaFin)
         val aI = floatArrayOf(260.2f, 276.1f, 292.2f, 308.4f); val mI = floatArrayOf(326.9f, 348.2f); val dI = floatArrayOf(369.6f, 390.7f)
         val aF = floatArrayOf(432.9f, 452.4f, 471.9f, 491.4f); val mF = floatArrayOf(511.8f, 532.8f); val dF = floatArrayOf(554.2f, 575.7f)
-        yi.forEachIndexed { i,c -> if(i<4) cell(c.toString(), aI[i], 389f) }
-        mi.forEachIndexed { i,c -> if(i<2) cell(c.toString(), mI[i], 389f) }
-        di.forEachIndexed { i,c -> if(i<2) cell(c.toString(), dI[i], 389f) }
-        yf.forEachIndexed { i,c -> if(i<4) cell(c.toString(), aF[i], 389f) }
-        mf.forEachIndexed { i,c -> if(i<2) cell(c.toString(), mF[i], 389f) }
-        df.forEachIndexed { i,c -> if(i<2) cell(c.toString(), dF[i], 389f) }
+        fStart.a.forEachIndexed { i,c -> if(i<4 && c!=' ') cell(c.toString(), aI[i], 389f) }
+        fStart.m.forEachIndexed { i,c -> if(i<2 && c!=' ') cell(c.toString(), mI[i], 389f) }
+        fStart.d.forEachIndexed { i,c -> if(i<2 && c!=' ') cell(c.toString(), dI[i], 389f) }
+        fEnd.a.forEachIndexed { i,c -> if(i<4 && c!=' ') cell(c.toString(), aF[i], 389f) }
+        fEnd.m.forEachIndexed { i,c -> if(i<2 && c!=' ') cell(c.toString(), mF[i], 389f) }
+        fEnd.d.forEachIndexed { i,c -> if(i<2 && c!=' ') cell(c.toString(), dF[i], 389f) }
 
-        // 10. Área Temática (Limpiar etiqueta)
-        rect(26f, 405f, 559f, 10f)
+        // 10. Area Tematica — rectangulo blanco alineado con web (y=416, h=9)
+        rect(26f, 407f, 559f, 9f)
         text(30f, 413f, d.areaTematica, 8f)
 
-        // 11. Agente (Limpiar etiqueta)
-        rect(26f, 430f, 559f, 12f)
+        // 11. Agente — rectangulo blanco alineado con web (y=442, h=11)
+        rect(26f, 431f, 559f, 11f)
         text(30f, 440f, "${d.agenteCapacitador}  ${d.stpsAgente}", 8f)
 
-        // 12. Firmas (Limpiar Zonas)
+        // 12. Firmas — limpiar zonas (igual que web: y=538, h=27)
         rect(63f, 511f, 137f, 27f); rect(218f, 511f, 153f, 27f); rect(389f, 511f, 153f, 27f)
 
         val sIX = 132f; val sPX = 295f; val sRX = 465f; val sY1 = 522f; val sY2 = 532f
-        val SIG_Y_BASE = 450f
-        
-        // Logo (sección de firmas)
-        d.logoBitmap?.let { 
-            val img = PDImageXObject.createFromByteArray(document, bitmapToJpeg(it), "l")
-            val lw = d.logoW ?: 90f
-            val lh = d.logoH ?: 50f
-            val lx = d.logoX ?: (sIX - 45f)
-            val ly = d.logoY ?: SIG_Y_BASE
+
+        // Logo — PNG para preservar transparencia + opacidad 0.8 como la web
+        d.logoBitmap?.let {
+            val img = PDImageXObject.createFromByteArray(document, bitmapToPng(it), "l")
+            val lw = d.logoW ?: 115f
+            val lh = d.logoH ?: 65f
+            val lx = d.logoX ?: 58f
+            val ly = d.logoY ?: 454f
+
+            // Aplicar opacidad 0.8 como la web (opacity:0.8)
+            val gs = PDExtendedGraphicsState().apply { nonStrokingAlphaConstant = 0.8f }
+            cs.setGraphicsStateParameters(gs)
             cs.drawImage(img, lx, PH - ly - lh, lw, lh)
+            // Reset opacidad
+            val gsReset = PDExtendedGraphicsState().apply { nonStrokingAlphaConstant = 1.0f }
+            cs.setGraphicsStateParameters(gsReset)
         }
-        
-        // Firma
-        d.signatureBitmap?.let { 
-            val img = PDImageXObject.createFromByteArray(document, bitmapToJpeg(it), "s")
-            val fw = d.firmaW ?: 95f
-            val fh = d.firmaH ?: 55f
-            val fx = d.firmaX ?: (sIX - 47.5f)
-            val fy = d.firmaY ?: (SIG_Y_BASE + 3f)
+
+        // Firma — PNG para preservar transparencia
+        d.signatureBitmap?.let {
+            val img = PDImageXObject.createFromByteArray(document, bitmapToPng(it), "s")
+            val fw = d.firmaW ?: 85f
+            val fh = d.firmaH ?: 60f
+            val fx = d.firmaX ?: 88f
+            val fy = d.firmaY ?: 457f
             cs.drawImage(img, fx, PH - fy - fh, fw, fh)
         }
 
@@ -285,10 +294,10 @@ object PdfGenerator {
             textCentered(d.sloganX ?: 30f, d.sloganY ?: 445f, it, d.sloganSize ?: 7f)
         }
 
-        // QR Code
+        // QR Code — PNG
         d.qrUrl?.let { url ->
             QRGenerator.generateQR(url)?.let { qrBitmap ->
-                val img = PDImageXObject.createFromByteArray(document, bitmapToJpeg(qrBitmap), "qr")
+                val img = PDImageXObject.createFromByteArray(document, bitmapToPng(qrBitmap), "qr")
                 val qsz = d.qrSz ?: 60f
                 val qx = d.qrX ?: 480f
                 val qy = d.qrY ?: 60f
@@ -296,7 +305,7 @@ object PdfGenerator {
             }
         }
 
-        // Dibujar Folio si se proporciona (DC-3)
+        // Folio (DC-3) — negro como la web
         d.folio?.let { f ->
             val fx = d.folioX ?: 480f
             val fy = d.folioY ?: 740f
@@ -309,6 +318,7 @@ object PdfGenerator {
             cs.endText()
         }
 
+        // Nombres en zonas de firma
         val insL = splitName(d.instructor, 26); textCentered(sIX, sY1, insL[0], 8f)
         if (insL.size > 1) textCentered(sIX, sY2, insL[1], 8f)
 
@@ -321,11 +331,19 @@ object PdfGenerator {
         }
         cs.close()
 
-        // --- PÁGINA 2 (Reverso) ---
+        // --- PAGINA 2 (Reverso) ---
         if (document.numberOfPages > 1) {
             val pageR = document.getPage(1)
             val csR = PDPageContentStream(document, pageR, PDPageContentStream.AppendMode.APPEND, true, true)
-            
+
+            d.headerLogoBitmap?.let {
+                val img = PDImageXObject.createFromByteArray(document, bitmapToPng(it), "hR")
+                val hlw = d.headerLogoW ?: 120f
+                val hlh = d.headerLogoH ?: 55f
+                val hlx = d.headerLogoX ?: 30f
+                val hly = d.headerLogoY ?: 10f
+                csR.drawImage(img, hlx, PH - hly - hlh, hlw, hlh)
+            }
             d.headerSlogan?.let {
                 val sz = d.headerSloganSize ?: 9f
                 val st = sanitize(it).uppercase()
@@ -336,26 +354,41 @@ object PdfGenerator {
                 csR.showText(st)
                 csR.endText()
             }
-            
-            d.headerLogoBitmap?.let {
-                val img = PDImageXObject.createFromByteArray(document, bitmapToJpeg(it), "hR")
-                val hlw = d.headerLogoW ?: 120f
-                val hlh = d.headerLogoH ?: 55f
-                val hlx = d.headerLogoX ?: 30f
-                val hly = d.headerLogoY ?: 10f
-                csR.drawImage(img, hlx, PH - hly - hlh, hlw, hlh)
-            }
             csR.close()
         }
 
         val name = "DC3_${sanitize(d.nombreTrabajador.replace(" ","_"))}.pdf"
         val downloadsDir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: context.cacheDir
         val out = File(downloadsDir, name)
-        
+
         Log.d(TAG, "Saving temporary PDF to: ${out.absolutePath}")
         document.save(out)
         document.close()
         return out
+    }
+
+    // Parser de fechas compatible con la web (soporta / y -)
+    private data class Fecha(val a: String, val m: String, val d: String)
+
+    private fun parseFechas(start: String, end: String): Pair<Fecha, Fecha> {
+        fun parse(f: String): Fecha {
+            if (f.contains('-')) {
+                val parts = f.split('-')
+                return Fecha(
+                    parts.getOrElse(0) { "    " }.padEnd(4, ' '),
+                    parts.getOrElse(1) { "  " }.padEnd(2, ' '),
+                    parts.getOrElse(2) { "  " }.padEnd(2, ' ')
+                )
+            } else {
+                val parts = f.split('/')
+                return Fecha(
+                    parts.getOrElse(2) { "    " }.padEnd(4, ' '),
+                    parts.getOrElse(1) { "  " }.padEnd(2, ' '),
+                    parts.getOrElse(0) { "  " }.padEnd(2, ' ')
+                )
+            }
+        }
+        return Pair(parse(start), parse(end))
     }
 
     private fun splitName(n: String, m: Int): List<String> {
@@ -368,13 +401,13 @@ object PdfGenerator {
         try {
             Log.d(TAG, "Opening PDF: ${f.absolutePath}")
             val uri = FileProvider.getUriForFile(c, "${c.packageName}.fileprovider", f)
-            c.startActivity(Intent(Intent.ACTION_VIEW).apply { 
+            c.startActivity(Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(uri, "application/pdf")
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) 
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             })
-        } catch (e: Exception) { 
-            Log.e(TAG, "Error opening PDF: ${e.message}", e) 
+        } catch (e: Exception) {
+            Log.e(TAG, "Error opening PDF: ${e.message}", e)
         }
     }
 
@@ -382,28 +415,28 @@ object PdfGenerator {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return false
         return try {
             val resolver = c.contentResolver
-            val values = ContentValues().apply { 
+            val values = ContentValues().apply {
                 put(MediaStore.MediaColumns.DISPLAY_NAME, sf.name)
                 put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf")
-                put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS) 
+                put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
             }
             val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
-            if (uri != null) { 
-                resolver.openOutputStream(uri)?.use { outputStream -> 
-                    sf.inputStream().use { inputStream -> 
+            if (uri != null) {
+                resolver.openOutputStream(uri)?.use { outputStream ->
+                    sf.inputStream().use { inputStream ->
                         val bytes = inputStream.readBytes()
                         Log.d(TAG, "Writing ${bytes.size} bytes to Downloads via Uri: $uri")
-                        outputStream.write(bytes) 
-                    } 
+                        outputStream.write(bytes)
+                    }
                 }
-                true 
+                true
             } else {
                 Log.e(TAG, "Failed to insert record into MediaStore.Downloads")
                 false
             }
-        } catch (e: Exception) { 
+        } catch (e: Exception) {
             Log.e(TAG, "Error saving to Downloads: ${e.message}", e)
-            false 
+            false
         }
     }
 

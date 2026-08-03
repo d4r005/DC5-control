@@ -101,7 +101,7 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                     SupabaseRepository.fetchData("agents", Agent.serializer()) { agents ->
                         val agent = agents.find { it.name == record.agentName }
                         // Cargar el diseño del agente para usar logo, firma y posiciones
-                        val agentEmail = agent?.id ?: agent?.name
+                        val agentEmail = agent?.creatorEmail
                         SupabaseRepository.fetchData("agent_designs", AgentDesign.serializer()) { designs ->
                             val design = designs.find { it.creatorEmail == agentEmail }
                             val sigBitmap = design?.firmaBase64?.let { PdfGenerator.base64ToBitmap(it) }
@@ -118,7 +118,8 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                                         endDate = record.endDate,
                                         folio = record.folio,
                                         qrUrl = if (record.id != null) "https://ace-control.pages.dev/?v=${record.id}" else null,
-                                        design = design
+                                        design = design,
+                                        signatureBitmap = sigBitmap
                                     )
                                 } else {
                                     PdfGenerator.generateDC3(
@@ -154,7 +155,7 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                 val employee = employees.find { it.curp == record.workerId }
                 SupabaseRepository.fetchData("agents", Agent.serializer()) { agents ->
                     val agent = agents.find { it.name == record.agentName }
-                    val agentEmail = agent?.id ?: agent?.name
+                    val agentEmail = agent?.creatorEmail
                     SupabaseRepository.fetchData("agent_designs", AgentDesign.serializer()) { designs ->
                         val design = designs.find { it.creatorEmail == agentEmail }
                         val sigBitmap = design?.firmaBase64?.let { PdfGenerator.base64ToBitmap(it) }
@@ -170,7 +171,8 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                                     endDate = record.endDate,
                                     folio = record.folio,
                                     qrUrl = if (record.id != null) "https://ace-control.pages.dev/?v=${record.id}" else null,
-                                    design = design
+                                    design = design,
+                                    signatureBitmap = sigBitmap
                                 )
                             } else {
                                 PdfGenerator.generateDC3(
