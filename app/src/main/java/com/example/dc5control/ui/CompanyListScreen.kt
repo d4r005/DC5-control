@@ -65,6 +65,9 @@ fun CompanyListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
         (it.representanteTrabajadores?.contains(searchQuery, ignoreCase = true) == true)
     }
 
+    val isLandscape = LocalConfiguration.current.screenWidthDp > LocalConfiguration.current.screenHeightDp
+    val useTable = isExpanded || (isLandscape && LocalConfiguration.current.screenWidthDp >= 700)
+
     Box(modifier = Modifier
         .fillMaxSize()
         .background(BackgroundLight)
@@ -153,9 +156,6 @@ fun CompanyListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                         }
                     }
                 } else {
-                    val isLandscape = LocalConfiguration.current.screenWidthDp > LocalConfiguration.current.screenHeightDp
-                    val useTable = isExpanded || (isLandscape && LocalConfiguration.current.screenWidthDp >= 700)
-
                     if (useTable) {
                         // Table View for tablets / landscape
                         Column(modifier = Modifier.fillMaxSize()) {

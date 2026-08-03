@@ -16,6 +16,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -31,6 +32,8 @@ import com.example.dc5control.ui.theme.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CourseListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
+    val isLandscape = LocalConfiguration.current.screenWidthDp > LocalConfiguration.current.screenHeightDp
+    val useWideLayout = isExpanded || (isLandscape && LocalConfiguration.current.screenWidthDp >= 700)
     val courses = remember { mutableStateListOf<Course>() }
     val agents = remember { mutableStateListOf<Agent>() }
     var selectedAgentFilter by remember { mutableStateOf<Agent?>(null) }
@@ -178,9 +181,6 @@ fun CourseListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                         }
                     }
                 }
-
-                val isLandscape = LocalConfiguration.current.screenWidthDp > LocalConfiguration.current.screenHeightDp
-                val useWideLayout = isExpanded || (isLandscape && LocalConfiguration.current.screenWidthDp >= 700)
 
                 // Header add button on expanded/desktop layout
                 if (useWideLayout) {

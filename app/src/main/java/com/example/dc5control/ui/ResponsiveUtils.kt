@@ -2,6 +2,7 @@ package com.example.dc5control.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
@@ -18,7 +19,7 @@ data class ScreenType(
     val heightDp: Int
 ) {
     /** Ancho máximo de contenido para evitar estiramiento en pantallas grandes */
-    val contentMaxWidth: dp
+    val contentMaxWidth: Dp
         get() = when {
             isExpanded -> 900.dp
             isMedium -> 720.dp
@@ -26,7 +27,7 @@ data class ScreenType(
         }
 
     /** Padding adaptable según el tamaño de pantalla */
-    val screenPadding: dp
+    val screenPadding: Dp
         get() = when {
             isExpanded -> 32.dp
             isMedium -> 24.dp
