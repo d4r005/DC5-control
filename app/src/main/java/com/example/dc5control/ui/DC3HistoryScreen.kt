@@ -99,38 +99,47 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                     val employee = employees.find { it.curp == record.workerId }
                     SupabaseRepository.fetchData("agents", Agent.serializer()) { agents ->
                         val agent = agents.find { it.name == record.agentName }
-                        
-                        if (employee != null && agent != null) {
-                            val file = if (selectedTab == 1) {
-                                DiplomaGenerator.generateDiploma(
-                                    context = context,
-                                    employee = employee,
-                                    course = Course(name = record.courseName, durationHours = record.durationHours, thematicArea = record.thematicArea),
-                                    agent = agent,
-                                    startDate = record.startDate,
-                                    endDate = record.endDate,
-                                    folio = record.folio,
-                                    qrUrl = if (record.id != null) "https://ace-control.pages.dev/?v=${record.id}" else null
-                                )
-                            } else {
-                                PdfGenerator.generateDC3(
-                                    context = context,
-                                    employee = employee,
-                                    course = Course(name = record.courseName, durationHours = record.durationHours, thematicArea = record.thematicArea),
-                                    agent = agent,
-                                    companyName = record.companyName,
-                                    companyRfc = "", // Need RFC in record really
-                                    companyPatron = "",
-                                    companyRepresentante = null,
-                                    startDate = record.startDate,
-                                    endDate = record.endDate,
-                                    signatureBitmap = null,
-                                    logoBitmap = null,
-                                    qrUrl = if (record.id != null) "https://ace-control.pages.dev/?v=${record.id}" else null,
-                                    folio = record.folioDc3 ?: record.folio
-                                )
+                        // Cargar el diseño del agente para usar logo, firma y posiciones
+                        val agentEmail = agent?.id ?: agent?.name
+                        SupabaseRepository.fetchData("agent_designs", AgentDesign.serializer()) { designs ->
+                            val design = designs.find { it.creatorEmail == agentEmail }
+                            val sigBitmap = design?.firmaBase64?.let { PdfGenerator.base64ToBitmap(it) }
+                            val logoBitmap = design?.logoBase64?.let { PdfGenerator.base64ToBitmap(it) }
+                            
+                            if (employee != null && agent != null) {
+                                val file = if (selectedTab == 1) {
+                                    DiplomaGenerator.generateDiploma(
+                                        context = context,
+                                        employee = employee,
+                                        course = Course(name = record.courseName, durationHours = record.durationHours, thematicArea = record.thematicArea),
+                                        agent = agent,
+                                        startDate = record.startDate,
+                                        endDate = record.endDate,
+                                        folio = record.folio,
+                                        qrUrl = if (record.id != null) "https://ace-control.pages.dev/?v=${record.id}" else null,
+                                        design = design
+                                    )
+                                } else {
+                                    PdfGenerator.generateDC3(
+                                        context = context,
+                                        employee = employee,
+                                        course = Course(name = record.courseName, durationHours = record.durationHours, thematicArea = record.thematicArea),
+                                        agent = agent,
+                                        companyName = record.companyName,
+                                        companyRfc = "",
+                                        companyPatron = "",
+                                        companyRepresentante = null,
+                                        startDate = record.startDate,
+                                        endDate = record.endDate,
+                                        signatureBitmap = sigBitmap,
+                                        logoBitmap = logoBitmap,
+                                        qrUrl = if (record.id != null) "https://ace-control.pages.dev/?v=${record.id}" else null,
+                                        folio = record.folioDc3 ?: record.folio,
+                                        design = design
+                                    )
+                                }
+                                PdfGenerator.openPdf(context, file)
                             }
-                            PdfGenerator.openPdf(context, file)
                         }
                     }
                 }
@@ -144,38 +153,46 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                 val employee = employees.find { it.curp == record.workerId }
                 SupabaseRepository.fetchData("agents", Agent.serializer()) { agents ->
                     val agent = agents.find { it.name == record.agentName }
-                    if (employee != null && agent != null) {
-                        val file = if (selectedTab == 1) {
-                            DiplomaGenerator.generateDiploma(
-                                context = context,
-                                employee = employee,
-                                course = Course(name = record.courseName, durationHours = record.durationHours, thematicArea = record.thematicArea),
-                                agent = agent,
-                                startDate = record.startDate,
-                                endDate = record.endDate,
-                                folio = record.folio,
-                                qrUrl = if (record.id != null) "https://ace-control.pages.dev/?v=${record.id}" else null
-                            )
-                        } else {
-                            PdfGenerator.generateDC3(
-                                context = context,
-                                employee = employee,
-                                course = Course(name = record.courseName, durationHours = record.durationHours, thematicArea = record.thematicArea),
-                                agent = agent,
-                                companyName = record.companyName,
-                                companyRfc = "",
-                                companyPatron = "",
-                                companyRepresentante = null,
-                                startDate = record.startDate,
-                                endDate = record.endDate,
-                                signatureBitmap = null,
-                                logoBitmap = null,
-                                qrUrl = if (record.id != null) "https://ace-control.pages.dev/?v=${record.id}" else null,
-                                folio = record.folioDc3 ?: record.folio
-                            )
+                    val agentEmail = agent?.id ?: agent?.name
+                    SupabaseRepository.fetchData("agent_designs", AgentDesign.serializer()) { designs ->
+                        val design = designs.find { it.creatorEmail == agentEmail }
+                        val sigBitmap = design?.firmaBase64?.let { PdfGenerator.base64ToBitmap(it) }
+                        val logoBitmap = design?.logoBase64?.let { PdfGenerator.base64ToBitmap(it) }
+                        if (employee != null && agent != null) {
+                            val file = if (selectedTab == 1) {
+                                DiplomaGenerator.generateDiploma(
+                                    context = context,
+                                    employee = employee,
+                                    course = Course(name = record.courseName, durationHours = record.durationHours, thematicArea = record.thematicArea),
+                                    agent = agent,
+                                    startDate = record.startDate,
+                                    endDate = record.endDate,
+                                    folio = record.folio,
+                                    qrUrl = if (record.id != null) "https://ace-control.pages.dev/?v=${record.id}" else null,
+                                    design = design
+                                )
+                            } else {
+                                PdfGenerator.generateDC3(
+                                    context = context,
+                                    employee = employee,
+                                    course = Course(name = record.courseName, durationHours = record.durationHours, thematicArea = record.thematicArea),
+                                    agent = agent,
+                                    companyName = record.companyName,
+                                    companyRfc = "",
+                                    companyPatron = "",
+                                    companyRepresentante = null,
+                                    startDate = record.startDate,
+                                    endDate = record.endDate,
+                                    signatureBitmap = sigBitmap,
+                                    logoBitmap = logoBitmap,
+                                    qrUrl = if (record.id != null) "https://ace-control.pages.dev/?v=${record.id}" else null,
+                                    folio = record.folioDc3 ?: record.folio,
+                                    design = design
+                                )
+                            }
+                            PdfGenerator.saveToDownloads(context, file)
+                            android.widget.Toast.makeText(context, "Archivo guardado en Descargas", android.widget.Toast.LENGTH_SHORT).show()
                         }
-                        PdfGenerator.saveToDownloads(context, file)
-                        android.widget.Toast.makeText(context, "Archivo guardado en Descargas", android.widget.Toast.LENGTH_SHORT).show()
                     }
                 }
             }

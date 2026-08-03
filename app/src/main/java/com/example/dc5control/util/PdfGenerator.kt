@@ -4,6 +4,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.util.Base64
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
@@ -61,6 +62,15 @@ object PdfGenerator {
     private const val TAG = "PdfGenerator"
     private const val TEMPLATE_ASSET = "plantilla_dc3.pdf"
     private const val PH = 792f // Altura en puntos (Letter)
+
+
+    fun base64ToBitmap(base64: String): Bitmap? {
+        return try {
+            val data = base64.substringAfter("base64,")
+            val bytes = Base64.decode(data, Base64.NO_WRAP)
+            android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+        } catch (e: Exception) { null }
+    }
 
     fun generateDC3(
         context: Context,

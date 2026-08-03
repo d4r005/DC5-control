@@ -164,11 +164,15 @@ fun DesignScreen(
         isLoadingDesigns = true
         val query = if (user.role == "ADMIN") "" else "creator_email=eq.${user.email}"
         SupabaseRepository.fetchData("agent_designs", AgentDesign.serializer()) { fetched ->
+            // Deduplicar por creator_email — quedarse con el más reciente
+            val grouped = fetched.groupBy { it.creatorEmail ?: "unknown" }
+                .mapValues { (_, list) -> list.maxByOrNull { it.updatedAt ?: "" } ?: list.first() }
+                .values.toList()
             designs.clear()
-            designs.addAll(fetched)
-            // Si no es admin, preseleccionamos su propio diseño (si existe)
-            if (user.role != "ADMIN") {
-                val own = designs.find { it.creatorEmail == user.email }
+            designs.addAll(grouped)
+            // Preseleccionar diseño propio (admin incluido)
+            val own = designs.find { it.creatorEmail == user.email }
+            if (own != null) {
                 selectedDesign = own
             }
             isLoadingDesigns = false
@@ -429,6 +433,25 @@ fun DesignScreen(
                     }
                 } else {
                     // ---------- EDITOR (admin con selección o usuario normal) ----------
+                    // Botón para volver a la lista (solo admin con diseño seleccionado)
+                    if (user.role == "ADMIN" && selectedDesign != null) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = if (isExpanded) 48.dp else 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            TextButton(onClick = { selectedDesign = null }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text("Volver a lista de diseños")
+                            }
+                            Spacer(Modifier.weight(1f))
+                            Text(
+                                "Editando: ${selectedDesign?.creatorEmail ?: "?"}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Gray500
+                            )
+                        }
+                    }
                     // Seleccionamos la pestaña activa (DC-3 o Diploma)
                     if (selectedTab == 0) {
                         // DC-3 Design
@@ -841,15 +864,18 @@ fun DesignScreen(
                                         }
 
                                         try {
-                                            val existing = SupabaseRepository.fetchDataFilteredSuspend("agent_designs", "creator_email=eq.${user.email}", AgentDesign.serializer()).firstOrNull()
-                                            val success = if (existing != null && selectedDesign != null) {
-                                                SupabaseRepository.updateDataSuspend("agent_designs", existing.id!!, updated!!, AgentDesign.serializer())
-                                            } else if (selectedDesign != null) {
-                                                // Caso donde seleccionamos un diseño de otro usuario (admin editando ajeno)
+                                            // Lógica de guardado corregida:
+                                            // - Si hay diseño seleccionado: actualizar por su ID (sin importar de quién sea)
+                                            // - Si no hay seleccionado: buscar existente por email, si no insertar nuevo
+                                            val success = if (selectedDesign != null) {
                                                 SupabaseRepository.updateDataSuspend("agent_designs", selectedDesign!!.id!!, updated!!, AgentDesign.serializer())
                                             } else {
-                                                // Nuevo diseño (usuario sin diseño previo)
-                                                SupabaseRepository.insertDataSuspend("agent_designs", updated!!, AgentDesign.serializer())
+                                                val existing = SupabaseRepository.fetchDataFilteredSuspend("agent_designs", "creator_email=eq.${user.email}", AgentDesign.serializer()).firstOrNull()
+                                                if (existing != null) {
+                                                    SupabaseRepository.updateDataSuspend("agent_designs", existing.id!!, updated!!, AgentDesign.serializer())
+                                                } else {
+                                                    SupabaseRepository.insertDataSuspend("agent_designs", updated!!, AgentDesign.serializer())
+                                                }
                                             }
 
                                             if (success) {
@@ -857,12 +883,13 @@ fun DesignScreen(
                                                 // Recargar lista para reflejar cambios
                                                 isLoadingDesigns = true
                                                 SupabaseRepository.fetchData("agent_designs", AgentDesign.serializer()) { fetched ->
+                                                    val grouped = fetched.groupBy { it.creatorEmail ?: "unknown" }
+                                                        .mapValues { (_, list) -> list.maxByOrNull { it.updatedAt ?: "" } ?: list.first() }
+                                                        .values.toList()
                                                     designs.clear()
-                                                    designs.addAll(fetched)
-                                                    if (user.role != "ADMIN") {
-                                                        val own = designs.find { it.creatorEmail == user.email }
-                                                        selectedDesign = own
-                                                    }
+                                                    designs.addAll(grouped)
+                                                    val own = designs.find { it.creatorEmail == user.email }
+                                                    if (own != null) selectedDesign = own
                                                     isLoadingDesigns = false
                                                 }
                                             } else {
@@ -1173,15 +1200,18 @@ fun DesignScreen(
                                         }
 
                                         try {
-                                            val existing = SupabaseRepository.fetchDataFilteredSuspend("agent_designs", "creator_email=eq.${user.email}", AgentDesign.serializer()).firstOrNull()
-                                            val success = if (existing != null && selectedDesign != null) {
-                                                SupabaseRepository.updateDataSuspend("agent_designs", existing.id!!, updated!!, AgentDesign.serializer())
-                                            } else if (selectedDesign != null) {
-                                                // Admin editando diseño de otro usuario
+                                            // Lógica de guardado corregida:
+                                            // - Si hay diseño seleccionado: actualizar por su ID (sin importar de quién sea)
+                                            // - Si no hay seleccionado: buscar existente por email, si no insertar nuevo
+                                            val success = if (selectedDesign != null) {
                                                 SupabaseRepository.updateDataSuspend("agent_designs", selectedDesign!!.id!!, updated!!, AgentDesign.serializer())
                                             } else {
-                                                // Nuevo diseño (usuario sin diseño previo)
-                                                SupabaseRepository.insertDataSuspend("agent_designs", updated!!, AgentDesign.serializer())
+                                                val existing = SupabaseRepository.fetchDataFilteredSuspend("agent_designs", "creator_email=eq.${user.email}", AgentDesign.serializer()).firstOrNull()
+                                                if (existing != null) {
+                                                    SupabaseRepository.updateDataSuspend("agent_designs", existing.id!!, updated!!, AgentDesign.serializer())
+                                                } else {
+                                                    SupabaseRepository.insertDataSuspend("agent_designs", updated!!, AgentDesign.serializer())
+                                                }
                                             }
 
                                             if (success) {
@@ -1189,12 +1219,13 @@ fun DesignScreen(
                                                 // Recargar lista para reflejar cambios
                                                 isLoadingDesigns = true
                                                 SupabaseRepository.fetchData("agent_designs", AgentDesign.serializer()) { fetched ->
+                                                    val grouped = fetched.groupBy { it.creatorEmail ?: "unknown" }
+                                                        .mapValues { (_, list) -> list.maxByOrNull { it.updatedAt ?: "" } ?: list.first() }
+                                                        .values.toList()
                                                     designs.clear()
-                                                    designs.addAll(fetched)
-                                                    if (user.role != "ADMIN") {
-                                                        val own = designs.find { it.creatorEmail == user.email }
-                                                        selectedDesign = own
-                                                    }
+                                                    designs.addAll(grouped)
+                                                    val own = designs.find { it.creatorEmail == user.email }
+                                                    if (own != null) selectedDesign = own
                                                     isLoadingDesigns = false
                                                 }
                                             } else {
