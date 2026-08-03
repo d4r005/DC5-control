@@ -207,7 +207,7 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                     
                     if (agents.isNotEmpty()) {
                         Spacer(modifier = Modifier.weight(1f))
-                        Box(modifier = Modifier.width(250.dp)) {
+                        Box(modifier = Modifier.width(180.dp).height(48.dp)) {
                             @OptIn(ExperimentalMaterial3Api::class)
                             ExposedDropdownMenuBox(
                                 expanded = isAgentsExpanded,
@@ -217,9 +217,10 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                                     value = selectedAgentFilter?.name ?: "Todos los Agentes",
                                     onValueChange = {},
                                     readOnly = true,
+                                    singleLine = true,
                                     placeholder = { Text("Filtrar por agente") },
                                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(isAgentsExpanded) },
-                                    modifier = Modifier.menuAnchor().fillMaxWidth(),
+                                    modifier = Modifier.menuAnchor().fillMaxWidth().height(48.dp),
                                     shape = RoundedCornerShape(8.dp),
                                     textStyle = MaterialTheme.typography.bodySmall,
                                     colors = OutlinedTextFieldDefaults.colors(
