@@ -104,8 +104,6 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                         val agentEmail = agent?.creatorEmail
                         SupabaseRepository.fetchData("agent_designs", AgentDesign.serializer()) { designs ->
                             val design = designs.find { it.creatorEmail == agentEmail }
-                            val sigBitmap = design?.firmaBase64?.let { PdfGenerator.base64ToBitmap(it) }
-                            val logoBitmap = design?.logoBase64?.let { PdfGenerator.base64ToBitmap(it) }
                             
                             if (employee != null && agent != null) {
                                 val file = if (selectedTab == 1) {
@@ -118,8 +116,7 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                                         endDate = record.endDate,
                                         folio = record.folio,
                                         qrUrl = if (record.id != null) "https://ace-control.pages.dev/?v=${record.id}" else null,
-                                        design = design,
-                                        signatureBitmap = sigBitmap
+                                        design = design
                                     )
                                 } else {
                                     PdfGenerator.generateDC3(
@@ -133,8 +130,6 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                                         companyRepresentante = null,
                                         startDate = record.startDate,
                                         endDate = record.endDate,
-                                        signatureBitmap = sigBitmap,
-                                        logoBitmap = logoBitmap,
                                         qrUrl = if (record.id != null) "https://ace-control.pages.dev/?v=${record.id}" else null,
                                         folio = record.folioDc3 ?: record.folio,
                                         design = design
@@ -158,8 +153,6 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                     val agentEmail = agent?.creatorEmail
                     SupabaseRepository.fetchData("agent_designs", AgentDesign.serializer()) { designs ->
                         val design = designs.find { it.creatorEmail == agentEmail }
-                        val sigBitmap = design?.firmaBase64?.let { PdfGenerator.base64ToBitmap(it) }
-                        val logoBitmap = design?.logoBase64?.let { PdfGenerator.base64ToBitmap(it) }
                         if (employee != null && agent != null) {
                             val file = if (selectedTab == 1) {
                                 DiplomaGenerator.generateDiploma(
@@ -171,8 +164,7 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                                     endDate = record.endDate,
                                     folio = record.folio,
                                     qrUrl = if (record.id != null) "https://ace-control.pages.dev/?v=${record.id}" else null,
-                                    design = design,
-                                    signatureBitmap = sigBitmap
+                                    design = design
                                 )
                             } else {
                                 PdfGenerator.generateDC3(
@@ -186,8 +178,6 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                                     companyRepresentante = null,
                                     startDate = record.startDate,
                                     endDate = record.endDate,
-                                    signatureBitmap = sigBitmap,
-                                    logoBitmap = logoBitmap,
                                     qrUrl = if (record.id != null) "https://ace-control.pages.dev/?v=${record.id}" else null,
                                     folio = record.folioDc3 ?: record.folio,
                                     design = design

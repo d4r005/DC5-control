@@ -3,6 +3,7 @@ package com.example.dc5control.util
 import android.content.Context
 import android.graphics.Bitmap
 import android.os.Environment
+import android.util.Base64
 import android.util.Log
 import com.example.dc5control.data.model.Agent
 import com.example.dc5control.data.model.Course
@@ -21,19 +22,23 @@ import java.util.Locale
 object DiplomaGenerator {
     private const val TAG = "DiplomaGenerator"
     private const val TEMPLATE_NAME = "plantilla_diploma.png"
-    private const val PW = 792f // Letter Landscape width
-    private const val PH = 612f // Letter Landscape height
+    private const val PW = 792f
+    private const val PH = 612f
 
     private fun calculateStps(agentStps: String): String {
         val base = agentStps.removePrefix("STPS-").removePrefix("STPS-").trim()
         return "STPS-$base"
     }
 
-    // PNG preserves transparency for signatures
-    private fun bitmapToPng(bitmap: Bitmap): ByteArray {
-        val stream = ByteArrayOutputStream()
-        bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
-        return stream.toByteArray()
+    // Extract raw bytes from base64 (preserves original quality, same as web's embedBase64Img)
+    private fun base64ToImageBytes(base64: String): ByteArray? {
+        return try {
+            val data = base64.substringAfter("base64,")
+            Base64.decode(data, Base64.NO_WRAP)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error decoding base64 image", e)
+            null
+        }
     }
 
     fun generateDiploma(
@@ -43,11 +48,10 @@ object DiplomaGenerator {
         agent: Agent,
         startDate: String,
         endDate: String,
-        customTemplateBitmap: Bitmap? = null,
+        customTemplateBase64: String? = null,
         folio: String? = null,
         design: com.example.dc5control.data.model.AgentDesign? = null,
-        qrUrl: String? = null,
-        signatureBitmap: Bitmap? = null
+        qrUrl: String? = null
     ): File {
         PDFBoxResourceLoader.init(context)
         val document = PDDocument()
@@ -56,24 +60,24 @@ object DiplomaGenerator {
 
         val cs = PDPageContentStream(document, page)
 
-        // 1. Dibujar plantilla — igual que la web: x=0, y=0, full page (sin fondo oscuro ni sangrado)
+        // 1. Dibujar plantilla — igual que web: x=0, y=0, full page (sin fondo oscuro ni sangrado)
         try {
-            val imgXObject = if (customTemplateBitmap != null) {
-                val stream = ByteArrayOutputStream()
-                customTemplateBitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
-                PDImageXObject.createFromByteArray(document, stream.toByteArray(), "custom_template")
+            val imgBytes = if (!customTemplateBase64.isNullOrBlank()) {
+                base64ToImageBytes(customTemplateBase64)
             } else {
                 val inputStream = context.assets.open(TEMPLATE_NAME)
                 val bytes = inputStream.readBytes()
                 inputStream.close()
-                PDImageXObject.createFromByteArray(document, bytes, "template")
+                bytes
             }
-            cs.drawImage(imgXObject, 0f, 0f, PW, PH)
+            if (imgBytes != null) {
+                val img = PDImageXObject.createFromByteArray(document, imgBytes, "template")
+                cs.drawImage(img, 0f, 0f, PW, PH)
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error loading template image", e)
         }
 
-        // Fuentes
         val font = PDType1Font.HELVETICA
         val fontB = PDType1Font.HELVETICA_BOLD
 
@@ -94,7 +98,7 @@ object DiplomaGenerator {
             cs.setFont(f, currentSz)
             when (colorType) {
                 1 -> cs.setNonStrokingColor(25, 51, 102) // Azul marino (worker name)
-                else -> cs.setNonStrokingColor(0, 0, 0)  // Negro (todo lo demas, igual que la web)
+                else -> cs.setNonStrokingColor(0, 0, 0)  // Negro (igual que web)
             }
             cs.newLineAtOffset(xC - (w / 2f), PH - yF)
             cs.showText(st)
@@ -104,7 +108,7 @@ object DiplomaGenerator {
 
         val centerX = PW / 2f
 
-        // Use design coordinates if available, otherwise use defaults
+        // Usar coordenadas del diseño si disponibles
         val workerX = design?.dipWorkerX ?: centerX
         val workerY = design?.dipWorkerY ?: 245f
         val workerSz = design?.dipWorkerSz ?: 28f
@@ -133,7 +137,7 @@ object DiplomaGenerator {
         val folioY = design?.dipFolioY ?: 550f
         val folioSz = design?.dipFolioSz ?: 10f
 
-        // 1. Nombre del Trabajador — orden: nombres + apellidoPaterno + apellidoMaterno (igual que web)
+        // 1. Nombre del Trabajador (nombres + apellidoPaterno + apellidoMaterno, igual que web)
         val workerName = "${employee.nombres} ${employee.apellidoPaterno} ${employee.apellidoMaterno}".trim()
         textCentered(workerX, workerY, workerName, workerSz, true, 1, 450f)
 
@@ -143,22 +147,24 @@ object DiplomaGenerator {
         // 3. Duracion
         textCentered(durationX, durationY, course.durationHours, durationSz, true)
 
-        // 4. Fecha — igual que web: "DD DE MES DEL YYYY"
-        textCentered(dateX, dateY, formatDateRange(startDate, endDate), dateSz, true)
+        // 4. Fecha
+        textCentered(dateX, dateY, formatDateRange(endDate), dateSz, true)
 
-        // 5. Firma del agente — dibujar igual que la web (la web la dibuja sobre el nombre del agente)
-        signatureBitmap?.let { bmp ->
+        // 5. Firma del agente — igual que web: x = agentX - 45, y = PH - agentY + 10, w=90, h=50
+        design?.firmaBase64?.let { base64 ->
             try {
-                val img = PDImageXObject.createFromByteArray(document, bitmapToPng(bmp), "firma")
-                // Igual que web: x = agentX - 45, y = PH - agentY + 10, w=90, h=50
-                cs.drawImage(img, agentX - 45f, PH - agentY + 10f, 90f, 50f)
+                val bytes = base64ToImageBytes(base64)
+                if (bytes != null) {
+                    val img = PDImageXObject.createFromByteArray(document, bytes, "firma")
+                    cs.drawImage(img, agentX - 45f, PH - agentY + 10f, 90f, 50f)
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Error dibujando firma en diploma", e)
             }
         }
 
         // 6. Nombre del agente
-        textCentered(agentX, agentY, design?.agentName ?: agent.name, agentSz, true)
+        textCentered(agentX, agentY, agent.name, agentSz, true)
 
         // 7. STPS
         val finalStps = calculateStps(agent.stps)
@@ -172,19 +178,23 @@ object DiplomaGenerator {
             textCentered(cedX, cedY, "CÉDULA PROFESIONAL: $cp", cedSz, true)
         }
 
-        // 9. Folio — NEGRO como la web (antes era verde)
+        // 9. Folio — NEGRO (igual que web, antes era verde)
         folio?.let { textCentered(folioX, folioY, it, folioSz, true) }
 
         // 10. QR Code
         qrUrl?.let { url ->
             QRGenerator.generateQR(url)?.let { qrBitmap ->
-                val stream = ByteArrayOutputStream()
-                qrBitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
-                val img = PDImageXObject.createFromByteArray(document, stream.toByteArray(), "qr")
-                val qsz = design?.dipQrSz ?: 50f
-                val qx = design?.dipQrX ?: 680f
-                val qy = design?.dipQrY ?: 500f
-                cs.drawImage(img, qx - qsz/2, PH - qy - qsz/2, qsz, qsz)
+                try {
+                    val stream = ByteArrayOutputStream()
+                    qrBitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+                    val img = PDImageXObject.createFromByteArray(document, stream.toByteArray(), "qr")
+                    val qsz = design?.dipQrSz ?: 50f
+                    val qx = design?.dipQrX ?: 680f
+                    val qy = design?.dipQrY ?: 500f
+                    cs.drawImage(img, qx - qsz/2, PH - qy - qsz/2, qsz, qsz)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error embedding QR", e)
+                }
             }
         }
 
@@ -199,8 +209,8 @@ object DiplomaGenerator {
         return file
     }
 
-    private fun formatDateRange(start: String, end: String): String {
-        Log.d(TAG, "Formateando fecha desde: $start hasta: $end")
+    private fun formatDateRange(end: String): String {
+        Log.d(TAG, "Formateando fecha: $end")
         return try {
             val parts = if (end.contains("-")) end.split("-") else end.split("/")
             val day = parts.getOrElse(if (end.contains("-")) 2 else 0) { "  " }
@@ -212,12 +222,10 @@ object DiplomaGenerator {
         }
     }
 
-    private fun getMonthName(m: Int): String {
-        return when (m) {
-            1 -> "ENERO"; 2 -> "FEBRERO"; 3 -> "MARZO"; 4 -> "ABRIL"
-            5 -> "MAYO"; 6 -> "JUNIO"; 7 -> "JULIO"; 8 -> "AGOSTO"
-            9 -> "SEPTIEMBRE"; 10 -> "OCTUBRE"; 11 -> "NOVIEMBRE"; 12 -> "DICIEMBRE"
-            else -> ""
-        }
+    private fun getMonthName(m: Int): String = when (m) {
+        1 -> "ENERO"; 2 -> "FEBRERO"; 3 -> "MARZO"; 4 -> "ABRIL"
+        5 -> "MAYO"; 6 -> "JUNIO"; 7 -> "JULIO"; 8 -> "AGOSTO"
+        9 -> "SEPTIEMBRE"; 10 -> "OCTUBRE"; 11 -> "NOVIEMBRE"; 12 -> "DICIEMBRE"
+        else -> ""
     }
 }

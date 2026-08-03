@@ -152,21 +152,17 @@ fun DC3GenerationScreen(
         try {
             val design = SupabaseRepository.fetchDataFilteredSuspend("agent_designs", "creator_email=eq.${agent.creatorEmail ?: user.email}&order=created_at.desc", AgentDesign.serializer()).firstOrNull()
             
-            val signature = loadBitmap(context, design?.firmaBase64)
-            val logo = loadBitmap(context, design?.logoBase64)
-            val hLogo = loadBitmap(context, design?.headerLogoBase64)
-
             if (isPreview) {
                 val employee = selectedEmployees.firstOrNull() ?: return
                 val course = selectedCourses.firstOrNull() ?: return
-                val photo = loadBitmap(context, employee.photoUrl)
                 
                 val finalStps = calculateStps(agent.stps)
                 
                 val file = PdfGenerator.generateDC3(
                     context, employee, course, agent.copy(stps = finalStps), company.name, company.rfc,
                     company.representanteLegal, company.representanteTrabajadores,
-                    startDate, endDate, signature, logo, photo, hLogo, design
+                    startDate, endDate, design = design,
+                    employeePhotoBase64 = employee.photoUrl
                 )
                 PdfGenerator.openPdf(context, file)
             } else {
@@ -174,7 +170,6 @@ fun DC3GenerationScreen(
                 var currentDoc = 0
                 val totalDocs = selectedEmployees.size * selectedCourses.size
                 selectedEmployees.forEach { employee ->
-                    val photo = loadBitmap(context, employee.photoUrl)
                     selectedCourses.forEach { course ->
                         currentDoc++
                         statusText = "Procesando $currentDoc de $totalDocs: ${employee.nombres}..."
@@ -211,7 +206,8 @@ fun DC3GenerationScreen(
                         val file = PdfGenerator.generateDC3(
                             context, employee, course, agent.copy(stps = finalStps), company.name, company.rfc,
                             company.representanteLegal, company.representanteTrabajadores,
-                            startDate, endDate, signature, logo, photo, hLogo, design,
+                            startDate, endDate, design = design,
+                            employeePhotoBase64 = employee.photoUrl,
                             qrUrl = qrUrl,
                             folio = folioDC3
                         )
@@ -240,8 +236,7 @@ fun DC3GenerationScreen(
         isGenerating = true
         try {
             val design = SupabaseRepository.fetchDataFilteredSuspend("agent_designs", "creator_email=eq.${agent.creatorEmail ?: user.email}&order=created_at.desc", AgentDesign.serializer()).firstOrNull()
-            val customTemplate = loadBitmap(context, design?.diplomaTemplateBase64)
-            val firmaBitmap = loadBitmap(context, design?.firmaBase64)
+            val customTemplateBase64 = design?.diplomaTemplateBase64
 
             val year = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
             val initialRecords = SupabaseRepository.fetchDataFilteredSuspend("dc3_records", "start_date=gte.$year-01-01", DC3Record.serializer())
@@ -282,11 +277,11 @@ fun DC3GenerationScreen(
                     val qrUrl = if (insertedId != null) "https://ace-control.pages.dev/?v=$insertedId" else "https://ace-control.pages.dev/?v=preview"
 
                     val file = DiplomaGenerator.generateDiploma(
-                        context, employee, course, agent, startDate, endDate, customTemplate,
+                        context, employee, course, agent, startDate, endDate,
+                        customTemplateBase64 = customTemplateBase64,
                         folio = folioStr,
                         design = design,
-                        qrUrl = qrUrl,
-                        signatureBitmap = firmaBitmap
+                        qrUrl = qrUrl
                     )
                     PdfGenerator.saveToDownloads(context, file)
                     if (totalDocs == 1) PdfGenerator.openPdf(context, file)
