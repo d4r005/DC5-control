@@ -44,10 +44,17 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
         isLoading = true
         SupabaseRepository.fetchData("dc3_records", DC3Record.serializer()) { fetched ->
             records.clear()
-            records.addAll(fetched)
+            // ADMIN ve todas las constancias/diplomas, USER solo los que el mismo generó
+            records.addAll(
+                if (user.role == "ADMIN") fetched
+                else fetched.filter { it.creatorEmail == user.email }
+            )
             isLoading = false
         }
-        SupabaseRepository.fetchData("agents", Agent.serializer()) { fetchedAgents ->
+        SupabaseRepository.fetchData("agents", Agent.serializer()) { fetchedAgentsRaw ->
+            // ADMIN ve todos los agentes en el filtro, USER solo los suyos
+            val fetchedAgents = if (user.role == "ADMIN") fetchedAgentsRaw
+                else fetchedAgentsRaw.filter { it.creatorEmail == user.email }
             // Normalización para evitar duplicados sin alterar el orden del nombre
             fun normalize(s: String): String = s.uppercase()
                 .replace("ING.", "")

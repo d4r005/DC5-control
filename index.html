@@ -1058,14 +1058,24 @@ const DATA = {
     companies: []   // Cargado desde Supabase
 };
 
+// ─── VISIBILIDAD POR ROL ────────────────────────────────
+// ADMIN ve todo. USER (agente) solo ve lo que el mismo ha creado
+// (sus propios agentes, cursos, empresas y constancias/diplomas).
+function isAdmin() { return !!(currentUser && currentUser.role === 'ADMIN'); }
+function roleFilter() { return isAdmin() ? {} : { creatorEmail: (currentUser && currentUser.email) || '' }; }
+function visibleAgents() { return isAdmin() ? DATA.agents : DATA.agents.filter(a => a.creatorEmail === (currentUser && currentUser.email)); }
+function visibleCompanies() { return isAdmin() ? DATA.companies : DATA.companies.filter(c => c.creatorEmail === (currentUser && currentUser.email)); }
+function visibleCourses() { return isAdmin() ? DATA.courses : DATA.courses.filter(c => c.creatorEmail === (currentUser && currentUser.email)); }
+
 // Cargar catálogos desde Supabase al iniciar
 async function loadCatalogs() {
     console.log('[DEBUG] loadCatalogs called, sb =', !!sb);
     try {
+        const nf = roleFilter();
         const [coursesR, agentsR, companiesR] = await Promise.all([
             api('find','courses',{ filter: {} }),
-            api('find','agents',{ filter: {} }),
-            api('find','companies',{ filter: {} })
+            api('find','agents',{ filter: nf }),
+            api('find','companies',{ filter: nf })
         ]);
         console.log('[DEBUG] loadCatalogs results:', { courses: coursesR, agents: agentsR, companies: companiesR });
 
@@ -1469,7 +1479,7 @@ function setView(v) {
         if (filterable) {
             // Siempre repoblar para reflejar cambios en DATA.agents y evitar duplicados en el DOM
             filterAgent.innerHTML = '<option value="">Todos los Agentes</option>' +
-                DATA.agents.map(a => `<option value="${a.name}">${a.name}</option>`).join('');
+                visibleAgents().map(a => `<option value="${a.name}">${a.name}</option>`).join('');
         }
     }
 
@@ -1483,15 +1493,15 @@ async function loadSection(v) {
         console.warn('[DEBUG] No currentUser, skipping loadSection');
         return;
     }
-    const f = (currentUser.role === 'ADMIN') ? {} : { creatorEmail: currentUser.email };
+    const f = roleFilter();
     console.log('[DEBUG] Filter f:', f);
 
     try {
         if (v === 'dashboard') {
             const [w, d, co] = await Promise.all([
                 api('find','workers',{ filter: f }),
-                api('find','dc3_records',{ filter: {} }),
-                api('find','companies',{ filter: {} })
+                api('find','dc3_records',{ filter: f }),
+                api('find','companies',{ filter: f })
             ]);
             document.getElementById('stat-workers').innerText = (w.documents||[]).length;
             document.getElementById('stat-dc3').innerText = (d.documents||[]).length;
@@ -1533,7 +1543,7 @@ async function loadSection(v) {
                 : `<tr><td colspan="7" class="text-center py-12 text-gray-300 text-sm">Sin personal registrado</td></tr>`;
 
         } else if (v === 'companies') {
-            const r = await api('find','companies',{ filter: {} });
+            const r = await api('find','companies',{ filter: f });
             const rows = (r.documents||[]);
             DATA.companies = rows;
             const tb = document.getElementById('tb-companies');
@@ -1580,7 +1590,7 @@ async function loadSection(v) {
 
         } else if (v === 'dc3') {
             const selectedAgentName = document.getElementById('filter-agent')?.value;
-            const r = await api('find','dc3_records',{ filter: {} });
+            const r = await api('find','dc3_records',{ filter: f });
             let rows = (r.documents||[]);
 
             if (currentHistoryTab === 'DC3') {
@@ -1624,7 +1634,7 @@ async function loadSection(v) {
             const tb = document.getElementById('tb-agents');
             if (!tb) return;
             tb.innerHTML = '<tr><td colspan="3" class="text-center py-12 text-gray-300">Cargando agentes...</td></tr>';
-            const r = await api('find','agents',{ filter: {} });
+            const r = await api('find','agents',{ filter: f });
             const rows = (r.documents||[]);
             DATA.agents = rows; // Sincronizar catálogo global
             tb.innerHTML = rows.length
@@ -1864,13 +1874,13 @@ function openDC3(worker) {
 
     // Companies
     const compSel = document.getElementById('dc3-company');
-    compSel.innerHTML = DATA.companies.length
-        ? DATA.companies.map(c => `<option value="${c.name}">${c.name}</option>`).join('')
+    compSel.innerHTML = visibleCompanies().length
+        ? visibleCompanies().map(c => `<option value="${c.name}">${c.name}</option>`).join('')
         : '<option>Sin empresas registradas</option>';
 
     // Agents
     const agentSel = document.getElementById('dc3-agent');
-    agentSel.innerHTML = DATA.agents.map(a => `<option value="${a.name}|${a.stps}">${a.name}</option>`).join('');
+    agentSel.innerHTML = visibleAgents().map(a => `<option value="${a.name}|${a.stps}">${a.name}</option>`).join('');
 
     // Courses - Initialize filtered by first agent
     filterDC3Courses();
@@ -1905,11 +1915,11 @@ function prepareEditDC3(record) {
 
     // Load catalogs first
     const compSel = document.getElementById('dc3-company');
-    compSel.innerHTML = DATA.companies.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+    compSel.innerHTML = visibleCompanies().map(c => `<option value="${c.name}">${c.name}</option>`).join('');
     compSel.value = record.companyName;
 
     const agentSel = document.getElementById('dc3-agent');
-    agentSel.innerHTML = DATA.agents.map(a => `<option value="${a.name}|${a.stps}">${a.name}</option>`).join('');
+    agentSel.innerHTML = visibleAgents().map(a => `<option value="${a.name}|${a.stps}">${a.name}</option>`).join('');
     // Try to find matching agent
     const agentOption = [...agentSel.options].find(opt => opt.value.startsWith(record.agentName));
     if (agentOption) agentSel.value = agentOption.value;
@@ -3219,9 +3229,9 @@ function openBulkDC3Modal() {
     const compSel = document.getElementById('bulk-company');
     const agentSel = document.getElementById('bulk-agent');
     const courseSel = document.getElementById('bulk-course');
-    compSel.innerHTML = (DATA.companies||[]).map(c => `<option value="${(c.name||'').replace(/"/g,'&quot;')}">${c.name||''}</option>`).join('');
-    agentSel.innerHTML = (DATA.agents||[]).map(a => `<option value="${(a.name||'')}|${(a.stps||'')}">  ${a.name||''}</option>`).join('');
-    courseSel.innerHTML = (DATA.courses||[]).map(c => `<option value="${(c.name||'')}|${(c.durationHours||'')}|${(c.thematicArea||'')}">${c.name||''}</option>`).join('');
+    compSel.innerHTML = (visibleCompanies()||[]).map(c => `<option value="${(c.name||'').replace(/"/g,'&quot;')}">${c.name||''}</option>`).join('');
+    agentSel.innerHTML = (visibleAgents()||[]).map(a => `<option value="${(a.name||'')}|${(a.stps||'')}">  ${a.name||''}</option>`).join('');
+    courseSel.innerHTML = (visibleCourses()||[]).map(c => `<option value="${(c.name||'')}|${(c.durationHours||'')}|${(c.thematicArea||'')}">${c.name||''}</option>`).join('');
 
     // Reset progress
     document.getElementById('bulk-progress').classList.add('hidden');
@@ -3763,8 +3773,8 @@ function openWorkerCourses(worker) {
     // Empresa y agente
     const compSel = document.getElementById('wc-company');
     const agentSel = document.getElementById('wc-agent');
-    compSel.innerHTML = DATA.companies.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
-    agentSel.innerHTML = DATA.agents.map(a => `<option value="${a.name}|${a.stps}">${a.name}</option>`).join('');
+    compSel.innerHTML = visibleCompanies().map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+    agentSel.innerHTML = visibleAgents().map(a => `<option value="${a.name}|${a.stps}">${a.name}</option>`).join('');
 
     // Iniciar con una fila de curso
     document.getElementById('wc-courses-list').innerHTML = '';
