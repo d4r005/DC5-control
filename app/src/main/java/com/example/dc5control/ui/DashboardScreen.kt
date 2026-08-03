@@ -15,7 +15,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -48,8 +47,9 @@ fun DashboardScreen(
         SupabaseRepository.fetchData("companies", Company.serializer()) { companiesCount = it.size.toString() }
     }
 
-    val isExpanded = LocalConfiguration.current.screenWidthDp >= 600
-    val mainPadding = if (isExpanded) 24.dp else 16.dp
+    val screenType = rememberScreenType()
+    val isExpanded = screenType.isExpanded || screenType.isMedium
+    val mainPadding = screenType.screenPadding
     val spacing = if (isExpanded) 24.dp else 16.dp
 
     Column(
@@ -67,35 +67,70 @@ fun DashboardScreen(
             onLogout = onLogout
         )
 
-        // Stat Cards Row
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(IntrinsicSize.Min),
-            horizontalArrangement = Arrangement.spacedBy(if (isExpanded) 24.dp else 12.dp)
-        ) {
-            StatCard(
-                label = "PERSONAL REGISTRADO",
-                value = workersCount,
-                subtitle = "Trabajadores",
-                modifier = Modifier.weight(1f).fillMaxHeight(),
-                onClick = { onNavigate(Screen.Workers) }
-            )
-            StatCard(
-                label = "CONSTANCIAS DC-3",
-                value = dc3Count,
-                subtitle = "Generadas",
-                valueColor = NavyPrimary,
-                modifier = Modifier.weight(1f).fillMaxHeight(),
-                onClick = { onNavigate(Screen.DC3History) }
-            )
-            StatCard(
-                label = "EMPRESAS",
-                value = companiesCount,
-                subtitle = "Registradas",
-                modifier = Modifier.weight(1f).fillMaxHeight(),
-                onClick = { onNavigate(Screen.Companies) }
-            )
+        // Stat Cards — Row en pantallas anchas, Column en teléfono portrait
+        if (screenType.useTwoColumns || isExpanded) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(if (isExpanded) 24.dp else 12.dp)
+            ) {
+                StatCard(
+                    label = "PERSONAL REGISTRADO",
+                    value = workersCount,
+                    subtitle = "Trabajadores",
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                    onClick = { onNavigate(Screen.Workers) }
+                )
+                StatCard(
+                    label = "CONSTANCIAS DC-3",
+                    value = dc3Count,
+                    subtitle = "Generadas",
+                    valueColor = NavyPrimary,
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                    onClick = { onNavigate(Screen.DC3History) }
+                )
+                StatCard(
+                    label = "EMPRESAS",
+                    value = companiesCount,
+                    subtitle = "Registradas",
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                    onClick = { onNavigate(Screen.Companies) }
+                )
+            }
+        } else {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    StatCard(
+                        label = "PERSONAL",
+                        value = workersCount,
+                        subtitle = "Trabajadores",
+                        modifier = Modifier.weight(1f),
+                        onClick = { onNavigate(Screen.Workers) }
+                    )
+                    StatCard(
+                        label = "DC-3",
+                        value = dc3Count,
+                        subtitle = "Generadas",
+                        valueColor = NavyPrimary,
+                        modifier = Modifier.weight(1f),
+                        onClick = { onNavigate(Screen.DC3History) }
+                    )
+                }
+                StatCard(
+                    label = "EMPRESAS",
+                    value = companiesCount,
+                    subtitle = "Registradas",
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { onNavigate(Screen.Companies) }
+                )
+            }
         }
 
         // 'Cómo funciona' Card

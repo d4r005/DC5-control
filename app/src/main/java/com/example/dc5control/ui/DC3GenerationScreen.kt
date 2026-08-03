@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -318,7 +319,10 @@ fun DC3GenerationScreen(
                         Text("Formato oficial STPS · Art. 153-A LFT", color = Gray500, fontSize = 14.sp)
                     }
                 }
-                if (isExpanded) {
+                val isLandscape = LocalConfiguration.current.screenWidthDp > LocalConfiguration.current.screenHeightDp
+                val useTwoCol = isExpanded || (isLandscape && LocalConfiguration.current.screenWidthDp >= 600)
+
+                if (useTwoCol) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                             WorkerSelectionSection(employees, selectedEmployees) { selectedEmployees = it }

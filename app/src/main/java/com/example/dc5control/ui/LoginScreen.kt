@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -41,6 +42,9 @@ fun LoginScreen(onLoginSuccess: (User, Boolean) -> Unit) {
             .background(Brush.linearGradient(colors = listOf(LoginGradientStart, LoginGradientMid, LoginGradientEnd))),
         contentAlignment = Alignment.Center
     ) {
+        val screenWidth = LocalConfiguration.current.screenWidthDp
+        val maxCardWidth = if (screenWidth >= 600) 420.dp else 0.dp
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -48,11 +52,13 @@ fun LoginScreen(onLoginSuccess: (User, Boolean) -> Unit) {
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("ACE-Control", fontSize = 32.sp, fontWeight = FontWeight.Black, color = NavyPrimary)
+            Text("ACE-Control", fontSize = if (screenWidth >= 600) 40.sp else 32.sp, fontWeight = FontWeight.Black, color = NavyPrimary)
             Spacer(modifier = Modifier.height(32.dp))
 
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(if (maxCardWidth > 0.dp) Modifier.width(maxCardWidth) else Modifier),
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)

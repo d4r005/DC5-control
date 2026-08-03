@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -152,7 +153,10 @@ fun CompanyListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                         }
                     }
                 } else {
-                    if (isExpanded) {
+                    val isLandscape = LocalConfiguration.current.screenWidthDp > LocalConfiguration.current.screenHeightDp
+                    val useTable = isExpanded || (isLandscape && LocalConfiguration.current.screenWidthDp >= 700)
+
+                    if (useTable) {
                         // Table View for tablets / landscape
                         Column(modifier = Modifier.fillMaxSize()) {
                             // Table Header Row
@@ -345,7 +349,7 @@ fun CompanyListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
         }
 
         // FAB for adding company on mobile (aligned at bottom right)
-        if (!isExpanded) {
+        if (!useTable) {
             FloatingActionButton(
                 onClick = { 
                     companyToEdit = null

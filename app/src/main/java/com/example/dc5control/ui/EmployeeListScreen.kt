@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -36,6 +37,7 @@ import com.example.dc5control.data.repository.SupabaseRepository
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import com.example.dc5control.ui.theme.*
 import com.example.dc5control.util.ExcelHelper
 import kotlinx.coroutines.launch
@@ -275,7 +277,10 @@ fun EmployeeListScreen(
                         }
                     }
                 } else {
-                    if (isExpanded) {
+                    val isLandscape = LocalConfiguration.current.screenWidthDp > LocalConfiguration.current.screenHeightDp
+                    val useTable = isExpanded || (isLandscape && LocalConfiguration.current.screenWidthDp >= 700)
+
+                    if (useTable) {
                         // Table View for tablets / landscape
                         Column(modifier = Modifier.fillMaxSize()) {
                             // Table Header Row

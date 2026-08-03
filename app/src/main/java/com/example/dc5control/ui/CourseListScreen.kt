@@ -179,8 +179,11 @@ fun CourseListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                     }
                 }
 
+                val isLandscape = LocalConfiguration.current.screenWidthDp > LocalConfiguration.current.screenHeightDp
+                val useWideLayout = isExpanded || (isLandscape && LocalConfiguration.current.screenWidthDp >= 700)
+
                 // Header add button on expanded/desktop layout
-                if (isExpanded) {
+                if (useWideLayout) {
                     Button(
                         onClick = { showAddDialog = true },
                         colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
@@ -221,7 +224,7 @@ fun CourseListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                         )
                     }
                 } else {
-                    if (isExpanded) {
+                    if (useWideLayout) {
                         // Expanded Table Layout
                         Column(modifier = Modifier.fillMaxSize()) {
                             // Table Header
@@ -423,7 +426,7 @@ fun CourseListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
         }
 
         // FAB for adding courses (typically shown on compact, but can be fallback)
-        if (!isExpanded) {
+        if (!useWideLayout) {
             FloatingActionButton(
                 onClick = { showAddDialog = true },
                 modifier = Modifier

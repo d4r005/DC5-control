@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -452,6 +453,11 @@ fun DesignScreen(
                             )
                         }
                     }
+                    // Detectar landscape para layout de dos columnas
+                    val isLandscape = LocalConfiguration.current.screenWidthDp > LocalConfiguration.current.screenHeightDp
+                    val useTwoCol = isExpanded || (isLandscape && LocalConfiguration.current.screenWidthDp >= 600)
+                    val editorPadding = if (isExpanded) 48.dp else 16.dp
+
                     // Seleccionamos la pestaña activa (DC-3 o Diploma)
                     if (selectedTab == 0) {
                         // DC-3 Design
@@ -459,7 +465,7 @@ fun DesignScreen(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .verticalScroll(rememberScrollState())
-                                .padding(if (isExpanded) 48.dp else 16.dp),
+                                .padding(editorPadding),
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             // Logo section
@@ -924,7 +930,7 @@ fun DesignScreen(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .verticalScroll(rememberScrollState())
-                                .padding(if (isExpanded) 48.dp else 16.dp),
+                                .padding(editorPadding),
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             DesignCard("Plantilla de Diploma") {
