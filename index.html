@@ -2769,6 +2769,7 @@ async function uploadFileToStorage(file, folder, fileName) {
     });
     if (error) {
         console.error('Storage upload error:', error);
+        alert(`Error al subir archivo a la nube: ${error.message || error.error_description || 'Verifica las políticas RLS del bucket templates'}`);
         return null;
     }
     // Get public URL
@@ -2913,6 +2914,11 @@ async function saveDesign() {
         designState.diploma_template_url = p.diplomaTemplateUrl;
         designState.dc3_template_file = null;
         designState.diploma_template_file = null;
+
+        if (p.dc3TemplateUrl) {
+            const info = document.getElementById('dc3-template-info');
+            if (info) info.textContent = "Plantilla en la nube activa";
+        }
 
         alert('✓ Diseño guardado');
     } catch(e) {
