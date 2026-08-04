@@ -229,7 +229,7 @@ object PdfGenerator {
 
         // 6. RFC
         val rfcC = floatArrayOf(34.9f,52.1f,66.0f,80.8f,95.4f,109.8f,124.0f,138.3f,152.8f,167.0f,181.2f,195.5f,209.8f,227.4f,245.1f)
-        companyRfc.replace(" ","").take(15).forEachIndexed { i, c -> if (i < rfcC.size) cell(c.toString(), rfcC[i], 311f) }
+        companyRfc.replace(" ","").replace("-","").take(15).forEachIndexed { i, c -> if (i < rfcC.size) cell(c.toString(), rfcC[i], 311f) }
 
         // 7. Curso
         rect(26f, 355f, 559f, 11f)
