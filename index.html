@@ -2651,6 +2651,8 @@ async function updateDiplomaDesignPreview() {
         const page = pdfDoc.getPage(0);
         PW = page.getWidth();
         PH = page.getHeight();
+        designState._dipPW = PW;
+        designState._dipPH = PH;
     } else {
         // Fallback a imagen (comportamiento actual)
         pdfDoc = await PDFDocument.create();
@@ -2713,7 +2715,8 @@ async function updateDiplomaDesignPreview() {
     canvas.width = vp.width; canvas.height = vp.height;
     await pg.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
 
-    designState._dipScale = vp.width / T_DIP_W;
+    designState._dipScale = vp.width / PW;
+    designState._dipPH = PH; // Store real height for coordinate sync
     _updateDiplomaDragHandles();
 }
 
@@ -2723,6 +2726,8 @@ function _updateDiplomaDragHandles() {
     if (!svg || !canvas) return;
 
     const sc = designState._dipScale;
+    const ph = designState._dipPH || T_DIP_H;
+
     svg.setAttribute('viewBox', `0 0 ${canvas.width} ${canvas.height}`);
     svg.innerHTML = '';
 
@@ -2755,15 +2760,16 @@ function _updateDiplomaDragHandles() {
         rect.setAttribute('y', (y - 15) * sc);
         rect.setAttribute('width', 200 * sc);
         rect.setAttribute('height', 30 * sc);
-        rect.setAttribute('fill', item.color + '22');
+        rect.setAttribute('fill', item.color + '33'); // Slightly more opaque
         rect.setAttribute('stroke', item.color);
+        rect.setAttribute('stroke-width', '2');
         rect.setAttribute('rx', '4');
 
         const text = document.createElementNS('http://www.w3.org/2000/svg','text');
         text.setAttribute('x', (x - 95) * sc);
         text.setAttribute('y', (y + 5) * sc);
         text.setAttribute('fill', item.color);
-        text.setAttribute('font-size', '10');
+        text.setAttribute('font-size', (11 * sc).toString()); // Scale font too
         text.setAttribute('font-weight', 'bold');
         text.textContent = item.label;
 
@@ -2775,11 +2781,15 @@ function _updateDiplomaDragHandles() {
             const startX = e.clientX, startY = e.clientY;
             const startValX = x, startValY = y;
 
+            // Get actual display scale (screen pixels to PDF points)
+            const canvasRect = canvas.getBoundingClientRect();
+            const pxPerPt = canvasRect.width / (designState._dipPW || PW || 792);
+
             const onMove = (ev) => {
-                const canvasRect = canvas.getBoundingClientRect();
-                const pxPerPt = canvasRect.width / T_DIP_W;
-                document.getElementById(item.id).value = Math.round(startValX + (ev.clientX - startX) / pxPerPt);
-                document.getElementById(item.yId).value = Math.round(startValY + (ev.clientY - startY) / pxPerPt);
+                const dx = (ev.clientX - startX) / pxPerPt;
+                const dy = (ev.clientY - startY) / pxPerPt;
+                document.getElementById(item.id).value = Math.round(startValX + dx);
+                document.getElementById(item.yId).value = Math.round(startValY + dy);
                 scheduleDiplomaPreview();
             };
             const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
