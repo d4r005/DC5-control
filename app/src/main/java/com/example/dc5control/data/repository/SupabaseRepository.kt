@@ -21,6 +21,8 @@ object SupabaseRepository {
     private const val SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zZ2Z3Z2VkamRsdHJtdnd5Y2pkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyNDAxMzcsImV4cCI6MjA5OTgxNjEzN30.jeV98eAfhQzkXiGj88DUOLqLPLFr_IKPrcnTaefEgj0"
     private const val SUPABASE_STORAGE_URL = "https://$SUPABASE_HOST/storage/v1/object/worker-photos"
     private const val SUPABASE_PUBLIC_STORAGE_URL = "https://$SUPABASE_HOST/storage/v1/object/public/worker-photos"
+    private const val SUPABASE_TEMPLATES_URL = "https://$SUPABASE_HOST/storage/v1/object/templates"
+    private const val SUPABASE_PUBLIC_TEMPLATES_URL = "https://$SUPABASE_HOST/storage/v1/object/public/templates"
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -289,6 +291,46 @@ object SupabaseRepository {
                 }
             } catch (e: Exception) {
                 android.util.Log.e("Supabase", "Upload exception: ${e.message}")
+                mainHandler.post { onResult(null) }
+            }
+        }.start()
+    }
+
+    // ─── UPLOAD TEMPLATE TO SUPABASE STORAGE ─────────────────────────────
+    fun uploadTemplate(context: Context, uri: Uri, creatorEmail: String, fileName: String, onResult: (String?) -> Unit) {
+        Thread {
+            try {
+                val stream = context.contentResolver.openInputStream(uri) ?: run {
+                    mainHandler.post { onResult(null) }
+                    return@Thread
+                }
+                val bytes = stream.readBytes()
+                stream.close()
+
+                val mimeType = if (fileName.endsWith(".pdf", true)) "application/pdf" else "image/png"
+                val path = "$creatorEmail/$fileName"
+
+                val requestBody = bytes.toRequestBody(mimeType.toMediaType())
+                val request = Request.Builder()
+                    .url("$SUPABASE_TEMPLATES_URL/$path")
+                    .addHeader("apikey", SUPABASE_KEY)
+                    .addHeader("Authorization", "Bearer $SUPABASE_KEY")
+                    .addHeader("Content-Type", mimeType)
+                    .addHeader("x-upsert", "true")
+                    .put(requestBody)
+                    .build()
+
+                client.newCall(request).execute().use { response ->
+                    if (response.isSuccessful) {
+                        val publicUrl = "$SUPABASE_PUBLIC_TEMPLATES_URL/$path"
+                        mainHandler.post { onResult(publicUrl) }
+                    } else {
+                        android.util.Log.e("Supabase", "Template upload failed: ${response.code} ${response.body?.string()}")
+                        mainHandler.post { onResult(null) }
+                    }
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("Supabase", "Template upload exception: ${e.message}")
                 mainHandler.post { onResult(null) }
             }
         }.start()

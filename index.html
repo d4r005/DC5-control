@@ -414,6 +414,18 @@
                 <div class="card p-5" style="overflow-y:auto;max-height:82vh;">
                     <h3 class="text-sm font-bold text-blue-900 uppercase tracking-wide mb-4">Diseño DC-3</h3>
 
+                    <!-- PLANTILLA BASE DC-3 -->
+                    <div class="border rounded-xl p-4 mb-4 bg-blue-50">
+                        <p class="text-xs font-bold text-blue-900 uppercase mb-3">Plantilla Base DC-3 (PDF)</p>
+                        <div id="dc3-template-info" class="text-[11px] text-gray-500 mb-2">Plantilla por defecto activa</div>
+                        <div class="flex gap-2">
+                            <label class="btn-sm btn-indigo flex-1 text-center cursor-pointer text-[11px] py-2">
+                                📄 Cambiar Formato PDF
+                                <input type="file" accept="application/pdf" class="hidden" onchange="handleDC3Template(this)">
+                            </label>
+                        </div>
+                    </div>
+
                     <!-- LOGO DE FIRMA -->
                     <div class="border rounded-xl p-4 mb-4 space-y-3 bg-gray-50">
                         <p class="text-xs font-bold text-gray-600 uppercase">Logo (sección de firmas)</p>
@@ -1177,6 +1189,7 @@ function toSnake(obj) {
         qrX:'qr_x', qrY:'qr_y', qrSz:'qr_sz',
         dipQrX:'dip_qr_x', dipQrY:'dip_qr_y', dipQrSz:'dip_qr_sz',
         dc3FolioX:'dc3_folio_x', dc3FolioY:'dc3_folio_y', dc3FolioSz:'dc3_folio_sz',
+        dc3TemplateUrl:'dc3_template_url', diplomaTemplateUrl:'diploma_template_url',
         cedulaProfesional:'cedula_profesional'
     };
     const out = {};
@@ -1215,6 +1228,7 @@ function toCamel(obj) {
         qr_x:'qrX', qr_y:'qrY', qr_sz:'qrSz',
         dip_qr_x:'dipQrX', dip_qr_y:'dipQrY', dip_qr_sz:'dipQrSz',
         dc3_folio_x:'dc3FolioX', dc3_folio_y:'dc3FolioY', dc3_folio_sz:'dc3FolioSz',
+        dc3_template_url:'dc3TemplateUrl', diploma_template_url:'diplomaTemplateUrl',
         cedula_profesional:'cedulaProfesional'
     };
     const out = {};
@@ -2386,6 +2400,8 @@ function togglePassword() {
 const designState = {
     logo_base64: null, firma_base64: null, header_logo_base64: null,
     diploma_template_base64: null,
+    dc3_template_file: null, // New: for uploading to storage
+    diploma_template_file: null, // New: for uploading to storage
     _previewTimer: null, _pdfTemplateBytes: null, _scale: 1.0
 };
 
@@ -2437,6 +2453,11 @@ function resetDesignState() {
         }
     });
 
+    const info = document.getElementById('dc3-template-info');
+    if (info) info.textContent = "Plantilla por defecto activa";
+    designState.dc3_template_file = null;
+    designState.diploma_template_file = null;
+
     // Reset inputs to defaults
     const defaults = {
         'design-agent-name':'', 'design-slogan':'', 'design-slogan-x':30, 'design-slogan-y':445, 'design-slogan-size':7, 'design-slogan-font':'Helvetica',
@@ -2487,6 +2508,12 @@ async function loadDesign() {
         if (d.firmaBase64)       { designState.firma_base64 = d.firmaBase64;           showDesignThumb('firma', d.firmaBase64); }
         if (d.headerLogoBase64)  { designState.header_logo_base64 = d.headerLogoBase64; showDesignThumb('headerLogo', d.headerLogoBase64); }
         if (d.diplomaBase64)     { designState.diploma_template_base64 = d.diplomaBase64;       showDesignThumb('diploma', d.diplomaBase64); }
+
+        designState.dc3_template_url = d.dc3TemplateUrl;
+        designState.diploma_template_url = d.diplomaTemplateUrl;
+        if (d.dc3TemplateUrl) {
+            document.getElementById('dc3-template-info').textContent = "Plantilla en la nube activa";
+        }
 
         setV('design-agent-name', d.agentName);
         setV('design-slogan', d.slogan);
@@ -2733,6 +2760,22 @@ function showDesignThumb(type, src) {
     el.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:contain;border-radius:4px">`;
 }
 
+async function uploadFileToStorage(file, folder, fileName) {
+    if (!sb) return null;
+    const path = `${folder}/${fileName}`;
+    const { data, error } = await sb.storage.from('templates').upload(path, file, {
+        upsert: true,
+        contentType: file.type
+    });
+    if (error) {
+        console.error('Storage upload error:', error);
+        return null;
+    }
+    // Get public URL
+    const { data: { publicUrl } } = sb.storage.from('templates').getPublicUrl(path);
+    return publicUrl;
+}
+
 async function handleDesignImage(input, type) {
     const file = input.files[0];
     if (!file) return;
@@ -2744,9 +2787,18 @@ async function handleDesignImage(input, type) {
     updateDesignPreview();
 }
 
+function handleDC3Template(input) {
+    const file = input.files[0];
+    if (!file) return;
+    designState.dc3_template_file = file;
+    document.getElementById('dc3-template-info').textContent = "Nuevo archivo: " + file.name;
+    // Note: We don't preview remote PDFs easily on canvas here, but it's set for upload.
+}
+
 async function handleDiplomaTemplate(input) {
     const file = input.files[0];
     if (!file) return;
+    designState.diploma_template_file = file;
     const dataUrl = await fileToDataUrl(file);
     designState.diploma_template_base64 = dataUrl;
     showDesignThumb('diploma', dataUrl);
@@ -2806,6 +2858,8 @@ function getDesignParams() {
         qrX: gv('design-qr-x'), qrY: gv('design-qr-y'), qrSz: gv('design-qr-sz'),
         dipQrX: gv('dip-qr-x'), dipQrY: gv('dip-qr-y'), dipQrSz: gv('dip-qr-sz'),
         dc3FolioX: gv('design-dc3-folio-x'), dc3FolioY: gv('design-dc3-folio-y'), dc3FolioSz: gv('design-dc3-folio-sz'),
+        dc3TemplateUrl: designState.dc3_template_url,
+        diplomaTemplateUrl: designState.diploma_template_url,
         creatorEmail: currentUser?.email || ''
     };
 }
@@ -2816,6 +2870,17 @@ async function saveDesign() {
     if (btn) { btn.disabled=true; btn.textContent='Guardando…'; }
     try {
         const p = getDesignParams();
+        const currentEmail = p.creatorEmail || 'unknown';
+
+        // 1. Subir archivos a Storage si existen
+        if (designState.dc3_template_file) {
+            const url = await uploadFileToStorage(designState.dc3_template_file, currentEmail, "dc3_base.pdf");
+            if (url) p.dc3TemplateUrl = url;
+        }
+        if (designState.diploma_template_file) {
+            const url = await uploadFileToStorage(designState.diploma_template_file, currentEmail, "diploma_base.png");
+            if (url) p.diplomaTemplateUrl = url;
+        }
 
         // Mapeo manual para asegurar que NO se envíen nombres camelCase ni columnas inexistentes
         const payload = toSnake(p);
@@ -2842,6 +2907,13 @@ async function saveDesign() {
             const res = await api('insertOne','agent_designs', { document: payload });
             if (res.error) throw new Error(res.error);
         }
+
+        // Actualizar estado local
+        designState.dc3_template_url = p.dc3TemplateUrl;
+        designState.diploma_template_url = p.diplomaTemplateUrl;
+        designState.dc3_template_file = null;
+        designState.diploma_template_file = null;
+
         alert('✓ Diseño guardado');
     } catch(e) {
         console.error('Error saving design:', e);

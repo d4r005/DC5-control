@@ -77,6 +77,27 @@ object PdfGenerator {
         } catch (e: Exception) { null }
     }
 
+    private fun getTemplateStream(context: Context, url: String?): java.io.InputStream {
+        if (url.isNullOrBlank()) {
+            return context.assets.open(TEMPLATE_ASSET)
+        }
+        
+        return try {
+            // Implementación simple de descarga (bloqueante, pero corre en hilo de generación)
+            val client = okhttp3.OkHttpClient()
+            val request = okhttp3.Request.Builder().url(url).build()
+            val response = client.newCall(request).execute()
+            if (response.isSuccessful) {
+                val bytes = response.body?.bytes()
+                if (bytes != null) return java.io.ByteArrayInputStream(bytes)
+            }
+            context.assets.open(TEMPLATE_ASSET)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error downloading remote template: ${e.message}")
+            context.assets.open(TEMPLATE_ASSET)
+        }
+    }
+
     fun generateDC3(
         context: Context,
         employee: Employee,
@@ -94,7 +115,7 @@ object PdfGenerator {
         folio: String? = null
     ): File {
         PDFBoxResourceLoader.init(context)
-        val inputStream = context.assets.open(TEMPLATE_ASSET)
+        val inputStream = getTemplateStream(context, design?.dc3TemplateUrl)
         val document = PDDocument.load(inputStream)
         inputStream.close()
 

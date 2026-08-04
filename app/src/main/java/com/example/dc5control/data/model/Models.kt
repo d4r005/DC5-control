@@ -171,5 +171,7 @@ data class AgentDesign(
     @SerialName("dc3_folio_x") val dc3FolioX: Float? = null,
     @SerialName("dc3_folio_y") val dc3FolioY: Float? = null,
     @SerialName("dc3_folio_sz") val dc3FolioSz: Float? = null,
+    @SerialName("dc3_template_url") val dc3TemplateUrl: String? = null,
+    @SerialName("diploma_template_url") val diplomaTemplateUrl: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null
 )

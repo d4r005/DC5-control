@@ -41,6 +41,27 @@ object DiplomaGenerator {
         }
     }
 
+    private fun getTemplateBytes(context: Context, url: String?): ByteArray? {
+        if (url.isNullOrBlank()) {
+            return try {
+                val inputStream = context.assets.open(TEMPLATE_NAME)
+                val bytes = inputStream.readBytes()
+                inputStream.close()
+                bytes
+            } catch (e: Exception) { null }
+        }
+
+        return try {
+            val client = okhttp3.OkHttpClient()
+            val request = okhttp3.Request.Builder().url(url).build()
+            val response = client.newCall(request).execute()
+            if (response.isSuccessful) response.body?.bytes() else null
+        } catch (e: Exception) {
+            Log.e(TAG, "Error downloading remote diploma template: ${e.message}")
+            null
+        }
+    }
+
     fun generateDiploma(
         context: Context,
         employee: Employee,
@@ -62,13 +83,10 @@ object DiplomaGenerator {
 
         // 1. Dibujar plantilla — igual que web: x=0, y=0, full page (sin fondo oscuro ni sangrado)
         try {
-            val imgBytes = if (!customTemplateBase64.isNullOrBlank()) {
-                base64ToImageBytes(customTemplateBase64)
-            } else {
-                val inputStream = context.assets.open(TEMPLATE_NAME)
-                val bytes = inputStream.readBytes()
-                inputStream.close()
-                bytes
+            val imgBytes = when {
+                !customTemplateBase64.isNullOrBlank() -> base64ToImageBytes(customTemplateBase64)
+                !design?.diplomaTemplateUrl.isNullOrBlank() -> getTemplateBytes(context, design?.diplomaTemplateUrl)
+                else -> getTemplateBytes(context, null)
             }
             if (imgBytes != null) {
                 val img = PDImageXObject.createFromByteArray(document, imgBytes, "template")

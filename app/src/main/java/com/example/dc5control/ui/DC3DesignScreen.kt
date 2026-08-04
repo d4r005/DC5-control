@@ -4,6 +4,7 @@ import android.net.Uri
 import android.util.Base64
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -25,6 +26,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -42,7 +44,7 @@ fun DesignScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
-    var selectedTab by remember { mutableStateOf(0) }
+    var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = listOf("DC-3", "Diploma")
 
     val scope = rememberCoroutineScope()
@@ -54,7 +56,9 @@ fun DesignScreen(
 
     // Campos editables (se sincronizan con selectedDesign cuando cambia)
     var headerSlogan by remember { mutableStateOf("") }
-    var headerSloganX by remember { mutableStateOf(306f) }
+    var dc3TemplateUrl by remember { mutableStateOf<String?>(null) }
+    var diplomaTemplateUrl by remember { mutableStateOf<String?>(null) }
+    var headerSloganX by remember { mutableFloatStateOf(306f) }
     var headerSloganY by remember { mutableStateOf(18f) }
     var headerSloganSize by remember { mutableStateOf(9f) }
     var headerSloganFont by remember { mutableStateOf("Times-Italic") }
@@ -156,8 +160,16 @@ fun DesignScreen(
     val logoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let { logoBase64 = uriToBase64(it) }
     }
+    var newDc3TemplateUri by remember { mutableStateOf<Uri?>(null) }
+    val dc3TemplateLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let { newDc3TemplateUri = it }
+    }
+    var newDiplomaTemplateUri by remember { mutableStateOf<Uri?>(null) }
     val diplomaLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { diplomaTemplateBase64 = uriToBase64(it) }
+        uri?.let { 
+            newDiplomaTemplateUri = it
+            diplomaTemplateBase64 = uriToBase64(it) 
+        }
     }
 
     // --- Carga de diseños según rol ---
@@ -185,6 +197,8 @@ fun DesignScreen(
         val design = selectedDesign
         if (design != null) {
             headerSlogan = design.headerSlogan ?: ""
+            dc3TemplateUrl = design.dc3TemplateUrl
+            diplomaTemplateUrl = design.diplomaTemplateUrl
             headerSloganX = design.headerSloganX ?: 306f
             headerSloganY = design.headerSloganY ?: 18f
             headerSloganSize = design.headerSloganSize ?: 9f
@@ -257,6 +271,8 @@ fun DesignScreen(
         } else {
             // Valores por defecto (cuando no hay diseño seleccionado)
             headerSlogan = ""
+            dc3TemplateUrl = null
+            diplomaTemplateUrl = null
             headerSloganX = 306f
             headerSloganY = 18f
             headerSloganSize = 9f
@@ -468,6 +484,53 @@ fun DesignScreen(
                                 .padding(editorPadding),
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
+                            // Plantilla Base DC-3
+                            DesignCard("Plantilla Base DC-3 (PDF)") {
+                                Text("Sube el formato oficial en blanco. Se usará como fondo para los datos del agente y trabajadores.", fontSize = 13.sp, color = Gray500)
+                                Spacer(modifier = Modifier.height(12.dp))
+                                
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    color = Gray50,
+                                    shape = RoundedCornerShape(8.dp),
+                                    border = BorderStroke(1.dp, Gray200)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = if (newDc3TemplateUri != null || dc3TemplateUrl != null) Icons.Default.PictureAsPdf else Icons.Default.FileOpen,
+                                            contentDescription = null,
+                                            tint = if (newDc3TemplateUri != null || dc3TemplateUrl != null) NavyPrimary else Gray400
+                                        )
+                                        Spacer(Modifier.width(12.dp))
+                                        Column(Modifier.weight(1f)) {
+                                            Text(
+                                                text = when {
+                                                    newDc3TemplateUri != null -> "Nuevo archivo seleccionado"
+                                                    dc3TemplateUrl != null -> "Plantilla en la nube activa"
+                                                    else -> "Plantilla por defecto (Assets)"
+                                                },
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                            if (dc3TemplateUrl != null && newDc3TemplateUri == null) {
+                                                Text(dc3TemplateUrl!!, style = MaterialTheme.typography.bodySmall, color = Gray400, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                            }
+                                        }
+                                        Button(
+                                            onClick = { dc3TemplateLauncher.launch("application/pdf") },
+                                            colors = ButtonDefaults.buttonColors(containerColor = NavySurface, contentColor = NavyPrimary),
+                                            shape = RoundedCornerShape(8.dp),
+                                            contentPadding = PaddingValues(horizontal = 12.dp)
+                                        ) {
+                                            Text("Cambiar", fontSize = 12.sp)
+                                        }
+                                    }
+                                }
+                            }
+
                             // Logo section
                             DesignCard("Logo de la constancia") {
                                 Text("Sube un logo que aparecerá en la esquina superior izquierda del DC-3", fontSize = 13.sp, color = Gray500)
@@ -746,9 +809,35 @@ fun DesignScreen(
                                 onClick = {
                                     isSaving = true
                                     scope.launch {
+                                        val currentAgentEmail = selectedDesign?.creatorEmail ?: user.email
+                                        
+                                        // 1. Subir plantillas si hay nuevas seleccionadas
+                                        var finalDc3Url = dc3TemplateUrl
+                                        var finalDiplomaUrl = diplomaTemplateUrl
+
+                                        if (newDc3TemplateUri != null) {
+                                            val url = kotlinx.coroutines.suspendCancellableCoroutine<String?> { cont ->
+                                                SupabaseRepository.uploadTemplate(context, newDc3TemplateUri!!, currentAgentEmail, "dc3_base.pdf") { url ->
+                                                    cont.resume(url) { }
+                                                }
+                                            }
+                                            if (url != null) finalDc3Url = url
+                                        }
+
+                                        if (newDiplomaTemplateUri != null) {
+                                            val url = kotlinx.coroutines.suspendCancellableCoroutine<String?> { cont ->
+                                                SupabaseRepository.uploadTemplate(context, newDiplomaTemplateUri!!, currentAgentEmail, "diploma_base.png") { url ->
+                                                    cont.resume(url) { }
+                                                }
+                                            }
+                                            if (url != null) finalDiplomaUrl = url
+                                        }
+
                                         val updated = if (selectedDesign != null) {
                                             selectedDesign?.copy(
                                                 headerSlogan = headerSlogan,
+                                                dc3TemplateUrl = finalDc3Url,
+                                                diplomaTemplateUrl = finalDiplomaUrl,
                                                 headerSloganX = headerSloganX,
                                                 headerSloganY = headerSloganY,
                                                 headerSloganSize = headerSloganSize,
@@ -810,6 +899,8 @@ fun DesignScreen(
                                             AgentDesign(
                                                 creatorEmail = user.email,
                                                 headerSlogan = headerSlogan,
+                                                dc3TemplateUrl = finalDc3Url,
+                                                diplomaTemplateUrl = finalDiplomaUrl,
                                                 headerSloganX = headerSloganX,
                                                 headerSloganY = headerSloganY,
                                                 headerSloganSize = headerSloganSize,
@@ -886,6 +977,8 @@ fun DesignScreen(
 
                                             if (success) {
                                                 saveMessage = "✓ Diseño guardado correctamente"
+                                                newDc3TemplateUri = null
+                                                newDiplomaTemplateUri = null
                                                 // Recargar lista para reflejar cambios
                                                 isLoadingDesigns = true
                                                 SupabaseRepository.fetchData("agent_designs", AgentDesign.serializer()) { fetched ->
@@ -1082,9 +1175,35 @@ fun DesignScreen(
                                 onClick = {
                                     isSaving = true
                                     scope.launch {
+                                        val currentAgentEmail = selectedDesign?.creatorEmail ?: user.email
+                                        
+                                        // 1. Subir plantillas si hay nuevas seleccionadas
+                                        var finalDc3Url = dc3TemplateUrl
+                                        var finalDiplomaUrl = diplomaTemplateUrl
+
+                                        if (newDc3TemplateUri != null) {
+                                            val url = kotlinx.coroutines.suspendCancellableCoroutine<String?> { cont ->
+                                                SupabaseRepository.uploadTemplate(context, newDc3TemplateUri!!, currentAgentEmail, "dc3_base.pdf") { url ->
+                                                    cont.resume(url) { }
+                                                }
+                                            }
+                                            if (url != null) finalDc3Url = url
+                                        }
+
+                                        if (newDiplomaTemplateUri != null) {
+                                            val url = kotlinx.coroutines.suspendCancellableCoroutine<String?> { cont ->
+                                                SupabaseRepository.uploadTemplate(context, newDiplomaTemplateUri!!, currentAgentEmail, "diploma_base.png") { url ->
+                                                    cont.resume(url) { }
+                                                }
+                                            }
+                                            if (url != null) finalDiplomaUrl = url
+                                        }
+
                                         val updated = if (selectedDesign != null) {
                                             selectedDesign?.copy(
                                                 headerSlogan = headerSlogan,
+                                                dc3TemplateUrl = finalDc3Url,
+                                                diplomaTemplateUrl = finalDiplomaUrl,
                                                 headerSloganX = headerSloganX,
                                                 headerSloganY = headerSloganY,
                                                 headerSloganSize = headerSloganSize,
@@ -1146,6 +1265,8 @@ fun DesignScreen(
                                             AgentDesign(
                                                 creatorEmail = user.email,
                                                 headerSlogan = headerSlogan,
+                                                dc3TemplateUrl = finalDc3Url,
+                                                diplomaTemplateUrl = finalDiplomaUrl,
                                                 headerSloganX = headerSloganX,
                                                 headerSloganY = headerSloganY,
                                                 headerSloganSize = headerSloganSize,
@@ -1222,6 +1343,8 @@ fun DesignScreen(
 
                                             if (success) {
                                                 saveMessage = "✓ Diseño guardado correctamente"
+                                                newDc3TemplateUri = null
+                                                newDiplomaTemplateUri = null
                                                 // Recargar lista para reflejar cambios
                                                 isLoadingDesigns = true
                                                 SupabaseRepository.fetchData("agent_designs", AgentDesign.serializer()) { fetched ->
