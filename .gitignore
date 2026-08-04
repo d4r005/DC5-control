@@ -25,3 +25,6 @@ wrangler-account.json
 Thumbs.db
 *.bak
 *.bak2
+
+# Claude internal
+.claude/
