@@ -3611,7 +3611,7 @@ async function generateBulkDC3() {
             const pdfBytes = await buildDC3PDFBytes({
                 worker, company,
                 agent: { name: agentName, stps: agentStps },
-                course: { name: courseName, duration: courseDuration, area: courseArea, stpsId: courseStpsId },
+                course: { name: courseName, durationHours: courseDuration, thematicArea: courseArea, stpsId: courseStpsId },
                 start, end, result: 'Acreditado'
             });
             const srcDoc = await PDFDocument.load(pdfBytes);
@@ -3672,7 +3672,7 @@ async function previewDC3() {
         _previewPdfBytes = await buildDC3PDFBytes({
             worker: selectedWorker, company,
             agent: { name: agentName, stps: agentStps },
-            course: { name: courseName, duration: courseDuration, area: courseArea, stpsId: courseStpsId },
+            course: { name: courseName, durationHours: courseDuration, thematicArea: courseArea, stpsId: courseStpsId },
             start, end, result: 'Acreditado',
             qrUrl: 'https://ace-control.pages.dev/?v=preview',
             folio: 'EHS-DC3-2024-PREVIEW'
