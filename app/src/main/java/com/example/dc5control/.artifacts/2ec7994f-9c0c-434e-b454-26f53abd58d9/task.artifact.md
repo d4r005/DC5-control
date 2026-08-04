@@ -1,10 +1,13 @@
-- [ ] **Fase 1: Interfaz Web (`index.html`)**
-    - [ ] Cambiar selector de diploma a PDF.
-    - [ ] Actualizar previsualización de diseño para renderizar PDF base.
-    - [ ] Ajustar generador de diploma (`_buildDiplomaCore`) para usar PDF base.
-- [ ] **Fase 2: Aplicación Android**
-    - [ ] Actualizar `DiplomaGenerator.kt` para soportar PDF base remoto.
-    - [ ] Actualizar `DC3DesignScreen.kt` para permitir selección de PDF para diplomas.
-- [ ] **Fase 3: Sincronización y Limpieza**
-    - [ ] Cambiar nombre de archivo en Storage a `diploma_base.pdf`.
+- [ ] **Fase 1: Estructura de Datos**
+    - [ ] Añadir campos de alineación a `AgentDesign` en `Models.kt`.
+    - [ ] Actualizar mapeos `toSnake` / `toCamel` en `index.html`.
+- [ ] **Fase 2: Interfaz Web (`index.html`)**
+    - [ ] Añadir selectores de alineación (L, C, R) para cada campo del diploma.
+    - [ ] Actualizar lógica de previsualización para respetar la alineación.
+    - [ ] Actualizar generador de diploma (`_buildDiplomaCore`) con alineación.
+- [ ] **Fase 3: Aplicación Android**
+    - [ ] Actualizar `DiplomaGenerator.kt` para soportar alineación.
+    - [ ] Añadir controles de alineación en `DC3DesignScreen.kt`.
+- [ ] **Fase 4: Sincronización**
+    - [ ] Ejecutar SQL en Supabase para añadir las columnas de alineación.
     - [ ] Subir cambios a GitHub.

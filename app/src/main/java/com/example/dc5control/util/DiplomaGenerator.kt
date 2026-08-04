@@ -128,7 +128,7 @@ object DiplomaGenerator {
         val font = PDType1Font.HELVETICA
         val fontB = PDType1Font.HELVETICA_BOLD
 
-        fun textCentered(xC: Float, yF: Float, t: String, sz: Float, bold: Boolean = false, colorType: Int = 0, maxWidth: Float = 0f) {
+        fun drawAlignedText(xC: Float, yF: Float, t: String, sz: Float, bold: Boolean = false, colorType: Int = 0, maxWidth: Float = 0f, align: Int = 0) {
             if (t.isBlank()) return
             val f = if (bold) fontB else font
             val st = t.toUpperCase(Locale.ROOT)
@@ -141,13 +141,18 @@ object DiplomaGenerator {
                 w = f.getStringWidth(st) / 1000 * currentSz
             }
 
+            var drawX = xC
+            if (align == 0) drawX = xC - (w / 2f)      // Centro
+            else if (align == 2) drawX = xC - w        // Derecha
+            // else if (align == 1) drawX = xC         // Izquierda
+
             cs.beginText()
             cs.setFont(f, currentSz)
             when (colorType) {
-                1 -> cs.setNonStrokingColor(25, 51, 102) // Azul marino (worker name)
-                else -> cs.setNonStrokingColor(0, 0, 0)  // Negro (igual que web)
+                1 -> cs.setNonStrokingColor(25, 51, 102) // Azul marino
+                else -> cs.setNonStrokingColor(0, 0, 0)
             }
-            cs.newLineAtOffset(xC - (w / 2f), phLocal - yF)
+            cs.newLineAtOffset(drawX, phLocal - yF)
             cs.showText(st)
             cs.endText()
             cs.setNonStrokingColor(0, 0, 0)
@@ -186,16 +191,16 @@ object DiplomaGenerator {
 
         // 1. Nombre del Trabajador (nombres + apellidoPaterno + apellidoMaterno, igual que web)
         val workerName = "${employee.nombres} ${employee.apellidoPaterno} ${employee.apellidoMaterno}".trim()
-        textCentered(workerX, workerY, workerName, workerSz, true, 1, 450f)
+        drawAlignedText(workerX, workerY, workerName, workerSz, true, 1, 450f, design?.dipWorkerAlign ?: 0)
 
         // 2. Nombre del Curso
-        textCentered(courseX, courseY, course.name, courseSz, true, 0, 450f)
+        drawAlignedText(courseX, courseY, course.name, courseSz, true, 0, 450f, design?.dipCourseAlign ?: 0)
 
         // 3. Duracion
-        textCentered(durationX, durationY, course.durationHours, durationSz, true)
+        drawAlignedText(durationX, durationY, course.durationHours, durationSz, true, 0, 0f, design?.dipDurationAlign ?: 0)
 
         // 4. Fecha
-        textCentered(dateX, dateY, formatDateRange(endDate), dateSz, true)
+        drawAlignedText(dateX, dateY, formatDateRange(endDate), dateSz, true, 0, 0f, design?.dipDateAlign ?: 0)
 
         // 5. Firma del agente — igual que web: x = agentX - 45, y = PH - agentY + 10, w=90, h=50
         design?.firmaBase64?.let { base64 ->
@@ -211,22 +216,22 @@ object DiplomaGenerator {
         }
 
         // 6. Nombre del agente
-        textCentered(agentX, agentY, agent.name, agentSz, true)
+        drawAlignedText(agentX, agentY, agent.name, agentSz, true, 0, 0f, design?.dipAgentAlign ?: 0)
 
         // 7. STPS
         val finalStps = calculateStps(agent.stps)
-        textCentered(stpsX, stpsY, "REGISTRO $finalStps", stpsSz, true)
+        drawAlignedText(stpsX, stpsY, "REGISTRO $finalStps", stpsSz, true, 0, 0f, design?.dipStpsAlign ?: 0)
 
         // 8. Cedula profesional
         agent.cedulaProfesional?.let { cp ->
             val cedX = design?.dipCedulaX ?: centerX
             val cedY = design?.dipCedulaY ?: 596f
             val cedSz = design?.dipCedulaSz ?: 8f
-            textCentered(cedX, cedY, "CÉDULA PROFESIONAL: $cp", cedSz, true)
+            drawAlignedText(cedX, cedY, "CÉDULA PROFESIONAL: $cp", cedSz, true, 0, 0f, design?.dipCedulaAlign ?: 0)
         }
 
         // 9. Folio — NEGRO (igual que web, antes era verde)
-        folio?.let { textCentered(folioX, folioY, it, folioSz, true) }
+        folio?.let { drawAlignedText(folioX, folioY, it, folioSz, true, 0, 0f, design?.dipFolioAlign ?: 0) }
 
         // 10. QR Code
         qrUrl?.let { url ->

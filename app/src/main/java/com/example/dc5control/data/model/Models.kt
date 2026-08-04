@@ -173,5 +173,14 @@ data class AgentDesign(
     @SerialName("dc3_folio_sz") val dc3FolioSz: Float? = null,
     @SerialName("dc3_template_url") val dc3TemplateUrl: String? = null,
     @SerialName("diploma_template_url") val diplomaTemplateUrl: String? = null,
+    // Alineaciones (0=Centro, 1=Izquierda, 2=Derecha)
+    @SerialName("dip_worker_align") val dipWorkerAlign: Int? = null,
+    @SerialName("dip_course_align") val dipCourseAlign: Int? = null,
+    @SerialName("dip_duration_align") val dipDurationAlign: Int? = null,
+    @SerialName("dip_date_align") val dipDateAlign: Int? = null,
+    @SerialName("dip_agent_align") val dipAgentAlign: Int? = null,
+    @SerialName("dip_stps_align") val dipStpsAlign: Int? = null,
+    @SerialName("dip_folio_align") val dipFolioAlign: Int? = null,
+    @SerialName("dip_cedula_align") val dipCedulaAlign: Int? = null,
     @SerialName("updated_at") val updatedAt: String? = null
 )

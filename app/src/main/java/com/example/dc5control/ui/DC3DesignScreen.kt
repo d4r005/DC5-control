@@ -134,6 +134,15 @@ fun DesignScreen(
     var dipQrY by remember { mutableStateOf(500f) }
     var dipQrSz by remember { mutableStateOf(50f) }
 
+    var dipWorkerAlign by remember { mutableStateOf(0) }
+    var dipCourseAlign by remember { mutableStateOf(0) }
+    var dipDurationAlign by remember { mutableStateOf(0) }
+    var dipDateAlign by remember { mutableStateOf(0) }
+    var dipAgentAlign by remember { mutableStateOf(0) }
+    var dipStpsAlign by remember { mutableStateOf(0) }
+    var dipFolioAlign by remember { mutableStateOf(0) }
+    var dipCedulaAlign by remember { mutableStateOf(0) }
+
     var isLoading by remember { mutableStateOf(true) }
     var isSaving by remember { mutableStateOf(false) }
     var saveMessage by remember { mutableStateOf<String?>(null) }
@@ -272,6 +281,15 @@ fun DesignScreen(
             dipQrX = design.dipQrX ?: 680f
             dipQrY = design.dipQrY ?: 500f
             dipQrSz = design.dipQrSz ?: 50f
+            
+            dipWorkerAlign = design.dipWorkerAlign ?: 0
+            dipCourseAlign = design.dipCourseAlign ?: 0
+            dipDurationAlign = design.dipDurationAlign ?: 0
+            dipDateAlign = design.dipDateAlign ?: 0
+            dipAgentAlign = design.dipAgentAlign ?: 0
+            dipStpsAlign = design.dipStpsAlign ?: 0
+            dipFolioAlign = design.dipFolioAlign ?: 0
+            dipCedulaAlign = design.dipCedulaAlign ?: 0
         } else {
             // Valores por defecto (cuando no hay diseño seleccionado)
             headerSlogan = ""
@@ -346,6 +364,15 @@ fun DesignScreen(
             dipQrX = 680f
             dipQrY = 500f
             dipQrSz = 50f
+            
+            dipWorkerAlign = 0
+            dipCourseAlign = 0
+            dipDurationAlign = 0
+            dipDateAlign = 0
+            dipAgentAlign = 0
+            dipStpsAlign = 0
+            dipFolioAlign = 0
+            dipCedulaAlign = 0
         }
     }
 
@@ -899,7 +926,15 @@ fun DesignScreen(
                                                 qrSz = qrSz,
                                                 dipQrX = dipQrX,
                                                 dipQrY = dipQrY,
-                                                dipQrSz = dipQrSz
+                                                dipQrSz = dipQrSz,
+                                                dipWorkerAlign = dipWorkerAlign,
+                                                dipCourseAlign = dipCourseAlign,
+                                                dipDurationAlign = dipDurationAlign,
+                                                dipDateAlign = dipDateAlign,
+                                                dipAgentAlign = dipAgentAlign,
+                                                dipStpsAlign = dipStpsAlign,
+                                                dipFolioAlign = dipFolioAlign,
+                                                dipCedulaAlign = dipCedulaAlign
                                             )
                                         } else {
                                             AgentDesign(
@@ -962,7 +997,15 @@ fun DesignScreen(
                                                 qrSz = qrSz,
                                                 dipQrX = dipQrX,
                                                 dipQrY = dipQrY,
-                                                dipQrSz = dipQrSz
+                                                dipQrSz = dipQrSz,
+                                                dipWorkerAlign = dipWorkerAlign,
+                                                dipCourseAlign = dipCourseAlign,
+                                                dipDurationAlign = dipDurationAlign,
+                                                dipDateAlign = dipDateAlign,
+                                                dipAgentAlign = dipAgentAlign,
+                                                dipStpsAlign = dipStpsAlign,
+                                                dipFolioAlign = dipFolioAlign,
+                                                dipCedulaAlign = dipCedulaAlign
                                             )
                                         }
 
@@ -1055,14 +1098,6 @@ fun DesignScreen(
                                              Icon(Icons.Default.PictureAsPdf, contentDescription = null, tint = NavyPrimary, modifier = Modifier.size(48.dp))
                                              Text("PDF en la nube activo", fontSize = 12.sp, color = NavyPrimary)
                                          }
-                                    } else if (diplomaTemplateBase64 != null) {
-                                        AsyncImage(
-                                            model = diplomaTemplateBase64,
-                                            contentDescription = "Plantilla de Diploma Personalizada",
-                                            modifier = Modifier.fillMaxSize().padding(8.dp),
-                                            contentScale = ContentScale.Fit
-                                        )
-                                    } else {
                                         AsyncImage(
                                             model = "file:///android_asset/plantilla_diploma.png",
                                             contentDescription = "Plantilla de Diploma por defecto",
@@ -1129,6 +1164,7 @@ fun DesignScreen(
                                     CoordinateField("Y", dipWorkerY) { dipWorkerY = it }
                                     CoordinateField("Tam.", dipWorkerSz) { dipWorkerSz = it }
                                 }
+                                AlignmentSelector(selected = dipWorkerAlign, onSelect = { dipWorkerAlign = it })
                                 Spacer(modifier = Modifier.height(12.dp))
 
                                 Text("Nombre del Curso", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
@@ -1137,6 +1173,7 @@ fun DesignScreen(
                                     CoordinateField("Y", dipCourseY) { dipCourseY = it }
                                     CoordinateField("Tam.", dipCourseSz) { dipCourseSz = it }
                                 }
+                                AlignmentSelector(selected = dipCourseAlign, onSelect = { dipCourseAlign = it })
                                 Spacer(modifier = Modifier.height(12.dp))
 
                                 Text("Duración", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
@@ -1145,6 +1182,7 @@ fun DesignScreen(
                                     CoordinateField("Y", dipDurationY) { dipDurationY = it }
                                     CoordinateField("Tam.", dipDurationSz) { dipDurationSz = it }
                                 }
+                                AlignmentSelector(selected = dipDurationAlign, onSelect = { dipDurationAlign = it })
                                 Spacer(modifier = Modifier.height(12.dp))
 
                                 Text("Fecha", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
@@ -1153,6 +1191,7 @@ fun DesignScreen(
                                     CoordinateField("Y", dipDateY) { dipDateY = it }
                                     CoordinateField("Tam.", dipDateSz) { dipDateSz = it }
                                 }
+                                AlignmentSelector(selected = dipDateAlign, onSelect = { dipDateAlign = it })
                                 Spacer(modifier = Modifier.height(12.dp))
 
                                 Text("Agente Capacitador", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
@@ -1161,6 +1200,7 @@ fun DesignScreen(
                                     CoordinateField("Y", dipAgentY) { dipAgentY = it }
                                     CoordinateField("Tam.", dipAgentSz) { dipAgentSz = it }
                                 }
+                                AlignmentSelector(selected = dipAgentAlign, onSelect = { dipAgentAlign = it })
                                 Spacer(modifier = Modifier.height(12.dp))
 
                                 Text("Registro STPS", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
@@ -1169,6 +1209,7 @@ fun DesignScreen(
                                     CoordinateField("Y", dipStpsY) { dipStpsY = it }
                                     CoordinateField("Tam.", dipStpsSz) { dipStpsSz = it }
                                 }
+                                AlignmentSelector(selected = dipStpsAlign, onSelect = { dipStpsAlign = it })
                                 Spacer(modifier = Modifier.height(12.dp))
 
                                 Text("Cédula Profesional", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
@@ -1177,6 +1218,16 @@ fun DesignScreen(
                                     CoordinateField("Y", dipCedulaY) { dipCedulaY = it }
                                     CoordinateField("Tam.", dipCedulaSz) { dipCedulaSz = it }
                                 }
+                                AlignmentSelector(selected = dipCedulaAlign, onSelect = { dipCedulaAlign = it })
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                Text("Folio", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    CoordinateField("X", dipFolioX) { dipFolioX = it }
+                                    CoordinateField("Y", dipFolioY) { dipFolioY = it }
+                                    CoordinateField("Tam.", dipFolioSz) { dipFolioSz = it }
+                                }
+                                AlignmentSelector(selected = dipFolioAlign, onSelect = { dipFolioAlign = it })
                                 Spacer(modifier = Modifier.height(12.dp))
 
                                 Text("Código QR (Verificación)", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
@@ -1417,6 +1468,37 @@ private fun RowScope.CoordinateField(label: String, value: Float, onValueChange:
             unfocusedBorderColor = Gray200
         )
     )
+}
+
+@Composable
+private fun AlignmentSelector(selected: Int, onSelect: (Int) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+        horizontalArrangement = Arrangement.Center
+    ) {
+        val options = listOf("Izquierda", "Centro", "Derecha")
+        options.forEachIndexed { index, label ->
+            val isSelected = selected == (if (index == 0) 1 else if (index == 1) 0 else 2)
+            val value = if (index == 0) 1 else if (index == 1) 0 else 2
+            
+            OutlinedButton(
+                onClick = { onSelect(value) },
+                modifier = Modifier.weight(1f).height(32.dp),
+                shape = when (index) {
+                    0 -> RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp)
+                    2 -> RoundedCornerShape(topEnd = 8.dp, bottomEnd = 8.dp)
+                    else -> RoundedCornerShape(0.dp)
+                },
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = if (isSelected) NavyPrimary else Color.Transparent,
+                    contentColor = if (isSelected) Color.White else NavyPrimary
+                ),
+                contentPadding = PaddingValues(0.dp)
+            ) {
+                Text(label, fontSize = 10.sp)
+            }
+        }
+    }
 }
 
 @Composable

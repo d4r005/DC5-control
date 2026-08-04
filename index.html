@@ -602,6 +602,12 @@
                                 <div><label class="text-[10px] text-gray-400">Y</label><input id="dip-worker-y" type="number" class="input-field !p-1 !text-xs" value="245" oninput="scheduleDiplomaPreview()"></div>
                                 <div><label class="text-[10px] text-gray-400">Tam.</label><input id="dip-worker-sz" type="number" class="input-field !p-1 !text-xs" value="28" oninput="scheduleDiplomaPreview()"></div>
                             </div>
+                            <div class="mt-2 flex gap-1 justify-center">
+                                <button onclick="setDipAlign('worker', 1)" id="align-worker-1" class="btn-sm px-3 !py-1 btn-outline !text-[10px]">Izquierda</button>
+                                <button onclick="setDipAlign('worker', 0)" id="align-worker-0" class="btn-sm px-3 !py-1 btn-indigo !text-[10px]">Centro</button>
+                                <button onclick="setDipAlign('worker', 2)" id="align-worker-2" class="btn-sm px-3 !py-1 btn-outline !text-[10px]">Derecha</button>
+                                <input type="hidden" id="dip-worker-align" value="0">
+                            </div>
                         </div>
 
                         <!-- Curso -->
@@ -611,6 +617,12 @@
                                 <div><label class="text-[10px] text-gray-400">X</label><input id="dip-course-x" type="number" class="input-field !p-1 !text-xs" value="396" oninput="scheduleDiplomaPreview()"></div>
                                 <div><label class="text-[10px] text-gray-400">Y</label><input id="dip-course-y" type="number" class="input-field !p-1 !text-xs" value="330" oninput="scheduleDiplomaPreview()"></div>
                                 <div><label class="text-[10px] text-gray-400">Tam.</label><input id="dip-course-sz" type="number" class="input-field !p-1 !text-xs" value="18" oninput="scheduleDiplomaPreview()"></div>
+                            </div>
+                            <div class="mt-2 flex gap-1 justify-center">
+                                <button onclick="setDipAlign('course', 1)" id="align-course-1" class="btn-sm px-3 !py-1 btn-outline !text-[10px]">Izquierda</button>
+                                <button onclick="setDipAlign('course', 0)" id="align-course-0" class="btn-sm px-3 !py-1 btn-indigo !text-[10px]">Centro</button>
+                                <button onclick="setDipAlign('course', 2)" id="align-course-2" class="btn-sm px-3 !py-1 btn-outline !text-[10px]">Derecha</button>
+                                <input type="hidden" id="dip-course-align" value="0">
                             </div>
                         </div>
 
@@ -622,6 +634,12 @@
                                 <div><label class="text-[10px] text-gray-400">Y</label><input id="dip-duration-y" type="number" class="input-field !p-1 !text-xs" value="405" oninput="scheduleDiplomaPreview()"></div>
                                 <div><label class="text-[10px] text-gray-400">Tam.</label><input id="dip-duration-sz" type="number" class="input-field !p-1 !text-xs" value="12" oninput="scheduleDiplomaPreview()"></div>
                             </div>
+                            <div class="mt-2 flex gap-1 justify-center">
+                                <button onclick="setDipAlign('duration', 1)" id="align-duration-1" class="btn-sm px-3 !py-1 btn-outline !text-[10px]">Izquierda</button>
+                                <button onclick="setDipAlign('duration', 0)" id="align-duration-0" class="btn-sm px-3 !py-1 btn-indigo !text-[10px]">Centro</button>
+                                <button onclick="setDipAlign('duration', 2)" id="align-duration-2" class="btn-sm px-3 !py-1 btn-outline !text-[10px]">Derecha</button>
+                                <input type="hidden" id="dip-duration-align" value="0">
+                            </div>
                         </div>
 
                         <!-- Fecha -->
@@ -631,6 +649,12 @@
                                 <div><label class="text-[10px] text-gray-400">X</label><input id="dip-date-x" type="number" class="input-field !p-1 !text-xs" value="396" oninput="scheduleDiplomaPreview()"></div>
                                 <div><label class="text-[10px] text-gray-400">Y</label><input id="dip-date-y" type="number" class="input-field !p-1 !text-xs" value="445" oninput="scheduleDiplomaPreview()"></div>
                                 <div><label class="text-[10px] text-gray-400">Tam.</label><input id="dip-date-sz" type="number" class="input-field !p-1 !text-xs" value="11" oninput="scheduleDiplomaPreview()"></div>
+                            </div>
+                            <div class="mt-2 flex gap-1 justify-center">
+                                <button onclick="setDipAlign('date', 1)" id="align-date-1" class="btn-sm px-3 !py-1 btn-outline !text-[10px]">Izquierda</button>
+                                <button onclick="setDipAlign('date', 0)" id="align-date-0" class="btn-sm px-3 !py-1 btn-indigo !text-[10px]">Centro</button>
+                                <button onclick="setDipAlign('date', 2)" id="align-date-2" class="btn-sm px-3 !py-1 btn-outline !text-[10px]">Derecha</button>
+                                <input type="hidden" id="dip-date-align" value="0">
                             </div>
                         </div>
 
@@ -642,6 +666,12 @@
                                 <div><label class="text-[10px] text-gray-400">Y</label><input id="dip-agent-y" type="number" class="input-field !p-1 !text-xs" value="572" oninput="scheduleDiplomaPreview()"></div>
                                 <div><label class="text-[10px] text-gray-400">Tam.</label><input id="dip-agent-sz" type="number" class="input-field !p-1 !text-xs" value="10" oninput="scheduleDiplomaPreview()"></div>
                             </div>
+                            <div class="mt-2 flex gap-1 justify-center">
+                                <button onclick="setDipAlign('agent', 1)" id="align-agent-1" class="btn-sm px-3 !py-1 btn-outline !text-[10px]">Izquierda</button>
+                                <button onclick="setDipAlign('agent', 0)" id="align-agent-0" class="btn-sm px-3 !py-1 btn-indigo !text-[10px]">Centro</button>
+                                <button onclick="setDipAlign('agent', 2)" id="align-agent-2" class="btn-sm px-3 !py-1 btn-outline !text-[10px]">Derecha</button>
+                                <input type="hidden" id="dip-agent-align" value="0">
+                            </div>
                         </div>
 
                         <!-- Registro STPS -->
@@ -651,6 +681,12 @@
                                 <div><label class="text-[10px] text-gray-400">X</label><input id="dip-stps-x" type="number" class="input-field !p-1 !text-xs" value="396" oninput="scheduleDiplomaPreview()"></div>
                                 <div><label class="text-[10px] text-gray-400">Y</label><input id="dip-stps-y" type="number" class="input-field !p-1 !text-xs" value="584" oninput="scheduleDiplomaPreview()"></div>
                                 <div><label class="text-[10px] text-gray-400">Tam.</label><input id="dip-stps-sz" type="number" class="input-field !p-1 !text-xs" value="8" oninput="scheduleDiplomaPreview()"></div>
+                            </div>
+                            <div class="mt-2 flex gap-1 justify-center">
+                                <button onclick="setDipAlign('stps', 1)" id="align-stps-1" class="btn-sm px-3 !py-1 btn-outline !text-[10px]">Izquierda</button>
+                                <button onclick="setDipAlign('stps', 0)" id="align-stps-0" class="btn-sm px-3 !py-1 btn-indigo !text-[10px]">Centro</button>
+                                <button onclick="setDipAlign('stps', 2)" id="align-stps-2" class="btn-sm px-3 !py-1 btn-outline !text-[10px]">Derecha</button>
+                                <input type="hidden" id="dip-stps-align" value="0">
                             </div>
                         </div>
 
@@ -662,6 +698,12 @@
                                 <div><label class="text-[10px] text-gray-400">Y</label><input id="dip-cedula-y" type="number" class="input-field !p-1 !text-xs" value="596" oninput="scheduleDiplomaPreview()"></div>
                                 <div><label class="text-[10px] text-gray-400">Tam.</label><input id="dip-cedula-sz" type="number" class="input-field !p-1 !text-xs" value="8" oninput="scheduleDiplomaPreview()"></div>
                             </div>
+                            <div class="mt-2 flex gap-1 justify-center">
+                                <button onclick="setDipAlign('cedula', 1)" id="align-cedula-1" class="btn-sm px-3 !py-1 btn-outline !text-[10px]">Izquierda</button>
+                                <button onclick="setDipAlign('cedula', 0)" id="align-cedula-0" class="btn-sm px-3 !py-1 btn-indigo !text-[10px]">Centro</button>
+                                <button onclick="setDipAlign('cedula', 2)" id="align-cedula-2" class="btn-sm px-3 !py-1 btn-outline !text-[10px]">Derecha</button>
+                                <input type="hidden" id="dip-cedula-align" value="0">
+                            </div>
                         </div>
 
                         <!-- Folio -->
@@ -671,6 +713,12 @@
                                 <div><label class="text-[10px] text-gray-400">X</label><input id="dip-folio-x" type="number" class="input-field !p-1 !text-xs" value="396" oninput="scheduleDiplomaPreview()"></div>
                                 <div><label class="text-[10px] text-gray-400">Y</label><input id="dip-folio-y" type="number" class="input-field !p-1 !text-xs" value="550" oninput="scheduleDiplomaPreview()"></div>
                                 <div><label class="text-[10px] text-gray-400">Tam.</label><input id="dip-folio-sz" type="number" class="input-field !p-1 !text-xs" value="10" oninput="scheduleDiplomaPreview()"></div>
+                            </div>
+                            <div class="mt-2 flex gap-1 justify-center">
+                                <button onclick="setDipAlign('folio', 1)" id="align-folio-1" class="btn-sm px-3 !py-1 btn-outline !text-[10px]">Izquierda</button>
+                                <button onclick="setDipAlign('folio', 0)" id="align-folio-0" class="btn-sm px-3 !py-1 btn-indigo !text-[10px]">Centro</button>
+                                <button onclick="setDipAlign('folio', 2)" id="align-folio-2" class="btn-sm px-3 !py-1 btn-outline !text-[10px]">Derecha</button>
+                                <input type="hidden" id="dip-folio-align" value="0">
                             </div>
                         </div>
 
@@ -1190,6 +1238,9 @@ function toSnake(obj) {
         dipQrX:'dip_qr_x', dipQrY:'dip_qr_y', dipQrSz:'dip_qr_sz',
         dc3FolioX:'dc3_folio_x', dc3FolioY:'dc3_folio_y', dc3FolioSz:'dc3_folio_sz',
         dc3TemplateUrl:'dc3_template_url', diplomaTemplateUrl:'diploma_template_url',
+        dipWorkerAlign:'dip_worker_align', dipCourseAlign:'dip_course_align', dipDurationAlign:'dip_duration_align',
+        dipDateAlign:'dip_date_align', dipAgentAlign:'dip_agent_align', dipStpsAlign:'dip_stps_align',
+        dipFolioAlign:'dip_folio_align', dipCedulaAlign:'dip_cedula_align',
         cedulaProfesional:'cedula_profesional'
     };
     const out = {};
@@ -1229,6 +1280,9 @@ function toCamel(obj) {
         dip_qr_x:'dipQrX', dip_qr_y:'dipQrY', dip_qr_sz:'dipQrSz',
         dc3_folio_x:'dc3FolioX', dc3_folio_y:'dc3FolioY', dc3_folio_sz:'dc3FolioSz',
         dc3_template_url:'dc3TemplateUrl', diploma_template_url:'diplomaTemplateUrl',
+        dip_worker_align:'dipWorkerAlign', dip_course_align:'dipCourseAlign', dip_duration_align:'dipDurationAlign',
+        dip_date_align:'dipDateAlign', dip_agent_align:'dipAgentAlign', dip_stps_align:'dipStpsAlign',
+        dip_folio_align:'dipFolioAlign', dip_cedula_align:'dipCedulaAlign',
         cedula_profesional:'cedulaProfesional'
     };
     const out = {};
@@ -2280,40 +2334,46 @@ async function _buildDiplomaCore(opts = {}) {
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const fontB = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-    const drawC = (txt, x, y, sz, fb = false, color = rgb(0,0,0)) => {
+    const drawC = (txt, x, y, sz, fb = false, color = rgb(0,0,0), align = 0) => {
         const f = fb ? fontB : font;
         const cleanTxt = (txt || '').toUpperCase();
 
         let currentSz = sz;
         let w = f.widthOfTextAtSize(cleanTxt, currentSz);
 
-        // Auto-ajuste de tamaño si el texto es muy largo (máximo 450 pts de ancho para evitar zona azul)
+        // Auto-ajuste de tamaño si el texto es muy largo
         const maxW = 450;
         if (w > maxW) {
             currentSz = (maxW / w) * sz;
             w = f.widthOfTextAtSize(cleanTxt, currentSz);
         }
 
-        page.drawText(cleanTxt, { x: x - w/2, y: PH - y, size: currentSz, font: f, color: color });
+        let drawX = x;
+        if (align === 0) drawX = x - w/2;      // Centro
+        else if (align === 2) drawX = x - w;   // Derecha
+        // else if (align === 1) drawX = x;    // Izquierda (default)
+
+        page.drawText(cleanTxt, { x: drawX, y: PH - y, size: currentSz, font: f, color: color });
     };
 
     const dx = (id, def) => d?.[id] ?? def;
+    const da = (field) => d?.[`dip${field.charAt(0).toUpperCase() + field.slice(1)}Align`] ?? 0;
 
     // 1. Nombre del Trabajador
     const fullName = worker.apellidoPaterno ? `${worker.nombres} ${worker.apellidoPaterno} ${worker.apellidoMaterno || ''}`.trim() : worker.name;
-    drawC(fullName, dx('dipWorkerX', 396), dx('dipWorkerY', 245), dx('dipWorkerSz', 28), true, rgb(0.1, 0.2, 0.4));
+    drawC(fullName, dx('dipWorkerX', 396), dx('dipWorkerY', 245), dx('dipWorkerSz', 28), true, rgb(0.1, 0.2, 0.4), da('worker'));
 
     // 2. Nombre del Curso
-    drawC(courseName, dx('dipCourseX', 396), dx('dipCourseY', 330), dx('dipCourseSz', 18), true);
+    drawC(courseName, dx('dipCourseX', 396), dx('dipCourseY', 330), dx('dipCourseSz', 18), true, rgb(0,0,0), da('course'));
 
     // 3. Duración del Curso
-    drawC(courseDuration, dx('dipDurationX', 396), dx('dipDurationY', 405), dx('dipDurationSz', 12), true);
+    drawC(courseDuration, dx('dipDurationX', 396), dx('dipDurationY', 405), dx('dipDurationSz', 12), true, rgb(0,0,0), da('duration'));
 
     // 4. Fecha
     const months = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
     const p = end.split('-');
     const dateText = `${p[2]} DE ${months[parseInt(p[1])-1]} DEL ${p[0]}`;
-    drawC(dateText, dx('dipDateX', 396), dx('dipDateY', 445), dx('dipDateSz', 11), true);
+    drawC(dateText, dx('dipDateX', 396), dx('dipDateY', 445), dx('dipDateSz', 11), true, rgb(0,0,0), da('date'));
 
     // 5. Firma y Datos del Agente
     const fBase64 = d?.firmaBase64;
@@ -2326,11 +2386,11 @@ async function _buildDiplomaCore(opts = {}) {
         } catch(e) {}
     }
 
-    drawC(agentName, dx('dipAgentX', 396), dx('dipAgentY', 572), dx('dipAgentSz', 10), true);
-    drawC("REGISTRO " + finalStps, dx('dipStpsX', 396), dx('dipStpsY', 584), dx('dipStpsSz', 8), true);
+    drawC(agentName, dx('dipAgentX', 396), dx('dipAgentY', 572), dx('dipAgentSz', 10), true, rgb(0,0,0), da('agent'));
+    drawC("REGISTRO " + finalStps, dx('dipStpsX', 396), dx('dipStpsY', 584), dx('dipStpsSz', 8), true, rgb(0,0,0), da('stps'));
 
     if (agentRecord?.cedulaProfesional) {
-        drawC("CÉDULA PROFESIONAL: " + agentRecord.cedulaProfesional, dx('dipCedulaX', 396), dx('dipCedulaY', 596), dx('dipCedulaSz', 8), true);
+        drawC("CÉDULA PROFESIONAL: " + agentRecord.cedulaProfesional, dx('dipCedulaX', 396), dx('dipCedulaY', 596), dx('dipCedulaSz', 8), true, rgb(0,0,0), da('cedula'));
     }
 
     // Dibujar QR si se proporciona
@@ -2345,7 +2405,7 @@ async function _buildDiplomaCore(opts = {}) {
 
     // 6. Folio Consecutivo (EHS-CON-YYYY-XXXX)
     const folioTxt = opts.folio || await getNextFolio();
-    drawC(folioTxt, dx('dipFolioX', 396), dx('dipFolioY', 550), dx('dipFolioSz', 10), true);
+    drawC(folioTxt, dx('dipFolioX', 396), dx('dipFolioY', 550), dx('dipFolioSz', 10), true, rgb(0,0,0), da('folio'));
 
     return await pdfDoc.save();
 }
@@ -2602,6 +2662,13 @@ async function loadDesign() {
         setV('dip-cedula-y', d.dipCedulaY ?? d.dip_cedula_y ?? 596);
         setV('dip-cedula-sz', d.dipCedulaSz ?? d.dip_cedula_sz ?? 8);
 
+        // Load alignments
+        const fields = ['worker','course','duration','date','agent','stps','folio','cedula'];
+        fields.forEach(f => {
+            const val = d[`dip${f.charAt(0).toUpperCase() + f.slice(1)}Align`] ?? 0;
+            setDipAlign(f, val);
+        });
+
         setV('design-qr-x', d.qrX ?? d.qr_x ?? 480);
         setV('design-qr-y', d.qrY ?? d.qr_y ?? 60);
         setV('design-qr-sz', d.qrSz ?? d.qr_sz ?? 60);
@@ -2685,20 +2752,26 @@ async function updateDiplomaDesignPreview() {
     const fontB = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
     const getV = (id) => +(document.getElementById(id)?.value ?? 0);
 
-    const drawPlaceholder = (txt, x, y, sz, fb = false, color = rgb(0,0,0)) => {
+    const drawPlaceholder = (txt, x, y, sz, fb = false, color = rgb(0,0,0), alignId = null) => {
         const f = fb ? fontB : font;
         const w = f.widthOfTextAtSize(txt.toUpperCase(), sz);
-        page.drawText(txt.toUpperCase(), { x: x - w/2, y: PH - y, size: sz, font: f, color });
+        const align = alignId ? +(document.getElementById(alignId)?.value ?? 0) : 0;
+
+        let drawX = x;
+        if (align === 0) drawX = x - w/2;
+        else if (align === 2) drawX = x - w;
+
+        page.drawText(txt.toUpperCase(), { x: drawX, y: PH - y, size: sz, font: f, color });
     };
 
-    drawPlaceholder("TRABAJADOR DE PRUEBA", getV('dip-worker-x'), getV('dip-worker-y'), getV('dip-worker-sz'), true, rgb(0.1, 0.2, 0.4));
-    drawPlaceholder("NOMBRE DEL CURSO DE PRUEBA", getV('dip-course-x'), getV('dip-course-y'), getV('dip-course-sz'), true);
-    drawPlaceholder("8 HORAS", getV('dip-duration-x'), getV('dip-duration-y'), getV('dip-duration-sz'), true);
-    drawPlaceholder("27 DE JULIO DEL 2026", getV('dip-date-x'), getV('dip-date-y'), getV('dip-date-sz'), true);
-    drawPlaceholder(currentUser?.name || "NOMBRE AGENTE CAPACITADOR", getV('dip-agent-x'), getV('dip-agent-y'), getV('dip-agent-sz'), true);
-    drawPlaceholder("REGISTRO STPS-XXX-001", getV('dip-stps-x'), getV('dip-stps-y'), getV('dip-stps-sz'), true);
-    drawPlaceholder("EHS-CON-2024-0001", getV('dip-folio-x'), getV('dip-folio-y'), getV('dip-folio-sz'), true);
-    drawPlaceholder("CÉDULA PROFESIONAL: 12345678", getV('dip-cedula-x'), getV('dip-cedula-y'), getV('dip-cedula-sz'), true);
+    drawPlaceholder("TRABAJADOR DE PRUEBA", getV('dip-worker-x'), getV('dip-worker-y'), getV('dip-worker-sz'), true, rgb(0.1, 0.2, 0.4), 'dip-worker-align');
+    drawPlaceholder("NOMBRE DEL CURSO DE PRUEBA", getV('dip-course-x'), getV('dip-course-y'), getV('dip-course-sz'), true, rgb(0,0,0), 'dip-course-align');
+    drawPlaceholder("8 HORAS", getV('dip-duration-x'), getV('dip-duration-y'), getV('dip-duration-sz'), true, rgb(0,0,0), 'dip-duration-align');
+    drawPlaceholder("27 DE JULIO DEL 2026", getV('dip-date-x'), getV('dip-date-y'), getV('dip-date-sz'), true, rgb(0,0,0), 'dip-date-align');
+    drawPlaceholder(currentUser?.name || "NOMBRE AGENTE CAPACITADOR", getV('dip-agent-x'), getV('dip-agent-y'), getV('dip-agent-sz'), true, rgb(0,0,0), 'dip-agent-align');
+    drawPlaceholder("REGISTRO STPS-XXX-001", getV('dip-stps-x'), getV('dip-stps-y'), getV('dip-stps-sz'), true, rgb(0,0,0), 'dip-stps-align');
+    drawPlaceholder("EHS-CON-2024-0001", getV('dip-folio-x'), getV('dip-folio-y'), getV('dip-folio-sz'), true, rgb(0,0,0), 'dip-folio-align');
+    drawPlaceholder("CÉDULA PROFESIONAL: 12345678", getV('dip-cedula-x'), getV('dip-cedula-y'), getV('dip-cedula-sz'), true, rgb(0,0,0), 'dip-cedula-align');
 
     // Dibujar QR Placeholder (Diploma)
     try {
@@ -2720,6 +2793,23 @@ async function updateDiplomaDesignPreview() {
     designState._dipScale = vp.width / PW;
     designState._dipPH = PH; // Store real height for coordinate sync
     _updateDiplomaDragHandles();
+}
+
+function setDipAlign(field, align) {
+    const input = document.getElementById(`dip-${field}-align`);
+    if (!input) return;
+    input.value = align;
+
+    // UI feedback
+    [0,1,2].forEach(a => {
+        const btn = document.getElementById(`align-${field}-${a}`);
+        if (btn) {
+            btn.classList.toggle('btn-indigo', a === align);
+            btn.classList.toggle('btn-outline', a !== align);
+        }
+    });
+
+    scheduleDiplomaPreview();
 }
 
 function _updateDiplomaDragHandles() {
@@ -2925,6 +3015,10 @@ function getDesignParams() {
         dipStpsX: gv('dip-stps-x'), dipStpsY: gv('dip-stps-y'), dipStpsSz: gv('dip-stps-sz'),
         dipFolioX: gv('dip-folio-x'), dipFolioY: gv('dip-folio-y'), dipFolioSz: gv('dip-folio-sz'),
         dipCedulaX: gv('dip-cedula-x'), dipCedulaY: gv('dip-cedula-y'), dipCedulaSz: gv('dip-cedula-sz'),
+        dipWorkerAlign: gv('dip-worker-align'), dipCourseAlign: gv('dip-course-align'),
+        dipDurationAlign: gv('dip-duration-align'), dipDateAlign: gv('dip-date-align'),
+        dipAgentAlign: gv('dip-agent-align'), dipStpsAlign: gv('dip-stps-align'),
+        dipFolioAlign: gv('dip-folio-align'), dipCedulaAlign: gv('dip-cedula-align'),
         qrX: gv('design-qr-x'), qrY: gv('design-qr-y'), qrSz: gv('design-qr-sz'),
         dipQrX: gv('dip-qr-x'), dipQrY: gv('dip-qr-y'), dipQrSz: gv('dip-qr-sz'),
         dc3FolioX: gv('design-dc3-folio-x'), dc3FolioY: gv('design-dc3-folio-y'), dc3FolioSz: gv('design-dc3-folio-sz'),
