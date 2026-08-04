@@ -75,26 +75,55 @@ object DiplomaGenerator {
         qrUrl: String? = null
     ): File {
         PDFBoxResourceLoader.init(context)
-        val document = PDDocument()
-        val page = PDPage(PDRectangle(PW, PH))
-        document.addPage(page)
+        
+        val url = design?.diplomaTemplateUrl
+        val document: PDDocument
+        var usingPdfTemplate = false
 
-        val cs = PDPageContentStream(document, page)
-
-        // 1. Dibujar plantilla — igual que web: x=0, y=0, full page (sin fondo oscuro ni sangrado)
-        try {
-            val imgBytes = when {
-                !customTemplateBase64.isNullOrBlank() -> base64ToImageBytes(customTemplateBase64)
-                !design?.diplomaTemplateUrl.isNullOrBlank() -> getTemplateBytes(context, design?.diplomaTemplateUrl)
-                else -> getTemplateBytes(context, null)
+        // 1. Intentar cargar PDF si la URL termina en .pdf
+        if (!url.isNullOrBlank() && url.endsWith(".pdf", true)) {
+            document = try {
+                val client = okhttp3.OkHttpClient()
+                val request = okhttp3.Request.Builder().url(url).build()
+                val response = client.newCall(request).execute()
+                if (response.isSuccessful) {
+                    usingPdfTemplate = true
+                    PDDocument.load(response.body?.byteStream())
+                } else {
+                    createEmptyDocument()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error loading remote PDF template", e)
+                createEmptyDocument()
             }
-            if (imgBytes != null) {
-                val img = PDImageXObject.createFromByteArray(document, imgBytes, "template")
-                cs.drawImage(img, 0f, 0f, PW, PH)
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error loading template image", e)
+        } else {
+            document = createEmptyDocument()
         }
+
+        if (!usingPdfTemplate) {
+            // MODO LEGACY: Dibujar imagen sobre página en blanco
+            val page = PDPage(PDRectangle(PW, PH))
+            document.addPage(page)
+            val cs = PDPageContentStream(document, page)
+            try {
+                val imgBytes = when {
+                    !customTemplateBase64.isNullOrBlank() -> base64ToImageBytes(customTemplateBase64)
+                    !design?.diplomaTemplateUrl.isNullOrBlank() -> getTemplateBytes(context, design?.diplomaTemplateUrl)
+                    else -> getTemplateBytes(context, null)
+                }
+                if (imgBytes != null) {
+                    val img = PDImageXObject.createFromByteArray(document, imgBytes, "template")
+                    cs.drawImage(img, 0f, 0f, PW, PH)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error loading template image", e)
+            }
+            cs.close()
+        }
+
+        val page = document.getPage(0)
+        val phLocal = page.mediaBox.height
+        val cs = PDPageContentStream(document, page, PDPageContentStream.AppendMode.APPEND, true, true)
 
         val font = PDType1Font.HELVETICA
         val fontB = PDType1Font.HELVETICA_BOLD
@@ -118,7 +147,7 @@ object DiplomaGenerator {
                 1 -> cs.setNonStrokingColor(25, 51, 102) // Azul marino (worker name)
                 else -> cs.setNonStrokingColor(0, 0, 0)  // Negro (igual que web)
             }
-            cs.newLineAtOffset(xC - (w / 2f), PH - yF)
+            cs.newLineAtOffset(xC - (w / 2f), phLocal - yF)
             cs.showText(st)
             cs.endText()
             cs.setNonStrokingColor(0, 0, 0)
@@ -174,7 +203,7 @@ object DiplomaGenerator {
                 val bytes = base64ToImageBytes(base64)
                 if (bytes != null) {
                     val img = PDImageXObject.createFromByteArray(document, bytes, "firma")
-                    cs.drawImage(img, agentX - 45f, PH - agentY + 10f, 90f, 50f)
+                    cs.drawImage(img, agentX - 45f, phLocal - agentY + 10f, 90f, 50f)
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error dibujando firma en diploma", e)
@@ -209,7 +238,7 @@ object DiplomaGenerator {
                     val qsz = design?.dipQrSz ?: 50f
                     val qx = design?.dipQrX ?: 680f
                     val qy = design?.dipQrY ?: 500f
-                    cs.drawImage(img, qx - qsz/2, PH - qy - qsz/2, qsz, qsz)
+                    cs.drawImage(img, qx - qsz/2, phLocal - qy - qsz/2, qsz, qsz)
                 } catch (e: Exception) {
                     Log.e(TAG, "Error embedding QR", e)
                 }
@@ -245,5 +274,9 @@ object DiplomaGenerator {
         5 -> "MAYO"; 6 -> "JUNIO"; 7 -> "JULIO"; 8 -> "AGOSTO"
         9 -> "SEPTIEMBRE"; 10 -> "OCTUBRE"; 11 -> "NOVIEMBRE"; 12 -> "DICIEMBRE"
         else -> ""
+    }
+
+    private fun createEmptyDocument(): PDDocument {
+        return PDDocument()
     }
 }

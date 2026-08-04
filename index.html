@@ -585,8 +585,8 @@
                             </div>
                             <div class="flex gap-2">
                                 <label class="btn-sm btn-indigo flex-1 text-center cursor-pointer text-[11px] py-2">
-                                    📷 Cambiar Fondo
-                                    <input type="file" accept="image/png,image/jpeg" class="hidden" onchange="handleDiplomaTemplate(this)">
+                                    📄 Cambiar Plantilla (PDF/Img)
+                                    <input type="file" accept="application/pdf,image/png,image/jpeg" class="hidden" onchange="handleDiplomaTemplate(this)">
                                 </label>
                                 <button onclick="clearDiplomaTemplate()" class="text-red-500 hover:text-red-700 text-xs px-2">✕</button>
                             </div>
@@ -2239,17 +2239,41 @@ async function _buildDiplomaCore(opts = {}) {
         } catch(e) {}
     }
 
-    if (!imgBytes) {
-        const resp = await fetch('plantilla_diploma.png?v=2');
-        imgBytes = await resp.arrayBuffer();
+    // ─── CARGAR PLANTILLA ───
+    let pdfDoc = null;
+
+    // 1. Intentar cargar PDF (memoria o URL)
+    if (designState._dipPdfTemplateBytes) {
+        pdfDoc = await PDFDocument.load(designState._dipPdfTemplateBytes.slice(0));
+    } else if (designState.diploma_template_url?.toLowerCase().endsWith('.pdf')) {
+        try {
+            const resp = await fetch(designState.diploma_template_url);
+            const bytes = await resp.arrayBuffer();
+            pdfDoc = await PDFDocument.load(bytes);
+        } catch(e) { console.warn("Fallback to image because PDF load failed", e); }
     }
 
-    const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([792, 612]); // Letter Landscape
-    const PW = 792, PH = 612;
+    if (!pdfDoc) {
+        // Modo Legacy: Crear PDF nuevo y dibujar Imagen (fallback)
+        pdfDoc = await PDFDocument.create();
+        const page = pdfDoc.addPage([792, 612]);
+        const PW = 792, PH = 612;
 
-    const img = await pdfDoc.embedPng(imgBytes).catch(() => pdfDoc.embedJpg(imgBytes));
-    page.drawImage(img, { x: 0, y: 0, width: PW, height: PH });
+        let imgBytes = null;
+        if (designState.diploma_template_base64) {
+            const b64 = designState.diploma_template_base64.split(',')[1];
+            imgBytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+        } else {
+            const resp = await fetch('plantilla_diploma.png?v=2');
+            imgBytes = await resp.arrayBuffer();
+        }
+
+        const img = await pdfDoc.embedPng(imgBytes).catch(() => pdfDoc.embedJpg(imgBytes));
+        page.drawImage(img, { x: 0, y: 0, width: PW, height: PH });
+    }
+
+    const page = pdfDoc.getPage(0);
+    const PW = page.getWidth(), PH = page.getHeight();
 
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const fontB = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
@@ -2402,7 +2426,9 @@ const designState = {
     diploma_template_base64: null,
     dc3_template_file: null, // New: for uploading to storage
     diploma_template_file: null, // New: for uploading to storage
-    _previewTimer: null, _pdfTemplateBytes: null, _scale: 1.0
+    _previewTimer: null, _pdfTemplateBytes: null,
+    _dipPdfTemplateBytes: null, // New: for rendering remote PDF diplomas
+    _scale: 1.0
 };
 
 // Dimensiones internas del PDF (US Letter portrait)
@@ -2512,7 +2538,11 @@ async function loadDesign() {
         designState.dc3_template_url = d.dc3TemplateUrl;
         designState.diploma_template_url = d.diplomaTemplateUrl;
         if (d.dc3TemplateUrl) {
-            document.getElementById('dc3-template-info').textContent = "Plantilla en la nube activa";
+            document.getElementById('dc3-template-info').textContent = "Plantilla DC-3 en la nube activa";
+        }
+        if (d.diplomaTemplateUrl) {
+            const el = document.getElementById('diploma-template-thumb');
+            if (el) el.innerHTML = `<div class="text-xs text-blue-800">Plantilla Diploma (PDF) en la nube activa</div>`;
         }
 
         setV('design-agent-name', d.agentName);
@@ -2600,50 +2630,61 @@ async function updateDiplomaDesignPreview() {
     const canvas = document.getElementById('diploma-preview-canvas');
     if (!canvas) return;
 
-    let imgBytes = null;
-    if (designState.diploma_template_base64) {
-        const b64 = designState.diploma_template_base64.split(',')[1];
-        imgBytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-    } else {
-        if (!designState._dipTemplateBytes) {
-            try {
-                const resp = await fetch('plantilla_diploma.png?v=2');
-                if (!resp.ok) throw new Error("HTTP " + resp.status);
-                designState._dipTemplateBytes = await resp.arrayBuffer();
-            } catch(e) {
-                console.error("Error cargando plantilla diploma:", e);
-                _showCanvasError(canvas, "No se pudo cargar plantilla_diploma.png");
-                return;
-            }
-        }
-        imgBytes = designState._dipTemplateBytes;
-    }
-
     const { PDFDocument, StandardFonts, rgb } = PDFLib;
-    const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([T_DIP_W, T_DIP_H]);
+    let pdfDoc = null;
+    let PW = T_DIP_W, PH = T_DIP_H;
 
-    try {
-        const img = await pdfDoc.embedPng(imgBytes);
-        page.drawImage(img, { x: 0, y: 0, width: T_DIP_W, height: T_DIP_H });
-    } catch(e) {
+    // 1. Intentar cargar PDF (seleccionado localmente o URL remota)
+    if (designState._dipPdfTemplateBytes) {
+        pdfDoc = await PDFDocument.load(designState._dipPdfTemplateBytes.slice(0));
+    } else if (designState.diploma_template_url?.toLowerCase().endsWith('.pdf')) {
         try {
-            const img = await pdfDoc.embedJpg(imgBytes);
-            page.drawImage(img, { x: 0, y: 0, width: T_DIP_W, height: T_DIP_H });
-        } catch(e2) {
-            console.error("Error embedding diploma template:", e2);
-        }
+            const resp = await fetch(designState.diploma_template_url);
+            const bytes = await resp.arrayBuffer();
+            designState._dipPdfTemplateBytes = bytes;
+            pdfDoc = await PDFDocument.load(bytes.slice(0));
+        } catch(e) { console.error("Error loading remote diploma PDF:", e); }
     }
 
+    if (pdfDoc) {
+        // Si cargamos un PDF, usamos su primera página como base
+        const page = pdfDoc.getPage(0);
+        PW = page.getWidth();
+        PH = page.getHeight();
+    } else {
+        // Fallback a imagen (comportamiento actual)
+        pdfDoc = await PDFDocument.create();
+        const page = pdfDoc.addPage([T_DIP_W, T_DIP_H]);
+
+        let imgBytes = null;
+        if (designState.diploma_template_base64) {
+            const b64 = designState.diploma_template_base64.split(',')[1];
+            imgBytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+        } else {
+            if (!designState._dipTemplateBytes) {
+                try {
+                    const resp = await fetch('plantilla_diploma.png?v=2');
+                    designState._dipTemplateBytes = await resp.arrayBuffer();
+                } catch(e) { _showCanvasError(canvas, "Error cargando fallback imagen"); return; }
+            }
+            imgBytes = designState._dipTemplateBytes;
+        }
+
+        try {
+            const img = await pdfDoc.embedPng(imgBytes).catch(() => pdfDoc.embedJpg(imgBytes));
+            page.drawImage(img, { x: 0, y: 0, width: T_DIP_W, height: T_DIP_H });
+        } catch(e) { console.error("Error embedding img fallback:", e); }
+    }
+
+    const page = pdfDoc.getPage(0);
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const fontB = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-
     const getV = (id) => +(document.getElementById(id)?.value ?? 0);
 
     const drawPlaceholder = (txt, x, y, sz, fb = false, color = rgb(0,0,0)) => {
         const f = fb ? fontB : font;
         const w = f.widthOfTextAtSize(txt.toUpperCase(), sz);
-        page.drawText(txt.toUpperCase(), { x: x - w/2, y: T_DIP_H - y, size: sz, font: f, color });
+        page.drawText(txt.toUpperCase(), { x: x - w/2, y: PH - y, size: sz, font: f, color });
     };
 
     drawPlaceholder("TRABAJADOR DE PRUEBA", getV('dip-worker-x'), getV('dip-worker-y'), getV('dip-worker-sz'), true, rgb(0.1, 0.2, 0.4));
@@ -2800,10 +2841,26 @@ async function handleDiplomaTemplate(input) {
     const file = input.files[0];
     if (!file) return;
     designState.diploma_template_file = file;
-    const dataUrl = await fileToDataUrl(file);
-    designState.diploma_template_base64 = dataUrl;
-    showDesignThumb('diploma', dataUrl);
-    updateDiplomaDesignPreview();
+
+    if (file.type === 'application/pdf') {
+        designState.diploma_template_base64 = null; // Clear image if PDF selected
+        const el = document.getElementById('diploma-template-thumb');
+        if (el) el.innerHTML = `<div class="text-xs text-blue-800">📄 PDF Seleccionado: ${file.name}</div>`;
+
+        // Read as arrayBuffer for local preview rendering
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            designState._dipPdfTemplateBytes = e.target.result;
+            updateDiplomaDesignPreview();
+        };
+        reader.readAsArrayBuffer(file);
+    } else {
+        const dataUrl = await fileToDataUrl(file);
+        designState.diploma_template_base64 = dataUrl;
+        designState._dipPdfTemplateBytes = null;
+        showDesignThumb('diploma', dataUrl);
+        updateDiplomaDesignPreview();
+    }
 }
 
 function clearDiplomaTemplate() {
@@ -2879,7 +2936,8 @@ async function saveDesign() {
             if (url) p.dc3TemplateUrl = url;
         }
         if (designState.diploma_template_file) {
-            const url = await uploadFileToStorage(designState.diploma_template_file, currentEmail, "diploma_base.png");
+            const ext = designState.diploma_template_file.type === 'application/pdf' ? 'pdf' : 'png';
+            const url = await uploadFileToStorage(designState.diploma_template_file, currentEmail, `diploma_base.${ext}`);
             if (url) p.diplomaTemplateUrl = url;
         }
 

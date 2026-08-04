@@ -1,0 +1,10 @@
+- [ ] **Fase 1: Interfaz Web (`index.html`)**
+    - [ ] Cambiar selector de diploma a PDF.
+    - [ ] Actualizar previsualización de diseño para renderizar PDF base.
+    - [ ] Ajustar generador de diploma (`_buildDiplomaCore`) para usar PDF base.
+- [ ] **Fase 2: Aplicación Android**
+    - [ ] Actualizar `DiplomaGenerator.kt` para soportar PDF base remoto.
+    - [ ] Actualizar `DC3DesignScreen.kt` para permitir selección de PDF para diplomas.
+- [ ] **Fase 3: Sincronización y Limpieza**
+    - [ ] Cambiar nombre de archivo en Storage a `diploma_base.pdf`.
+    - [ ] Subir cambios a GitHub.

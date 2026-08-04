@@ -168,7 +168,11 @@ fun DesignScreen(
     val diplomaLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let { 
             newDiplomaTemplateUri = it
-            diplomaTemplateBase64 = uriToBase64(it) 
+            if (context.contentResolver.getType(it) != "application/pdf") {
+                diplomaTemplateBase64 = uriToBase64(it)
+            } else {
+                diplomaTemplateBase64 = null // Clear preview if it's a PDF
+            }
         }
     }
 
@@ -825,8 +829,10 @@ fun DesignScreen(
                                         }
 
                                         if (newDiplomaTemplateUri != null) {
+                                            val isPdf = context.contentResolver.getType(newDiplomaTemplateUri!!) == "application/pdf"
+                                            val fileName = if (isPdf) "diploma_base.pdf" else "diploma_base.png"
                                             val url = kotlinx.coroutines.suspendCancellableCoroutine<String?> { cont ->
-                                                SupabaseRepository.uploadTemplate(context, newDiplomaTemplateUri!!, currentAgentEmail, "diploma_base.png") { url ->
+                                                SupabaseRepository.uploadTemplate(context, newDiplomaTemplateUri!!, currentAgentEmail, fileName) { url ->
                                                     cont.resume(url) { }
                                                 }
                                             }
@@ -1036,10 +1042,20 @@ fun DesignScreen(
                                         .aspectRatio(1.29f)
                                         .background(Gray50, shape = RoundedCornerShape(12.dp))
                                         .border(1.dp, Gray200, RoundedCornerShape(12.dp))
-                                        .clickable { diplomaLauncher.launch("image/*") },
+                                        .clickable { diplomaLauncher.launch("*/*") },
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    if (diplomaTemplateBase64 != null) {
+                                    if (newDiplomaTemplateUri != null && context.contentResolver.getType(newDiplomaTemplateUri!!) == "application/pdf") {
+                                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                             Icon(Icons.Default.PictureAsPdf, contentDescription = null, tint = NavyPrimary, modifier = Modifier.size(48.dp))
+                                             Text("PDF Seleccionado", fontSize = 12.sp, color = NavyPrimary)
+                                         }
+                                    } else if (diplomaTemplateUrl?.endsWith(".pdf", true) == true && newDiplomaTemplateUri == null) {
+                                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                             Icon(Icons.Default.PictureAsPdf, contentDescription = null, tint = NavyPrimary, modifier = Modifier.size(48.dp))
+                                             Text("PDF en la nube activo", fontSize = 12.sp, color = NavyPrimary)
+                                         }
+                                    } else if (diplomaTemplateBase64 != null) {
                                         AsyncImage(
                                             model = diplomaTemplateBase64,
                                             contentDescription = "Plantilla de Diploma Personalizada",
@@ -1058,14 +1074,14 @@ fun DesignScreen(
 
                                 Spacer(modifier = Modifier.height(12.dp))
                                 Button(
-                                    onClick = { diplomaLauncher.launch("image/*") },
+                                    onClick = { diplomaLauncher.launch("*/*") },
                                     modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(8.dp),
                                     colors = ButtonDefaults.buttonColors(containerColor = NavySurface, contentColor = NavyPrimary)
                                 ) {
-                                    Icon(Icons.Default.Image, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Icon(Icons.Default.UploadFile, contentDescription = null, modifier = Modifier.size(18.dp))
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Subir nueva plantilla")
+                                    Text("Subir nueva plantilla (PDF o Img)")
                                 }
 
                                 if (diplomaTemplateBase64 != null) {
