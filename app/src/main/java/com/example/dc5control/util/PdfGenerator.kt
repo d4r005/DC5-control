@@ -236,7 +236,8 @@ object PdfGenerator {
         text(30f, 363f, course.name, 9f)
 
         // 8. Duracion
-        text(30f, 390f, course.durationHours, 8f)
+        rect(26f, 381f, 50f, 13f)
+        text(30f, 391f, course.durationHours, 8f)
 
         // 9. Fechas
         val (fStart, fEnd) = parseFechas(startDate, endDate)
@@ -250,8 +251,8 @@ object PdfGenerator {
         fEnd.d.forEachIndexed { i,c -> if(i<2 && c!=' ') cell(c.toString(), dF[i], 389f) }
 
         // 10. Area Tematica
-        rect(26f, 407f, 559f, 9f)
-        text(30f, 413f, course.thematicArea ?: "", 8f)
+        rect(26f, 407f, 559f, 11f)
+        text(30f, 415f, course.thematicArea ?: "", 8f)
 
         // 11. Agente
         rect(26f, 431f, 559f, 11f)

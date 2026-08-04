@@ -3870,9 +3870,10 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     const PH     = 792;
 
     function T(x, yFitz, s, size, useBold) {
-        if (!s) return;
+        const txt = sp(String(s || '')).trim();
+        if (txt === '') return;
         const sz = size || 9;
-        page.drawText(sp(String(s)), { x, y: PH - yFitz, size: sz, font: useBold ? fontB : font, color: rgb(0,0,0) });
+        page.drawText(txt, { x, y: PH - yFitz, size: sz, font: useBold ? fontB : font, color: rgb(0,0,0) });
     }
 
     function T_C(xCenter, yFitz, s, size, useBold) {
@@ -3949,8 +3950,8 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     }
 
     page.drawRectangle({ x:26, y: PH-366, width:559, height:11, color: rgb(1,1,1) });
-    T(30, 363, (course.name||'').toUpperCase(), 9);
-    T(30, 390, (course.durationHours||'').toUpperCase(), 8);
+    T(30, 363, (course.name || course.courseName || '').toUpperCase(), 9);
+    T(30, 390, (course.durationHours || course.duration || '').toUpperCase(), 8);
 
     const fStart = parseFecha(start), fEnd = parseFecha(end);
     const FY_digits = 389;
@@ -3959,8 +3960,8 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     drawDigits(fStart.a, centers.iniA); drawDigits(fStart.m, centers.iniM); drawDigits(fStart.d, centers.iniD);
     drawDigits(fEnd.a, centers.finA); drawDigits(fEnd.m, centers.finM); drawDigits(fEnd.d, centers.finD);
 
-    page.drawRectangle({ x:26, y: PH-416, width:559, height:9, color: rgb(1,1,1) });
-    T(30, 413, (course.thematicArea||'').toUpperCase(), 8);
+    page.drawRectangle({ x:26, y: PH-416, width:559, height: 9, color: rgb(1,1,1) });
+    T(30, 413, (course.thematicArea || course.area || '').toUpperCase(), 8);
     page.drawRectangle({ x:26, y: PH-442, width:559, height:11, color: rgb(1,1,1) });
     T(30, 440, (agent.name + "  " + agent.stps).toUpperCase(), 8);
 
