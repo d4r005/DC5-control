@@ -401,13 +401,32 @@
 
         <!-- DC-3 Design -->
         <div id="section-dc3design" class="hidden">
-            <!-- Tabs -->
-            <div class="flex border-b border-gray-200 mb-6 bg-white rounded-t-xl overflow-hidden">
-                <button onclick="setDesignTab('dc3')" id="tab-design-dc3" class="px-6 py-3 text-sm font-bold text-blue-900 border-b-2 border-blue-900">DC-3</button>
-                <button onclick="setDesignTab('diploma')" id="tab-design-diploma" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-blue-900 transition-colors">Diploma</button>
+            <!-- Admin Agent Selector -->
+            <div id="design-admin-selector" class="hidden mb-6">
+                <div class="card p-6">
+                    <h3 class="text-lg font-bold text-gray-900 mb-2">Selección de Diseño</h3>
+                    <p class="text-sm text-gray-500 mb-4">Como administrador, selecciona el agente cuyo diseño deseas editar:</p>
+                    <div id="design-agents-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
             </div>
 
-            <div id="design-content-dc3">
+            <!-- Editor Content (Hidden for admin until selection) -->
+            <div id="design-editor-ui">
+                <!-- Tabs -->
+                <div class="flex border-b border-gray-200 mb-6 bg-white rounded-t-xl overflow-hidden">
+                    <div class="flex flex-1">
+                        <button onclick="setDesignTab('dc3')" id="tab-design-dc3" class="px-6 py-3 text-sm font-bold text-blue-900 border-b-2 border-blue-900">DC-3</button>
+                        <button onclick="setDesignTab('diploma')" id="tab-design-diploma" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-blue-900 transition-colors">Diploma</button>
+                    </div>
+                    <button id="btn-back-to-list" onclick="backToDesignList()" class="hidden px-4 py-2 text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                        Volver a la lista
+                    </button>
+                </div>
+
+                <div id="design-content-dc3">
                 <div style="display:grid;grid-template-columns:400px 1fr;gap:18px;min-height:82vh;">
 
                 <!-- ── Panel izquierdo: controles ── -->
@@ -744,11 +763,12 @@
                             <div id="diploma-preview-wrap" style="position:relative;overflow-y:auto;overflow-x:hidden;flex:1;min-height:0;border-radius:8px;background:#f3f4f6;">
                             <canvas id="diploma-preview-canvas" style="display:block;width:100%;"></canvas>
                             <svg id="diploma-drag-overlay" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;" viewBox="0 0 792 612" preserveAspectRatio="none"></svg>
-                        </div>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
+</div>
 
         <!-- Agentes Capacitadores -->
         <div id="section-agents" class="hidden">
@@ -1182,6 +1202,7 @@ async function loadCatalogs() {
 
 let currentUser = null, currentView = 'dashboard', selectedWorker = null, editingDC3Id = null, editingItemId = null;
 let currentHistoryTab = 'DC3';
+let selectedDesignAgentEmail = null; // New: for admin editing others
 
 // ─── INIT ──────────────────────────────────────────────
 window.onload = async () => {
@@ -1504,6 +1525,7 @@ async function initApp() {
 
 function logout() {
     currentUser = null;
+    selectedDesignAgentEmail = null;
     resetDesignState();
     localStorage.removeItem('ace_session');
     sessionStorage.removeItem('ace_session');
@@ -1696,7 +1718,16 @@ async function loadSection(v) {
                 : `<tr><td colspan="6" class="text-center py-12 text-gray-300 text-sm">Sin historial de ${currentHistoryTab}</td></tr>`;
 
         } else if (v === 'dc3design') {
-            await loadDesign();
+            if (isAdmin() && !selectedDesignAgentEmail) {
+                document.getElementById('design-admin-selector').classList.remove('hidden');
+                document.getElementById('design-editor-ui').classList.add('hidden');
+                loadAdminDesignList();
+            } else {
+                document.getElementById('design-admin-selector').classList.add('hidden');
+                document.getElementById('design-editor-ui').classList.remove('hidden');
+                document.getElementById('btn-back-to-list').classList.toggle('hidden', !isAdmin());
+                await loadDesign();
+            }
 
         } else if (v === 'agents') {
             const tb = document.getElementById('tb-agents');
@@ -2532,6 +2563,13 @@ function resetDesignState() {
     designState.header_logo_base64 = null;
     designState.diploma_template_base64 = null;
 
+    // Reset URLs and files
+    designState.dc3_template_url = null;
+    designState.diploma_template_url = null;
+    designState.dc3_template_file = null;
+    designState.diploma_template_file = null;
+    designState._dipPdfTemplateBytes = null;
+
     // Reset thumbnails
     ['logo','firma','headerLogo','diploma'].forEach(t => {
         const el = document.getElementById({logo:'design-logo-preview',firma:'design-firma-preview',headerLogo:'design-header-logo-preview',diploma:'diploma-template-thumb'}[t]);
@@ -2572,10 +2610,12 @@ function resetDesignState() {
 
 async function loadDesign() {
     resetDesignState();
+    const emailToLoad = selectedDesignAgentEmail || currentUser?.email || '';
+    console.log('[DEBUG] loadDesign for:', emailToLoad);
     try {
         let d = null;
         try {
-            const r = await api('find','agent_designs', { filter: { creatorEmail: currentUser?.email || '' } });
+            const r = await api('find','agent_designs', { filter: { creatorEmail: emailToLoad } });
             if (r.documents && r.documents.length > 0) {
                 const doc = r.documents[0];
                 d = toCamel(doc);
@@ -2646,7 +2686,6 @@ async function loadDesign() {
 
         setV('dip-date-x', d.dipDateX ?? d.dip_date_x ?? 396);
         setV('dip-date-y', d.dipDateY ?? d.dip_date_y ?? 445);
-        setV('dip-date-sz', d.dipDateSz ?? d.dip_date_sz ?? 11);
 
         setV('dip-agent-x', d.dipAgentX ?? d.dip_agent_x ?? 396);
         setV('dip-agent-y', d.dipAgentY ?? d.dip_agent_y ?? 572);
@@ -2684,6 +2723,51 @@ async function loadDesign() {
         await updateDesignPreview();
         if (currentView === 'dc3design') scheduleDiplomaPreview();
     } catch(e) { console.warn('loadDesign error:', e); }
+}
+
+async function loadAdminDesignList() {
+    const listEl = document.getElementById('design-agents-list');
+    listEl.innerHTML = '<div class="col-span-full py-12 text-center text-gray-300">Cargando diseños disponibles...</div>';
+
+    try {
+        const res = await api('find','agent_designs', { filter: {} });
+        const designs = res.documents || [];
+
+        if (designs.length === 0) {
+            listEl.innerHTML = `
+                <div class="col-span-full py-12 text-center">
+                    <p class="text-gray-400 mb-4">No hay diseños guardados en la nube aún.</p>
+                    <button onclick="selectAdminDesign('${currentUser.email}')" class="btn-sm btn-indigo">Empezar con mi diseño propio</button>
+                </div>`;
+            return;
+        }
+
+        // Distinct creator_emails (in case of duplicates)
+        const uniqueEmails = [...new Set(designs.map(d => d.creatorEmail))];
+
+        listEl.innerHTML = uniqueEmails.map(email => {
+            const d = designs.find(x => x.creatorEmail === email);
+            return `
+                <div onclick="selectAdminDesign('${email}')" class="card p-4 border-2 border-transparent hover:border-blue-500 cursor-pointer transition-all">
+                    <p class="font-bold text-gray-900 truncate">${email}</p>
+                    <p class="text-[10px] text-gray-400 uppercase mt-1">Última actualización: ${d.updatedAt ? new Date(d.updatedAt).toLocaleString() : '—'}</p>
+                </div>`;
+        }).join('') + `
+            <div onclick="selectAdminDesign('${currentUser.email}')" class="card p-4 border-2 border-dashed border-gray-300 hover:border-blue-500 cursor-pointer flex items-center justify-center">
+                <span class="text-sm font-bold text-gray-400">+ Nuevo diseño propio</span>
+            </div>
+        `;
+    } catch(e) { console.error(e); }
+}
+
+function selectAdminDesign(email) {
+    selectedDesignAgentEmail = email;
+    loadSection('dc3design');
+}
+
+function backToDesignList() {
+    selectedDesignAgentEmail = null;
+    loadSection('dc3design');
 }
 
 /** Dispara el preview del diploma con debounce */
@@ -3024,7 +3108,7 @@ function getDesignParams() {
         dc3FolioX: gv('design-dc3-folio-x'), dc3FolioY: gv('design-dc3-folio-y'), dc3FolioSz: gv('design-dc3-folio-sz'),
         dc3TemplateUrl: designState.dc3_template_url,
         diplomaTemplateUrl: designState.diploma_template_url,
-        creatorEmail: currentUser?.email || ''
+        creatorEmail: selectedDesignAgentEmail || currentUser?.email || ''
     };
 }
 
