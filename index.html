@@ -2693,7 +2693,7 @@ async function updateDiplomaDesignPreview() {
     drawPlaceholder("NOMBRE DEL CURSO DE PRUEBA", getV('dip-course-x'), getV('dip-course-y'), getV('dip-course-sz'), true);
     drawPlaceholder("8 HORAS", getV('dip-duration-x'), getV('dip-duration-y'), getV('dip-duration-sz'), true);
     drawPlaceholder("27 DE JULIO DEL 2026", getV('dip-date-x'), getV('dip-date-y'), getV('dip-date-sz'), true);
-    drawPlaceholder("JESUS DARIO ROBLES TRUJILLO", getV('dip-agent-x'), getV('dip-agent-y'), getV('dip-agent-sz'), true);
+    drawPlaceholder(currentUser?.name || "NOMBRE AGENTE CAPACITADOR", getV('dip-agent-x'), getV('dip-agent-y'), getV('dip-agent-sz'), true);
     drawPlaceholder("REGISTRO STPS-XXX-001", getV('dip-stps-x'), getV('dip-stps-y'), getV('dip-stps-sz'), true);
     drawPlaceholder("EHS-CON-2024-0001", getV('dip-folio-x'), getV('dip-folio-y'), getV('dip-folio-sz'), true);
     drawPlaceholder("CÉDULA PROFESIONAL: 12345678", getV('dip-cedula-x'), getV('dip-cedula-y'), getV('dip-cedula-sz'), true);
