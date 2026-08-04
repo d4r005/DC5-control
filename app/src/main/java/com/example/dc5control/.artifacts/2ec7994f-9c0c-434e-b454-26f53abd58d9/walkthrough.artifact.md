@@ -1,24 +1,24 @@
-# Unificación de Plantillas a Formato PDF
+# Corrección de Cruce de Datos y Selector de Diseños para Administradores
 
-Se ha migrado la lógica de los Diplomas para soportar el formato PDF como base, igualando la calidad y el flujo de trabajo de las constancias DC-3.
+Se ha resuelto el problema técnico que causaba que el diseño de un agente permaneciera visible al cambiar de cuenta. Además, se ha habilitado un nuevo flujo de trabajo para administradores en la web, permitiendo la gestión centralizada de todos los diseños de la plataforma.
 
-## Cambios Clave
+## Cambios Implementados
 
-### Web Interface
-- **Selector Universal**: El input de Diploma ahora acepta tanto imágenes como archivos PDF.
-- **Renderizado Dinámico**: La vista previa del diseño ahora detecta si la plantilla es un PDF y la renderiza usando `pdf.js`.
-- **Generación Vectorial**: Los diplomas generados ahora pueden usar un PDF base cargado por el usuario, permitiendo que los textos y el QR se dibujen con precisión sobre un formato profesional.
+### Seguridad y Aislamiento de Datos
+- **Limpieza de Sesión**: Se corrigió la función `resetDesignState()` para que elimine todas las URLs de plantillas y archivos temporales de la memoria al cerrar sesión o cambiar de sección. Ya no verás el diseño de Cynthia en tu cuenta de Dario.
+- **Guardado Inteligente**: Al editar como administrador, el sistema ahora detecta automáticamente a qué agente pertenece el diseño y guarda los archivos en la carpeta correcta de Supabase (`templates/[correo-agente]/`), manteniendo el orden original.
 
-### Android App
-- **Generador Híbrido**: `DiplomaGenerator` ahora es capaz de descargar y "rellenar" un PDF remoto desde Supabase. Mantiene compatibilidad con la imagen local (fallback) si no hay una plantilla personalizada.
-- **Subida Inteligente**: Al guardar el diseño en la App, el sistema detecta el tipo de archivo y lo nombra correctamente en el Storage (`diploma_base.pdf` o `.png`).
+### Nuevo Selector de Diseño (Modo Admin)
+- **Vista de Lista**: Al entrar a la sección de **Diseño** como administrador, ahora verás una lista de todos los agentes que han guardado un diseño.
+- **Edición Delegada**: Puedes hacer clic en cualquier agente para cargar sus coordenadas y plantillas, facilitando la ayuda técnica a tus agentes capacitadores.
+- **Navegación Fluida**: Se añadió un botón "Volver a la lista" para que puedas saltar entre diferentes perfiles de diseño sin tener que salir de la sección.
 
-## Instrucciones para el Usuario
+## Verificación Realizada
 
-1.  **Prepárate**: Exporta tu plantilla de diploma actual a formato PDF.
-2.  **Sube**: En la pantalla de **Diseño -> Diploma**, selecciona tu nuevo archivo PDF.
-3.  **Guarda**: Presiona "Guardar diseño". Verás que la URL se actualiza en la base de datos.
-4.  **Verifica**: Genera un diploma para cualquier trabajador y notarás la mejora en la nitidez de los bordes y textos del fondo.
+1.  **Limpieza**: Entré como Administrador y confirmé que las variables globales se reinician correctamente.
+2.  **Selector**: Validé que la lista de agentes se carga dinámicamente desde Supabase.
+3.  **Carga**: Al seleccionar un agente, se descargan sus plantillas específicas (PDF/Imagen) y se muestran en el editor.
+4.  **Guardado**: Confirmé que los cambios realizados por un administrador se aplican al perfil del agente seleccionado.
 
 > [!TIP]
-> Si prefieres seguir usando una imagen PNG, el sistema sigue siendo compatible, pero recomendamos el cambio a PDF para una calidad de impresión óptima.
+> Recuerda usar **`Ctrl + F5`** la primera vez que entres para asegurarte de que el navegador no use una versión antigua del código.

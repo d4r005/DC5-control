@@ -243,7 +243,8 @@ object DiplomaGenerator {
                     val qsz = design?.dipQrSz ?: 50f
                     val qx = design?.dipQrX ?: 680f
                     val qy = design?.dipQrY ?: 500f
-                    cs.drawImage(img, qx - qsz/2, phLocal - qy - qsz/2, qsz, qsz)
+                    // Match top-alignment to be consistent with designer boxes
+                    cs.drawImage(img, qx - qsz/2, phLocal - qy - qsz, qsz, qsz)
                 } catch (e: Exception) {
                     Log.e(TAG, "Error embedding QR", e)
                 }

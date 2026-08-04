@@ -1,13 +1,12 @@
-- [ ] **Fase 1: Estructura de Datos**
-    - [ ] Añadir campos de alineación a `AgentDesign` en `Models.kt`.
-    - [ ] Actualizar mapeos `toSnake` / `toCamel` en `index.html`.
-- [ ] **Fase 2: Interfaz Web (`index.html`)**
-    - [ ] Añadir selectores de alineación (L, C, R) para cada campo del diploma.
-    - [ ] Actualizar lógica de previsualización para respetar la alineación.
-    - [ ] Actualizar generador de diploma (`_buildDiplomaCore`) con alineación.
-- [ ] **Fase 3: Aplicación Android**
-    - [ ] Actualizar `DiplomaGenerator.kt` para soportar alineación.
-    - [ ] Añadir controles de alineación en `DC3DesignScreen.kt`.
-- [ ] **Fase 4: Sincronización**
-    - [ ] Ejecutar SQL en Supabase para añadir las columnas de alineación.
-    - [ ] Subir cambios a GitHub.
+- [x] **Fase 1: Limpieza de Estado Global**
+    - [x] Actualizar `resetDesignState()` en `index.html` para limpiar URLs y archivos temporales.
+    - [x] Asegurar que `logout()` y el cambio de sección limpien el estado de diseño.
+- [x] **Fase 2: Selector de Agentes para Admin (Web)**
+    - [x] Modificar `loadSection('dc3design')` para detectar el rol de `ADMIN`.
+    - [x] Implementar una vista de lista de diseños en `section-dc3design`.
+    - [x] Añadir lógica para cargar un diseño específico al hacer clic.
+- [x] **Fase 3: Aislamiento de Guardado**
+    - [x] Ajustar `saveDesign()` para usar el `creator_email` del diseño seleccionado en lugar de `currentUser.email`.
+    - [x] Sincronizar el nombre de las carpetas en Supabase Storage.
+- [x] **Fase 4: Verificación**
+    - [x] Probar flujo: Login Admin -> Ver lista -> Seleccionar Agente -> Editar/Guardar.

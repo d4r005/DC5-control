@@ -2430,7 +2430,8 @@ async function _buildDiplomaCore(opts = {}) {
             const qrBase64 = await generateQRBase64(opts.qrUrl);
             const qrImg = await embedBase64Img(pdfDoc, qrBase64);
             const qsz = dx('dipQrSz', 50);
-            page.drawImage(qrImg, { x: dx('dipQrX', 680) - qsz/2, y: PH - dx('dipQrY', 500) - qsz/2, width: qsz, height: qsz });
+            // QR is drawn with dipQrY as the TOP edge to match designer boxes better
+            page.drawImage(qrImg, { x: dx('dipQrX', 680) - qsz/2, y: PH - dx('dipQrY', 500) - qsz, width: qsz, height: qsz });
         } catch(e) {}
     }
 
@@ -2864,7 +2865,8 @@ async function updateDiplomaDesignPreview() {
         const qrImgBytes = Uint8Array.from(atob(qrBase64.split(',')[1]), c => c.charCodeAt(0));
         const qrImg = await pdfDoc.embedPng(qrImgBytes);
         const qsz = getV('dip-qr-x') > 0 ? getV('dip-qr-sz') : 50;
-        page.drawImage(qrImg, { x: getV('dip-qr-x') - qsz/2, y: T_DIP_H - getV('dip-qr-y') - qsz/2, width: qsz, height: qsz });
+        // Match top-alignment for QR
+        page.drawImage(qrImg, { x: getV('dip-qr-x') - qsz/2, y: PH - getV('dip-qr-y') - qsz, width: qsz, height: qsz });
     } catch(e) {}
 
     const outBytes = await pdfDoc.save();
@@ -2927,15 +2929,27 @@ function _updateDiplomaDragHandles() {
         const x = +xEl.value;
         const y = +yEl.value;
 
+        let boxW = 200, boxH = 30;
+        let drawX = (x - 100) * sc;
+        let drawY = (y - 15) * sc;
+
+        if (item.id === 'dip-qr-x') {
+            const szEl = document.getElementById('dip-qr-sz');
+            boxW = szEl ? +szEl.value : 50;
+            boxH = boxW;
+            drawX = (x - boxW/2) * sc;
+            drawY = y * sc; // Top-aligned box for QR
+        }
+
         const g = document.createElementNS('http://www.w3.org/2000/svg','g');
         g.style.cursor = 'move';
         g.style.pointerEvents = 'all';
 
         const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
-        rect.setAttribute('x', (x - 100) * sc);
-        rect.setAttribute('y', (y - 15) * sc);
-        rect.setAttribute('width', 200 * sc);
-        rect.setAttribute('height', 30 * sc);
+        rect.setAttribute('x', drawX);
+        rect.setAttribute('y', drawY);
+        rect.setAttribute('width', boxW * sc);
+        rect.setAttribute('height', boxH * sc);
         rect.setAttribute('fill', item.color + '33'); // Slightly more opaque
         rect.setAttribute('stroke', item.color);
         rect.setAttribute('stroke-width', '2');
@@ -3660,7 +3674,8 @@ async function previewDC3() {
             agent: { name: agentName, stps: agentStps },
             course: { name: courseName, duration: courseDuration, area: courseArea, stpsId: courseStpsId },
             start, end, result: 'Acreditado',
-            qrUrl: 'https://ace-control.pages.dev/?v=preview'
+            qrUrl: 'https://ace-control.pages.dev/?v=preview',
+            folio: 'EHS-DC3-2024-PREVIEW'
         });
         showPDFInContainer(_previewPdfBytes, container);
     } catch(e) {
