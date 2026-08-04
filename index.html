@@ -2166,7 +2166,9 @@ async function previewDiploma() {
     container.innerHTML = '<p class="text-gray-400 text-sm">Generando previsualización del diploma…</p>';
 
     try {
-        const pdfBytes = await _buildDiplomaCore();
+        const pdfBytes = await _buildDiplomaCore({
+            qrUrl: 'https://ace-control.pages.dev/?v=preview'
+        });
         if (pdfBytes) {
             _previewPdfBytes = pdfBytes;
             showPDFInContainer(pdfBytes, container);
@@ -3479,7 +3481,8 @@ async function previewDC3() {
             worker: selectedWorker, company,
             agent: { name: agentName, stps: agentStps },
             course: { name: courseName, duration: courseDuration, area: courseArea, stpsId: courseStpsId },
-            start, end, result: 'Acreditado'
+            start, end, result: 'Acreditado',
+            qrUrl: 'https://ace-control.pages.dev/?v=preview'
         });
         showPDFInContainer(_previewPdfBytes, container);
     } catch(e) {
@@ -3811,15 +3814,17 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
         if (agentDesign?.headerLogoBase64) {
             try {
                 const hlImg = await embedBase64Img(pdfDoc, agentDesign.headerLogoBase64);
-                const hlw = agentDesign.headerLogoW ?? 120, hlh = agentDesign.headerLogoH ?? 55;
-                pageR.drawImage(hlImg, { x: agentDesign.headerLogoX?? 30, y: PH - ((agentDesign.headerLogoY?? 10) + hlh), width: hlw, height: hlh });
+                // On reverso, we draw the logo smaller and much higher to avoid catalogs
+                const hlw = (agentDesign.headerLogoW ?? 120) * 0.7, hlh = (agentDesign.headerLogoH ?? 55) * 0.7;
+                pageR.drawImage(hlImg, { x: agentDesign.headerLogoX?? 30, y: PH - 50, width: hlw, height: hlh });
             } catch(e) {}
         }
         if (agentDesign?.headerSlogan) {
-            const hss = agentDesign.headerSloganSize || 9;
+            const hss = (agentDesign.headerSloganSize || 9) * 0.8;
             const hst = sp(agentDesign.headerSlogan);
             const hsw = fontI.widthOfTextAtSize(hst, hss);
-            pageR.drawText(hst, { x: (agentDesign.headerSloganX?? 306) - hsw/2, y: PH - (agentDesign.headerSloganY?? 18) - hss, size: hss, font: fontI, color: rgb(0,0,0) });
+            // On reverso, draw slogan at the very top center
+            pageR.drawText(hst, { x: 306 - hsw/2, y: PH - 20, size: hss, font: fontI, color: rgb(0,0,0) });
         }
     }
 

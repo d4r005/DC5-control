@@ -333,20 +333,20 @@ object PdfGenerator {
             val csR = PDPageContentStream(document, pageR, PDPageContentStream.AppendMode.APPEND, true, true)
 
             embedImage(design?.headerLogoBase64, "hR")?.let { img ->
-                val hlw = design?.headerLogoW ?: 120f
-                val hlh = design?.headerLogoH ?: 55f
+                // On reverso, draw logo smaller and higher to avoid catalogs
+                val hlw = (design?.headerLogoW ?: 120f) * 0.7f
+                val hlh = (design?.headerLogoH ?: 55f) * 0.7f
                 val hlx = design?.headerLogoX ?: 30f
-                val hly = design?.headerLogoY ?: 10f
-                csR.drawImage(img, hlx, PH - hly - hlh, hlw, hlh)
+                csR.drawImage(img, hlx, PH - 50f, hlw, hlh)
             }
             design?.headerSlogan?.takeIf { it.isNotBlank() }?.let {
-                val sz = design.headerSloganSize ?: 9f
+                val sz = (design.headerSloganSize ?: 9f) * 0.8f
                 val st = sanitize(it).uppercase()
                 val w = fontI.getStringWidth(st) / 1000 * sz
                 csR.beginText()
                 csR.setFont(fontI, sz)
-                // Web: y = PH - y - hss (resta font size)
-                csR.newLineAtOffset((design.headerSloganX ?: 306f) - (w / 2f), PH - (design.headerSloganY ?: 18f) - sz)
+                // Draw at the very top center on reverso
+                csR.newLineAtOffset(306f - (w / 2f), PH - 20f)
                 csR.showText(st)
                 csR.endText()
             }
