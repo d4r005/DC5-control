@@ -153,26 +153,32 @@ fun DC3Screen() {
                 modifier = Modifier.fillMaxWidth(),
                 onClick = {
                     try {
-                        val data = DC3FormData(
-                            nombreTrabajador = nombreTrabajador,
-                            curp             = curp,
-                            ocupacion        = ocupacion,
-                            puesto           = puesto,
-                            razonSocial      = razonSocial,
-                            rfc              = rfc,
-                            nombreCurso      = nombreCurso,
-                            duracionHoras    = duracion,
-                            fechaInicio      = fechaInicio,
-                            fechaFin         = fechaFin,
-                            areaTematica     = areaTematica,
-                            agenteCapacitador = agente,
-                            stpsAgente       = "", // No disponible en este formulario simplificado
-                            instructor       = instructor,
-                            representanteLegal = patron,
-                            representanteTrabajadores = representante.ifBlank { null }
+                        // Actualizar a la nueva firma de PdfGenerator.generateDC3
+                        // Nota: Este es un formulario simplificado, faltan datos de Agent y Course reales
+                        val file = PdfGenerator.generateDC3(
+                            context = context,
+                            employee = com.example.dc5control.data.model.Employee(
+                                curp = curp,
+                                nombres = nombreTrabajador, // simplificado
+                                position = puesto,
+                                occupation = ocupacion
+                            ),
+                            course = com.example.dc5control.data.model.Course(
+                                name = nombreCurso,
+                                durationHours = duracion,
+                                thematicArea = areaTematica
+                            ),
+                            agent = com.example.dc5control.data.model.Agent(
+                                name = agente,
+                                stps = ""
+                            ),
+                            companyName = razonSocial,
+                            companyRfc = rfc,
+                            companyPatron = patron,
+                            companyRepresentante = representante,
+                            startDate = fechaInicio,
+                            endDate = fechaFin
                         )
-
-                        val file = PdfGenerator.generate(context, data)
                         val uri  = FileProvider.getUriForFile(
                             context, "${context.packageName}.fileprovider", file
                         )
