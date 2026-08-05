@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.dc5control.data.model.Agent
 import com.example.dc5control.data.model.Company
 import com.example.dc5control.data.model.User
 import com.example.dc5control.data.repository.SupabaseRepository
@@ -36,6 +37,9 @@ fun CompanyListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
     val context = LocalContext.current
     
     val companies = remember { mutableStateListOf<Company>() }
+    val agents = remember { mutableStateListOf<Agent>() }
+    var selectedAgentFilter by remember { mutableStateOf<Agent?>(null) }
+    var isAgentsExpanded by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(true) }
     
@@ -52,6 +56,12 @@ fun CompanyListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
             companies.addAll(filtered)
             isLoading = false
         }
+        if (user.role == "ADMIN") {
+            SupabaseRepository.fetchData("agents", Agent.serializer()) { fetchedAgents ->
+                agents.clear()
+                agents.addAll(fetchedAgents.distinctBy { it.name.uppercase().trim() })
+            }
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -59,10 +69,11 @@ fun CompanyListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
     }
 
     val filteredCompanies = companies.filter {
-        it.name.contains(searchQuery, ignoreCase = true) ||
+        (selectedAgentFilter == null || it.creatorEmail == selectedAgentFilter?.creatorEmail) &&
+        (it.name.contains(searchQuery, ignoreCase = true) ||
         it.rfc.contains(searchQuery, ignoreCase = true) ||
         it.representanteLegal.contains(searchQuery, ignoreCase = true) ||
-        (it.representanteTrabajadores?.contains(searchQuery, ignoreCase = true) == true)
+        (it.representanteTrabajadores?.contains(searchQuery, ignoreCase = true) == true))
     }
 
     val isLandscape = LocalConfiguration.current.screenWidthDp > LocalConfiguration.current.screenHeightDp
@@ -99,6 +110,45 @@ fun CompanyListScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                     )
                 }
                 
+                if (user.role == "ADMIN" && agents.isNotEmpty()) {
+                    Box(modifier = Modifier.width(180.dp).padding(end = 8.dp)) {
+                        ExposedDropdownMenuBox(
+                            expanded = isAgentsExpanded,
+                            onExpandedChange = { isAgentsExpanded = it }
+                        ) {
+                            OutlinedTextField(
+                                value = selectedAgentFilter?.name ?: "Todos los Agentes",
+                                onValueChange = {},
+                                readOnly = true,
+                                singleLine = true,
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(isAgentsExpanded) },
+                                modifier = Modifier.menuAnchor().fillMaxWidth().height(48.dp),
+                                shape = RoundedCornerShape(8.dp),
+                                textStyle = MaterialTheme.typography.bodySmall,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = NavyPrimary,
+                                    unfocusedBorderColor = Gray200
+                                )
+                            )
+                            ExposedDropdownMenu(
+                                expanded = isAgentsExpanded,
+                                onDismissRequest = { isAgentsExpanded = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Todos los Agentes") },
+                                    onClick = { selectedAgentFilter = null; isAgentsExpanded = false }
+                                )
+                                agents.forEach { agent ->
+                                    DropdownMenuItem(
+                                        text = { Text(agent.name) },
+                                        onClick = { selectedAgentFilter = agent; isAgentsExpanded = false }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // Add Button in topbar matching web
                 Button(
                     onClick = { 

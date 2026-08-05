@@ -140,8 +140,26 @@ fun DC3GenerationScreen(
             employees.addAll(filtered.filter { it.active })
         }
         SupabaseRepository.fetchData("companies", Company.serializer()) { fetched ->
+            val filtered = if (user.role == "ADMIN") fetched else fetched.filter { it.creatorEmail == user.email }
+            
+            // Deduplicar por nombre, prefiriendo la que tenga RFC
+            val uniqueCompanies = mutableListOf<Company>()
+            val seenNames = mutableSetOf<String>()
+            
+            filtered.forEach { company ->
+                val nameNorm = company.name.uppercase().trim()
+                if (nameNorm !in seenNames) {
+                    uniqueCompanies.add(company)
+                    seenNames.add(nameNorm)
+                } else {
+                    val idx = uniqueCompanies.indexOfFirst { it.name.uppercase().trim() == nameNorm }
+                    if (idx != -1 && uniqueCompanies[idx].rfc.isBlank() && company.rfc.isNotBlank()) {
+                        uniqueCompanies[idx] = company
+                    }
+                }
+            }
             companies.clear()
-            companies.addAll(fetched)
+            companies.addAll(uniqueCompanies)
         }
     }
 

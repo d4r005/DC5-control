@@ -34,6 +34,7 @@ object AnyToStringSerializer : KSerializer<String> {
 
 @Serializable
 data class Employee(
+    @Serializable(with = AnyToStringSerializer::class)
     val id: String? = null,
     @SerialName("apellido_paterno") val apellidoPaterno: String = "",
     @SerialName("apellido_materno") val apellidoMaterno: String = "",
@@ -49,6 +50,7 @@ data class Employee(
 
 @Serializable
 data class Agent(
+    @Serializable(with = AnyToStringSerializer::class)
     val id: String? = null,
     val name: String = "",
     val stps: String = "",
@@ -58,6 +60,7 @@ data class Agent(
 
 @Serializable
 data class Company(
+    @Serializable(with = AnyToStringSerializer::class)
     val id: String? = null,
     val name: String = "",
     val rfc: String = "",
@@ -68,6 +71,7 @@ data class Company(
 
 @Serializable
 data class Course(
+    @Serializable(with = AnyToStringSerializer::class)
     val id: String? = null,
     val name: String = "",
     @Serializable(with = AnyToStringSerializer::class)
@@ -79,6 +83,7 @@ data class Course(
 
 @Serializable
 data class DC3Record(
+    @Serializable(with = AnyToStringSerializer::class)
     val id: String? = null,
     @SerialName("worker_id") val workerId: String = "",
     @SerialName("worker_name") val workerName: String = "",
@@ -89,8 +94,8 @@ data class DC3Record(
     @SerialName("thematic_area") val thematicArea: String? = null,
     @SerialName("company_name") val companyName: String = "",
     @SerialName("company_rfc") val companyRfc: String = "",
-    @SerialName("company_patron") val companyPatron: String = "",
-    @SerialName("company_representante") val companyRepresentante: String? = null,
+    @SerialName("representante_legal") val companyPatron: String = "",
+    @SerialName("representante_trabajadores") val companyRepresentante: String? = null,
     @SerialName("agent_name") val agentName: String = "",
     @SerialName("agent_stps") val agentStps: String = "",
     @SerialName("start_date") val startDate: String = "",
@@ -112,6 +117,7 @@ data class User(
 
 @Serializable
 data class AgentDesign(
+    @Serializable(with = AnyToStringSerializer::class)
     val id: String? = null,
     @SerialName("creator_email") val creatorEmail: String? = null,
     @SerialName("logo_base64") val logoBase64: String? = null,

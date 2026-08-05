@@ -357,6 +357,14 @@
 
         <!-- Companies -->
         <div id="section-companies" class="hidden">
+            <div class="mb-5 flex gap-3">
+                <div class="relative flex-1">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                    </span>
+                    <input type="text" id="search-companies" class="input-field w-full pl-10" placeholder="Buscar por razón social o RFC..." oninput="loadSection('companies')">
+                </div>
+            </div>
             <div class="card overflow-hidden">
                 <table>
                     <thead><tr>
@@ -1143,8 +1151,30 @@ const DATA = {
 // (sus propios agentes, cursos, empresas y constancias/diplomas).
 function isAdmin() { return !!(currentUser && currentUser.role === 'ADMIN'); }
 function roleFilter() { return isAdmin() ? {} : { creatorEmail: (currentUser && currentUser.email) || '' }; }
+
+function deduplicateCompanies(list) {
+    const unique = [];
+    const seen = new Set();
+    (list || []).forEach(x => {
+        const norm = (x.name||'').toUpperCase().trim();
+        if (!seen.has(norm)) {
+            unique.push(x);
+            seen.add(norm);
+        } else {
+            const existingIdx = unique.findIndex(u => (u.name||'').toUpperCase().trim() === norm);
+            if (existingIdx !== -1 && (!unique[existingIdx].rfc || unique[existingIdx].rfc === '') && x.rfc) {
+                unique[existingIdx] = x;
+            }
+        }
+    });
+    return unique;
+}
+
 function visibleAgents() { return isAdmin() ? DATA.agents : DATA.agents.filter(a => a.creatorEmail === (currentUser && currentUser.email)); }
-function visibleCompanies() { return isAdmin() ? DATA.companies : DATA.companies.filter(c => c.creatorEmail === (currentUser && currentUser.email)); }
+function visibleCompanies() {
+    const list = isAdmin() ? DATA.companies : DATA.companies.filter(c => c.creatorEmail === (currentUser && currentUser.email));
+    return deduplicateCompanies(list);
+}
 function visibleCourses() { return isAdmin() ? DATA.courses : DATA.courses.filter(c => c.creatorEmail === (currentUser && currentUser.email)); }
 
 // Cargar catálogos desde Supabase al iniciar
@@ -1564,7 +1594,7 @@ function setView(v) {
     // Show/Hide Agent Filter
     const filterAgent = document.getElementById('filter-agent');
     if (filterAgent) {
-        const filterable = ['courses','dc3'].includes(v);
+        const filterable = ['companies','courses','dc3'].includes(v);
         filterAgent.classList.toggle('hidden', !filterable);
         if (filterable) {
             // Siempre repoblar para reflejar cambios en DATA.agents y evitar duplicados en el DOM
@@ -1634,23 +1664,59 @@ async function loadSection(v) {
 
         } else if (v === 'companies') {
             const r = await api('find','companies',{ filter: f });
-            const rows = (r.documents||[]);
+            let rows = (r.documents||[]);
             DATA.companies = rows;
+
+            // 1. Filtrar por agente seleccionado (si es admin)
+            const selectedAgentName = document.getElementById('filter-agent')?.value;
+            const selectedAgent = DATA.agents.find(a => a.name === selectedAgentName);
+            if (selectedAgent) {
+                rows = rows.filter(x => x.creatorEmail === selectedAgent.creatorEmail);
+            }
+
+            // 2. Filtrar por búsqueda
+            const search = document.getElementById('search-companies')?.value.toLowerCase();
+            if (search) {
+                rows = rows.filter(x => (x.name||'').toLowerCase().includes(search) || (x.rfc||'').toLowerCase().includes(search));
+            }
+
+            // 3. Deduplicar
+            rows = deduplicateCompanies(rows);
+
             const tb = document.getElementById('tb-companies');
+            const agentHeader = isAdmin() ? `<th>Agente</th>` : '';
+
+            // Actualizar header si es admin
+            const thead = document.querySelector('#section-companies thead tr');
+            if (thead) {
+                thead.innerHTML = `
+                    <th>Razón Social</th>
+                    <th>RFC</th>
+                    <th>Patrón o Representante Legal</th>
+                    <th>Representante de los Trabajadores</th>
+                    ${agentHeader}
+                    <th></th>
+                `;
+            }
+
             if (tb) tb.innerHTML = rows.length
-                ? rows.map(x => `<tr>
-                    <td class="font-semibold">${x.name||''}</td>
-                    <td class="font-mono text-xs text-gray-500">${x.rfc||''}</td>
-                    <td class="text-sm">${x.representanteLegal||'–'}</td>
-                    <td class="text-sm">${x.representanteTrabajadores||'–'}</td>
-                    <td class="text-right">
-                        <div class="flex justify-end gap-2">
-                            <button onclick='openModal(${JSON.stringify(x)})' class="btn-sm btn-outline">✎</button>
-                            <button onclick="delItem('companies','${x.id}')" class="btn-sm btn-red">✕</button>
-                        </div>
-                    </td>
-                  </tr>`).join('')
-                : `<tr><td colspan="5" class="text-center py-12 text-gray-300 text-sm">Sin empresas registradas</td></tr>`;
+                ? rows.map(x => {
+                    const agentCell = isAdmin() ? `<td class="text-[10px] text-gray-400 truncate max-w-[120px]" title="${x.creatorEmail}">${x.creatorEmail||'—'}</td>` : '';
+                    return `<tr>
+                        <td class="font-semibold">${x.name||''}</td>
+                        <td class="font-mono text-xs text-gray-500">${x.rfc||''}</td>
+                        <td class="text-sm">${x.representanteLegal||'–'}</td>
+                        <td class="text-sm">${x.representanteTrabajadores||'–'}</td>
+                        ${agentCell}
+                        <td class="text-right">
+                            <div class="flex justify-end gap-2">
+                                <button onclick='openModal(${JSON.stringify(x)})' class="btn-sm btn-outline">✎</button>
+                                <button onclick="delItem('companies','${x.id}')" class="btn-sm btn-red">✕</button>
+                            </div>
+                        </td>
+                      </tr>`;
+                }).join('')
+                : `<tr><td colspan="${isAdmin() ? 6 : 5}" class="text-center py-12 text-gray-300 text-sm">Sin empresas registradas</td></tr>`;
 
         } else if (v === 'courses') {
             const selectedAgentName = document.getElementById('filter-agent')?.value;

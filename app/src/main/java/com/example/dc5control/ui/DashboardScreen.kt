@@ -43,8 +43,14 @@ fun DashboardScreen(
             val count = if (user.role == "ADMIN") fetched.size else fetched.count { it.creatorEmail == user.email }
             workersCount = count.toString()
         }
-        SupabaseRepository.fetchData("dc3_records", DC3Record.serializer()) { dc3Count = it.size.toString() }
-        SupabaseRepository.fetchData("companies", Company.serializer()) { companiesCount = it.size.toString() }
+        SupabaseRepository.fetchData("dc3_records", DC3Record.serializer()) { fetched ->
+            val count = if (user.role == "ADMIN") fetched.size else fetched.count { it.creatorEmail == user.email }
+            dc3Count = count.toString()
+        }
+        SupabaseRepository.fetchData("companies", Company.serializer()) { fetched ->
+            val count = if (user.role == "ADMIN") fetched.size else fetched.count { it.creatorEmail == user.email }
+            companiesCount = count.toString()
+        }
     }
 
     val screenType = rememberScreenType()
