@@ -108,14 +108,28 @@ fun DC3GenerationScreen(
             val year = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
             val prefix = if (type == "DC3") "EHS-DC3" else "EHS-CON"
             
-            // Cargar registros para contar
-            val records = SupabaseRepository.fetchDataFilteredSuspend(
+            // Cargar todos los registros para contar folios.
+            // NOTA: fetchDataFilteredSuspend ya prepende "select=*" en la URL,
+            // por lo que aqui pasamos una cadena vacia (sin filtro adicional).
+            // Antes se pasaba "select=*" lo que duplicaba el parametro y rompia
+            // la consulta en Supabase, causando que siempre cayera al fallback 0001.
+            var records = SupabaseRepository.fetchDataFilteredSuspend(
                 "dc3_records", 
-                "select=*", 
+                "", 
                 DC3Record.serializer()
             )
             
-            // Filtrar y extraer el número máximo
+            // Si la consulta por ano no devuelve nada, intentar sin filtro
+            if (records.isEmpty()) {
+                android.util.Log.w("getNextFolio", "Consulta con filtro devolvio 0 registros, intentando sin filtro...")
+                records = SupabaseRepository.fetchDataFilteredSuspend(
+                    "dc3_records",
+                    "order=created_at.desc&limit=500",
+                    DC3Record.serializer()
+                )
+            }
+            
+            // Filtrar y extraer el numero maximo del folio
             val filteredFolios = records.mapNotNull { 
                 val f = if (type == "DC3") it.folioDc3 ?: it.folio else it.folio
                 if (f != null && f.startsWith(prefix) && f.contains("-$year-")) f else null
@@ -131,8 +145,10 @@ fun DC3GenerationScreen(
             }
             
             val nextNum = maxNum + 1
+            android.util.Log.d("getNextFolio", "type=$type year=$year maxNum=$maxNum nextNum=$nextNum totalRecords=${records.size} filteredFolios=${filteredFolios.size}")
             "$prefix-$year-${String.format(java.util.Locale.US, "%04d", nextNum)}"
         } catch (e: Exception) {
+            android.util.Log.e("getNextFolio", "Error calculando folio: ${e.message}", e)
             val prefix = if (type == "DC3") "EHS-DC3" else "EHS-CON"
             val year = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
             "$prefix-$year-0001" // Fallback seguro
