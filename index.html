@@ -2513,18 +2513,17 @@ async function getNextFolio(type = 'DIPLOMA') {
         const year = new Date().getFullYear();
         const prefix = type === 'DC3' ? 'EHS-DC3' : 'EHS-CON';
 
-        const r = await api('find','dc3_records', {
-            filter: { startDate: `gte.${year}-01-01` }
-        });
+        // Cargar registros para contar (filtramos por año actual en el cliente para mayor robustez)
+        const r = await api('find','dc3_records', { filter: {} });
 
         const docs = r.documents || [];
-        // Filtrar robustamente por año actual y que posean el prefijo correcto
+        // Filtrar los que pertenecen al año actual y tienen el prefijo correcto
         const filtered = docs.filter(x => {
             const f = x.folio || x.folioDc3;
             return f && f.startsWith(prefix) && f.includes(`-${year}-`);
         });
 
-        // Extraer el número más alto para asegurar que sea ascendente incluso si se borraron intermedios
+        // Extraer el número más alto para asegurar que sea ascendente
         let maxNum = 0;
         filtered.forEach(x => {
             const f = x.folio || x.folioDc3;

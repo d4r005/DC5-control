@@ -108,10 +108,10 @@ fun DC3GenerationScreen(
             val year = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
             val prefix = if (type == "DC3") "EHS-DC3" else "EHS-CON"
             
-            // Cargar registros del año actual
+            // Cargar registros para contar
             val records = SupabaseRepository.fetchDataFilteredSuspend(
                 "dc3_records", 
-                "start_date=gte.$year-01-01", 
+                "select=*", 
                 DC3Record.serializer()
             )
             
