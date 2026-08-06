@@ -2517,13 +2517,25 @@ async function getNextFolio(type = 'DIPLOMA') {
             filter: { startDate: `gte.${year}-01-01` }
         });
 
+        const docs = r.documents || [];
         // Filtrar robustamente por año actual y que posean el prefijo correcto
-        const count = (r.documents?.filter(x => {
+        const filtered = docs.filter(x => {
             const f = x.folio || x.folioDc3;
             return f && f.startsWith(prefix) && f.includes(`-${year}-`);
-        }).length || 0) + 1;
+        });
 
-        return `${prefix}-${year}-${String(count).padStart(4, '0')}`;
+        // Extraer el número más alto para asegurar que sea ascendente incluso si se borraron intermedios
+        let maxNum = 0;
+        filtered.forEach(x => {
+            const f = x.folio || x.folioDc3;
+            const parts = f.split('-');
+            const lastPart = parts[parts.length - 1];
+            const n = parseInt(lastPart);
+            if (!isNaN(n) && n > maxNum) maxNum = n;
+        });
+
+        const nextNum = maxNum + 1;
+        return `${prefix}-${year}-${String(nextNum).padStart(4, '0')}`;
     } catch(e) {
         console.error("Folio calculation error:", e);
         const prefix = type === 'DC3' ? 'EHS-DC3' : 'EHS-CON';
@@ -3676,22 +3688,27 @@ async function generateBulkDC3() {
         progressBar.style.width = `${Math.round(((i+0.5)/selectedWorkers.length)*100)}%`;
 
         try {
+            // Obtener el siguiente folio dinámicamente para cada trabajador en el lote
+            const folio = await getNextFolio('DC3');
+
             const pdfBytes = await buildDC3PDFBytes({
                 worker, company,
                 agent: { name: agentName, stps: agentStps },
                 course: { name: courseName, durationHours: courseDuration, thematicArea: courseArea, stpsId: courseStpsId },
-                start, end, result: 'Acreditado'
+                start, end, result: 'Acreditado',
+                folio: folio // Asignar el folio al PDF
             });
             const srcDoc = await PDFDocument.load(pdfBytes);
             const srcPages = await mergedPdf.copyPages(srcDoc, srcDoc.getPageIndices());
             srcPages.forEach(p => mergedPdf.addPage(p));
 
-            // Guardar en historial
+            // Guardar en historial con su folio único
             await api('insertOne','dc3_records',{ document: {
                 workerId: worker.curp, workerName: worker.name, workerPos: worker.position,
                 courseName, companyName: company.name, agentName, agentStps,
                 startDate: start, endDate: end, resultText: 'Acreditado',
                 documentType: 'DC3',
+                folio: folio,
                 creatorEmail: currentUser?.email || ''
             }});
         } catch(e) {

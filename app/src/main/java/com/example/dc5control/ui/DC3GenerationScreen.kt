@@ -103,6 +103,42 @@ fun DC3GenerationScreen(
     val companies = remember { mutableStateListOf<Company>() }
     var selectedEmployees by remember { mutableStateOf(preselectedEmployees?.toSet() ?: emptySet()) }
 
+    suspend fun getNextFolio(type: String): String {
+        return try {
+            val year = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
+            val prefix = if (type == "DC3") "EHS-DC3" else "EHS-CON"
+            
+            // Cargar registros del año actual
+            val records = SupabaseRepository.fetchDataFilteredSuspend(
+                "dc3_records", 
+                "start_date=gte.$year-01-01", 
+                DC3Record.serializer()
+            )
+            
+            // Filtrar y extraer el número máximo
+            val filteredFolios = records.mapNotNull { 
+                val f = if (type == "DC3") it.folioDc3 ?: it.folio else it.folio
+                if (f != null && f.startsWith(prefix) && f.contains("-$year-")) f else null
+            }
+            
+            var maxNum = 0
+            filteredFolios.forEach { f ->
+                try {
+                    val parts = f.split("-")
+                    val n = parts.last().toInt()
+                    if (n > maxNum) maxNum = n
+                } catch (e: Exception) {}
+            }
+            
+            val nextNum = maxNum + 1
+            "$prefix-$year-${String.format(java.util.Locale.US, "%04d", nextNum)}"
+        } catch (e: Exception) {
+            val prefix = if (type == "DC3") "EHS-DC3" else "EHS-CON"
+            val year = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
+            "$prefix-$year-0001" // Fallback seguro
+        }
+    }
+
     LaunchedEffect(Unit) {
         SupabaseRepository.fetchData("courses", Course.serializer()) { fetched ->
             CourseDefaults.cleanupDatabase(fetched) {
@@ -194,11 +230,8 @@ fun DC3GenerationScreen(
                         
                         val finalStps = calculateStps(agent.stps)
                         
-                        // 1. Guardar primero para obtener ID para el QR y Folio
-                        val year = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
-                        val initialDC3Records = SupabaseRepository.fetchDataFilteredSuspend("dc3_records", "start_date=gte.$year-01-01", DC3Record.serializer())
-                        val dc3Count = initialDC3Records.count { it.folio?.startsWith("EHS-DC3") == true || it.folioDc3?.startsWith("EHS-DC3") == true }
-                        val folioDC3 = "EHS-DC3-$year-${String.format(java.util.Locale.US, "%04d", dc3Count + currentDoc)}"
+                        // Obtener el siguiente folio dinámicamente para cada documento
+                        val folioDC3 = getNextFolio("DC3")
 
                         val recordToSave = DC3Record(
                             workerId = employee.curp,
@@ -259,13 +292,6 @@ fun DC3GenerationScreen(
             val design = SupabaseRepository.fetchDataFilteredSuspend("agent_designs", "creator_email=eq.${agent.creatorEmail ?: user.email}&order=created_at.desc", AgentDesign.serializer()).firstOrNull()
             val customTemplateBase64 = design?.diplomaTemplateBase64
 
-            val year = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
-            val initialRecords = SupabaseRepository.fetchDataFilteredSuspend("dc3_records", "start_date=gte.$year-01-01", DC3Record.serializer())
-            // Contar solo los que tienen folio de diploma del año actual
-            val initialCount = initialRecords.count { 
-                it.folio?.startsWith("EHS-CON") == true 
-            }
-
             var currentDoc = 0
             val totalDocs = selectedEmployees.size * selectedCourses.size
 
@@ -274,7 +300,7 @@ fun DC3GenerationScreen(
                     currentDoc++
                     statusText = "Generando Diploma $currentDoc de $totalDocs..."
                     
-                    val folioStr = "EHS-CON-$year-${String.format(java.util.Locale.US, "%04d", initialCount + currentDoc)}"
+                    val folioStr = getNextFolio("DIPLOMA")
                     
                     // 1. Guardar primero para obtener ID para el QR
                     val record = DC3Record(
@@ -511,6 +537,14 @@ fun DatesSelectionSection(startDate: String, onStart: (String) -> Unit, endDate:
     if (showStart) MyDatePickerDialog(onStart) { showStart = false }
     if (showEnd) MyDatePickerDialog(onEnd) { showEnd = false }
 
+    fun isoToReadable(iso: String): String {
+        if (iso.isBlank()) return ""
+        return try {
+            val parts = iso.split("-")
+            if (parts.size == 3) "${parts[2]}/${parts[1]}/${parts[0]}" else iso
+        } catch (e: Exception) { iso }
+    }
+
     Card(
         colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
         border = BorderStroke(1.dp, Gray200),
@@ -521,7 +555,7 @@ fun DatesSelectionSection(startDate: String, onStart: (String) -> Unit, endDate:
             Spacer(modifier = Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
-                    value = startDate,
+                    value = isoToReadable(startDate),
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("Inicio") },
@@ -536,7 +570,7 @@ fun DatesSelectionSection(startDate: String, onStart: (String) -> Unit, endDate:
                     )
                 )
                 OutlinedTextField(
-                    value = endDate,
+                    value = isoToReadable(endDate),
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("Fin") },
@@ -621,5 +655,20 @@ fun ActionButtonsSection(onBack: () -> Unit, onPreview: () -> Unit, onGenerate: 
 @Composable
 fun MyDatePickerDialog(onDateSelected: (String) -> Unit, onDismiss: () -> Unit) {
     val state = rememberDatePickerState()
-    DatePickerDialog(onDismissRequest = onDismiss, confirmButton = { TextButton(onClick = { state.selectedDateMillis?.let { val f = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()); f.timeZone = java.util.TimeZone.getTimeZone("UTC"); onDateSelected(f.format(java.util.Date(it))) }; onDismiss() }) { Text("OK") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }) { DatePicker(state) }
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = {
+                state.selectedDateMillis?.let {
+                    val f = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+                    f.timeZone = java.util.TimeZone.getTimeZone("UTC")
+                    onDateSelected(f.format(java.util.Date(it)))
+                }
+                onDismiss()
+            }) { Text("OK") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancelar") }
+        }
+    ) { DatePicker(state) }
 }
