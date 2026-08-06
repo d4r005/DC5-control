@@ -2517,16 +2517,33 @@ async function getNextFolio(type = 'DIPLOMA') {
         const r = await api('find','dc3_records', { filter: {} });
 
         const docs = r.documents || [];
-        // Filtrar los que pertenecen al año actual y tienen el prefijo correcto
+        // Filtrar los que pertenecen al año actual y tienen el prefijo correcto.
+        // IMPORTANTE: cuando documentType='BOTH', el folio del DC3 esta en
+        // folioDc3 y el del diploma en folio. Si hacemos x.folio || x.folioDc3
+        // siempre agarra folio (que tiene el diploma) y nunca ve el de DC3.
+        // Por eso hay que elegir el campo correcto segun el tipo.
         const filtered = docs.filter(x => {
-            const f = x.folio || x.folioDc3;
+            let f;
+            if (type === 'DC3') {
+                // Para DC3: folioDc3 tiene prioridad (caso BOTH),
+                // si no, usar folio solo cuando documentType es DC3
+                f = x.folioDc3 || (x.documentType === 'DC3' ? x.folio : null);
+            } else {
+                // Para DIPLOMA: siempre esta en folio (tanto en BOTH como en DIPLOMA)
+                f = x.folio;
+            }
             return f && f.startsWith(prefix) && f.includes(`-${year}-`);
         });
 
         // Extraer el número más alto para asegurar que sea ascendente
         let maxNum = 0;
         filtered.forEach(x => {
-            const f = x.folio || x.folioDc3;
+            let f;
+            if (type === 'DC3') {
+                f = x.folioDc3 || (x.documentType === 'DC3' ? x.folio : null);
+            } else {
+                f = x.folio;
+            }
             const parts = f.split('-');
             const lastPart = parts[parts.length - 1];
             const n = parseInt(lastPart);
