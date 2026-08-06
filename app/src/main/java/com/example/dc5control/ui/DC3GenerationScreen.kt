@@ -366,11 +366,105 @@ fun DC3GenerationScreen(
         }
     }
 
+    suspend fun generateBoth() {
+        val agent = selectedAgent ?: return
+        val company = selectedCompany ?: return
+        isGenerating = true
+        try {
+            val design = SupabaseRepository.fetchDataFilteredSuspend("agent_designs", "creator_email=eq.${agent.creatorEmail ?: user.email}&order=created_at.desc", AgentDesign.serializer()).firstOrNull()
+            val customTemplateBase64 = design?.diplomaTemplateBase64
+
+            var currentDoc = 0
+            val totalDocs = selectedEmployees.size * selectedCourses.size
+
+            selectedEmployees.forEach { employee ->
+                selectedCourses.forEach { course ->
+                    currentDoc++
+                    statusText = "Generando DC-3 + Diploma $currentDoc de $totalDocs: ${employee.nombres}..."
+
+                    val finalStps = calculateStps(agent.stps)
+
+                    // Obtener folios para ambos documentos
+                    val folioDC3 = getNextFolio("DC3")
+                    val folioDiploma = getNextFolio("DIPLOMA")
+
+                    // 1. Guardar registro con documentType = "BOTH"
+                    val record = DC3Record(
+                        workerId = employee.curp,
+                        workerName = "${employee.apellidoPaterno} ${employee.nombres}".trim(),
+                        workerPos = employee.position,
+                        courseName = course.name,
+                        durationHours = course.durationHours,
+                        thematicArea = course.thematicArea ?: "",
+                        companyName = company.name,
+                        companyRfc = company.rfc,
+                        companyPatron = company.representanteLegal,
+                        companyRepresentante = company.representanteTrabajadores,
+                        agentName = agent.name,
+                        agentStps = finalStps,
+                        startDate = startDate,
+                        endDate = endDate,
+                        documentType = "BOTH",
+                        folio = folioDiploma,
+                        folioDc3 = folioDC3,
+                        creatorEmail = employee.creatorEmail ?: user.email
+                    )
+
+                    val insertedId = SupabaseRepository.insertDataGetIdSuspend("dc3_records", record, DC3Record.serializer())
+                    val qrUrl = if (insertedId != null) "https://ace-control.pages.dev/?v=$insertedId" else null
+
+                    // 2. Generar DC-3
+                    val dc3File = PdfGenerator.generateDC3(
+                        context, employee, course, agent.copy(stps = finalStps), company.name, company.rfc,
+                        company.representanteLegal, company.representanteTrabajadores,
+                        startDate, endDate, design = design,
+                        employeePhotoBase64 = employee.photoUrl,
+                        qrUrl = qrUrl,
+                        folio = folioDC3
+                    )
+
+                    // 3. Generar Diploma
+                    val diplomaFile = DiplomaGenerator.generateDiploma(
+                        context, employee, course, agent, startDate, endDate,
+                        customTemplateBase64 = customTemplateBase64,
+                        folio = folioDiploma,
+                        design = design,
+                        qrUrl = qrUrl ?: "https://ace-control.pages.dev/?v=preview"
+                    )
+
+                    // 4. Fusionar ambos PDFs en uno solo
+                    val mergedFile = java.io.File(context.cacheDir, "DC3_Diploma_${employee.curp}.pdf")
+                    val merged = PdfGenerator.mergePdfs(listOf(dc3File, diplomaFile), mergedFile)
+
+                    if (merged != null) {
+                        PdfGenerator.saveToDownloads(context, merged)
+                    } else {
+                        // Si falla el merge, guardar por separado
+                        PdfGenerator.saveToDownloads(context, dc3File)
+                        PdfGenerator.saveToDownloads(context, diplomaFile)
+                    }
+
+                    if (totalDocs == 1 && merged != null) PdfGenerator.openPdf(context, merged)
+                }
+            }
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, "DC-3 + Diplomas guardados en Descargas", Toast.LENGTH_LONG).show()
+                onBack()
+            }
+        } catch (e: Exception) {
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        } finally {
+            isGenerating = false
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize().background(BackgroundLight).padding(16.dp)) {
         if (isGenerating) {
             Box(modifier = Modifier.fillMaxSize().background(Color.White).padding(24.dp), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Generando Constancias DC-3...", fontWeight = FontWeight.Bold, color = NavyPrimary)
+                    Text("Generando documentos...", fontWeight = FontWeight.Bold, color = NavyPrimary)
                     Spacer(modifier = Modifier.height(16.dp))
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth().height(8.dp), color = Violet600)
                     Spacer(modifier = Modifier.height(12.dp))
@@ -412,6 +506,7 @@ fun DC3GenerationScreen(
                                 onPreview = { scope.launch { generateOrPreview(true) } }, 
                                 onGenerate = { scope.launch { generateOrPreview(false) } },
                                 onGenerateDiploma = { scope.launch { generateDiplomas() } },
+                                onGenerateBoth = { scope.launch { generateBoth() } },
                                 enabled = selectedEmployees.isNotEmpty() && selectedCompany != null && selectedAgent != null && selectedCourses.isNotEmpty() && startDate.isNotEmpty() && endDate.isNotEmpty()
                             )
                         }
@@ -434,6 +529,7 @@ fun DC3GenerationScreen(
                         onPreview = { scope.launch { generateOrPreview(true) } }, 
                         onGenerate = { scope.launch { generateOrPreview(false) } },
                         onGenerateDiploma = { scope.launch { generateDiplomas() } },
+                        onGenerateBoth = { scope.launch { generateBoth() } },
                         enabled = selectedEmployees.isNotEmpty() && selectedCompany != null && selectedAgent != null && selectedCourses.isNotEmpty() && startDate.isNotEmpty() && endDate.isNotEmpty()
                     )
                 }
@@ -606,7 +702,7 @@ fun DatesSelectionSection(startDate: String, onStart: (String) -> Unit, endDate:
 }
 
 @Composable
-fun ActionButtonsSection(onBack: () -> Unit, onPreview: () -> Unit, onGenerate: () -> Unit, onGenerateDiploma: () -> Unit, enabled: Boolean) {
+fun ActionButtonsSection(onBack: () -> Unit, onPreview: () -> Unit, onGenerate: () -> Unit, onGenerateDiploma: () -> Unit, onGenerateBoth: () -> Unit, enabled: Boolean) {
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -663,6 +759,18 @@ fun ActionButtonsSection(onBack: () -> Unit, onPreview: () -> Unit, onGenerate: 
                 Spacer(modifier = Modifier.width(6.dp))
                 Text("Generar Diploma", fontWeight = FontWeight.Bold, fontSize = 13.sp)
             }
+        }
+
+        Button(
+            onClick = onGenerateBoth,
+            modifier = Modifier.fillMaxWidth().height(48.dp),
+            enabled = enabled,
+            shape = RoundedCornerShape(8.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E293B))
+        ) {
+            Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(20.dp))
+            Spacer(modifier = Modifier.width(6.dp))
+            Text("Generar DC-3 + Diploma (PDF Unico)", fontWeight = FontWeight.Bold, fontSize = 13.sp)
         }
     }
 }

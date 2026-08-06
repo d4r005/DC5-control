@@ -433,4 +433,32 @@ object PdfGenerator {
         val map = mapOf('á' to 'a', 'é' to 'e', 'í' to 'i', 'ó' to 'o', 'ú' to 'u', 'ü' to 'u', 'ñ' to 'n', 'Á' to 'A', 'É' to 'E', 'Í' to 'I', 'Ó' to 'O', 'Ú' to 'U', 'Ü' to 'U', 'Ñ' to 'N')
         return s.map { map[it] ?: it }.joinToString("")
     }
+
+    
+    fun mergePdfs(files: List<File>, outputFile: File): File? {
+        val srcDocs = mutableListOf<PDDocument>()
+        return try {
+            val mergedDoc = PDDocument()
+            for (file in files) {
+                val srcDoc = PDDocument.load(file)
+                srcDocs.add(srcDoc)
+                for (page in srcDoc.pages) {
+                    // Clonar la pagina para que no dependa del documento origen
+                    val clonedPage = mergedDoc.importPage(page)
+                    // importPage clona la pagina pero pierde el rotation
+                    clonedPage.rotation = page.rotation
+                }
+            }
+            mergedDoc.save(outputFile)
+            mergedDoc.close()
+            Log.d(TAG, "Merged ${files.size} PDFs into ${outputFile.name}")
+            outputFile
+        } catch (e: Exception) {
+            Log.e(TAG, "Error merging PDFs: ${e.message}", e)
+            null
+        } finally {
+            srcDocs.forEach { runCatching { it.close() } }
+        }
+    }
+
 }
