@@ -2538,7 +2538,7 @@ async function getNextFolio(type = 'DIPLOMA') {
     } catch(e) {
         console.error("Folio calculation error:", e);
         const prefix = type === 'DC3' ? 'EHS-DC3' : 'EHS-CON';
-        return `${prefix}-${new Date().getFullYear()}-${Math.floor(Math.random()*9000)+1000}`;
+        return `${prefix}-${new Date().getFullYear()}-0001`;
     }
 }
 
