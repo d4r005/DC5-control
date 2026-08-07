@@ -944,7 +944,7 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Agente Capacitador</label>
-                    <select id="bulk-agent" class="input-field"></select>
+                    <select id="bulk-agent" class="input-field" onchange="_refreshBulkCourses()"></select>
                 </div>
             </div>
             <div>
@@ -3785,12 +3785,35 @@ function openBulkDC3Modal() {
     const courseSel = document.getElementById('bulk-course');
     compSel.innerHTML = (visibleCompanies()||[]).map(c => `<option value="${(c.name||'').replace(/"/g,'&quot;')}">${c.name||''}</option>`).join('');
     agentSel.innerHTML = (visibleAgents()||[]).map(a => `<option value="${(a.name||'')}|${(a.stps||'')}">  ${a.name||''}</option>`).join('');
-    courseSel.innerHTML = (visibleCourses()||[]).map(c => `<option value="${(c.name||'')}|${(c.durationHours||'')}|${(c.thematicArea||'')}">${c.name||''}</option>`).join('');
+
+    // Cursos se filtran según el agente seleccionado (ver _refreshBulkCourses)
+    _refreshBulkCourses();
 
     // Reset progress
     document.getElementById('bulk-progress').classList.add('hidden');
     document.getElementById('bulk-progress-bar').style.width = '0%';
     document.getElementById('modal-bulk-dc3').classList.add('open');
+}
+
+// Filtra el select de cursos según el agente capacitador seleccionado en el modal masivo.
+function _refreshBulkCourses() {
+    const agentSel = document.getElementById('bulk-agent');
+    const courseSel = document.getElementById('bulk-course');
+    if (!agentSel || !courseSel) return;
+
+    const agentVal = agentSel.value || '';
+    const [agentName] = agentVal.split('|');
+    const agent = DATA.agents.find(a => a.name === agentName);
+
+    let courses = visibleCourses() || [];
+    if (agent && agent.creatorEmail) {
+        courses = courses.filter(c => c.creatorEmail === agent.creatorEmail);
+    }
+
+    const prevVal = courseSel.value;
+    courseSel.innerHTML = courses.map(c => `<option value="${(c.name||'')}|${(c.durationHours||'')}|${(c.thematicArea||'')}">${c.name||''}</option>`).join('');
+    // Mantener selección previa si sigue disponible
+    if (prevVal && [...courseSel.options].some(o => o.value === prevVal)) courseSel.value = prevVal;
 }
 
 async function generateBulkDC3() {
