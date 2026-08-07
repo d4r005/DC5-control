@@ -330,25 +330,34 @@ object PdfGenerator {
         cs.close()
 
         // --- PAGINA 2 (Reverso) ---
+        // El catálogo oficial de STPS empieza ~84pt debajo del borde superior, así que solo
+        // tenemos esa franja libre. El logo del header suele traer el eslogan dibujado DENTRO
+        // de la propia imagen — dibujar además el texto del eslogan separado, en el mismo lugar,
+        // producía un texto encimado/ilegible sobre el logo. Ahora van lado a lado (logo a la
+        // izquierda, eslogan a la derecha) en vez de apilados en el mismo punto.
         if (document.numberOfPages > 1) {
             val pageR = document.getPage(1)
             val csR = PDPageContentStream(document, pageR, PDPageContentStream.AppendMode.APPEND, true, true)
+            val topMargin = 12f
+            val maxLogoW = 90f
+            val maxLogoH = 40f
 
             embedImage(design?.headerLogoBase64, "hR")?.let { img ->
-                // On reverso, draw logo smaller and higher to avoid catalogs
-                val hlw = (design?.headerLogoW ?: 120f) * 0.7f
-                val hlh = (design?.headerLogoH ?: 55f) * 0.7f
-                val hlx = design?.headerLogoX ?: 30f
-                csR.drawImage(img, hlx, PH - 50f, hlw, hlh)
+                val origW = design?.headerLogoW ?: 120f
+                val origH = design?.headerLogoH ?: 55f
+                val scale = minOf(maxLogoW / origW, maxLogoH / origH, 1f)
+                val hlw = origW * scale
+                val hlh = origH * scale
+                csR.drawImage(img, 30f, PH - topMargin - hlh, hlw, hlh)
             }
             design?.headerSlogan?.takeIf { it.isNotBlank() }?.let {
-                val sz = (design.headerSloganSize ?: 9f) * 0.8f
+                val sz = minOf(design.headerSloganSize ?: 9f, 8f)
                 val st = sanitize(it).uppercase()
                 val w = fontI.getStringWidth(st) / 1000 * sz
                 csR.beginText()
                 csR.setFont(fontI, sz)
-                // Draw at the very top center on reverso
-                csR.newLineAtOffset(306f - (w / 2f), PH - 20f)
+                // Alineado a la derecha, misma franja superior que el logo pero sin cruzarse
+                csR.newLineAtOffset(582f - w, PH - topMargin - sz)
                 csR.showText(st)
                 csR.endText()
             }

@@ -972,7 +972,10 @@
 
         <div class="grid grid-cols-2 gap-3 mt-7">
             <button onclick="previewBulk()" class="btn-sm btn-outline flex items-center justify-center gap-2">
-                👁 Previsualizar
+                👁 Previsualizar DC-3
+            </button>
+            <button onclick="previewBulkDiploma()" class="btn-sm btn-outline flex items-center justify-center gap-2">
+                👁 Previsualizar Diploma
             </button>
             <button onclick="generateBulkDC3()" class="btn-sm btn-indigo flex items-center justify-center gap-2">
                 ⬇ DC-3 Masivos
@@ -980,7 +983,7 @@
             <button onclick="generateBulkDiplomas()" class="btn-sm btn-indigo flex items-center justify-center gap-2">
                 ⬇ Diplomas Masivos
             </button>
-            <button onclick="generateBulkBoth()" class="btn-sm btn-indigo flex items-center justify-center gap-2" style="background-color: #166534">
+            <button onclick="generateBulkBoth()" class="btn-sm btn-indigo flex items-center justify-center gap-2 col-span-2" style="background-color: #166534">
                 🚀 DC-3 + Diplomas
             </button>
         </div>
@@ -2356,14 +2359,15 @@ async function generateBoth() {
     }
 }
 
-async function previewDiploma() {
+async function previewDiploma(overrides = {}) {
     const container = document.getElementById('dc3-preview-container');
     document.getElementById('modal-dc3-preview').classList.add('open');
     container.innerHTML = '<p class="text-gray-400 text-sm">Generando previsualización del diploma…</p>';
 
     try {
         const pdfBytes = await _buildDiplomaCore({
-            qrUrl: 'https://ace-control.pages.dev/?v=preview'
+            qrUrl: 'https://ace-control.pages.dev/?v=preview',
+            ...overrides
         });
         if (pdfBytes) {
             _previewPdfBytes = pdfBytes;
@@ -2372,6 +2376,24 @@ async function previewDiploma() {
     } catch(e) {
         container.innerHTML = `<p class="text-red-500 text-sm">Error: ${e.message}</p>`;
     }
+}
+
+// Previsualización del Diploma DESDE el modal de generación masiva — usa el primer
+// trabajador seleccionado y los valores del propio modal masivo (agente/curso/fechas).
+async function previewBulkDiploma() {
+    if (!selectedWorkers.length) { alert('Selecciona al menos un trabajador'); return; }
+    const start = document.getElementById('bulk-start').value;
+    const end   = document.getElementById('bulk-end').value;
+    if (!start || !end) { alert('Selecciona las fechas de inicio y término'); return; }
+
+    selectedWorker = selectedWorkers[0];
+    await previewDiploma({
+        worker: selectedWorker,
+        agentVal:  document.getElementById('bulk-agent').value,
+        courseVal: document.getElementById('bulk-course').value,
+        startDate: start,
+        endDate: end
+    });
 }
 
 async function _buildDiplomaCore(opts = {}) {
@@ -2929,17 +2951,94 @@ function scheduleDiplomaPreview() {
 const T_DIP_W = 792, T_DIP_H = 612;
 
 async function updateDiplomaDesignPreview() {
+    if (designState._dipPreviewRendering) { scheduleDiplomaPreview(); return; }
+    designState._dipPreviewRendering = true;
+    try {
+        await _renderDiplomaPreview();
+    } finally {
+        designState._dipPreviewRendering = false;
+    }
+}
+
+// Renderiza la plantilla real (PDF o imagen) del agente en el canvas y superpone los
+// recuadros arrastrables — igual patrón que _renderPreview() para DC-3. No depende de
+// trabajador/curso/fechas reales: esto es solo el editor de diseño.
+async function _renderDiplomaPreview() {
     const canvas = document.getElementById('diploma-preview-canvas');
     if (!canvas) return;
 
-    // Usar el motor central con el flag isDesignPreview para que use los cambios temporales
-    const pdfBytes = await _buildDiplomaCore({ isDesignPreview: true, quiet: true });
-    if (!pdfBytes) return;
+    if (!window.PDFLib) {
+        await new Promise((res,rej)=>{
+            const s=document.createElement('script');
+            s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js';
+            s.onload=res; s.onerror=rej; document.head.appendChild(s);
+        });
+    }
+    if (!window.pdfjsLib) {
+        await new Promise((res,rej)=>{
+            const s=document.createElement('script');
+            s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+            s.onload=()=>{ pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; res(); };
+            s.onerror=rej; document.head.appendChild(s);
+        });
+    }
 
-    const container = document.getElementById('diploma-preview-box');
-    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-    const url  = URL.createObjectURL(blob);
-    container.innerHTML = `<iframe src="${url}" class="w-full h-full border-none rounded-lg shadow-sm"></iframe>`;
+    const { PDFDocument } = PDFLib;
+    const PW = T_DIP_W, PH = T_DIP_H;
+    let pdfDoc = null;
+
+    try {
+        if (designState._dipPdfTemplateBytes) {
+            pdfDoc = await PDFDocument.load(designState._dipPdfTemplateBytes.slice(0));
+        } else if (designState.diploma_template_url?.toLowerCase().endsWith('.pdf')) {
+            const resp = await fetch(designState.diploma_template_url);
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            const bytes = await resp.arrayBuffer();
+            designState._dipPdfTemplateBytes = bytes; // cachear para no re-descargar en cada preview
+            pdfDoc = await PDFDocument.load(bytes.slice(0));
+        } else if (designState.diploma_template_base64) {
+            pdfDoc = await PDFDocument.create();
+            const page = pdfDoc.addPage([PW, PH]);
+            const b64 = designState.diploma_template_base64.split(',')[1];
+            const imgBytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+            const img = await pdfDoc.embedPng(imgBytes).catch(() => pdfDoc.embedJpg(imgBytes));
+            page.drawImage(img, { x: 0, y: 0, width: PW, height: PH });
+        } else {
+            _showCanvasError(canvas, 'Sube una plantilla de diploma (PDF o imagen) para ver la vista previa.');
+            return;
+        }
+    } catch(e) {
+        _showCanvasError(canvas, 'No se pudo cargar la plantilla: ' + e.message);
+        return;
+    }
+
+    const page = pdfDoc.getPage(0);
+
+    // Firma del agente, sobre la posición actual configurada del nombre del agente
+    // (igual cálculo que en la generación real)
+    if (designState.firma_base64) {
+        try {
+            const agentX = +(document.getElementById('dip-agent-x')?.value || 396);
+            const agentY = +(document.getElementById('dip-agent-y')?.value || 572);
+            const img = await embedBase64Img(pdfDoc, designState.firma_base64);
+            page.drawImage(img, { x: agentX - 45, y: PH - agentY + 10, width: 90, height: 50 });
+        } catch(e) { console.warn('firma preview:', e); }
+    }
+
+    const outBytes = await pdfDoc.save();
+
+    const loadTask = pdfjsLib.getDocument({ data: outBytes });
+    const pdf = await loadTask.promise;
+    const pg  = await pdf.getPage(1);
+    const vp  = pg.getViewport({ scale: 1.5 });
+    canvas.width  = vp.width;
+    canvas.height = vp.height;
+    await pg.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+
+    designState._dipScale = vp.width / PW;
+    designState._dipPH = PH;
+
+    _updateDiplomaDragHandles();
 }
 
 
@@ -4146,21 +4245,27 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     T_C(465, NAME_Y, (compObj.representanteTrabajadores||'').toUpperCase(), 8);
 
     // --- PÁGINA 2 (Reverso) ---
+    // El catálogo de STPS empieza ~84pt debajo del borde superior. El logo del header suele
+    // traer el eslogan dibujado DENTRO de la imagen — dibujar también el texto por separado en
+    // el mismo punto producía un texto encimado/ilegible sobre el logo. Ahora van lado a lado
+    // (logo a la izquierda, eslogan a la derecha) en vez de apilados.
     if (pageR) {
+        const topMargin = 12, maxLogoW = 90, maxLogoH = 40;
         if (agentDesign?.headerLogoBase64) {
             try {
                 const hlImg = await embedBase64Img(pdfDoc, agentDesign.headerLogoBase64);
-                // On reverso, we draw the logo smaller and much higher to avoid catalogs
-                const hlw = (agentDesign.headerLogoW ?? 120) * 0.7, hlh = (agentDesign.headerLogoH ?? 55) * 0.7;
-                pageR.drawImage(hlImg, { x: agentDesign.headerLogoX?? 30, y: PH - 50, width: hlw, height: hlh });
+                const origW = agentDesign.headerLogoW ?? 120, origH = agentDesign.headerLogoH ?? 55;
+                const scale = Math.min(maxLogoW / origW, maxLogoH / origH, 1);
+                const hlw = origW * scale, hlh = origH * scale;
+                pageR.drawImage(hlImg, { x: 30, y: PH - topMargin - hlh, width: hlw, height: hlh });
             } catch(e) {}
         }
         if (agentDesign?.headerSlogan) {
-            const hss = (agentDesign.headerSloganSize || 9) * 0.8;
+            const hss = Math.min(agentDesign.headerSloganSize || 9, 8);
             const hst = sp(agentDesign.headerSlogan);
             const hsw = fontI.widthOfTextAtSize(hst, hss);
-            // On reverso, draw slogan at the very top center
-            pageR.drawText(hst, { x: 306 - hsw/2, y: PH - 20, size: hss, font: fontI, color: rgb(0,0,0) });
+            // Alineado a la derecha, misma franja superior que el logo pero sin cruzarse
+            pageR.drawText(hst, { x: 582 - hsw, y: PH - topMargin - hss, size: hss, font: fontI, color: rgb(0,0,0) });
         }
     }
 
