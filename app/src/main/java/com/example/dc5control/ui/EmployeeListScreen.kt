@@ -847,19 +847,48 @@ fun AddEditEmployeeDialog(
     ) { uri ->
         uri?.let { selectedUri ->
             isUploadingPhoto = true
-            val tempId = employee?.id ?: "new_${System.currentTimeMillis()}"
-            com.example.dc5control.data.repository.SupabaseRepository.uploadWorkerPhoto(
-                context, selectedUri, tempId
-            ) { uploadedUrl ->
-                isUploadingPhoto = false
-                if (uploadedUrl != null) {
-                    photoUrl = uploadedUrl
-                } else {
-                    // fallback — usar URI local temporalmente
-                    photoUrl = selectedUri.toString()
-                    android.widget.Toast.makeText(context, "No se pudo subir la foto al servidor", android.widget.Toast.LENGTH_SHORT).show()
+            // Convertir foto a Base64 directamente (igual que la web), sin usar Supabase Storage
+            // para evitar problemas de RLS en el bucket worker-photos.
+            Thread {
+                try {
+                    val stream = context.contentResolver.openInputStream(selectedUri)
+                    val bytes = stream?.readBytes() ?: run {
+                        android.util.Log.e("Photo", "No se pudo leer el stream")
+                        isUploadingPhoto = false
+                        return@Thread
+                    }
+                    stream.close()
+
+                    // Decodificar y redimensionar a max 300px (igual que la web)
+                    val bitmap = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                    val maxSz = 300
+                    var w = bitmap.width
+                    var h = bitmap.height
+                    val scale = if (w > h && w > maxSz) maxSz.toFloat() / w
+                                else if (h > maxSz) maxSz.toFloat() / h
+                                else 1f
+                    w = (w * scale).toInt()
+                    h = (h * scale).toInt()
+                    val scaled = android.graphics.Bitmap.createScaledBitmap(bitmap, w, h, true)
+
+                    // Convertir a Base64 JPEG (calidad 85, igual que la web)
+                    val baos = java.io.ByteArrayOutputStream()
+                    scaled.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, baos)
+                    val base64 = android.util.Base64.encodeToString(baos.toByteArray(), android.util.Base64.NO_WRAP)
+                    val dataUri = "data:image/jpeg;base64,$base64"
+
+                    // Liberar memoria
+                    if (bitmap != scaled) bitmap.recycle()
+                    scaled.recycle()
+
+                    isUploadingPhoto = false
+                    photoUrl = dataUri
+                } catch (e: Exception) {
+                    android.util.Log.e("Photo", "Error procesando foto: ${e.message}")
+                    isUploadingPhoto = false
+                    android.widget.Toast.makeText(context, "Error al procesar la foto", android.widget.Toast.LENGTH_SHORT).show()
                 }
-            }
+            }.start()
         }
     }
 
