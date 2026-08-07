@@ -21,9 +21,11 @@ import java.util.Locale
 
 object DiplomaGenerator {
     private const val TAG = "DiplomaGenerator"
-    private const val TEMPLATE_NAME = "plantilla_diploma.png"
     private const val PW = 792f
     private const val PH = 612f
+
+    class SinPlantillaException(agentName: String) :
+        Exception("El agente \"$agentName\" no tiene una plantilla de diploma configurada en Diseños.")
 
     private fun calculateStps(agentStps: String): String {
         val base = agentStps.removePrefix("STPS-").removePrefix("STPS-").trim()
@@ -42,14 +44,8 @@ object DiplomaGenerator {
     }
 
     private fun getTemplateBytes(context: Context, url: String?): ByteArray? {
-        if (url.isNullOrBlank()) {
-            return try {
-                val inputStream = context.assets.open(TEMPLATE_NAME)
-                val bytes = inputStream.readBytes()
-                inputStream.close()
-                bytes
-            } catch (e: Exception) { null }
-        }
+        // Sin URL configurada en Supabase: no hay plantilla genérica de respaldo hardcodeada.
+        if (url.isNullOrBlank()) return null
 
         return try {
             val client = okhttp3.OkHttpClient()
@@ -101,20 +97,22 @@ object DiplomaGenerator {
         }
 
         if (!usingPdfTemplate) {
+            val imgBytes = when {
+                !customTemplateBase64.isNullOrBlank() -> base64ToImageBytes(customTemplateBase64)
+                !design?.diplomaTemplateUrl.isNullOrBlank() -> getTemplateBytes(context, design?.diplomaTemplateUrl)
+                else -> null
+            }
+            if (imgBytes == null) {
+                document.close()
+                throw SinPlantillaException(design?.agentName ?: agent.name)
+            }
             // MODO LEGACY: Dibujar imagen sobre página en blanco
             val page = PDPage(PDRectangle(PW, PH))
             document.addPage(page)
             val cs = PDPageContentStream(document, page)
             try {
-                val imgBytes = when {
-                    !customTemplateBase64.isNullOrBlank() -> base64ToImageBytes(customTemplateBase64)
-                    !design?.diplomaTemplateUrl.isNullOrBlank() -> getTemplateBytes(context, design?.diplomaTemplateUrl)
-                    else -> getTemplateBytes(context, null)
-                }
-                if (imgBytes != null) {
-                    val img = PDImageXObject.createFromByteArray(document, imgBytes, "template")
-                    cs.drawImage(img, 0f, 0f, PW, PH)
-                }
+                val img = PDImageXObject.createFromByteArray(document, imgBytes, "template")
+                cs.drawImage(img, 0f, 0f, PW, PH)
             } catch (e: Exception) {
                 Log.e(TAG, "Error loading template image", e)
             }

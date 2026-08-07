@@ -2397,16 +2397,24 @@ async function _buildDiplomaCore(opts = {}) {
     })(agentStps);
 
     let imgBytes = null;
+    let templateUrl = null;
+    let templatePdfBytes = null;
     let d = null;
     let agentRecord = null;
 
     const isDesignPreview = opts.isDesignPreview === true;
 
     // 1. Si es PREVIEW de diseño, usamos lo que esté en memoria/localstorage del editor
+    //    (el usuario está editando SU PROPIO diseño en pantalla, es correcto usar el estado en vivo)
     if (isDesignPreview) {
         if (designState.diploma_template_base64) {
             const b64 = designState.diploma_template_base64.split(',')[1];
             imgBytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+        }
+        if (designState._dipPdfTemplateBytes) {
+            templatePdfBytes = designState._dipPdfTemplateBytes.slice(0);
+        } else if (designState.diploma_template_url) {
+            templateUrl = designState.diploma_template_url;
         }
         const localD = localStorage.getItem(`dc3_design_${currentUser?.email}`);
         if (localD) {
@@ -2414,7 +2422,9 @@ async function _buildDiplomaCore(opts = {}) {
         }
     }
 
-    // 2. Si es generación REAL (o no tenemos diseño local), cargar de la Base de Datos del agente correspondiente
+    // 2. Si es generación REAL (o no tenemos diseño local), cargar SIEMPRE de la Base de Datos
+    //    del AGENTE SELECCIONADO para este documento — nunca del editor global (designState),
+    //    que puede pertenecer a un agente distinto y contaminar la plantilla generada.
     if (!d || !isDesignPreview) {
         try {
             const normAgentName2 = (agentName || '').toUpperCase().trim();
@@ -2427,6 +2437,7 @@ async function _buildDiplomaCore(opts = {}) {
             if (dr.documents?.length > 0) {
                 const doc = dr.documents[0];
                 d = toCamel(doc);
+                templateUrl = doc.diploma_template_url || null;
 
                 if (!imgBytes) {
                     const b64Data = doc.diploma_template_base64 || doc.diploma_template_base_64 || doc.diploma_base_64;
@@ -2439,35 +2450,29 @@ async function _buildDiplomaCore(opts = {}) {
         } catch(e) { console.warn("Error loading design from DB:", e); }
     }
 
-    // ─── CARGAR PLANTILLA ───
+    // ─── CARGAR PLANTILLA (siempre la del agente resuelto arriba, nunca un archivo genérico) ───
     let pdfDoc = null;
 
-    // 1. Intentar cargar PDF (memoria o URL)
-    if (designState._dipPdfTemplateBytes) {
-        pdfDoc = await PDFDocument.load(designState._dipPdfTemplateBytes.slice(0));
-    } else if (designState.diploma_template_url?.toLowerCase().endsWith('.pdf')) {
+    // 1. Intentar cargar PDF (memoria del editor si es preview, o URL guardada del agente)
+    if (templatePdfBytes) {
+        pdfDoc = await PDFDocument.load(templatePdfBytes);
+    } else if (templateUrl?.toLowerCase().endsWith('.pdf')) {
         try {
-            const resp = await fetch(designState.diploma_template_url);
+            const resp = await fetch(templateUrl);
             const bytes = await resp.arrayBuffer();
             pdfDoc = await PDFDocument.load(bytes);
-        } catch(e) { console.warn("Fallback to image because PDF load failed", e); }
+        } catch(e) { console.warn("Fallback a imagen porque falló la carga del PDF de plantilla", e); }
     }
 
     if (!pdfDoc) {
-        // Modo Legacy: Crear PDF nuevo y dibujar Imagen (fallback)
+        if (!imgBytes) {
+            // Sin plantilla configurada para este agente en Supabase (Diseños) — no usamos
+            // ninguna plantilla genérica hardcodeada de respaldo.
+            throw new Error(`El agente "${agentName}" no tiene una plantilla de diploma configurada en Diseños.`);
+        }
         pdfDoc = await PDFDocument.create();
         const page = pdfDoc.addPage([792, 612]);
         const PW = 792, PH = 612;
-
-        let imgBytes = null;
-        if (designState.diploma_template_base64) {
-            const b64 = designState.diploma_template_base64.split(',')[1];
-            imgBytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-        } else {
-            const resp = await fetch('plantilla_diploma.png?v=2');
-            imgBytes = await resp.arrayBuffer();
-        }
-
         const img = await pdfDoc.embedPng(imgBytes).catch(() => pdfDoc.embedJpg(imgBytes));
         page.drawImage(img, { x: 0, y: 0, width: PW, height: PH });
     }
@@ -3669,6 +3674,7 @@ async function _generateBulkCore(mode = 'DC3') {
 
     const { PDFDocument } = PDFLib;
     const mergedPdf = await PDFDocument.create();
+    const bulkErrors = [];
 
     for (let i = 0; i < selectedWorkers.length; i++) {
         const worker = selectedWorkers[i];
@@ -3717,8 +3723,17 @@ async function _generateBulkCore(mode = 'DC3') {
                     documentType: 'DIPLOMA', folio: folio, creatorEmail: currentUser?.email || ''
                 }});
             }
-        } catch(e) { console.error('Bulk error:', worker.name, e); }
+        } catch(e) {
+            console.error('Bulk error:', worker.name, e);
+            bulkErrors.push(`${worker.name || '–'}: ${e.message}`);
+        }
         progressBar.style.width = `${Math.round(((i+1)/selectedWorkers.length)*100)}%`;
+    }
+
+    if (mergedPdf.getPageCount() === 0) {
+        progressDiv.classList.add('hidden');
+        alert('No se generó ningún documento.\n\n' + bulkErrors.join('\n'));
+        return;
     }
 
     progressLbl.textContent = 'Finalizando archivo…';
@@ -3733,7 +3748,11 @@ async function _generateBulkCore(mode = 'DC3') {
     closeModal('modal-bulk-dc3');
     clearWorkerSelection();
     if (currentView === 'dc3') loadSection('dc3');
-    alert('✓ Proceso masivo completado');
+    if (bulkErrors.length > 0) {
+        alert(`✓ Proceso masivo completado con ${bulkErrors.length} error(es):\n\n` + bulkErrors.join('\n'));
+    } else {
+        alert('✓ Proceso masivo completado');
+    }
 }
 
 async function previewBulk() {
