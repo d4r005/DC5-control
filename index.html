@@ -2252,7 +2252,16 @@ async function generateDiploma() {
         const qrUrl = `https://ace-control.pages.dev/?v=${saveRes.insertedId}`;
 
         // 2. Generar PDF
-        const pdfBytes = await _buildDiplomaCore({ qrUrl, folio, isDesignPreview: false });
+        const pdfBytes = await _buildDiplomaCore({
+            worker: selectedWorker,
+            companyName,
+            agentVal,
+            courseVal,
+            startDate: start,
+            endDate: end,
+            qrUrl, folio,
+            isDesignPreview: false
+        });
         if (!pdfBytes) return;
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
