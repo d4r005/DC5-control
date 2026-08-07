@@ -922,8 +922,8 @@
     <div class="modal-box" style="width:640px;max-width:95vw">
         <div class="flex items-center justify-between mb-5">
             <div>
-                <h3 class="text-xl font-bold text-gray-900">Generar DC-3 Masivo</h3>
-                <p id="bulk-modal-subtitle" class="text-sm text-gray-400 mt-0.5">Selecciona los parámetros comunes para todos</p>
+                <h3 class="text-xl font-bold text-gray-900">Generación Masiva</h3>
+                <p id="bulk-modal-subtitle" class="text-sm text-gray-400 mt-0.5">Selecciona los parámetros para el lote de documentos</p>
             </div>
             <button onclick="closeModal('modal-bulk-dc3')" class="text-gray-400 hover:text-gray-600">
                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
@@ -970,11 +970,22 @@
             <p id="bulk-progress-label" class="text-xs text-gray-500 mt-1 text-center">Preparando…</p>
         </div>
 
-        <div class="flex justify-end gap-3 mt-7">
-            <button onclick="closeModal('modal-bulk-dc3')" class="btn-sm btn-outline px-5">Cancelar</button>
-            <button onclick="generateBulkDC3()" class="btn-sm btn-indigo px-7">
-                ⬇ Generar PDF con todos los DC-3
+        <div class="grid grid-cols-2 gap-3 mt-7">
+            <button onclick="previewBulk()" class="btn-sm btn-outline flex items-center justify-center gap-2">
+                👁 Previsualizar
             </button>
+            <button onclick="generateBulkDC3()" class="btn-sm btn-indigo flex items-center justify-center gap-2">
+                ⬇ DC-3 Masivos
+            </button>
+            <button onclick="generateBulkDiplomas()" class="btn-sm btn-indigo flex items-center justify-center gap-2">
+                ⬇ Diplomas Masivos
+            </button>
+            <button onclick="generateBulkBoth()" class="btn-sm btn-indigo flex items-center justify-center gap-2" style="background-color: #166534">
+                🚀 DC-3 + Diplomas
+            </button>
+        </div>
+        <div class="flex justify-center mt-4">
+            <button onclick="closeModal('modal-bulk-dc3')" class="text-gray-400 hover:text-gray-600 text-xs">Cancelar y cerrar</button>
         </div>
     </div>
 </div>
@@ -3699,6 +3710,18 @@ function openBulkDC3Modal() {
 }
 
 async function generateBulkDC3() {
+    await _generateBulkCore('DC3');
+}
+
+async function generateBulkDiplomas() {
+    await _generateBulkCore('DIPLOMA');
+}
+
+async function generateBulkBoth() {
+    await _generateBulkCore('BOTH');
+}
+
+async function _generateBulkCore(mode = 'DC3') {
     const companyName = document.getElementById('bulk-company').value;
     const agentVal    = document.getElementById('bulk-agent').value;
     const courseVal   = document.getElementById('bulk-course').value;
@@ -3710,9 +3733,8 @@ async function generateBulkDC3() {
 
     const company = DATA.companies.find(c => c.name === companyName) || { name: companyName, rfc: '', representanteLegal: '', representanteTrabajadores: null };
     const [agentName, agentStps] = agentVal.split('|');
-    const [courseName, courseDuration, courseArea, courseStpsId] = courseVal.split('|');
+    const [courseName, courseDuration, courseArea] = courseVal.split('|');
 
-    // Mostrar progreso
     const progressDiv = document.getElementById('bulk-progress');
     const progressBar = document.getElementById('bulk-progress-bar');
     const progressLbl = document.getElementById('bulk-progress-label');
@@ -3723,53 +3745,85 @@ async function generateBulkDC3() {
 
     for (let i = 0; i < selectedWorkers.length; i++) {
         const worker = selectedWorkers[i];
-        progressLbl.textContent = `Generando DC-3 ${i+1} de ${selectedWorkers.length}: ${worker.name||worker.curp||'–'}`;
-        progressBar.style.width = `${Math.round(((i+0.5)/selectedWorkers.length)*100)}%`;
+        progressLbl.textContent = `Procesando ${i+1} de ${selectedWorkers.length}: ${worker.name||'–'}`;
+        progressBar.style.width = `${Math.round(((i)/selectedWorkers.length)*100)}%`;
 
         try {
-            // Obtener el siguiente folio dinámicamente para cada trabajador en el lote
-            const folio = await getNextFolio('DC3');
+            if (mode === 'DC3' || mode === 'BOTH') {
+                const folio = await getNextFolio('DC3');
+                const pdfBytes = await buildDC3PDFBytes({
+                    worker, company,
+                    agent: { name: agentName, stps: agentStps },
+                    course: { name: courseName, durationHours: courseDuration, thematicArea: courseArea },
+                    start, end, result: 'Acreditado',
+                    folio: folio
+                });
+                const doc = await PDFDocument.load(pdfBytes);
+                const pages = await mergedPdf.copyPages(doc, doc.getPageIndices());
+                pages.forEach(p => mergedPdf.addPage(p));
 
-            const pdfBytes = await buildDC3PDFBytes({
-                worker, company,
-                agent: { name: agentName, stps: agentStps },
-                course: { name: courseName, durationHours: courseDuration, thematicArea: courseArea, stpsId: courseStpsId },
-                start, end, result: 'Acreditado',
-                folio: folio // Asignar el folio al PDF
-            });
-            const srcDoc = await PDFDocument.load(pdfBytes);
-            const srcPages = await mergedPdf.copyPages(srcDoc, srcDoc.getPageIndices());
-            srcPages.forEach(p => mergedPdf.addPage(p));
+                await api('insertOne','dc3_records',{ document: {
+                    workerId: worker.curp, workerName: worker.name, workerPos: worker.position,
+                    courseName, companyName: company.name, companyRfc: company.rfc, agentName, agentStps,
+                    startDate: start, endDate: end, resultText: 'Acreditado',
+                    documentType: 'DC3', folio: folio, creatorEmail: currentUser?.email || ''
+                }});
+            }
 
-            // Guardar en historial con su folio único
-            await api('insertOne','dc3_records',{ document: {
-                workerId: worker.curp, workerName: worker.name, workerPos: worker.position,
-                courseName, companyName: company.name, companyRfc: company.rfc, agentName, agentStps,
-                startDate: start, endDate: end, resultText: 'Acreditado',
-                documentType: 'DC3',
-                folio: folio,
-                creatorEmail: currentUser?.email || ''
-            }});
-        } catch(e) {
-            console.warn('Error DC-3 para', worker.name, e);
-        }
+            if (mode === 'DIPLOMA' || mode === 'BOTH') {
+                const folio = await getNextFolio('DIPLOMA');
+                const pdfBytes = await _buildDiplomaCore({
+                    worker, companyName: company.name,
+                    agentVal: `${agentName}|${agentStps}`,
+                    courseVal: `${courseName}|${courseDuration}|${courseArea}`,
+                    startDate: start, endDate: end,
+                    folio: folio, quiet: true
+                });
+                const doc = await PDFDocument.load(pdfBytes);
+                const pages = await mergedPdf.copyPages(doc, doc.getPageIndices());
+                pages.forEach(p => mergedPdf.addPage(p));
+
+                await api('insertOne','dc3_records',{ document: {
+                    workerId: worker.curp, workerName: worker.name, workerPos: worker.position,
+                    courseName, companyName: company.name, companyRfc: company.rfc, agentName, agentStps,
+                    startDate: start, endDate: end, resultText: 'Acreditado',
+                    documentType: 'DIPLOMA', folio: folio, creatorEmail: currentUser?.email || ''
+                }});
+            }
+        } catch(e) { console.error('Bulk error:', worker.name, e); }
         progressBar.style.width = `${Math.round(((i+1)/selectedWorkers.length)*100)}%`;
     }
 
-    progressLbl.textContent = 'Preparando descarga…';
+    progressLbl.textContent = 'Finalizando archivo…';
     const finalBytes = await mergedPdf.save();
     const blob = new Blob([finalBytes], { type: 'application/pdf' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
     a.href = url;
-    a.download = `DC3_Masivo_${selectedWorkers.length}_trabajadores.pdf`;
+    a.download = `Generacion_Masiva_${mode}_${new Date().getTime()}.pdf`;
     a.click();
-    URL.revokeObjectURL(url);
 
     closeModal('modal-bulk-dc3');
     clearWorkerSelection();
     if (currentView === 'dc3') loadSection('dc3');
-    alert(`✓ PDF masivo generado con ${selectedWorkers.length} DC-3`);
+    alert('✓ Proceso masivo completado');
+}
+
+async function previewBulk() {
+    if (!selectedWorkers.length) { alert('Selecciona al menos un trabajador'); return; }
+
+    // Configurar el worker actual para que el preview estándar lo use
+    selectedWorker = selectedWorkers[0];
+
+    // Transferir valores del modal masivo al modal individual temporalmente para el preview
+    document.getElementById('dc3-company').value = document.getElementById('bulk-company').value;
+    document.getElementById('dc3-agent').value = document.getElementById('bulk-agent').value;
+    document.getElementById('dc3-course').value = document.getElementById('bulk-course').value;
+    document.getElementById('dc3-start').value = document.getElementById('bulk-start').value;
+    document.getElementById('dc3-end').value = document.getElementById('bulk-end').value;
+
+    // Abrir el preview
+    await previewDC3();
 }
 
 // ─── PREVISUALIZACIÓN DC-3 ────────────────────────────────────────────

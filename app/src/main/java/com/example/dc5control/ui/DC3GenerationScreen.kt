@@ -10,7 +10,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -40,6 +39,7 @@ import com.example.dc5control.util.CloudflareHelper
 import com.example.dc5control.util.CourseDefaults
 import com.example.dc5control.util.DiplomaGenerator
 import com.example.dc5control.util.PdfGenerator
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -108,28 +108,10 @@ fun DC3GenerationScreen(
             val year = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
             val prefix = if (type == "DC3") "EHS-DC3" else "EHS-CON"
             
-            // Cargar todos los registros para contar folios.
-            // NOTA: fetchDataFilteredSuspend ya prepende "select=*" en la URL,
-            // por lo que aqui pasamos una cadena vacia (sin filtro adicional).
-            // Antes se pasaba "select=*" lo que duplicaba el parametro y rompia
-            // la consulta en Supabase, causando que siempre cayera al fallback 0001.
-            var records = SupabaseRepository.fetchDataFilteredSuspend(
-                "dc3_records", 
-                "", 
-                DC3Record.serializer()
-            )
+            // Cargar todos los registros para contar folios robustamente
+            val records = SupabaseRepository.fetchDataFilteredSuspend("dc3_records", "", DC3Record.serializer())
             
-            // Si la consulta por ano no devuelve nada, intentar sin filtro
-            if (records.isEmpty()) {
-                android.util.Log.w("getNextFolio", "Consulta con filtro devolvio 0 registros, intentando sin filtro...")
-                records = SupabaseRepository.fetchDataFilteredSuspend(
-                    "dc3_records",
-                    "order=created_at.desc&limit=500",
-                    DC3Record.serializer()
-                )
-            }
-            
-            // Filtrar y extraer el numero maximo del folio
+            // Filtrar y extraer el número máximo
             val filteredFolios = records.mapNotNull { 
                 val f = if (type == "DC3") it.folioDc3 ?: it.folio else it.folio
                 if (f != null && f.startsWith(prefix) && f.contains("-$year-")) f else null
@@ -145,13 +127,123 @@ fun DC3GenerationScreen(
             }
             
             val nextNum = maxNum + 1
-            android.util.Log.d("getNextFolio", "type=$type year=$year maxNum=$maxNum nextNum=$nextNum totalRecords=${records.size} filteredFolios=${filteredFolios.size}")
             "$prefix-$year-${String.format(java.util.Locale.US, "%04d", nextNum)}"
         } catch (e: Exception) {
-            android.util.Log.e("getNextFolio", "Error calculando folio: ${e.message}", e)
             val prefix = if (type == "DC3") "EHS-DC3" else "EHS-CON"
             val year = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
-            "$prefix-$year-0001" // Fallback seguro
+            "$prefix-$year-0001"
+        }
+    }
+
+    suspend fun generateBulk(mode: String) { // "DC3", "DIPLOMA", "BOTH"
+        val agent = selectedAgent ?: return
+        val company = selectedCompany ?: return
+        isGenerating = true
+        statusText = "Iniciando generación masiva..."
+        
+        try {
+            val design = SupabaseRepository.fetchDataFilteredSuspend("agent_designs", "creator_email=eq.${agent.creatorEmail ?: user.email}&order=created_at.desc", AgentDesign.serializer()).firstOrNull()
+            val finalStps = calculateStps(agent.stps)
+            
+            val allFiles = mutableListOf<File>()
+            val totalTasks = selectedEmployees.size * selectedCourses.size
+            var currentTask = 0
+
+            selectedEmployees.forEach { employee ->
+                selectedCourses.forEach { course ->
+                    currentTask++
+                    statusText = "Procesando $currentTask de $totalTasks: ${employee.nombres}..."
+                    
+                    val recordBase = DC3Record(
+                        workerId = employee.curp, workerName = "${employee.apellidoPaterno} ${employee.nombres}".trim(),
+                        workerPos = employee.position, courseName = course.name, durationHours = course.durationHours,
+                        thematicArea = course.thematicArea ?: "", companyName = company.name, companyRfc = company.rfc,
+                        companyPatron = company.representanteLegal, companyRepresentante = company.representanteTrabajadores,
+                        agentName = agent.name, agentStps = finalStps, startDate = startDate, endDate = endDate,
+                        creatorEmail = employee.creatorEmail ?: user.email
+                    )
+
+                    // ─── GENERAR DC-3 ───
+                    if (mode == "DC3" || mode == "BOTH") {
+                        val folioDC3 = getNextFolio("DC3")
+                        val recordToSave = recordBase.copy(documentType = "DC3", folio = folioDC3)
+                        val insertedId = SupabaseRepository.insertDataGetIdSuspend("dc3_records", recordToSave, DC3Record.serializer())
+                        val qrUrl = if (insertedId != null) "https://ace-control.pages.dev/?v=$insertedId" else null
+                        
+                        val file = PdfGenerator.generateDC3(
+                            context, employee, course, agent.copy(stps = finalStps), company.name, company.rfc,
+                            company.representanteLegal, company.representanteTrabajadores, startDate, endDate,
+                            design = design, employeePhotoBase64 = employee.photoUrl, qrUrl = qrUrl, folio = folioDC3
+                        )
+                        allFiles.add(file)
+                        try { CloudflareHelper.uploadPdfSuspend(file) } catch(e: Exception) {}
+                    }
+
+                    // ─── GENERAR DIPLOMA ───
+                    if (mode == "DIPLOMA" || mode == "BOTH") {
+                        val folioDip = getNextFolio("DIPLOMA")
+                        val recordToSave = recordBase.copy(documentType = "DIPLOMA", folio = folioDip)
+                        val insertedId = SupabaseRepository.insertDataGetIdSuspend("dc3_records", recordToSave, DC3Record.serializer())
+                        val qrUrl = if (insertedId != null) "https://ace-control.pages.dev/?v=$insertedId" else null
+                        
+                        val file = DiplomaGenerator.generateDiploma(
+                            context, employee, course, agent, startDate, endDate,
+                            customTemplateBase64 = design?.diplomaTemplateBase64,
+                            folio = folioDip, design = design, qrUrl = qrUrl
+                        )
+                        allFiles.add(file)
+                    }
+                }
+            }
+
+            if (allFiles.isNotEmpty()) {
+                val outputName = "Lote_${mode}_${System.currentTimeMillis()}.pdf"
+                val outDir = context.getExternalFilesDir(android.os.Environment.DIRECTORY_DOWNLOADS) ?: context.cacheDir
+                val outputFile = File(outDir, outputName)
+                
+                val merged = PdfGenerator.mergePdfs(allFiles, outputFile)
+                if (merged != null) {
+                    PdfGenerator.saveToDownloads(context, merged)
+                    PdfGenerator.openPdf(context, merged)
+                    withContext(Dispatchers.Main) { Toast.makeText(context, "Archivo guardado y abierto", Toast.LENGTH_LONG).show() }
+                }
+            }
+            withContext(Dispatchers.Main) { onBack() }
+
+        } catch (e: Exception) {
+            android.util.Log.e("generateBulk", "Error: ${e.message}", e)
+            withContext(Dispatchers.Main) { Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show() }
+        } finally {
+            isGenerating = false
+        }
+    }
+
+    suspend fun generateOrPreviewSingle(isPreview: Boolean) {
+        val agent = selectedAgent ?: return
+        val company = selectedCompany ?: return
+        
+        try {
+            val design = SupabaseRepository.fetchDataFilteredSuspend("agent_designs", "creator_email=eq.${agent.creatorEmail ?: user.email}&order=created_at.desc", AgentDesign.serializer()).firstOrNull()
+            
+            if (isPreview) {
+                val employee = selectedEmployees.firstOrNull() ?: return
+                val course = selectedCourses.firstOrNull() ?: return
+                val finalStps = calculateStps(agent.stps)
+                
+                val file = PdfGenerator.generateDC3(
+                    context, employee, course, agent.copy(stps = finalStps), company.name, company.rfc,
+                    company.representanteLegal, company.representanteTrabajadores,
+                    startDate, endDate, design = design,
+                    employeePhotoBase64 = employee.photoUrl
+                )
+                PdfGenerator.openPdf(context, file)
+            } else {
+                generateBulk("DC3")
+            }
+        } catch (e: Exception) {
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+            }
         }
     }
 
@@ -194,7 +286,7 @@ fun DC3GenerationScreen(
         SupabaseRepository.fetchData("companies", Company.serializer()) { fetched ->
             val filtered = if (user.role == "ADMIN") fetched else fetched.filter { it.creatorEmail == user.email }
             
-            // Deduplicar por nombre, prefiriendo la que tenga RFC
+            // Deduplicar por nombre
             val uniqueCompanies = mutableListOf<Company>()
             val seenNames = mutableSetOf<String>()
             
@@ -212,251 +304,6 @@ fun DC3GenerationScreen(
             }
             companies.clear()
             companies.addAll(uniqueCompanies)
-        }
-    }
-
-    suspend fun generateOrPreview(isPreview: Boolean) {
-        val agent = selectedAgent ?: return
-        val company = selectedCompany ?: return
-        
-        try {
-            val design = SupabaseRepository.fetchDataFilteredSuspend("agent_designs", "creator_email=eq.${agent.creatorEmail ?: user.email}&order=created_at.desc", AgentDesign.serializer()).firstOrNull()
-            
-            if (isPreview) {
-                val employee = selectedEmployees.firstOrNull() ?: return
-                val course = selectedCourses.firstOrNull() ?: return
-                
-                val finalStps = calculateStps(agent.stps)
-                
-                val file = PdfGenerator.generateDC3(
-                    context, employee, course, agent.copy(stps = finalStps), company.name, company.rfc,
-                    company.representanteLegal, company.representanteTrabajadores,
-                    startDate, endDate, design = design,
-                    employeePhotoBase64 = employee.photoUrl
-                )
-                PdfGenerator.openPdf(context, file)
-            } else {
-                isGenerating = true
-                var currentDoc = 0
-                val totalDocs = selectedEmployees.size * selectedCourses.size
-                selectedEmployees.forEach { employee ->
-                    selectedCourses.forEach { course ->
-                        currentDoc++
-                        statusText = "Procesando $currentDoc de $totalDocs: ${employee.nombres}..."
-                        
-                        val finalStps = calculateStps(agent.stps)
-                        
-                        // Obtener el siguiente folio dinámicamente para cada documento
-                        val folioDC3 = getNextFolio("DC3")
-
-                        val recordToSave = DC3Record(
-                            workerId = employee.curp,
-                            workerName = "${employee.apellidoPaterno} ${employee.nombres}".trim(),
-                            workerPos = employee.position,
-                            courseName = course.name,
-                            durationHours = course.durationHours,
-                            thematicArea = course.thematicArea ?: "",
-                            companyName = company.name,
-                            companyRfc = company.rfc,
-                            companyPatron = company.representanteLegal,
-                            companyRepresentante = company.representanteTrabajadores,
-                            agentName = agent.name,
-                            agentStps = finalStps,
-                            startDate = startDate,
-                            endDate = endDate,
-                            documentType = "DC3",
-                            folio = folioDC3,
-                            creatorEmail = employee.creatorEmail ?: user.email
-                        )
-                        
-                        val insertedId = SupabaseRepository.insertDataGetIdSuspend("dc3_records", recordToSave, DC3Record.serializer())
-                        val qrUrl = if (insertedId != null) "https://ace-control.pages.dev/?v=$insertedId" else null
-
-                        // 2. Generar PDF con el QR y Folio
-                        val file = PdfGenerator.generateDC3(
-                            context, employee, course, agent.copy(stps = finalStps), company.name, company.rfc,
-                            company.representanteLegal, company.representanteTrabajadores,
-                            startDate, endDate, design = design,
-                            employeePhotoBase64 = employee.photoUrl,
-                            qrUrl = qrUrl,
-                            folio = folioDC3
-                        )
-                        PdfGenerator.saveToDownloads(context, file)
-                        if (totalDocs == 1) PdfGenerator.openPdf(context, file)
-                        
-                        try { CloudflareHelper.uploadPdfSuspend(file) } catch(e: Exception) {}
-                    }
-                }
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "Documentos guardados en Descargas", Toast.LENGTH_LONG).show()
-                    onBack()
-                }
-            }
-        } catch (e: Exception) {
-            withContext(Dispatchers.Main) {
-                Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
-            }
-        } finally {
-            isGenerating = false
-        }
-    }
-
-    suspend fun generateDiplomas() {
-        val agent = selectedAgent ?: return
-        isGenerating = true
-        try {
-            val design = SupabaseRepository.fetchDataFilteredSuspend("agent_designs", "creator_email=eq.${agent.creatorEmail ?: user.email}&order=created_at.desc", AgentDesign.serializer()).firstOrNull()
-            val customTemplateBase64 = design?.diplomaTemplateBase64
-
-            var currentDoc = 0
-            val totalDocs = selectedEmployees.size * selectedCourses.size
-
-            selectedEmployees.forEach { employee ->
-                selectedCourses.forEach { course ->
-                    currentDoc++
-                    statusText = "Generando Diploma $currentDoc de $totalDocs..."
-                    
-                    val folioStr = getNextFolio("DIPLOMA")
-                    
-                    // 1. Guardar primero para obtener ID para el QR
-                    val record = DC3Record(
-                        workerId = employee.curp,
-                        workerName = "${employee.apellidoPaterno} ${employee.nombres}".trim(),
-                        workerPos = employee.position,
-                        courseName = course.name,
-                        durationHours = course.durationHours,
-                        thematicArea = course.thematicArea ?: "",
-                        companyName = selectedCompany?.name ?: "",
-                        companyRfc = selectedCompany?.rfc ?: "",
-                        companyPatron = selectedCompany?.representanteLegal ?: "",
-                        companyRepresentante = selectedCompany?.representanteTrabajadores,
-                        agentName = agent.name,
-                        agentStps = agent.stps,
-                        startDate = startDate,
-                        endDate = endDate,
-                        documentType = "DIPLOMA",
-                        folio = folioStr,
-                        creatorEmail = employee.creatorEmail ?: user.email
-                    )
-                    
-                    val insertedId = SupabaseRepository.insertDataGetIdSuspend("dc3_records", record, DC3Record.serializer())
-                    val qrUrl = if (insertedId != null) "https://ace-control.pages.dev/?v=$insertedId" else "https://ace-control.pages.dev/?v=preview"
-
-                    val file = DiplomaGenerator.generateDiploma(
-                        context, employee, course, agent, startDate, endDate,
-                        customTemplateBase64 = customTemplateBase64,
-                        folio = folioStr,
-                        design = design,
-                        qrUrl = qrUrl
-                    )
-                    PdfGenerator.saveToDownloads(context, file)
-                    if (totalDocs == 1) PdfGenerator.openPdf(context, file)
-                }
-            }
-            withContext(Dispatchers.Main) {
-                Toast.makeText(context, "Diplomas guardados en Descargas", Toast.LENGTH_LONG).show()
-                onBack()
-            }
-        } catch (e: Exception) {
-            withContext(Dispatchers.Main) {
-                Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
-            }
-        } finally {
-            isGenerating = false
-        }
-    }
-
-    suspend fun generateBoth() {
-        val agent = selectedAgent ?: return
-        val company = selectedCompany ?: return
-        isGenerating = true
-        try {
-            val design = SupabaseRepository.fetchDataFilteredSuspend("agent_designs", "creator_email=eq.${agent.creatorEmail ?: user.email}&order=created_at.desc", AgentDesign.serializer()).firstOrNull()
-            val customTemplateBase64 = design?.diplomaTemplateBase64
-
-            var currentDoc = 0
-            val totalDocs = selectedEmployees.size * selectedCourses.size
-
-            selectedEmployees.forEach { employee ->
-                selectedCourses.forEach { course ->
-                    currentDoc++
-                    statusText = "Generando DC-3 + Diploma $currentDoc de $totalDocs: ${employee.nombres}..."
-
-                    val finalStps = calculateStps(agent.stps)
-
-                    // Obtener folios para ambos documentos
-                    val folioDC3 = getNextFolio("DC3")
-                    val folioDiploma = getNextFolio("DIPLOMA")
-
-                    // 1. Guardar registro con documentType = "BOTH"
-                    val record = DC3Record(
-                        workerId = employee.curp,
-                        workerName = "${employee.apellidoPaterno} ${employee.nombres}".trim(),
-                        workerPos = employee.position,
-                        courseName = course.name,
-                        durationHours = course.durationHours,
-                        thematicArea = course.thematicArea ?: "",
-                        companyName = company.name,
-                        companyRfc = company.rfc,
-                        companyPatron = company.representanteLegal,
-                        companyRepresentante = company.representanteTrabajadores,
-                        agentName = agent.name,
-                        agentStps = finalStps,
-                        startDate = startDate,
-                        endDate = endDate,
-                        documentType = "BOTH",
-                        folio = folioDiploma,
-                        folioDc3 = folioDC3,
-                        creatorEmail = employee.creatorEmail ?: user.email
-                    )
-
-                    val insertedId = SupabaseRepository.insertDataGetIdSuspend("dc3_records", record, DC3Record.serializer())
-                    val qrUrl = if (insertedId != null) "https://ace-control.pages.dev/?v=$insertedId" else null
-
-                    // 2. Generar DC-3
-                    val dc3File = PdfGenerator.generateDC3(
-                        context, employee, course, agent.copy(stps = finalStps), company.name, company.rfc,
-                        company.representanteLegal, company.representanteTrabajadores,
-                        startDate, endDate, design = design,
-                        employeePhotoBase64 = employee.photoUrl,
-                        qrUrl = qrUrl,
-                        folio = folioDC3
-                    )
-
-                    // 3. Generar Diploma
-                    val diplomaFile = DiplomaGenerator.generateDiploma(
-                        context, employee, course, agent, startDate, endDate,
-                        customTemplateBase64 = customTemplateBase64,
-                        folio = folioDiploma,
-                        design = design,
-                        qrUrl = qrUrl ?: "https://ace-control.pages.dev/?v=preview"
-                    )
-
-                    // 4. Fusionar ambos PDFs en uno solo
-                    val mergedFile = java.io.File(context.cacheDir, "DC3_Diploma_${employee.curp}.pdf")
-                    val merged = PdfGenerator.mergePdfs(listOf(dc3File, diplomaFile), mergedFile)
-
-                    if (merged != null) {
-                        PdfGenerator.saveToDownloads(context, merged)
-                    } else {
-                        // Si falla el merge, guardar por separado
-                        PdfGenerator.saveToDownloads(context, dc3File)
-                        PdfGenerator.saveToDownloads(context, diplomaFile)
-                    }
-
-                    if (totalDocs == 1 && merged != null) PdfGenerator.openPdf(context, merged)
-                }
-            }
-            withContext(Dispatchers.Main) {
-                Toast.makeText(context, "DC-3 + Diplomas guardados en Descargas", Toast.LENGTH_LONG).show()
-                onBack()
-            }
-        } catch (e: Exception) {
-            withContext(Dispatchers.Main) {
-                Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
-            }
-        } finally {
-            isGenerating = false
         }
     }
 
@@ -503,10 +350,10 @@ fun DC3GenerationScreen(
                             Spacer(modifier = Modifier.height(8.dp))
                             ActionButtonsSection(
                                 onBack, 
-                                onPreview = { scope.launch { generateOrPreview(true) } }, 
-                                onGenerate = { scope.launch { generateOrPreview(false) } },
-                                onGenerateDiploma = { scope.launch { generateDiplomas() } },
-                                onGenerateBoth = { scope.launch { generateBoth() } },
+                                onPreview = { scope.launch { generateOrPreviewSingle(true) } }, 
+                                onGenerate = { scope.launch { generateBulk("DC3") } },
+                                onGenerateDiploma = { scope.launch { generateBulk("DIPLOMA") } },
+                                onGenerateBoth = { scope.launch { generateBulk("BOTH") } },
                                 enabled = selectedEmployees.isNotEmpty() && selectedCompany != null && selectedAgent != null && selectedCourses.isNotEmpty() && startDate.isNotEmpty() && endDate.isNotEmpty()
                             )
                         }
@@ -526,10 +373,10 @@ fun DC3GenerationScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     ActionButtonsSection(
                         onBack, 
-                        onPreview = { scope.launch { generateOrPreview(true) } }, 
-                        onGenerate = { scope.launch { generateOrPreview(false) } },
-                        onGenerateDiploma = { scope.launch { generateDiplomas() } },
-                        onGenerateBoth = { scope.launch { generateBoth() } },
+                        onPreview = { scope.launch { generateOrPreviewSingle(true) } }, 
+                        onGenerate = { scope.launch { generateBulk("DC3") } },
+                        onGenerateDiploma = { scope.launch { generateBulk("DIPLOMA") } },
+                        onGenerateBoth = { scope.launch { generateBulk("BOTH") } },
                         enabled = selectedEmployees.isNotEmpty() && selectedCompany != null && selectedAgent != null && selectedCourses.isNotEmpty() && startDate.isNotEmpty() && endDate.isNotEmpty()
                     )
                 }
