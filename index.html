@@ -2579,27 +2579,7 @@ async function _buildDiplomaCore(opts = {}) {
     const folioTxt = opts.folio || await getNextFolio();
     drawC(folioTxt, dx('dipFolioX', 396), dx('dipFolioY', 550), dx('dipFolioSz', 10), true, rgb(0,0,0), da('folio'));
 
-    // 7. Logo + eslogan del encabezado, reducidos — mismo estilo (lado a lado, chico) que en el
-    //    reverso del DC-3, para que la marca del agente aparezca también en el diploma sin
-    //    estorbar ni encimarse con el diseño de la plantilla.
-    if (d?.headerLogoBase64) {
-        try {
-            const hlImg = await embedBase64Img(pdfDoc, d.headerLogoBase64);
-            const origW = d.headerLogoW ?? 120, origH = d.headerLogoH ?? 55;
-            const maxLogoW = 70, maxLogoH = 30;
-            const scale = Math.min(maxLogoW / origW, maxLogoH / origH, 1);
-            const hlw = origW * scale, hlh = origH * scale;
-            page.drawImage(hlImg, { x: 18, y: PH - 14 - hlh, width: hlw, height: hlh });
-        } catch(e) {}
-    }
-    if (d?.headerSlogan) {
-        try {
-            const hss = Math.min(d.headerSloganSize || 9, 7);
-            const hst = (d.headerSlogan || '').toUpperCase();
-            const w = font.widthOfTextAtSize(hst, hss);
-            page.drawText(hst, { x: PW - 18 - w, y: PH - 14 - hss, size: hss, font, color: rgb(0.1,0.1,0.1) });
-        } catch(e) {}
-    }
+    // Logo y eslogan del encabezado NO van en el diploma — solo en el DC-3 (frente y reverso).
 
     return await pdfDoc.save();
 }
@@ -3047,29 +3027,31 @@ async function _renderDiplomaPreview() {
         } catch(e) { console.warn('firma preview:', e); }
     }
 
-    // Logo + eslogan reducidos del encabezado — mismo estilo que en el reverso del DC-3,
-    // para previsualizar exactamente lo que dibuja la generación real.
-    if (designState.header_logo_base64) {
-        try {
-            const hlImg = await embedBase64Img(pdfDoc, designState.header_logo_base64);
-            const origW = +(document.getElementById('design-header-logo-w')?.value || 120);
-            const origH = +(document.getElementById('design-header-logo-h')?.value || 55);
-            const maxLogoW = 70, maxLogoH = 30;
-            const scale = Math.min(maxLogoW / origW, maxLogoH / origH, 1);
-            const hlw = origW * scale, hlh = origH * scale;
-            page.drawImage(hlImg, { x: 18, y: PH - 14 - hlh, width: hlw, height: hlh });
-        } catch(e) { console.warn('header logo preview:', e); }
-    }
-    const dSlogan = document.getElementById('design-header-slogan')?.value;
-    if (dSlogan) {
-        try {
-            const font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
-            const hss = 7;
-            const hst = dSlogan.toUpperCase();
-            const w = font.widthOfTextAtSize(hst, hss);
-            page.drawText(hst, { x: PW - 18 - w, y: PH - 14 - hss, size: hss, font, color: PDFLib.rgb(0.1,0.1,0.1) });
-        } catch(e) { console.warn('header slogan preview:', e); }
-    }
+    // Texto de prueba para visualizar dónde queda la información en el diploma.
+    // Usa las coordenadas configuradas en el editor de diseño.
+    const fontD = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+    const fontDB = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+    const dipDrawC = (txt, x, y, sz, fb, align) => {
+        const f = fb ? fontDB : fontD;
+        const cleanTxt = (txt || '').toUpperCase();
+        let w = f.widthOfTextAtSize(cleanTxt, sz);
+        const maxW = 450;
+        if (w > maxW) { sz = (maxW / w) * sz; w = f.widthOfTextAtSize(cleanTxt, sz); }
+        let drawX = x;
+        if (align === 0) drawX = x - w/2;
+        else if (align === 2) drawX = x - w;
+        page.drawText(cleanTxt, { x: drawX, y: PH - y, size: sz, font: f, color: PDFLib.rgb(0.5, 0.5, 0.5) });
+    };
+    const dipVal = (id, def) => +(document.getElementById(id)?.value || def);
+    const dipAlign = (field) => +(document.getElementById(`dip-${field}-align`)?.value || 0);
+    dipDrawC('NOMBRE DEL TRABAJADOR', dipVal('dip-worker-x', 396), dipVal('dip-worker-y', 245), dipVal('dip-worker-sz', 28), true, dipAlign('worker'));
+    dipDrawC('NOMBRE DEL CURSO DE CAPACITACION', dipVal('dip-course-x', 396), dipVal('dip-course-y', 330), dipVal('dip-course-sz', 18), true, dipAlign('course'));
+    dipDrawC('DURACION: 40 HORAS', dipVal('dip-duration-x', 396), dipVal('dip-duration-y', 405), dipVal('dip-duration-sz', 12), true, dipAlign('duration'));
+    dipDrawC('15 DE AGOSTO DEL 2026', dipVal('dip-date-x', 396), dipVal('dip-date-y', 445), dipVal('dip-date-sz', 11), true, dipAlign('date'));
+    dipDrawC('NOMBRE DEL AGENTE CAPACITADOR', dipVal('dip-agent-x', 396), dipVal('dip-agent-y', 572), dipVal('dip-agent-sz', 10), true, dipAlign('agent'));
+    dipDrawC('REGISTRO STPS-XXXXX-001', dipVal('dip-stps-x', 396), dipVal('dip-stps-y', 584), dipVal('dip-stps-sz', 8), true, dipAlign('stps'));
+    dipDrawC('EHS-CON-2026-0001', dipVal('dip-folio-x', 396), dipVal('dip-folio-y', 550), dipVal('dip-folio-sz', 10), true, dipAlign('folio'));
+    dipDrawC('CEDULA PROFESIONAL: 00000000', dipVal('dip-cedula-x', 396), dipVal('dip-cedula-y', 596), dipVal('dip-cedula-sz', 8), true, dipAlign('cedula'));
 
     const outBytes = await pdfDoc.save();
 
@@ -4297,22 +4279,27 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     // el mismo punto producía un texto encimado/ilegible sobre el logo. Ahora van lado a lado
     // (logo a la izquierda, eslogan a la derecha) en vez de apilados.
     if (pageR) {
-        const topMargin = 12, maxLogoW = 90, maxLogoH = 40;
+        // Reverso: mismo logo y eslogan del encabezado que en el frente,
+        // en la MISMA posición (headerLogoX/Y, headerSloganX/Y) pero reducidos
+        // al 75% para evitar traslape con el catálogo STPS.
+        const reduce = 0.75;
         if (agentDesign?.headerLogoBase64) {
             try {
                 const hlImg = await embedBase64Img(pdfDoc, agentDesign.headerLogoBase64);
                 const origW = agentDesign.headerLogoW ?? 120, origH = agentDesign.headerLogoH ?? 55;
-                const scale = Math.min(maxLogoW / origW, maxLogoH / origH, 1);
-                const hlw = origW * scale, hlh = origH * scale;
-                pageR.drawImage(hlImg, { x: 30, y: PH - topMargin - hlh, width: hlw, height: hlh });
+                const hlw = origW * reduce, hlh = origH * reduce;
+                const hlX = agentDesign.headerLogoX ?? 30;
+                const hlY = agentDesign.headerLogoY ?? 10;
+                pageR.drawImage(hlImg, { x: hlX, y: PH - (hlY + hlh), width: hlw, height: hlh });
             } catch(e) {}
         }
         if (agentDesign?.headerSlogan) {
-            const hss = Math.min(agentDesign.headerSloganSize || 9, 8);
+            const hss = (agentDesign.headerSloganSize || 9) * reduce;
             const hst = sp(agentDesign.headerSlogan);
             const hsw = fontI.widthOfTextAtSize(hst, hss);
-            // Alineado a la derecha, misma franja superior que el logo pero sin cruzarse
-            pageR.drawText(hst, { x: 582 - hsw, y: PH - topMargin - hss, size: hss, font: fontI, color: rgb(0,0,0) });
+            const hsX = agentDesign.headerSloganX ?? 306;
+            const hsY = agentDesign.headerSloganY ?? 18;
+            pageR.drawText(hst, { x: hsX - hsw/2, y: PH - hsY - hss, size: hss, font: fontI, color: rgb(0,0,0) });
         }
     }
 
