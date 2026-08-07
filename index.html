@@ -1261,7 +1261,7 @@ const TABLE_MAP = { workers:'workers', companies:'companies', courses:'courses',
 function toSnake(obj) {
     const map = {
         workerId:'worker_id', workerName:'worker_name', workerPos:'worker_pos',
-        courseName:'course_name', companyName:'company_name', agentName:'agent_name', agentStps:'agent_stps',
+        courseName:'course_name', companyName:'company_name', companyRfc:'company_rfc', agentName:'agent_name', agentStps:'agent_stps',
         startDate:'start_date', endDate:'end_date', resultText:'result_text', durationHours:'duration_hours',
         thematicArea:'thematic_area', documentType:'document_type', folio:'folio',
         folioDc3:'folio_dc3',
@@ -1303,7 +1303,7 @@ function toSnake(obj) {
 function toCamel(obj) {
     const map = {
         worker_id:'workerId', worker_name:'workerName', worker_pos:'workerPos',
-        course_name:'courseName', company_name:'companyName', agent_name:'agentName', agent_stps:'agentStps',
+        course_name:'courseName', company_name:'companyName', company_rfc:'companyRfc', agent_name:'agentName', agent_stps:'agentStps',
         start_date:'startDate', end_date:'endDate', result_text:'resultText', duration_hours:'durationHours',
         thematic_area:'thematicArea', created_at:'createdAt', document_type:'documentType', folio:'folio',
         folio_dc3:'folioDc3',
@@ -1594,7 +1594,7 @@ function setView(v) {
     // Show/Hide Agent Filter
     const filterAgent = document.getElementById('filter-agent');
     if (filterAgent) {
-        const filterable = ['companies','courses','dc3'].includes(v);
+        const filterable = ['workers','companies','courses','dc3'].includes(v);
         filterAgent.classList.toggle('hidden', !filterable);
         if (filterable) {
             // Siempre repoblar para reflejar cambios en DATA.agents y evitar duplicados en el DOM
@@ -1629,8 +1629,27 @@ async function loadSection(v) {
 
         } else if (v === 'workers') {
             const r = await api('find','workers',{ filter: f });
-            const rows = (r.documents||[]);
+            let rows = (r.documents||[]);
+
+            // 1. Filtro por agente
+            const selectedAgentName = document.getElementById('filter-agent')?.value;
+            const selectedAgent = DATA.agents.find(a => a.name === selectedAgentName);
+            if (selectedAgent) {
+                rows = rows.filter(x => x.creatorEmail === selectedAgent.creatorEmail);
+            }
+
             const tb = document.getElementById('tb-workers');
+            const agentHeader = isAdmin() ? `<th>Agente</th>` : '';
+
+            // Actualizar header si es admin
+            const thead = document.querySelector('#section-workers thead tr#th-workers');
+            if (thead) {
+                thead.innerHTML = `
+                    <th style="width:36px"><input type="checkbox" id="chk-all-workers" onchange="toggleAllWorkers(this)" class="w-4 h-4 accent-blue-900 rounded"></th>
+                    <th style="width:52px">Foto</th><th>Nombre</th><th>CURP</th><th>Ocupación</th><th>Puesto</th>${agentHeader}<th>Acciones</th>
+                `;
+            }
+
             if (tb) tb.innerHTML = rows.length
                 ? rows.map(x => {
                     const fullName = x.apellidoPaterno ? `${x.apellidoPaterno} ${x.apellidoMaterno || ''} ${x.nombres || ''}`.trim() : (x.name || '');
@@ -1639,6 +1658,8 @@ async function loadSection(v) {
                         : `<div class="w-9 h-9 rounded-full bg-gray-50 flex items-center justify-center text-gray-300 border border-dashed border-gray-200" title="Sin foto">
                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                            </div>`;
+                    const agentCell = isAdmin() ? `<td class="text-[10px] text-gray-400 truncate max-w-[100px]" title="${x.creatorEmail}">${x.creatorEmail||'—'}</td>` : '';
+
                     return `<tr>
                     <td><input type="checkbox" class="worker-chk w-4 h-4 accent-blue-900 rounded" data-worker='${JSON.stringify(x).replace(/'/g,"&apos;")}' onchange="onWorkerCheckChange()"></td>
                     <td>${photoHtml}</td>
@@ -1646,6 +1667,7 @@ async function loadSection(v) {
                     <td class="font-mono text-xs text-gray-500">${x.curp||''}</td>
                     <td class="text-xs text-gray-500">${x.occupation||''}</td>
                     <td>${x.position||''}</td>
+                    ${agentCell}
                     <td class="text-right">
                         <div class="flex flex-col gap-2 items-end">
                             <div class="flex gap-2">
@@ -1660,7 +1682,7 @@ async function loadSection(v) {
                     </td>
                   </tr>`;
                 }).join('')
-                : `<tr><td colspan="7" class="text-center py-12 text-gray-300 text-sm">Sin personal registrado</td></tr>`;
+                : `<tr><td colspan="${isAdmin() ? 8 : 7}" class="text-center py-12 text-gray-300 text-sm">Sin personal registrado</td></tr>`;
 
         } else if (v === 'companies') {
             const r = await api('find','companies',{ filter: f });
@@ -2134,6 +2156,7 @@ async function generateDC3() {
         durationHours: courseDuration,
         thematicArea:  courseArea,
         companyName: companyName,
+        companyRfc: company.rfc,
         representanteLegal: company.representante_legal || company.representanteLegal,
         representanteTrabajadores: company.representante_trabajadores || company.representanteTrabajadores,
         agentName,
@@ -3721,7 +3744,7 @@ async function generateBulkDC3() {
             // Guardar en historial con su folio único
             await api('insertOne','dc3_records',{ document: {
                 workerId: worker.curp, workerName: worker.name, workerPos: worker.position,
-                courseName, companyName: company.name, agentName, agentStps,
+                courseName, companyName: company.name, companyRfc: company.rfc, agentName, agentStps,
                 startDate: start, endDate: end, resultText: 'Acreditado',
                 documentType: 'DC3',
                 folio: folio,

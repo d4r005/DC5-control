@@ -31,6 +31,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dc5control.Screen
+import com.example.dc5control.data.model.Agent
 import com.example.dc5control.data.model.Employee
 import com.example.dc5control.data.model.User
 import com.example.dc5control.data.repository.SupabaseRepository
@@ -56,6 +57,9 @@ fun EmployeeListScreen(
     val scope = rememberCoroutineScope()
     
     val employees = remember { mutableStateListOf<Employee>() }
+    val agents = remember { mutableStateListOf<Agent>() }
+    var selectedAgentFilter by remember { mutableStateOf<Agent?>(null) }
+    var isAgentsExpanded by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(true) }
     var selectedIds by remember { mutableStateOf(setOf<String>()) }
@@ -68,14 +72,16 @@ fun EmployeeListScreen(
     fun loadData() {
         isLoading = true
         SupabaseRepository.fetchData("workers", Employee.serializer()) { fetched ->
-            android.util.Log.d("EmployeeList", "Fetched ${fetched.size} employees")
-            fetched.forEach { 
-                android.util.Log.d("EmployeeList", "Emp: ${it.name}, Photo: ${it.photoUrl?.take(30)}...")
-            }
             val filtered = if (user.role == "ADMIN") fetched else fetched.filter { it.creatorEmail == user.email }
             employees.clear()
             employees.addAll(filtered)
             isLoading = false
+        }
+        if (user.role == "ADMIN") {
+            SupabaseRepository.fetchData("agents", Agent.serializer()) { fetchedAgents ->
+                agents.clear()
+                agents.addAll(fetchedAgents.distinctBy { it.name.uppercase().trim() })
+            }
         }
     }
 
@@ -84,12 +90,13 @@ fun EmployeeListScreen(
     }
 
     val filteredEmployees = employees.filter {
-        it.nombres.contains(searchQuery, ignoreCase = true) ||
+        (selectedAgentFilter == null || it.creatorEmail == selectedAgentFilter?.creatorEmail) &&
+        (it.nombres.contains(searchQuery, ignoreCase = true) ||
         it.apellidoPaterno.contains(searchQuery, ignoreCase = true) ||
         it.apellidoMaterno.contains(searchQuery, ignoreCase = true) ||
         it.curp.contains(searchQuery, ignoreCase = true) ||
         it.occupation.contains(searchQuery, ignoreCase = true) ||
-        it.position.contains(searchQuery, ignoreCase = true)
+        it.position.contains(searchQuery, ignoreCase = true))
     }
 
     val excelLauncher = rememberLauncherForActivityResult(
@@ -162,6 +169,46 @@ fun EmployeeListScreen(
                                 text = "Gestión de trabajadores",
                                 style = MaterialTheme.typography.bodySmall.copy(color = Gray500)
                             )
+                        }
+                    }
+
+                    // Agent Filter (ADMIN only)
+                    if (user.role == "ADMIN" && agents.isNotEmpty()) {
+                        Box(modifier = Modifier.width(180.dp).padding(start = 8.dp)) {
+                            ExposedDropdownMenuBox(
+                                expanded = isAgentsExpanded,
+                                onExpandedChange = { isAgentsExpanded = it }
+                            ) {
+                                OutlinedTextField(
+                                    value = selectedAgentFilter?.name ?: "Todos los Agentes",
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    singleLine = true,
+                                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(isAgentsExpanded) },
+                                    modifier = Modifier.menuAnchor().fillMaxWidth().height(48.dp),
+                                    shape = RoundedCornerShape(8.dp),
+                                    textStyle = MaterialTheme.typography.bodySmall,
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = NavyPrimary,
+                                        unfocusedBorderColor = Gray200
+                                    )
+                                )
+                                ExposedDropdownMenu(
+                                    expanded = isAgentsExpanded,
+                                    onDismissRequest = { isAgentsExpanded = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("Todos los Agentes") },
+                                        onClick = { selectedAgentFilter = null; isAgentsExpanded = false }
+                                    )
+                                    agents.forEach { agent ->
+                                        DropdownMenuItem(
+                                            text = { Text(agent.name) },
+                                            onClick = { selectedAgentFilter = agent; isAgentsExpanded = false }
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -309,6 +356,9 @@ fun EmployeeListScreen(
                                 Text("CURP", modifier = Modifier.weight(1.8f), fontWeight = FontWeight.Bold, color = Gray700, fontSize = 14.sp)
                                 Text("Ocupación", modifier = Modifier.weight(1.5f), fontWeight = FontWeight.Bold, color = Gray700, fontSize = 14.sp)
                                 Text("Puesto", modifier = Modifier.weight(1.5f), fontWeight = FontWeight.Bold, color = Gray700, fontSize = 14.sp)
+                                if (user.role == "ADMIN") {
+                                    Text("Agente", modifier = Modifier.weight(1.2f), fontWeight = FontWeight.Bold, color = Gray700, fontSize = 14.sp)
+                                }
                                 Text("Acciones", modifier = Modifier.weight(2.2f), fontWeight = FontWeight.Bold, color = Gray700, fontSize = 14.sp)
                             }
                             
@@ -429,6 +479,18 @@ fun EmployeeListScreen(
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
+                                        
+                                        // Agente (ADMIN only)
+                                        if (user.role == "ADMIN") {
+                                            Text(
+                                                text = employee.creatorEmail ?: "—",
+                                                modifier = Modifier.weight(1.2f),
+                                                fontSize = 10.sp,
+                                                color = Gray400,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
                                         
                                         // Acciones: DC-3 in Navy, +Cursos, Edit, Delete
                                         Row(
@@ -563,6 +625,14 @@ fun EmployeeListScreen(
                                                     fontSize = 12.sp,
                                                     color = Gray500
                                                 )
+                                                if (user.role == "ADMIN") {
+                                                    Text(
+                                                        text = "Agente: ${employee.creatorEmail ?: "—"}",
+                                                        fontSize = 10.sp,
+                                                        color = Gray400,
+                                                        modifier = Modifier.padding(top = 2.dp)
+                                                    )
+                                                }
                                             }
                                             
                                             Surface(
