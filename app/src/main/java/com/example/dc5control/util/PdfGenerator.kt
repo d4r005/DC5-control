@@ -330,37 +330,33 @@ object PdfGenerator {
         cs.close()
 
         // --- PAGINA 2 (Reverso) ---
-        // El catálogo oficial de STPS empieza ~84pt debajo del borde superior, así que solo
-        // tenemos esa franja libre. El logo del header suele traer el eslogan dibujado DENTRO
-        // de la propia imagen — dibujar además el texto del eslogan separado, en el mismo lugar,
-        // producía un texto encimado/ilegible sobre el logo. Ahora van lado a lado (logo a la
-        // izquierda, eslogan a la derecha) en vez de apilados en el mismo punto.
+        // Espejo exacto del layout web: eslogan arriba (centrado) y logo debajo
+        // (centrado), sin encimarse, con espacio antes de que arranque el
+        // catálogo STPS impreso.
         if (document.numberOfPages > 1) {
             val pageR = document.getPage(1)
             val csR = PDPageContentStream(document, pageR, PDPageContentStream.AppendMode.APPEND, true, true)
-            val topMargin = 12f
-            val maxLogoW = 90f
-            val maxLogoH = 40f
+            val pageCenterX = 306f
 
-            embedImage(design?.headerLogoBase64, "hR")?.let { img ->
-                val origW = design?.headerLogoW ?: 120f
-                val origH = design?.headerLogoH ?: 55f
-                val scale = minOf(maxLogoW / origW, maxLogoH / origH, 1f)
-                val hlw = origW * scale
-                val hlh = origH * scale
-                csR.drawImage(img, 30f, PH - topMargin - hlh, hlw, hlh)
-            }
             design?.headerSlogan?.takeIf { it.isNotBlank() }?.let {
-                val sz = minOf(design.headerSloganSize ?: 9f, 8f)
-                val st = sanitize(it).uppercase()
+                val sz = (design.headerSloganSize ?: 9f) * 0.8f
+                val st = sanitize(it)
                 val w = fontI.getStringWidth(st) / 1000 * sz
+                val sloganTopMargin = 22f // distancia del borde superior a la linea base del eslogan
                 csR.beginText()
                 csR.setFont(fontI, sz)
-                // Alineado a la derecha, misma franja superior que el logo pero sin cruzarse
-                csR.newLineAtOffset(582f - w, PH - topMargin - sz)
+                csR.newLineAtOffset(pageCenterX - w / 2, PH - sloganTopMargin)
                 csR.showText(st)
                 csR.endText()
             }
+
+            embedImage(design?.headerLogoBase64, "hR")?.let { img ->
+                val hlw = (design?.headerLogoW ?: 120f) * 0.7f
+                val hlh = (design?.headerLogoH ?: 55f) * 0.7f
+                val logoTopMargin = 34f // distancia del borde superior al TOP del logo (debajo del eslogan)
+                csR.drawImage(img, pageCenterX - hlw / 2, PH - logoTopMargin - hlh, hlw, hlh)
+            }
+
             csR.close()
         }
 
