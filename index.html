@@ -2579,6 +2579,28 @@ async function _buildDiplomaCore(opts = {}) {
     const folioTxt = opts.folio || await getNextFolio();
     drawC(folioTxt, dx('dipFolioX', 396), dx('dipFolioY', 550), dx('dipFolioSz', 10), true, rgb(0,0,0), da('folio'));
 
+    // 7. Logo + eslogan del encabezado, reducidos — mismo estilo (lado a lado, chico) que en el
+    //    reverso del DC-3, para que la marca del agente aparezca también en el diploma sin
+    //    estorbar ni encimarse con el diseño de la plantilla.
+    if (d?.headerLogoBase64) {
+        try {
+            const hlImg = await embedBase64Img(pdfDoc, d.headerLogoBase64);
+            const origW = d.headerLogoW ?? 120, origH = d.headerLogoH ?? 55;
+            const maxLogoW = 70, maxLogoH = 30;
+            const scale = Math.min(maxLogoW / origW, maxLogoH / origH, 1);
+            const hlw = origW * scale, hlh = origH * scale;
+            page.drawImage(hlImg, { x: 18, y: PH - 14 - hlh, width: hlw, height: hlh });
+        } catch(e) {}
+    }
+    if (d?.headerSlogan) {
+        try {
+            const hss = Math.min(d.headerSloganSize || 9, 7);
+            const hst = (d.headerSlogan || '').toUpperCase();
+            const w = font.widthOfTextAtSize(hst, hss);
+            page.drawText(hst, { x: PW - 18 - w, y: PH - 14 - hss, size: hss, font, color: rgb(0.1,0.1,0.1) });
+        } catch(e) {}
+    }
+
     return await pdfDoc.save();
 }
 
@@ -3025,6 +3047,30 @@ async function _renderDiplomaPreview() {
         } catch(e) { console.warn('firma preview:', e); }
     }
 
+    // Logo + eslogan reducidos del encabezado — mismo estilo que en el reverso del DC-3,
+    // para previsualizar exactamente lo que dibuja la generación real.
+    if (designState.header_logo_base64) {
+        try {
+            const hlImg = await embedBase64Img(pdfDoc, designState.header_logo_base64);
+            const origW = +(document.getElementById('design-header-logo-w')?.value || 120);
+            const origH = +(document.getElementById('design-header-logo-h')?.value || 55);
+            const maxLogoW = 70, maxLogoH = 30;
+            const scale = Math.min(maxLogoW / origW, maxLogoH / origH, 1);
+            const hlw = origW * scale, hlh = origH * scale;
+            page.drawImage(hlImg, { x: 18, y: PH - 14 - hlh, width: hlw, height: hlh });
+        } catch(e) { console.warn('header logo preview:', e); }
+    }
+    const dSlogan = document.getElementById('design-header-slogan')?.value;
+    if (dSlogan) {
+        try {
+            const font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+            const hss = 7;
+            const hst = dSlogan.toUpperCase();
+            const w = font.widthOfTextAtSize(hst, hss);
+            page.drawText(hst, { x: PW - 18 - w, y: PH - 14 - hss, size: hss, font, color: PDFLib.rgb(0.1,0.1,0.1) });
+        } catch(e) { console.warn('header slogan preview:', e); }
+    }
+
     const outBytes = await pdfDoc.save();
 
     const loadTask = pdfjsLib.getDocument({ data: outBytes });
@@ -3037,6 +3083,7 @@ async function _renderDiplomaPreview() {
 
     designState._dipScale = vp.width / PW;
     designState._dipPH = PH;
+    designState._dipPW = PW;
 
     _updateDiplomaDragHandles();
 }
@@ -3134,7 +3181,7 @@ function _updateDiplomaDragHandles() {
 
             // Get actual display scale (screen pixels to PDF points)
             const canvasRect = canvas.getBoundingClientRect();
-            const pxPerPt = canvasRect.width / (designState._dipPW || PW || 792);
+            const pxPerPt = canvasRect.width / (designState._dipPW || T_DIP_W);
 
             const onMove = (ev) => {
                 const dx = (ev.clientX - startX) / pxPerPt;
