@@ -2962,9 +2962,9 @@ async function updateDiplomaDesignPreview() {
     }
 }
 
-// Renderiza la plantilla real (PDF o imagen) del agente en el canvas y superpone los
-// recuadros arrastrables — igual patrón que _renderPreview() para DC-3. No depende de
-// trabajador/curso/fechas reales: esto es solo el editor de diseño.
+// Renderiza la plantilla real (PDF o imagen) del diploma en el canvas,
+// dibuja texto de prueba en las coordenadas configuradas, y superpone
+// los recuadros arrastrables. Restaurado del commit 1577c29 que funcionaba.
 async function _renderDiplomaPreview() {
     const canvas = document.getElementById('diploma-preview-canvas');
     if (!canvas) return;
@@ -2985,90 +2985,113 @@ async function _renderDiplomaPreview() {
         });
     }
 
-    const { PDFDocument } = PDFLib;
-    const PW = T_DIP_W, PH = T_DIP_H;
+    const { PDFDocument, StandardFonts, rgb } = PDFLib;
     let pdfDoc = null;
+    let PW = T_DIP_W, PH = T_DIP_H;
 
-    try {
-        if (designState._dipPdfTemplateBytes) {
-            pdfDoc = await PDFDocument.load(designState._dipPdfTemplateBytes.slice(0));
-        } else if (designState.diploma_template_url?.toLowerCase().endsWith('.pdf')) {
+    // 1. Cargar plantilla PDF o imagen
+    if (designState._dipPdfTemplateBytes) {
+        pdfDoc = await PDFDocument.load(designState._dipPdfTemplateBytes.slice(0));
+    } else if (designState.diploma_template_url?.toLowerCase().endsWith('.pdf')) {
+        try {
             const resp = await fetch(designState.diploma_template_url);
-            if (!resp.ok) throw new Error('HTTP ' + resp.status);
             const bytes = await resp.arrayBuffer();
-            designState._dipPdfTemplateBytes = bytes; // cachear para no re-descargar en cada preview
+            designState._dipPdfTemplateBytes = bytes;
             pdfDoc = await PDFDocument.load(bytes.slice(0));
-        } else if (designState.diploma_template_base64) {
-            pdfDoc = await PDFDocument.create();
-            const page = pdfDoc.addPage([PW, PH]);
+        } catch(e) { console.error("Error loading remote diploma PDF:", e); }
+    }
+
+    if (pdfDoc) {
+        const page = pdfDoc.getPage(0);
+        PW = page.getWidth();
+        PH = page.getHeight();
+        designState._dipPW = PW;
+        designState._dipPH = PH;
+    } else {
+        pdfDoc = await PDFDocument.create();
+        const page = pdfDoc.addPage([T_DIP_W, T_DIP_H]);
+
+        let imgBytes = null;
+        if (designState.diploma_template_base64) {
             const b64 = designState.diploma_template_base64.split(',')[1];
-            const imgBytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-            const img = await pdfDoc.embedPng(imgBytes).catch(() => pdfDoc.embedJpg(imgBytes));
-            page.drawImage(img, { x: 0, y: 0, width: PW, height: PH });
+            imgBytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
         } else {
-            _showCanvasError(canvas, 'Sube una plantilla de diploma (PDF o imagen) para ver la vista previa.');
-            return;
+            if (!designState._dipTemplateBytes) {
+                try {
+                    const resp = await fetch('plantilla_diploma.png?v=2');
+                    designState._dipTemplateBytes = await resp.arrayBuffer();
+                } catch(e) { _showCanvasError(canvas, "Error cargando plantilla"); return; }
+            }
+            imgBytes = designState._dipTemplateBytes;
         }
-    } catch(e) {
-        _showCanvasError(canvas, 'No se pudo cargar la plantilla: ' + e.message);
-        return;
+
+        try {
+            const img = await pdfDoc.embedPng(imgBytes).catch(() => pdfDoc.embedJpg(imgBytes));
+            page.drawImage(img, { x: 0, y: 0, width: T_DIP_W, height: T_DIP_H });
+        } catch(e) { console.error("Error embedding img:", e); }
     }
 
     const page = pdfDoc.getPage(0);
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const fontB = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const getV = (id) => +(document.getElementById(id)?.value ?? 0);
 
-    // Firma del agente, sobre la posición actual configurada del nombre del agente
-    // (igual cálculo que en la generación real)
+    // Dibujar texto de prueba con colores visibles (restaurado de 1577c29)
+    const drawPlaceholder = (txt, x, y, sz, fb = false, color = rgb(0,0,0), alignId = null) => {
+        const f = fb ? fontB : font;
+        const w = f.widthOfTextAtSize(txt.toUpperCase(), sz);
+        const align = alignId ? +(document.getElementById(alignId)?.value ?? 0) : 0;
+
+        let drawX = x;
+        if (align === 0) drawX = x - w/2;
+        else if (align === 2) drawX = x - w;
+
+        page.drawText(txt.toUpperCase(), { x: drawX, y: PH - y, size: sz, font: f, color });
+    };
+
+    // Colores iguales a 1577c29: azul oscuro para trabajador, negro para el resto
+    drawPlaceholder("TRABAJADOR DE PRUEBA", getV('dip-worker-x'), getV('dip-worker-y'), getV('dip-worker-sz'), true, rgb(0.1, 0.2, 0.4), 'dip-worker-align');
+    drawPlaceholder("NOMBRE DEL CURSO DE PRUEBA", getV('dip-course-x'), getV('dip-course-y'), getV('dip-course-sz'), true, rgb(0,0,0), 'dip-course-align');
+    drawPlaceholder("8 HORAS", getV('dip-duration-x'), getV('dip-duration-y'), getV('dip-duration-sz'), true, rgb(0,0,0), 'dip-duration-align');
+    drawPlaceholder("27 DE JULIO DEL 2026", getV('dip-date-x'), getV('dip-date-y'), getV('dip-date-sz'), true, rgb(0,0,0), 'dip-date-align');
+    drawPlaceholder(currentUser?.name || "NOMBRE AGENTE CAPACITADOR", getV('dip-agent-x'), getV('dip-agent-y'), getV('dip-agent-sz'), true, rgb(0,0,0), 'dip-agent-align');
+    drawPlaceholder("REGISTRO STPS-XXX-001", getV('dip-stps-x'), getV('dip-stps-y'), getV('dip-stps-sz'), true, rgb(0,0,0), 'dip-stps-align');
+    drawPlaceholder("EHS-CON-2024-0001", getV('dip-folio-x'), getV('dip-folio-y'), getV('dip-folio-sz'), true, rgb(0,0,0), 'dip-folio-align');
+    drawPlaceholder("CEDULA PROFESIONAL: 12345678", getV('dip-cedula-x'), getV('dip-cedula-y'), getV('dip-cedula-sz'), true, rgb(0,0,0), 'dip-cedula-align');
+
+    // Dibujar firma del agente si existe (sobre posicion del nombre del agente)
     if (designState.firma_base64) {
         try {
-            const agentX = +(document.getElementById('dip-agent-x')?.value || 396);
-            const agentY = +(document.getElementById('dip-agent-y')?.value || 572);
+            const agentX = getV('dip-agent-x') || 396;
+            const agentY = getV('dip-agent-y') || 572;
             const img = await embedBase64Img(pdfDoc, designState.firma_base64);
             page.drawImage(img, { x: agentX - 45, y: PH - agentY + 10, width: 90, height: 50 });
         } catch(e) { console.warn('firma preview:', e); }
     }
 
-    // Texto de prueba para visualizar dónde queda la información en el diploma.
-    // Usa las coordenadas configuradas en el editor de diseño.
-    const fontD = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
-    const fontDB = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
-    const dipDrawC = (txt, x, y, sz, fb, align) => {
-        const f = fb ? fontDB : fontD;
-        const cleanTxt = (txt || '').toUpperCase();
-        let w = f.widthOfTextAtSize(cleanTxt, sz);
-        const maxW = 450;
-        if (w > maxW) { sz = (maxW / w) * sz; w = f.widthOfTextAtSize(cleanTxt, sz); }
-        let drawX = x;
-        if (align === 0) drawX = x - w/2;
-        else if (align === 2) drawX = x - w;
-        page.drawText(cleanTxt, { x: drawX, y: PH - y, size: sz, font: f, color: PDFLib.rgb(0.5, 0.5, 0.5) });
-    };
-    const dipVal = (id, def) => +(document.getElementById(id)?.value || def);
-    const dipAlign = (field) => +(document.getElementById(`dip-${field}-align`)?.value || 0);
-    dipDrawC('NOMBRE DEL TRABAJADOR', dipVal('dip-worker-x', 396), dipVal('dip-worker-y', 245), dipVal('dip-worker-sz', 28), true, dipAlign('worker'));
-    dipDrawC('NOMBRE DEL CURSO DE CAPACITACION', dipVal('dip-course-x', 396), dipVal('dip-course-y', 330), dipVal('dip-course-sz', 18), true, dipAlign('course'));
-    dipDrawC('DURACION: 40 HORAS', dipVal('dip-duration-x', 396), dipVal('dip-duration-y', 405), dipVal('dip-duration-sz', 12), true, dipAlign('duration'));
-    dipDrawC('15 DE AGOSTO DEL 2026', dipVal('dip-date-x', 396), dipVal('dip-date-y', 445), dipVal('dip-date-sz', 11), true, dipAlign('date'));
-    dipDrawC('NOMBRE DEL AGENTE CAPACITADOR', dipVal('dip-agent-x', 396), dipVal('dip-agent-y', 572), dipVal('dip-agent-sz', 10), true, dipAlign('agent'));
-    dipDrawC('REGISTRO STPS-XXXXX-001', dipVal('dip-stps-x', 396), dipVal('dip-stps-y', 584), dipVal('dip-stps-sz', 8), true, dipAlign('stps'));
-    dipDrawC('EHS-CON-2026-0001', dipVal('dip-folio-x', 396), dipVal('dip-folio-y', 550), dipVal('dip-folio-sz', 10), true, dipAlign('folio'));
-    dipDrawC('CEDULA PROFESIONAL: 00000000', dipVal('dip-cedula-x', 396), dipVal('dip-cedula-y', 596), dipVal('dip-cedula-sz', 8), true, dipAlign('cedula'));
+    // Dibujar QR Placeholder
+    try {
+        const qrUrl = 'https://ace-control.pages.dev/?v=preview';
+        const qrBase64 = await generateQRBase64(qrUrl);
+        const qrImgBytes = Uint8Array.from(atob(qrBase64.split(',')[1]), c => c.charCodeAt(0));
+        const qrImg = await pdfDoc.embedPng(qrImgBytes);
+        const qsz = getV('dip-qr-sz') > 0 ? getV('dip-qr-sz') : 50;
+        page.drawImage(qrImg, { x: getV('dip-qr-x') - qsz/2, y: PH - getV('dip-qr-y') - qsz, width: qsz, height: qsz });
+    } catch(e) {}
 
     const outBytes = await pdfDoc.save();
-
-    const loadTask = pdfjsLib.getDocument({ data: outBytes });
-    const pdf = await loadTask.promise;
-    const pg  = await pdf.getPage(1);
-    const vp  = pg.getViewport({ scale: 1.5 });
-    canvas.width  = vp.width;
-    canvas.height = vp.height;
+    const pdf = await pdfjsLib.getDocument({ data: outBytes }).promise;
+    const pg = await pdf.getPage(1);
+    const vp = pg.getViewport({ scale: 1.2 });
+    canvas.width = vp.width; canvas.height = vp.height;
     await pg.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
 
     designState._dipScale = vp.width / PW;
     designState._dipPH = PH;
     designState._dipPW = PW;
-
     _updateDiplomaDragHandles();
 }
+
 
 
 function setDipAlign(field, align) {
