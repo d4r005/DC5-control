@@ -2408,7 +2408,11 @@ async function _buildDiplomaCore(opts = {}) {
     // 2. Si es generación REAL (o no tenemos diseño local), cargar de la Base de Datos del agente correspondiente
     if (!d || !isDesignPreview) {
         try {
-            agentRecord = DATA.agents.find(a => a.name === agentName);
+            const normAgentName2 = (agentName || '').toUpperCase().trim();
+            const agentMatches2 = (DATA.agents || []).filter(a => (a.name || '').toUpperCase().trim() === normAgentName2);
+            agentRecord = agentMatches2.length > 1
+                ? (agentMatches2.find(a => a.creatorEmail && a.creatorEmail !== currentUser?.email) || agentMatches2[0])
+                : agentMatches2[0];
             const ownerEmail = agentRecord?.creatorEmail || currentUser.email;
             const dr = await api('find','agent_designs', { filter: { creatorEmail: ownerEmail } });
             if (dr.documents?.length > 0) {
@@ -3729,26 +3733,27 @@ async function previewBulk() {
     // Configurar el worker actual para que el preview estándar lo use
     selectedWorker = selectedWorkers[0];
 
-    // Transferir valores del modal masivo al modal individual temporalmente para el preview
-    document.getElementById('dc3-company').value = document.getElementById('bulk-company').value;
-    document.getElementById('dc3-agent').value = document.getElementById('bulk-agent').value;
-    document.getElementById('dc3-course').value = document.getElementById('bulk-course').value;
-    document.getElementById('dc3-start').value = document.getElementById('bulk-start').value;
-    document.getElementById('dc3-end').value = document.getElementById('bulk-end').value;
-
-    // Abrir el preview
-    await previewDC3();
+    // Pasar los valores del modal masivo DIRECTAMENTE al preview (sin depender de que
+    // el <select> #dc3-agent tenga las mismas opciones cargadas, ya que puede estar
+    // vacío/desincronizado si el modal individual nunca se abrió en esta sesión).
+    await previewDC3({
+        companyName: document.getElementById('bulk-company').value,
+        agentVal:    document.getElementById('bulk-agent').value,
+        courseVal:   document.getElementById('bulk-course').value,
+        start:       document.getElementById('bulk-start').value,
+        end:         document.getElementById('bulk-end').value
+    });
 }
 
 // ─── PREVISUALIZACIÓN DC-3 ────────────────────────────────────────────
 let _previewPdfBytes = null;
 
-async function previewDC3() {
-    const companyName = document.getElementById('dc3-company').value;
-    const agentVal    = document.getElementById('dc3-agent').value;
-    const courseVal   = document.getElementById('dc3-course').value;
-    const start       = document.getElementById('dc3-start').value;
-    const end         = document.getElementById('dc3-end').value;
+async function previewDC3(overrides = {}) {
+    const companyName = overrides.companyName ?? document.getElementById('dc3-company').value;
+    const agentVal    = overrides.agentVal ?? document.getElementById('dc3-agent').value;
+    const courseVal   = overrides.courseVal ?? document.getElementById('dc3-course').value;
+    const start       = overrides.start ?? document.getElementById('dc3-start').value;
+    const end         = overrides.end ?? document.getElementById('dc3-end').value;
 
     if (!start || !end) { alert('Selecciona las fechas de inicio y término para previsualizar'); return; }
 
@@ -3990,7 +3995,11 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     // 2. Si es generación REAL (o no tenemos diseño local), cargar de la Base de Datos del agente correspondiente
     if (!agentDesign || !isDesignPreview) {
         try {
-            const agentRecord = (DATA.agents || []).find(a => a.name && agent.name && a.name.toUpperCase().trim() === agent.name.toUpperCase().trim());
+            const normAgentName = (agent.name || '').toUpperCase().trim();
+            const agentMatches = (DATA.agents || []).filter(a => (a.name || '').toUpperCase().trim() === normAgentName);
+            const agentRecord = agentMatches.length > 1
+                ? (agentMatches.find(a => a.creatorEmail && a.creatorEmail !== currentUser?.email) || agentMatches[0])
+                : agentMatches[0];
             const agentEmail = agentRecord?.creatorEmail || currentUser?.email || '';
             const dr = await api('find','agent_designs', { filter: { creatorEmail: agentEmail } });
             if (dr.documents && dr.documents.length > 0) {
