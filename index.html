@@ -2457,12 +2457,14 @@ async function _buildDiplomaCore(opts = {}) {
             const ownerEmail = agentRecord?.creatorEmail || currentUser.email;
             const dr = await api('find','agent_designs', { filter: { creatorEmail: ownerEmail } });
             if (dr.documents?.length > 0) {
+                // dr.documents ya viene convertido a camelCase por api() — NO volver a
+                // leer campos en snake_case aquí, o siempre resultarán undefined.
                 const doc = dr.documents[0];
-                d = toCamel(doc);
-                templateUrl = doc.diploma_template_url || null;
+                d = doc;
+                templateUrl = doc.diplomaTemplateUrl || null;
 
                 if (!imgBytes) {
-                    const b64Data = doc.diploma_template_base64 || doc.diploma_template_base_64 || doc.diploma_base_64;
+                    const b64Data = doc.diplomaBase64;
                     if (b64Data && b64Data.includes(',')) {
                         const b64 = b64Data.split(',')[1];
                         imgBytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
@@ -2788,10 +2790,9 @@ async function loadDesign() {
         try {
             const r = await api('find','agent_designs', { filter: { creatorEmail: emailToLoad } });
             if (r.documents && r.documents.length > 0) {
-                const doc = r.documents[0];
-                d = toCamel(doc);
-                // Si faltan columnas de diploma, intentar cargarlas de campos antiguos si existen
-                if (!d.diplomaBase64) d.diplomaBase64 = doc.diploma_template_base64 || doc.diploma_template_base_64 || doc.diploma_base_64 || doc.diploma_base_64;
+                // r.documents ya viene convertido a camelCase por api() — no volver a
+                // pasarlo por toCamel ni leer campos snake_case aquí (siempre serían undefined).
+                d = r.documents[0];
                 console.log('[DEBUG] Loaded agent_design:', d);
             }
         } catch(e) {}
