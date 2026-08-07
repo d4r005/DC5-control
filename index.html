@@ -2924,37 +2924,6 @@ async function updateDiplomaDesignPreview() {
     container.innerHTML = `<iframe src="${url}" class="w-full h-full border-none rounded-lg shadow-sm"></iframe>`;
 }
 
-    drawPlaceholder("TRABAJADOR DE PRUEBA", getV('dip-worker-x'), getV('dip-worker-y'), getV('dip-worker-sz'), true, rgb(0.1, 0.2, 0.4), 'dip-worker-align');
-    drawPlaceholder("NOMBRE DEL CURSO DE PRUEBA", getV('dip-course-x'), getV('dip-course-y'), getV('dip-course-sz'), true, rgb(0,0,0), 'dip-course-align');
-    drawPlaceholder("8 HORAS", getV('dip-duration-x'), getV('dip-duration-y'), getV('dip-duration-sz'), true, rgb(0,0,0), 'dip-duration-align');
-    drawPlaceholder("27 DE JULIO DEL 2026", getV('dip-date-x'), getV('dip-date-y'), getV('dip-date-sz'), true, rgb(0,0,0), 'dip-date-align');
-    drawPlaceholder(currentUser?.name || "NOMBRE AGENTE CAPACITADOR", getV('dip-agent-x'), getV('dip-agent-y'), getV('dip-agent-sz'), true, rgb(0,0,0), 'dip-agent-align');
-    drawPlaceholder("REGISTRO STPS-XXX-001", getV('dip-stps-x'), getV('dip-stps-y'), getV('dip-stps-sz'), true, rgb(0,0,0), 'dip-stps-align');
-    drawPlaceholder("EHS-CON-2024-0001", getV('dip-folio-x'), getV('dip-folio-y'), getV('dip-folio-sz'), true, rgb(0,0,0), 'dip-folio-align');
-    drawPlaceholder("CÉDULA PROFESIONAL: 12345678", getV('dip-cedula-x'), getV('dip-cedula-y'), getV('dip-cedula-sz'), true, rgb(0,0,0), 'dip-cedula-align');
-
-    // Dibujar QR Placeholder (Diploma)
-    try {
-        const qrUrl = `https://ace-control.pages.dev/?v=preview`;
-        const qrBase64 = await generateQRBase64(qrUrl);
-        const qrImgBytes = Uint8Array.from(atob(qrBase64.split(',')[1]), c => c.charCodeAt(0));
-        const qrImg = await pdfDoc.embedPng(qrImgBytes);
-        const qsz = getV('dip-qr-x') > 0 ? getV('dip-qr-sz') : 50;
-        // Match top-alignment for QR
-        page.drawImage(qrImg, { x: getV('dip-qr-x') - qsz/2, y: PH - getV('dip-qr-y') - qsz, width: qsz, height: qsz });
-    } catch(e) {}
-
-    const outBytes = await pdfDoc.save();
-    const pdf = await pdfjsLib.getDocument({ data: outBytes }).promise;
-    const pg = await pdf.getPage(1);
-    const vp = pg.getViewport({ scale: 1.2 });
-    canvas.width = vp.width; canvas.height = vp.height;
-    await pg.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
-
-    designState._dipScale = vp.width / PW;
-    designState._dipPH = PH; // Store real height for coordinate sync
-    _updateDiplomaDragHandles();
-}
 
 function setDipAlign(field, align) {
     const input = document.getElementById(`dip-${field}-align`);
