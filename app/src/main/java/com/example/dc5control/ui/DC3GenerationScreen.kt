@@ -142,7 +142,7 @@ fun DC3GenerationScreen(
         statusText = "Iniciando generación masiva..."
         
         try {
-            val design = SupabaseRepository.fetchDataFilteredSuspend("agent_designs", "creator_email=eq.${agent.creatorEmail ?: user.email}&order=created_at.desc", AgentDesign.serializer()).firstOrNull()
+            val design = SupabaseRepository.fetchDataFilteredSuspend("agent_designs", "creator_email=eq.${agent.creatorEmail ?: ""}&order=created_at.desc", AgentDesign.serializer()).firstOrNull()
             val finalStps = calculateStps(agent.stps)
             
             val allFiles = mutableListOf<File>()
@@ -223,7 +223,7 @@ fun DC3GenerationScreen(
         val company = selectedCompany ?: return
         
         try {
-            val design = SupabaseRepository.fetchDataFilteredSuspend("agent_designs", "creator_email=eq.${agent.creatorEmail ?: user.email}&order=created_at.desc", AgentDesign.serializer()).firstOrNull()
+            val design = SupabaseRepository.fetchDataFilteredSuspend("agent_designs", "creator_email=eq.${agent.creatorEmail ?: ""}&order=created_at.desc", AgentDesign.serializer()).firstOrNull()
             
             if (isPreview) {
                 val employee = selectedEmployees.firstOrNull() ?: return
@@ -265,14 +265,21 @@ fun DC3GenerationScreen(
             val uniqueAgents = mutableListOf<Agent>()
             val seenNorms = mutableSetOf<String>()
 
-            fetched.forEach { agent ->
+            // Ordenar para que los agentes de usuarios NO-admin aparezcan primero.
+            // Cuando hay duplicados por nombre, el admin debe quedarse con la versión
+            // del otro usuario (ej. Cynthia), que tiene el creatorEmail correcto
+            // para cargar el diseño personalizado correspondiente.
+            val sorted = if (user.role == "ADMIN") {
+                fetched.sortedByDescending { it.creatorEmail != null && it.creatorEmail != user.email }
+            } else {
+                fetched
+            }
+
+            sorted.forEach { agent ->
                 val norm = normalize(agent.name)
                 if (norm !in seenNorms) {
                     uniqueAgents.add(agent)
                     seenNorms.add(norm)
-                } else if (agent.name.contains("Jesus", ignoreCase = true)) {
-                    uniqueAgents.removeAll { normalize(it.name) == norm }
-                    uniqueAgents.add(agent)
                 }
             }
             agents.clear()

@@ -99,7 +99,8 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
                 SupabaseRepository.fetchData("workers", Employee.serializer()) { employees ->
                     val employee = employees.find { it.curp == record.workerId }
                     SupabaseRepository.fetchData("agents", Agent.serializer()) { agents ->
-                        val agent = agents.find { it.name == record.agentName }
+                        val agent = agents.filter { it.name == record.agentName }
+                            .minByOrNull { it.creatorEmail == user.email }
                         // Cargar el diseño del agente para usar logo, firma y posiciones
                         val agentEmail = agent?.creatorEmail
                         SupabaseRepository.fetchData("agent_designs", AgentDesign.serializer()) { designs ->
@@ -149,7 +150,8 @@ fun DC3HistoryScreen(user: User, isExpanded: Boolean, onBack: () -> Unit) {
             SupabaseRepository.fetchData("workers", Employee.serializer()) { employees ->
                 val employee = employees.find { it.curp == record.workerId }
                 SupabaseRepository.fetchData("agents", Agent.serializer()) { agents ->
-                    val agent = agents.find { it.name == record.agentName }
+                    val agent = agents.filter { it.name == record.agentName }
+                        .minByOrNull { it.creatorEmail == user.email }
                     val agentEmail = agent?.creatorEmail
                     SupabaseRepository.fetchData("agent_designs", AgentDesign.serializer()) { designs ->
                         val design = designs.find { it.creatorEmail == agentEmail }
