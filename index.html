@@ -917,6 +917,56 @@
     </div>
 </div>
 
+<!-- Modal Licencia Montacargas -->
+<div id="modal-license" class="modal-overlay" style="z-index:1150">
+    <div class="modal-box" style="width:560px;max-width:95vw">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h3 class="text-lg font-bold text-gray-900">Licencia de Montacargas</h3>
+                <p class="text-xs text-gray-400 mt-0.5">Credencial de operador — frente y reverso</p>
+            </div>
+            <button onclick="closeModal('modal-license')" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+
+        <div class="bg-blue-50 rounded-xl p-4 mb-4">
+            <p class="text-xs font-semibold text-blue-900 uppercase mb-2">Datos del DC-3</p>
+            <div class="grid grid-cols-2 gap-2 text-sm">
+                <div><span class="text-gray-400 text-xs">Trabajador:</span><br><span id="lic-worker" class="font-semibold"></span></div>
+                <div><span class="text-gray-400 text-xs">CURP:</span><br><span id="lic-curp" class="font-mono text-xs"></span></div>
+                <div><span class="text-gray-400 text-xs">Folio DC-3:</span><br><span id="lic-folio" class="font-mono text-xs"></span></div>
+                <div><span class="text-gray-400 text-xs">Vigencia (según DC-3):</span><br><span id="lic-vigencia" class="text-xs"></span></div>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <p class="text-xs font-semibold text-gray-500 uppercase mb-1">Logo de la empresa</p>
+            <div class="flex items-center gap-3">
+                <div id="lic-logo-preview" class="w-20 h-14 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden bg-white">
+                    <span class="text-xs text-gray-300">Sin logo</span>
+                </div>
+                <div class="flex flex-col gap-2">
+                    <button onclick="document.getElementById('lic-logo-input').click()" class="btn-sm btn-outline px-4">📎 Subir logo</button>
+                    <button onclick="_licClearLogo()" class="btn-sm btn-outline px-4" style="color:#dc2626;border-color:#fca5a5">Quitar</button>
+                </div>
+                <input type="file" id="lic-logo-input" accept="image/*" class="hidden" onchange="_licLogoChanged(this)">
+            </div>
+            <p class="text-xs text-gray-300 mt-1">Se recuerda en este dispositivo para <span id="lic-company-name" class="font-semibold"></span></p>
+        </div>
+
+        <div class="mb-5">
+            <p class="text-xs font-semibold text-gray-500 uppercase mb-1">Equipo certificado (marca lo aplicable)</p>
+            <div id="lic-equipment" class="grid grid-cols-1 gap-2 text-sm"></div>
+        </div>
+
+        <div class="flex justify-end gap-3">
+            <button onclick="closeModal('modal-license')" class="btn-sm btn-outline px-5">Cerrar</button>
+            <button onclick="generateLicensePDF()" class="btn-sm btn-indigo px-7">⬇ Generar Licencia PDF</button>
+        </div>
+    </div>
+</div>
+
 <!-- Modal DC-3 Masivo -->
 <div id="modal-bulk-dc3" class="modal-overlay" style="z-index:1050">
     <div class="modal-box" style="width:640px;max-width:95vw">
@@ -1809,6 +1859,7 @@ async function loadSection(v) {
                     <td class="font-mono text-xs text-blue-900">${contextualFolio}</td>
                     <td class="text-right">
                         <div class="flex justify-end gap-2">
+                            ${(currentHistoryTab === 'DC3' && (x.courseName||'').toUpperCase().includes('MONTACARGAS')) ? `<button onclick='openLicenseModal(${JSON.stringify(x)})' title="Licencia de Montacargas" class="btn-sm btn-outline" style="border-color:#1e3a8a;color:#1e3a8a">🪪</button>` : ''}
                             <button onclick='previewRecordPDF(${JSON.stringify(x)})' title="Previsualizar" class="btn-sm btn-outline" style="border-color:#1e3a8a;color:#1e3a8a">👁 Ver</button>
                             <button onclick='downloadRecordPDF(${JSON.stringify(x)})' title="Descargar PDF" class="btn-sm btn-indigo">⬇ PDF</button>
                             <button onclick='prepareEditDC3(${JSON.stringify(x)})' title="Editar Registro" class="btn-sm btn-outline">✎</button>
@@ -3724,6 +3775,299 @@ async function embedBase64Img(pdfDoc, dataUrl) {
 
 
 
+
+// ─── LICENCIA DE MONTACARGAS ─────────────────────────────
+let _licRecord = null;
+let _licLogoDataUrl = null;
+const LIC_EQUIPOS = [
+    "MONTACARGAS ELECTRICO DE CONTRAPESO",
+    "MONTACARGAS DE COMBUSTION INTERNA",
+    "MONTACARGAS RETRACTIL / DE ALCANCE",
+    "TRANSPALETA ELECTRICA",
+    "APILADOR ELECTRICO"
+];
+const LIC_REGLAS = [
+    "Opera unicamente el equipo para el que fuiste capacitado y autorizado.",
+    "Realiza la revision preoperacional antes de iniciar cada turno.",
+    "Usa siempre el cinturon de seguridad durante la operacion.",
+    "Respeta la capacidad de carga y el centro de gravedad del equipo.",
+    "Circula a velocidad reducida y toca el claxon en cruces y esquinas ciegas.",
+    "Esta prohibido transportar o elevar personas en las horquillas.",
+    "Estaciona con horquillas bajas, freno aplicado y llave retirada.",
+    "No operes bajo efectos de alcohol, drogas o medicamentos que alteren tu capacidad.",
+    "Reporta de inmediato cualquier falla, incidente o condicion insegura.",
+    "Cumple la NOM-006-STPS-2009 y los procedimientos internos de seguridad."
+];
+
+function openLicenseModal(record) {
+    _licRecord = record;
+    document.getElementById('lic-worker').textContent = record.workerName || '–';
+    document.getElementById('lic-curp').textContent = record.workerId || '–';
+    document.getElementById('lic-folio').textContent = record.folioDc3 || record.folio || '–';
+    document.getElementById('lic-vigencia').textContent = `${record.startDate || '–'} AL ${record.endDate || '–'}`;
+    document.getElementById('lic-company-name').textContent = record.companyName || '–';
+
+    try { _licLogoDataUrl = localStorage.getItem('lic_logo_b64_' + (record.companyName||'')) || null; }
+    catch(e) { _licLogoDataUrl = null; }
+    _licRenderLogo();
+
+    document.getElementById('lic-equipment').innerHTML = LIC_EQUIPOS.map((eq,i) => `
+        <label class="flex items-center gap-2 text-sm text-gray-700">
+            <input type="checkbox" class="lic-eq rounded" value="${i}" ${i<2?'checked':''}> ${eq}
+        </label>`).join('');
+
+    document.getElementById('modal-license').classList.add('open');
+}
+
+function _licRenderLogo() {
+    const el = document.getElementById('lic-logo-preview');
+    el.innerHTML = _licLogoDataUrl
+        ? `<img src="${_licLogoDataUrl}" class="w-full h-full object-contain">`
+        : '<span class="text-xs text-gray-300">Sin logo</span>';
+}
+
+function _licLogoChanged(input) {
+    const file = input.files && input.files[0];
+    if (!file || !_licRecord) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+        _licLogoDataUrl = reader.result;
+        try { localStorage.setItem('lic_logo_b64_' + (_licRecord.companyName||''), _licLogoDataUrl); } catch(e) {}
+        _licRenderLogo();
+    };
+    reader.readAsDataURL(file);
+    input.value = '';
+}
+
+function _licClearLogo() {
+    if (_licRecord) { try { localStorage.removeItem('lic_logo_b64_' + (_licRecord.companyName||'')); } catch(e) {} }
+    _licLogoDataUrl = null;
+    _licRenderLogo();
+}
+
+function _licWrap(text, font, size, maxW) {
+    const words = (text||'').split(/\s+/).filter(Boolean);
+    const lines = []; let cur = '';
+    for (const w of words) {
+        const t = cur ? cur + ' ' + w : w;
+        if (font.widthOfTextAtSize(t, size) > maxW && cur) { lines.push(cur); cur = w; }
+        else cur = t;
+    }
+    if (cur) lines.push(cur);
+    return lines;
+}
+
+async function generateLicensePDF() {
+    if (!_licRecord) return;
+    const record = _licRecord;
+    try {
+        const { PDFDocument, StandardFonts, rgb } = PDFLib;
+        const pdfDoc = await PDFDocument.create();
+        pdfDoc.setTitle('Licencia Montacargas - ' + (record.workerName||''));
+        const font  = await pdfDoc.embedFont(StandardFonts.Helvetica);
+        const fontB = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+        const PW = 396, PH = 612;
+        const BLUE  = rgb(0.118, 0.227, 0.541);
+        const GRAY  = rgb(0.45, 0.50, 0.55);
+        const DARK  = rgb(0.10, 0.12, 0.15);
+        const GREEN = rgb(0.090, 0.416, 0.176);
+        const AMBER = rgb(0.851, 0.471, 0.020);
+        const RED   = rgb(0.863, 0.149, 0.149);
+        const LIGHT = rgb(0.83, 0.86, 0.90);
+
+        // Foto del trabajador (opcional)
+        let photoImg = null;
+        try {
+            const wr = await api('find','workers',{ filter: { curp: record.workerId } });
+            const w = (wr.documents||[])[0];
+            if (w && w.photoUrl) {
+                const bytes = await fetch(w.photoUrl).then(r => r.arrayBuffer());
+                photoImg = await pdfDoc.embedJpg(bytes).catch(() => pdfDoc.embedPng(bytes));
+            }
+        } catch(e) { console.warn('Lic: sin foto', e); }
+
+        // Firma del agente capacitador (de su diseno guardado)
+        let firmaImg = null;
+        try {
+            const matches = (DATA.agents||[]).filter(a => (a.name||'').toUpperCase().trim() === (record.agentName||'').toUpperCase().trim());
+            const agentRec = matches.length > 1
+                ? (matches.find(a => a.creatorEmail && a.creatorEmail !== currentUser?.email) || matches[0])
+                : matches[0];
+            const ownerEmail = agentRec?.creatorEmail || record.creatorEmail || currentUser.email;
+            const dr = await api('find','agent_designs',{ filter: { creatorEmail: ownerEmail } });
+            const d = (dr.documents||[])[0];
+            if (d && (d.firmaBase64 || d.firma_base_64)) {
+                firmaImg = await embedBase64Img(pdfDoc, d.firmaBase64 || d.firma_base_64);
+            }
+        } catch(e) { console.warn('Lic: sin firma', e); }
+
+        // Logo de la empresa
+        let logoImg = null;
+        if (_licLogoDataUrl) {
+            try { logoImg = await embedBase64Img(pdfDoc, _licLogoDataUrl); } catch(e) {}
+        }
+
+        // QR de verificacion
+        const qrUrl = 'https://ace-control.pages.dev/?v=' + record.id;
+        let qrImg = null;
+        try {
+            const qrB64 = await generateQRBase64(qrUrl);
+            qrImg = await embedBase64Img(pdfDoc, qrB64);
+        } catch(e) {}
+
+        const equipIdx = [...document.querySelectorAll('.lic-eq:checked')].map(cb => parseInt(cb.value));
+
+        // ════════ FRENTE ════════
+        const front = pdfDoc.addPage([PW, PH]);
+        front.drawRectangle({ x: 0, y: PH-78, width: PW, height: 78, color: BLUE });
+
+        // Caja del logo (imagen o nombre de la empresa)
+        front.drawRectangle({ x: 10, y: PH-66, width: 112, height: 46, color: rgb(1,1,1) });
+        if (logoImg) {
+            const sc = Math.min(100/logoImg.width, 40/logoImg.height) * 0.92;
+            const iw = logoImg.width*sc, ih = logoImg.height*sc;
+            front.drawImage(logoImg, { x: 10+(112-iw)/2, y: PH-66+(46-ih)/2, width: iw, height: ih });
+        } else {
+            const cn = _licWrap((record.companyName||'').toUpperCase(), fontB, 6.5, 100);
+            let cy2 = PH-66 + (46 - cn.slice(0,3).length*8)/2 + 4;
+            cn.slice(0,3).forEach(l => { front.drawText(l, { x: 16, y: cy2, size: 6.5, font: fontB, color: DARK }); cy2 -= 8; });
+        }
+
+        const tx = logoImg ? 132 : 10;
+        front.drawText('LICENCIA DE OPERADOR', { x: tx, y: PH-38, size: 13, font: fontB, color: rgb(1,1,1) });
+        front.drawText('MONTACARGAS', { x: tx, y: PH-54, size: 10, font: font, color: rgb(0.85, 0.90, 1) });
+
+        // Foto + datos del trabajador
+        const photoBox = { x: 16, y: PH-78-16-110, w: 88, h: 110 };
+        front.drawRectangle({ x: photoBox.x, y: photoBox.y, width: photoBox.w, height: photoBox.h, borderColor: LIGHT, borderWidth: 1 });
+        if (photoImg) {
+            const sc = Math.max(photoBox.w/photoImg.width, photoBox.h/photoImg.height);
+            const iw = photoImg.width*sc, ih = photoImg.height*sc;
+            front.drawImage(photoImg, { x: photoBox.x+(photoBox.w-iw)/2, y: photoBox.y+(photoBox.h-ih)/2, width: iw, height: ih });
+        } else {
+            front.drawText('SIN FOTO', { x: photoBox.x+18, y: photoBox.y+50, size: 7, font: font, color: GRAY });
+        }
+
+        let ny = PH-78-30;
+        _licWrap((record.workerName||'').toUpperCase(), fontB, 12.5, 262).slice(0,2).forEach(l => {
+            front.drawText(l, { x: 116, y: ny, size: 12.5, font: fontB, color: DARK }); ny -= 15.5;
+        });
+        front.drawText('CURP: ' + (record.workerId||'-'), { x: 116, y: ny, size: 7.5, font: font, color: GRAY }); ny -= 13;
+        front.drawText('PUESTO: ' + (record.workerPos||'-'), { x: 116, y: ny, size: 7.5, font: font, color: GRAY }); ny -= 13;
+        front.drawText('EMPRESA: ' + (record.companyName||'-'), { x: 116, y: ny, size: 7.5, font: font, color: GRAY }); ny -= 13;
+
+        // Semaforo de riesgo
+        let sy = photoBox.y - 20;
+        front.drawText('NIVEL DE RIESGO', { x: 16, y: sy, size: 7, font: fontB, color: GRAY });
+        [[GREEN,'BAJO'],[AMBER,'MEDIO'],[RED,'ALTO']].forEach(([col,lab],i) => {
+            const dx = 130 + i*62;
+            front.drawCircle({ x: dx, y: sy+3.5, size: 7.5, color: col });
+            front.drawText(lab, { x: dx+13, y: sy, size: 7, font: font, color: GRAY });
+        });
+        sy -= 24;
+
+        // Vigencia (segun DC-3) + Folio DC-3
+        const halfW = (PW-38)/2;
+        front.drawRectangle({ x: 16, y: sy-36, width: halfW, height: 36, borderColor: LIGHT, borderWidth: 1 });
+        front.drawText('VIGENCIA (SEGUN DC-3)', { x: 21, y: sy-16, size: 6.5, font: fontB, color: GRAY });
+        front.drawText((record.startDate||'-') + ' AL ' + (record.endDate||'-'), { x: 21, y: sy-28, size: 8, font: fontB, color: DARK });
+        front.drawRectangle({ x: 22+halfW, y: sy-36, width: halfW, height: 36, borderColor: LIGHT, borderWidth: 1 });
+        front.drawText('FOLIO DC-3', { x: 22+halfW+6, y: sy-16, size: 6.5, font: fontB, color: GRAY });
+        front.drawText(record.folioDc3 || record.folio || '-', { x: 22+halfW+6, y: sy-28, size: 8, font: fontB, color: BLUE });
+
+        // QR + folio de licencia
+        const qrY = sy - 36 - 14 - 80;
+        if (qrImg) front.drawImage(qrImg, { x: 16, y: qrY, width: 80, height: 80 });
+        front.drawText('LIC. No.', { x: 108, y: qrY+64, size: 7, font: fontB, color: GRAY });
+        const licFolio = 'LIC-' + (record.folioDc3 || record.folio || (record.id||'').slice(0,8) || 'SN');
+        front.drawText(licFolio, { x: 108, y: qrY+50, size: 9.5, font: fontB, color: BLUE });
+        front.drawText('CURSO:', { x: 108, y: qrY+34, size: 6.5, font: fontB, color: GRAY });
+        _licWrap((record.courseName||'').toUpperCase(), font, 6.5, 262).slice(0,3).forEach((l,i) => {
+            front.drawText(l, { x: 108, y: qrY+26-i*8, size: 6.5, font: font, color: DARK });
+        });
+
+        // Firma del agente capacitador (unica firma)
+        const fY = 58;
+        if (firmaImg) {
+            const sc = Math.min(120/firmaImg.width, 44/firmaImg.height);
+            const iw = firmaImg.width*sc, ih = firmaImg.height*sc;
+            front.drawImage(firmaImg, { x: (PW-iw)/2, y: fY+3, width: iw, height: ih });
+        }
+        front.drawLine({ start: { x: 108, y: fY }, end: { x: PW-108, y: fY }, color: DARK, thickness: 0.8 });
+        const agName = (record.agentName||'').toUpperCase();
+        const agW = fontB.widthOfTextAtSize(agName, 8);
+        front.drawText(agName, { x: (PW-agW)/2, y: fY-12, size: 8, font: fontB, color: DARK });
+        const agSub = 'AGENTE CAPACITADOR  ·  ' + (record.agentStps||'');
+        const subW = font.widthOfTextAtSize(agSub, 6.5);
+        front.drawText(agSub, { x: (PW-subW)/2, y: fY-22, size: 6.5, font: font, color: GRAY });
+
+        // ════════ REVERSO ════════
+        const back = pdfDoc.addPage([PW, PH]);
+        back.drawRectangle({ x: 0, y: PH-42, width: PW, height: 42, color: BLUE });
+        back.drawText('EQUIPO CERTIFICADO Y REGLAMENTO', { x: 16, y: PH-25, size: 11, font: fontB, color: rgb(1,1,1) });
+
+        // Equipo certificado
+        let by = PH-42-16;
+        back.drawText('EQUIPO CERTIFICADO', { x: 16, y: by, size: 7.5, font: fontB, color: BLUE });
+        by -= 8;
+        LIC_EQUIPOS.forEach((eq,i) => {
+            const ry = by - i*15;
+            const ok = equipIdx.includes(i);
+            back.drawRectangle({ x: 16, y: ry-8, width: 9, height: 9, borderColor: ok ? GREEN : LIGHT, borderWidth: 1, color: ok ? GREEN : undefined });
+            if (ok) {
+                back.drawLine({ start: { x: 17.6, y: ry-4 }, end: { x: 19.4, y: ry-6.2 }, color: rgb(1,1,1), thickness: 1.1 });
+                back.drawLine({ start: { x: 19.4, y: ry-6.2 }, end: { x: 23.4, y: ry-1 }, color: rgb(1,1,1), thickness: 1.1 });
+            }
+            back.drawText(eq, { x: 32, y: ry-6, size: 7, font: font, color: ok ? DARK : GRAY });
+        });
+        by -= LIC_EQUIPOS.length*15 + 12;
+
+        // Semaforo ponchable (control de incidencias)
+        back.drawText('CONTROL DE INCIDENCIAS (PONCHAR SEGUN CORRESPONDA)', { x: 16, y: by, size: 7.5, font: fontB, color: BLUE });
+        by -= 10;
+        [[GREEN,'BAJO',8],[AMBER,'MEDIO',6],[RED,'ALTO',4]].forEach(([col,lab,count],r) => {
+            const ry = by - r*23;
+            back.drawText(lab, { x: 16, y: ry, size: 7, font: fontB, color: DARK });
+            for (let i=0;i<count;i++) {
+                const cx = 78 + i*22;
+                back.drawCircle({ x: cx, y: ry+3, size: 8, borderColor: col, borderWidth: 1.2 });
+                back.drawText(String(i+1), { x: cx-2, y: ry+0.5, size: 5.5, font: font, color: col });
+            }
+        });
+        by -= 3*23 + 2;
+        back.drawText('VERDE: OPERACION NORMAL  ·  AMARILLO: AMONESTACION  ·  ROJO: SUSPENSION', { x: 16, y: by, size: 5.8, font: font, color: GRAY });
+        by -= 18;
+
+        // Reglamento de uso (10 reglas)
+        back.drawText('REGLAMENTO DE USO', { x: 16, y: by, size: 7.5, font: fontB, color: BLUE });
+        by -= 11;
+        LIC_REGLAS.forEach((rule, i) => {
+            back.drawText((i+1) + '.', { x: 16, y: by, size: 6.3, font: fontB, color: DARK });
+            const lines = _licWrap(rule, font, 6.3, PW-16-26-6);
+            lines.forEach((l, li) => {
+                back.drawText(l, { x: 26, y: by - li*8, size: 6.3, font: font, color: DARK });
+            });
+            by -= lines.length*8 + 2.5;
+        });
+
+        back.drawText('VERIFICA ESTE DOCUMENTO EN: ace-control.pages.dev', { x: 16, y: 12, size: 5.5, font: font, color: GRAY });
+
+        // Guardar y descargar
+        const pdfBytes = await pdfDoc.save();
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'Licencia_' + (record.workerId || record.workerName || 'operador') + '.pdf';
+        a.click();
+        URL.revokeObjectURL(url);
+        closeModal('modal-license');
+    } catch(e) {
+        console.error('Error generando licencia:', e);
+        alert('Error al generar la licencia: ' + (e.message || e));
+    }
+}
 
 // ─── SELECCIÓN MASIVA DE TRABAJADORES ─────────────────────────────────
 let selectedWorkers = [];
