@@ -3921,7 +3921,7 @@ async function generateLicensePDF() {
         const font  = await pdfDoc.embedFont(StandardFonts.Helvetica);
         const fontB = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-        const PW = 396, PH = 612;
+        const PW = 243, PH = 153; // Tarjeta credencial CR80 (3.375in x 2.125in)
         const BLUE  = rgb(0.118, 0.227, 0.541);
         const GRAY  = rgb(0.45, 0.50, 0.55);
         const DARK  = rgb(0.10, 0.12, 0.15);
@@ -3943,6 +3943,7 @@ async function generateLicensePDF() {
 
         // Firma del agente capacitador (de su diseno guardado)
         let firmaImg = null;
+        let designLogoB64 = null;
         try {
             const matches = (DATA.agents||[]).filter(a => (a.name||'').toUpperCase().trim() === (record.agentName||'').toUpperCase().trim());
             const agentRec = matches.length > 1
@@ -3954,12 +3955,17 @@ async function generateLicensePDF() {
             if (d && (d.firmaBase64 || d.firma_base_64)) {
                 firmaImg = await embedBase64Img(pdfDoc, d.firmaBase64 || d.firma_base_64);
             }
+            // Logo de la empresa: usar el logo del diseno del agente (mismo que aparece en el DC-3)
+            if (d && (d.headerLogoBase64 || d.header_logo_base64)) {
+                designLogoB64 = d.headerLogoBase64 || d.header_logo_base64;
+            }
         } catch(e) { console.warn('Lic: sin firma', e); }
 
-        // Logo de la empresa
+        // Logo de la empresa: subido en el modal, o el del diseno del agente (como en el DC-3)
         let logoImg = null;
-        if (_licLogoDataUrl) {
-            try { logoImg = await embedBase64Img(pdfDoc, _licLogoDataUrl); } catch(e) {}
+        const logoSrc = _licLogoDataUrl || designLogoB64;
+        if (logoSrc) {
+            try { logoImg = await embedBase64Img(pdfDoc, logoSrc); } catch(e) {}
         }
 
         // QR de verificacion
@@ -3972,140 +3978,125 @@ async function generateLicensePDF() {
 
         const equipIdx = [...document.querySelectorAll('.lic-eq:checked')].map(cb => parseInt(cb.value));
 
-        // ════════ FRENTE ════════
+        // ════════ FRENTE (tarjeta credencial) ════════
         const front = pdfDoc.addPage([PW, PH]);
-        front.drawRectangle({ x: 0, y: PH-78, width: PW, height: 78, color: BLUE });
+        front.drawRectangle({ x: 0, y: PH-22, width: PW, height: 22, color: BLUE });
 
-        // Caja del logo (imagen o nombre de la empresa)
-        front.drawRectangle({ x: 10, y: PH-66, width: 112, height: 46, color: rgb(1,1,1) });
+        // Caja del logo (solo imagen, sin texto de relleno)
+        front.drawRectangle({ x: 4, y: PH-20, width: 36, height: 18, color: rgb(1,1,1) });
         if (logoImg) {
-            const sc = Math.min(100/logoImg.width, 40/logoImg.height) * 0.92;
+            const sc = Math.min(32/logoImg.width, 14/logoImg.height) * 0.95;
             const iw = logoImg.width*sc, ih = logoImg.height*sc;
-            front.drawImage(logoImg, { x: 10+(112-iw)/2, y: PH-66+(46-ih)/2, width: iw, height: ih });
-        } else {
-            const cn = _licWrap((record.companyName||'').toUpperCase(), fontB, 6.5, 100);
-            let cy2 = PH-66 + (46 - cn.slice(0,3).length*8)/2 + 4;
-            cn.slice(0,3).forEach(l => { front.drawText(l, { x: 16, y: cy2, size: 6.5, font: fontB, color: DARK }); cy2 -= 8; });
+            front.drawImage(logoImg, { x: 4+(36-iw)/2, y: PH-20+(18-ih)/2, width: iw, height: ih });
         }
+        front.drawText('LICENCIA DE OPERADOR', { x: 45, y: PH-12.5, size: 6.5, font: fontB, color: rgb(1,1,1) });
+        front.drawText('DE MONTACARGAS', { x: 45, y: PH-19.5, size: 4.8, font: font, color: rgb(0.85, 0.90, 1) });
 
-        const tx = logoImg ? 132 : 10;
-        front.drawText('LICENCIA DE OPERADOR', { x: tx, y: PH-38, size: 13, font: fontB, color: rgb(1,1,1) });
-        front.drawText('MONTACARGAS', { x: tx, y: PH-54, size: 10, font: font, color: rgb(0.85, 0.90, 1) });
-
-        // Foto + datos del trabajador
-        const photoBox = { x: 16, y: PH-78-16-110, w: 88, h: 110 };
-        front.drawRectangle({ x: photoBox.x, y: photoBox.y, width: photoBox.w, height: photoBox.h, borderColor: LIGHT, borderWidth: 1 });
+        // Foto del trabajador
+        const photoBox = { x: 5, y: PH-31-48, w: 34, h: 48 };
+        front.drawRectangle({ x: photoBox.x, y: photoBox.y, width: photoBox.w, height: photoBox.h, borderColor: LIGHT, borderWidth: 0.8 });
         if (photoImg) {
             const sc = Math.max(photoBox.w/photoImg.width, photoBox.h/photoImg.height);
             const iw = photoImg.width*sc, ih = photoImg.height*sc;
             front.drawImage(photoImg, { x: photoBox.x+(photoBox.w-iw)/2, y: photoBox.y+(photoBox.h-ih)/2, width: iw, height: ih });
         } else {
-            front.drawText('SIN FOTO', { x: photoBox.x+18, y: photoBox.y+50, size: 7, font: font, color: GRAY });
+            front.drawText('SIN FOTO', { x: photoBox.x+4, y: photoBox.y+22, size: 4, font: font, color: GRAY });
         }
 
-        let ny = PH-78-30;
-        _licWrap((record.workerName||'').toUpperCase(), fontB, 12.5, 262).slice(0,2).forEach(l => {
-            front.drawText(l, { x: 116, y: ny, size: 12.5, font: fontB, color: DARK }); ny -= 15.5;
+        // Datos del trabajador (derecha de la foto)
+        let ny = PH-36;
+        _licWrap((record.workerName||'').toUpperCase(), fontB, 6.2, 193).slice(0,2).forEach(l => {
+            front.drawText(l, { x: 45, y: ny, size: 6.2, font: fontB, color: DARK }); ny -= 7.2;
         });
-        front.drawText('CURP: ' + (record.workerId||'-'), { x: 116, y: ny, size: 7.5, font: font, color: GRAY }); ny -= 13;
-        front.drawText('PUESTO: ' + (record.workerPos||'-'), { x: 116, y: ny, size: 7.5, font: font, color: GRAY }); ny -= 13;
-        front.drawText('EMPRESA: ' + (record.companyName||'-'), { x: 116, y: ny, size: 7.5, font: font, color: GRAY }); ny -= 13;
+        front.drawText('CURP: ' + (record.workerId||'-'), { x: 45, y: ny, size: 4, font: font, color: GRAY }); ny -= 5.5;
+        front.drawText('PUESTO: ' + (record.workerPos||'-'), { x: 45, y: ny, size: 4, font: font, color: GRAY }); ny -= 5.5;
+        const empLines = _licWrap('EMPRESA: ' + (record.companyName||'-'), font, 4, 193).slice(0,2);
+        empLines.forEach(l => { front.drawText(l, { x: 45, y: ny, size: 4, font: font, color: GRAY }); ny -= 5.5; });
 
         // Semaforo de riesgo
-        let sy = photoBox.y - 20;
-        front.drawText('NIVEL DE RIESGO', { x: 16, y: sy, size: 7, font: fontB, color: GRAY });
-        [[GREEN,'BAJO'],[AMBER,'MEDIO'],[RED,'ALTO']].forEach(([col,lab],i) => {
-            const dx = 130 + i*62;
-            front.drawCircle({ x: dx, y: sy+3.5, size: 7.5, color: col });
-            front.drawText(lab, { x: dx+13, y: sy, size: 7, font: font, color: GRAY });
+        const ry1 = photoBox.y - 8;
+        front.drawText('NIVEL DE RIESGO', { x: 5, y: ry1, size: 4, font: fontB, color: GRAY });
+        [[GREEN,'BAJO',48],[AMBER,'MEDIO',100],[RED,'ALTO',152]].forEach(([col,lab,dx]) => {
+            front.drawCircle({ x: dx, y: ry1+1.5, size: 3, color: col });
+            front.drawText(lab, { x: dx+5.5, y: ry1, size: 3.8, font: font, color: GRAY });
         });
-        sy -= 24;
 
         // Vigencia (segun DC-3) + Folio DC-3
-        const halfW = (PW-38)/2;
-        front.drawRectangle({ x: 16, y: sy-36, width: halfW, height: 36, borderColor: LIGHT, borderWidth: 1 });
-        front.drawText('VIGENCIA (SEGUN DC-3)', { x: 21, y: sy-16, size: 6.5, font: fontB, color: GRAY });
-        front.drawText((record.startDate||'-') + ' AL ' + (record.endDate||'-'), { x: 21, y: sy-28, size: 8, font: fontB, color: DARK });
-        front.drawRectangle({ x: 22+halfW, y: sy-36, width: halfW, height: 36, borderColor: LIGHT, borderWidth: 1 });
-        front.drawText('FOLIO DC-3', { x: 22+halfW+6, y: sy-16, size: 6.5, font: fontB, color: GRAY });
-        front.drawText(record.folioDc3 || record.folio || '-', { x: 22+halfW+6, y: sy-28, size: 8, font: fontB, color: BLUE });
+        front.drawRectangle({ x: 5, y: 40, width: 114, height: 16, borderColor: LIGHT, borderWidth: 0.8 });
+        front.drawText('VIGENCIA (SEGUN DC-3)', { x: 8, y: 49.5, size: 3.6, font: fontB, color: GRAY });
+        front.drawText((record.startDate||'-') + ' AL ' + (record.endDate||'-'), { x: 8, y: 42.5, size: 5, font: fontB, color: DARK });
+        front.drawRectangle({ x: 124, y: 40, width: 114, height: 16, borderColor: LIGHT, borderWidth: 0.8 });
+        front.drawText('FOLIO DC-3', { x: 127, y: 49.5, size: 3.6, font: fontB, color: GRAY });
+        front.drawText(record.folioDc3 || record.folio || '-', { x: 127, y: 42.5, size: 5, font: fontB, color: BLUE });
 
         // QR + folio de licencia
-        const qrY = sy - 36 - 14 - 80;
-        if (qrImg) front.drawImage(qrImg, { x: 16, y: qrY, width: 80, height: 80 });
-        front.drawText('LIC. No.', { x: 108, y: qrY+64, size: 7, font: fontB, color: GRAY });
+        if (qrImg) front.drawImage(qrImg, { x: 5, y: 5, width: 32, height: 32 });
+        front.drawText('LICENCIA No.', { x: 42, y: 33, size: 3.8, font: fontB, color: GRAY });
         const licFolio = 'LIC-' + (record.folioDc3 || record.folio || (record.id||'').slice(0,8) || 'SN');
-        front.drawText(licFolio, { x: 108, y: qrY+50, size: 9.5, font: fontB, color: BLUE });
-        front.drawText('CURSO:', { x: 108, y: qrY+34, size: 6.5, font: fontB, color: GRAY });
-        _licWrap((record.courseName||'').toUpperCase(), font, 6.5, 262).slice(0,3).forEach((l,i) => {
-            front.drawText(l, { x: 108, y: qrY+26-i*8, size: 6.5, font: font, color: DARK });
-        });
+        front.drawText(licFolio, { x: 42, y: 25.5, size: 6, font: fontB, color: BLUE });
+        front.drawText('CURSO: ' + (record.courseName||'').toUpperCase(), { x: 42, y: 16.5, size: 3.8, font: font, color: DARK });
 
         // Firma del agente capacitador (unica firma)
-        const fY = 58;
+        const sgnX1 = 155, sgnX2 = 238;
         if (firmaImg) {
-            const sc = Math.min(120/firmaImg.width, 44/firmaImg.height);
+            const sc = Math.min((sgnX2-sgnX1-4)/firmaImg.width, 20/firmaImg.height);
             const iw = firmaImg.width*sc, ih = firmaImg.height*sc;
-            front.drawImage(firmaImg, { x: (PW-iw)/2, y: fY+3, width: iw, height: ih });
+            front.drawImage(firmaImg, { x: sgnX1+(sgnX2-sgnX1-iw)/2, y: 14.5, width: iw, height: ih });
         }
-        front.drawLine({ start: { x: 108, y: fY }, end: { x: PW-108, y: fY }, color: DARK, thickness: 0.8 });
+        front.drawLine({ start: { x: sgnX1, y: 13 }, end: { x: sgnX2, y: 13 }, color: DARK, thickness: 0.6 });
         const agName = (record.agentName||'').toUpperCase();
-        const agW = fontB.widthOfTextAtSize(agName, 8);
-        front.drawText(agName, { x: (PW-agW)/2, y: fY-12, size: 8, font: fontB, color: DARK });
-        const agSub = 'AGENTE CAPACITADOR  ·  ' + (record.agentStps||'');
-        const subW = font.widthOfTextAtSize(agSub, 6.5);
-        front.drawText(agSub, { x: (PW-subW)/2, y: fY-22, size: 6.5, font: font, color: GRAY });
+        const agW = fontB.widthOfTextAtSize(agName, 3.6);
+        front.drawText(agName, { x: Math.max(sgnX1,(sgnX1+sgnX2-agW)/2), y: 8.5, size: 3.6, font: fontB, color: DARK });
+        const agSub = 'AGENTE CAPACITADOR' + (record.agentStps ? '  ·  ' + record.agentStps : '');
+        const subW = font.widthOfTextAtSize(agSub, 3);
+        front.drawText(agSub, { x: Math.max(sgnX1,(sgnX1+sgnX2-subW)/2), y: 4, size: 3, font: font, color: GRAY });
 
-        // ════════ REVERSO ════════
+        // ════════ REVERSO (tarjeta credencial) ════════
         const back = pdfDoc.addPage([PW, PH]);
-        back.drawRectangle({ x: 0, y: PH-42, width: PW, height: 42, color: BLUE });
-        back.drawText('EQUIPO CERTIFICADO Y REGLAMENTO', { x: 16, y: PH-25, size: 11, font: fontB, color: rgb(1,1,1) });
+        back.drawRectangle({ x: 0, y: PH-11, width: PW, height: 11, color: BLUE });
+        const bhTitle = 'EQUIPO CERTIFICADO · INCIDENCIAS · REGLAMENTO DE USO';
+        const bhW = fontB.widthOfTextAtSize(bhTitle, 5);
+        back.drawText(bhTitle, { x: (PW-bhW)/2, y: PH-8, size: 5, font: fontB, color: rgb(1,1,1) });
 
-        // Equipo certificado
-        let by = PH-42-16;
-        back.drawText('EQUIPO CERTIFICADO', { x: 16, y: by, size: 7.5, font: fontB, color: BLUE });
-        by -= 8;
+        // Equipo certificado (una columna)
+        let by = PH-17;
         LIC_EQUIPOS.forEach((eq,i) => {
-            const ry = by - i*15;
             const ok = equipIdx.includes(i);
-            back.drawRectangle({ x: 16, y: ry-8, width: 9, height: 9, borderColor: ok ? GREEN : LIGHT, borderWidth: 1, color: ok ? GREEN : undefined });
+            back.drawRectangle({ x: 5, y: by-4.5, width: 5, height: 5, borderColor: ok ? GREEN : LIGHT, borderWidth: 0.7, color: ok ? GREEN : undefined });
             if (ok) {
-                back.drawLine({ start: { x: 17.6, y: ry-4 }, end: { x: 19.4, y: ry-6.2 }, color: rgb(1,1,1), thickness: 1.1 });
-                back.drawLine({ start: { x: 19.4, y: ry-6.2 }, end: { x: 23.4, y: ry-1 }, color: rgb(1,1,1), thickness: 1.1 });
+                back.drawLine({ start: { x: 5.8, y: by-1.8 }, end: { x: 6.8, y: by-3 }, color: rgb(1,1,1), thickness: 0.7 });
+                back.drawLine({ start: { x: 6.8, y: by-3 }, end: { x: 9.2, y: by-0.5 }, color: rgb(1,1,1), thickness: 0.7 });
             }
-            back.drawText(eq, { x: 32, y: ry-6, size: 7, font: font, color: ok ? DARK : GRAY });
+            back.drawText(eq, { x: 14, y: by-3.5, size: 4.2, font: font, color: ok ? DARK : GRAY });
+            by -= 6.5;
         });
-        by -= LIC_EQUIPOS.length*15 + 12;
 
         // Semaforo ponchable (control de incidencias)
-        back.drawText('CONTROL DE INCIDENCIAS (PONCHAR SEGUN CORRESPONDA)', { x: 16, y: by, size: 7.5, font: fontB, color: BLUE });
-        by -= 10;
-        [[GREEN,'BAJO',8],[AMBER,'MEDIO',6],[RED,'ALTO',4]].forEach(([col,lab,count],r) => {
-            const ry = by - r*23;
-            back.drawText(lab, { x: 16, y: ry, size: 7, font: fontB, color: DARK });
+        by -= 2;
+        [[GREEN,'VERDE',8],[AMBER,'AMARILLO',6],[RED,'ROJO',4]].forEach(([col,lab,count]) => {
+            back.drawText(lab, { x: 5, y: by, size: 3.8, font: fontB, color: DARK });
             for (let i=0;i<count;i++) {
-                const cx = 78 + i*22;
-                back.drawCircle({ x: cx, y: ry+3, size: 8, borderColor: col, borderWidth: 1.2 });
-                back.drawText(String(i+1), { x: cx-2, y: ry+0.5, size: 5.5, font: font, color: col });
+                const cx = 40 + i*6.5;
+                back.drawCircle({ x: cx, y: by+1.5, size: 2.4, borderColor: col, borderWidth: 0.7 });
             }
+            by -= 6;
         });
-        by -= 3*23 + 2;
-        back.drawText('VERDE: OPERACION NORMAL  ·  AMARILLO: AMONESTACION  ·  ROJO: SUSPENSION', { x: 16, y: by, size: 5.8, font: font, color: GRAY });
-        by -= 18;
+        back.drawText('VERDE: OPERACION NORMAL · AMARILLO: AMONESTACION · ROJO: SUSPENSION', { x: 5, y: by, size: 3, font: font, color: GRAY });
+        by -= 5;
 
         // Reglamento de uso (10 reglas)
-        back.drawText('REGLAMENTO DE USO', { x: 16, y: by, size: 7.5, font: fontB, color: BLUE });
-        by -= 11;
+        back.drawText('REGLAMENTO DE USO', { x: 5, y: by, size: 3.8, font: fontB, color: BLUE });
+        by -= 4.5;
         LIC_REGLAS.forEach((rule, i) => {
-            back.drawText((i+1) + '.', { x: 16, y: by, size: 6.3, font: fontB, color: DARK });
-            const lines = _licWrap(rule, font, 6.3, PW-16-26-6);
+            back.drawText((i+1) + '.', { x: 5, y: by, size: 3.6, font: fontB, color: DARK });
+            const lines = _licWrap(rule, font, 3.6, 234-10);
             lines.forEach((l, li) => {
-                back.drawText(l, { x: 26, y: by - li*8, size: 6.3, font: font, color: DARK });
+                back.drawText(li===0 ? l : '   ' + l, { x: 13, y: by - li*4.3, size: 3.6, font: font, color: DARK });
             });
-            by -= lines.length*8 + 2.5;
+            by -= lines.length*4.3 + 1;
         });
 
-        back.drawText('VERIFICA ESTE DOCUMENTO EN: ace-control.pages.dev', { x: 16, y: 12, size: 5.5, font: font, color: GRAY });
+        back.drawText('VERIFICA ESTE DOCUMENTO EN: ace-control.pages.dev', { x: 5, y: 2.5, size: 3, font: font, color: GRAY });
 
         // Guardar y descargar
         // Guardar/actualizar la licencia en la BD (si la tabla existe)
