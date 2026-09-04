@@ -885,6 +885,7 @@
                     <div class="flex gap-2 justify-end">
                         <button onclick="previewDC3()" class="btn-sm btn-outline" style="border-color:#1e3a8a;color:#1e3a8a">👁 DC-3</button>
                         <button onclick="generateDC3()" class="btn-sm btn-indigo px-4">⬇ DC-3</button>
+                        <button onclick="openLicenseFromGenerator()" title="Licencia de Montacargas" class="btn-sm btn-outline" style="border-color:#1e3a8a;color:#1e3a8a">🪪</button>
                     </div>
                     <div class="flex gap-2 justify-end">
                         <button onclick="previewDiploma()" class="btn-sm btn-outline" style="border-color:#15803d;color:#15803d">👁 Diploma</button>
@@ -2108,6 +2109,7 @@ async function delItem(coll, id) {
 function openDC3(worker) {
     editingDC3Id = null;
     selectedWorker = worker;
+    _lastDC3Saved = null;
     // Nombre del trabajador
     const fullDC3Name = worker.apellidoPaterno
         ? `${worker.apellidoPaterno} ${worker.apellidoMaterno || ''} ${worker.nombres || ''}`.trim()
@@ -2238,6 +2240,13 @@ async function generateDC3() {
         alert("Error al preparar el registro: " + saveRes.error);
         return;
     }
+
+    _lastDC3Saved = {
+        id: saveRes.insertedId,
+        workerId: selectedWorker.curp, workerName: selectedWorker.name, workerPos: selectedWorker.position,
+        courseName, companyName, agentName, agentStps,
+        startDate: start, endDate: end, folio, folioDc3: folio
+    };
 
     const qrUrl = `https://ace-control.pages.dev/?v=${saveRes.insertedId}`;
 
@@ -3780,6 +3789,7 @@ async function embedBase64Img(pdfDoc, dataUrl) {
 let _licRecord = null;
 let _licLogoDataUrl = null;
 let _licSaved = null;
+let _lastDC3Saved = null; // ultimo registro DC-3 guardado desde el modal de generacion (para licencia directa)
 const LIC_EQUIPOS = [
     "MONTACARGAS ELECTRICO DE CONTRAPESO",
     "MONTACARGAS DE COMBUSTION INTERNA",
@@ -3799,6 +3809,37 @@ const LIC_REGLAS = [
     "Reporta de inmediato cualquier falla, incidente o condicion insegura.",
     "Cumple la NOM-006-STPS-2009 y los procedimientos internos de seguridad."
 ];
+
+function openLicenseFromGenerator() {
+    const courseVal = document.getElementById('dc3-course').value || '';
+    if (!courseVal.toUpperCase().includes('MONTACARGAS')) {
+        alert('El curso seleccionado no es de montacargas.');
+        return;
+    }
+    if (!selectedWorker) { alert('Selecciona un trabajador primero.'); return; }
+
+    const companyName = document.getElementById('dc3-company').value;
+    const agentVal    = document.getElementById('dc3-agent').value;
+    const start       = document.getElementById('dc3-start').value;
+    const end         = document.getElementById('dc3-end').value;
+    const [agentName, agentStps] = (agentVal||'').split('|');
+    const [courseName] = courseVal.split('|');
+
+    const matches = _lastDC3Saved
+        && _lastDC3Saved.workerId === selectedWorker.curp
+        && _lastDC3Saved.courseName === courseName
+        && _lastDC3Saved.companyName === companyName
+        && _lastDC3Saved.agentName === agentName
+        && _lastDC3Saved.startDate === start
+        && _lastDC3Saved.endDate === end;
+
+    if (!matches) {
+        alert('Primero genera la constancia DC-3 (botón ⬇ DC-3) con estos mismos datos. Luego podrás generar su licencia.');
+        return;
+    }
+
+    openLicenseModal(_lastDC3Saved);
+}
 
 async function openLicenseModal(record) {
     _licRecord = record;
