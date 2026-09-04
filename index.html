@@ -1319,7 +1319,7 @@ window.onload = async () => {
 // ─── API ──────────────────────────────────────────────
 // ─── SUPABASE API ──────────────────────────────────
 // Map frontend collection names to Supabase table names
-const TABLE_MAP = { workers:'workers', companies:'companies', courses:'courses', dc3_records:'dc3_records', agents:'agents', agent_designs:'agent_designs' };
+const TABLE_MAP = { workers:'workers', companies:'companies', courses:'courses', dc3_records:'dc3_records', agents:'agents', agent_designs:'agent_designs', forklift_licenses:'forklift_licenses' };
 
 // Map camelCase fields to snake_case for DB
 function toSnake(obj) {
@@ -1328,7 +1328,7 @@ function toSnake(obj) {
         courseName:'course_name', companyName:'company_name', companyRfc:'company_rfc', agentName:'agent_name', agentStps:'agent_stps',
         startDate:'start_date', endDate:'end_date', resultText:'result_text', durationHours:'duration_hours',
         thematicArea:'thematic_area', documentType:'document_type', folio:'folio',
-        folioDc3:'folio_dc3',
+        folioDc3:'folio_dc3', dc3RecordId:'dc3_record_id',
         creatorEmail:'creator_email', representanteLegal:'representante_legal', representanteTrabajadores:'representante_trabajadores',
         headerSlogan:'header_slogan', headerSloganX:'header_slogan_x', headerSloganY:'header_slogan_y', headerSloganSize:'header_slogan_size',
         headerLogoW:'header_logo_w', headerLogoH:'header_logo_h', headerLogoX:'header_logo_x', headerLogoY:'header_logo_y',
@@ -3779,6 +3779,7 @@ async function embedBase64Img(pdfDoc, dataUrl) {
 // ─── LICENCIA DE MONTACARGAS ─────────────────────────────
 let _licRecord = null;
 let _licLogoDataUrl = null;
+let _licSaved = null;
 const LIC_EQUIPOS = [
     "MONTACARGAS ELECTRICO DE CONTRAPESO",
     "MONTACARGAS DE COMBUSTION INTERNA",
@@ -3799,7 +3800,7 @@ const LIC_REGLAS = [
     "Cumple la NOM-006-STPS-2009 y los procedimientos internos de seguridad."
 ];
 
-function openLicenseModal(record) {
+async function openLicenseModal(record) {
     _licRecord = record;
     document.getElementById('lic-worker').textContent = record.workerName || '–';
     document.getElementById('lic-curp').textContent = record.workerId || '–';
@@ -3807,14 +3808,26 @@ function openLicenseModal(record) {
     document.getElementById('lic-vigencia').textContent = `${record.startDate || '–'} AL ${record.endDate || '–'}`;
     document.getElementById('lic-company-name').textContent = record.companyName || '–';
 
+    // Buscar licencia ya guardada de este DC-3 (para reutilizar logo y equipo)
+    let savedLic = null;
+    try {
+        const lr = await api('find','forklift_licenses',{ filter: { dc3RecordId: record.id } });
+        savedLic = (lr.documents||[])[0] || null;
+    } catch(e) { console.warn('Lic: tabla forklift_licenses no disponible aun', e); }
+    _licSaved = savedLic;
+
     try { _licLogoDataUrl = localStorage.getItem('lic_logo_b64_' + (record.companyName||'')) || null; }
     catch(e) { _licLogoDataUrl = null; }
+    if (!_licLogoDataUrl && savedLic?.logoBase64) _licLogoDataUrl = savedLic.logoBase64;
     _licRenderLogo();
 
-    document.getElementById('lic-equipment').innerHTML = LIC_EQUIPOS.map((eq,i) => `
-        <label class="flex items-center gap-2 text-sm text-gray-700">
-            <input type="checkbox" class="lic-eq rounded" value="${i}" ${i<2?'checked':''}> ${eq}
-        </label>`).join('');
+    const savedEq = savedLic?.equipment || null;
+    document.getElementById('lic-equipment').innerHTML = LIC_EQUIPOS.map((eq,i) => {
+        const checked = savedEq ? (savedEq.includes(eq)) : (i < 2);
+        return `<label class="flex items-center gap-2 text-sm text-gray-700">
+            <input type="checkbox" class="lic-eq rounded" value="${i}" ${checked?'checked':''}> ${eq}
+        </label>`;
+    }).join('');
 
     document.getElementById('modal-license').classList.add('open');
 }
@@ -4054,6 +4067,28 @@ async function generateLicensePDF() {
         back.drawText('VERIFICA ESTE DOCUMENTO EN: ace-control.pages.dev', { x: 16, y: 12, size: 5.5, font: font, color: GRAY });
 
         // Guardar y descargar
+        // Guardar/actualizar la licencia en la BD (si la tabla existe)
+        try {
+            const licFolioFinal = 'LIC-' + (record.folioDc3 || record.folio || (record.id||'').slice(0,8) || 'SN');
+            const payload = {
+                dc3RecordId: record.id,
+                workerId: record.workerId, workerName: record.workerName, workerPos: record.workerPos,
+                companyName: record.companyName, courseName: record.courseName,
+                agentName: record.agentName, agentStps: record.agentStps,
+                startDate: record.startDate, endDate: record.endDate,
+                folio: licFolioFinal,
+                equipment: equipIdx.map(i => LIC_EQUIPOS[i]),
+                logoBase64: _licLogoDataUrl || undefined,
+                creatorEmail: currentUser?.email
+            };
+            if (_licSaved?.id) {
+                await api('update','forklift_licenses',{ id: _licSaved.id, document: payload });
+            } else {
+                const ins = await api('insertOne','forklift_licenses',{ document: payload });
+                if (!ins.error && ins.insertedId) _licSaved = { id: ins.insertedId };
+            }
+        } catch(e) { console.warn('Lic: no se pudo guardar en la BD (tabla no disponible)', e); }
+
         const pdfBytes = await pdfDoc.save();
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
