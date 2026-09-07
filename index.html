@@ -4141,13 +4141,16 @@ async function generateLicensePDF(_opts) {
             try { logoImg = await embedBase64Img(pdfDoc, logoSrc); } catch(e) {}
         }
 
-        // QR de verificacion
-        const qrUrl = 'https://ace-control.pages.dev/?v=' + record.id;
+        // QR de verificacion — solo si hay un ID real de constancia DC-3 (evita QRs "muestra" que no resuelven a nada)
+        const hasRealId = record.id && record.id !== 'preview' && record.id !== 'preview2' && !opts.previewOnly;
         let qrImg = null;
-        try {
-            const qrB64 = await generateQRBase64(qrUrl);
-            qrImg = await embedBase64Img(pdfDoc, qrB64);
-        } catch(e) {}
+        if (hasRealId) {
+            const qrUrl = 'https://ace-control.pages.dev/?v=' + record.id;
+            try {
+                const qrB64 = await generateQRBase64(qrUrl);
+                qrImg = await embedBase64Img(pdfDoc, qrB64);
+            } catch(e) {}
+        }
 
         const equipIdx = opts.equipIdx || [...document.querySelectorAll('.lic-eq:checked')].map(cb => parseInt(cb.value));
 
@@ -4255,7 +4258,14 @@ async function generateLicensePDF(_opts) {
             front.drawText(l, { x: colL, y: lY, size: 3.3, font: font, color: DARK }); lY -= 4.2;
         });
         lY -= 3;
-        if (qrImg) front.drawImage(qrImg, { x: colL, y: Math.max(4, lY-30), width: 30, height: 30 });
+        if (qrImg) {
+            front.drawImage(qrImg, { x: colL, y: Math.max(4, lY-30), width: 30, height: 30 });
+        } else {
+            const qrBoxY = Math.max(4, lY-30);
+            front.drawRectangle({ x: colL, y: qrBoxY, width: 30, height: 30, borderColor: LIGHT, borderWidth: 0.7, borderDashArray: [1.5, 1.5] });
+            front.drawText('QR', { x: colL+11, y: qrBoxY+17, size: 4, font: fontB, color: LIGHT });
+            front.drawText('MUESTRA', { x: colL+4, y: qrBoxY+11, size: 2.6, font: font, color: LIGHT });
+        }
 
         const sgnX1 = colR, sgnX2 = colRend;
         if (firmaImg) {
