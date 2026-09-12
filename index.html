@@ -695,18 +695,13 @@
                             </div>
                         </div>
 
-                        <!-- Nombre Agente -->
+                        <!-- Nombre Agente (texto) -->
                         <div class="border rounded-xl p-4 mb-4 bg-gray-50">
-                            <p class="text-xs font-bold text-gray-600 uppercase mb-2">Nombre Agente (Firma)</p>
-                            <div class="grid grid-cols-4 gap-2">
+                            <p class="text-xs font-bold text-gray-600 uppercase mb-2">Nombre del Agente (texto)</p>
+                            <div class="grid grid-cols-3 gap-2">
                                 <div><label class="text-[10px] text-gray-400">X</label><input id="dip-agent-x" type="number" class="input-field !p-1 !text-xs" value="396" oninput="scheduleDiplomaPreview()"></div>
                                 <div><label class="text-[10px] text-gray-400">Y</label><input id="dip-agent-y" type="number" class="input-field !p-1 !text-xs" value="572" oninput="scheduleDiplomaPreview()"></div>
-                                <div><label class="text-[10px] text-gray-400">Ancho</label><input id="dip-firma-w" type="number" class="input-field !p-1 !text-xs" value="90" oninput="scheduleDiplomaPreview()"></div>
-                                <div><label class="text-[10px] text-gray-400">Alto</label><input id="dip-firma-h" type="number" class="input-field !p-1 !text-xs" value="50" oninput="scheduleDiplomaPreview()"></div>
-                            </div>
-                            <p class="text-[10px] text-gray-500 mt-2 mb-1">Tamaño del texto del nombre</p>
-                            <div class="grid grid-cols-1 gap-2">
-                                <div><label class="text-[10px] text-gray-400">Tam. texto</label><input id="dip-agent-sz" type="number" class="input-field !p-1 !text-xs" value="10" oninput="scheduleDiplomaPreview()"></div>
+                                <div><label class="text-[10px] text-gray-400">Tam.</label><input id="dip-agent-sz" type="number" class="input-field !p-1 !text-xs" value="10" oninput="scheduleDiplomaPreview()"></div>
                             </div>
                             <div class="mt-2 flex gap-1 justify-center">
                                 <button onclick="setDipAlign('agent', 1)" id="align-agent-1" class="btn-sm px-3 !py-1 btn-outline !text-[10px]">Izquierda</button>
@@ -714,6 +709,18 @@
                                 <button onclick="setDipAlign('agent', 2)" id="align-agent-2" class="btn-sm px-3 !py-1 btn-outline !text-[10px]">Derecha</button>
                                 <input type="hidden" id="dip-agent-align" value="0">
                             </div>
+                        </div>
+
+                        <!-- Firma del Agente (imagen) — misma lógica/diseño que la firma del DC-3 -->
+                        <div class="border rounded-xl p-4 mb-4 bg-gray-50">
+                            <p class="text-xs font-bold text-gray-600 uppercase mb-2">Firma del Agente Capacitador</p>
+                            <div class="grid grid-cols-4 gap-2">
+                                <div><label class="text-[10px] text-gray-400">X</label><input id="dip-firma-x" type="number" class="input-field !p-1 !text-xs" value="351" oninput="scheduleDiplomaPreview()"></div>
+                                <div><label class="text-[10px] text-gray-400">Y</label><input id="dip-firma-y" type="number" class="input-field !p-1 !text-xs" value="512" oninput="scheduleDiplomaPreview()"></div>
+                                <div><label class="text-[10px] text-gray-400">Ancho</label><input id="dip-firma-w" type="number" class="input-field !p-1 !text-xs" value="90" oninput="scheduleDiplomaPreview()"></div>
+                                <div><label class="text-[10px] text-gray-400">Alto</label><input id="dip-firma-h" type="number" class="input-field !p-1 !text-xs" value="50" oninput="scheduleDiplomaPreview()"></div>
+                            </div>
+                            <p class="text-[10px] text-gray-400 mt-2">Arrastra el recuadro cian "FIRMA" en la vista previa, o edita X/Y/Ancho/Alto manualmente — igual que en el diseño del DC-3.</p>
                         </div>
 
                         <!-- Registro STPS -->
@@ -1438,7 +1445,8 @@ function toSnake(obj) {
         dipCourseX:'dip_course_x', dipCourseY:'dip_course_y', dipCourseSz:'dip_course_sz',
         dipDurationX:'dip_duration_x', dipDurationY:'dip_duration_y', dipDurationSz:'dip_duration_sz',
         dipDateX:'dip_date_x', dipDateY:'dip_date_y', dipDateSz:'dip_date_sz',
-        dipAgentX:'dip_agent_x', dipAgentY:'dip_agent_y', dipAgentSz:'dip_agent_sz', dipFirmaW:'dip_firma_w', dipFirmaH:'dip_firma_h',
+        dipAgentX:'dip_agent_x', dipAgentY:'dip_agent_y', dipAgentSz:'dip_agent_sz',
+        dipFirmaX:'dip_firma_x', dipFirmaY:'dip_firma_y', dipFirmaW:'dip_firma_w', dipFirmaH:'dip_firma_h',
         dipStpsX:'dip_stps_x', dipStpsY:'dip_stps_y', dipStpsSz:'dip_stps_sz',
         dipFolioX:'dip_folio_x', dipFolioY:'dip_folio_y', dipFolioSz:'dip_folio_sz',
         dipCedulaX:'dip_cedula_x', dipCedulaY:'dip_cedula_y', dipCedulaSz:'dip_cedula_sz',
@@ -1480,7 +1488,8 @@ function toCamel(obj) {
         dip_course_x:'dipCourseX', dip_course_y:'dipCourseY', dip_course_sz:'dipCourseSz',
         dip_duration_x:'dipDurationX', dip_duration_y:'dipDurationY', dip_duration_sz:'dipDurationSz',
         dip_date_x:'dipDateX', dip_date_y:'dipDateY', dip_date_sz:'dipDateSz',
-        dip_agent_x:'dipAgentX', dip_agent_y:'dipAgentY', dip_agent_sz:'dipAgentSz', dip_firma_w:'dipFirmaW', dip_firma_h:'dipFirmaH',
+        dip_agent_x:'dipAgentX', dip_agent_y:'dipAgentY', dip_agent_sz:'dipAgentSz',
+        dip_firma_x:'dipFirmaX', dip_firma_y:'dipFirmaY', dip_firma_w:'dipFirmaW', dip_firma_h:'dipFirmaH',
         dip_stps_x:'dipStpsX', dip_stps_y:'dipStpsY', dip_stps_sz:'dipStpsSz',
         dip_folio_x:'dipFolioX', dip_folio_y:'dipFolioY', dip_folio_sz:'dipFolioSz',
         dip_cedula_x:'dipCedulaX', dip_cedula_y:'dipCedulaY', dip_cedula_sz:'dipCedulaSz',
@@ -2758,9 +2767,16 @@ async function _buildDiplomaCore(opts = {}) {
         try {
             const fImgBytes = await fetch(fBase64).then(r => r.arrayBuffer());
             const fImg = await pdfDoc.embedPng(fImgBytes);
-            // Firma centrada sobre el nombre — tamaño configurable (dipFirmaW/dipFirmaH)
+            // Firma con posición INDEPENDIENTE (X,Y = esquina superior-izq del recuadro),
+            // igual lógica que la firma del DC-3. Si el diseño guardado no tiene aún
+            // dipFirmaX/dipFirmaY (diseños antiguos), se calcula un default que reproduce
+            // exactamente la posición anterior (centrada sobre el nombre del agente).
             const fw = dx('dipFirmaW', 90), fh = dx('dipFirmaH', 50);
-            page.drawImage(fImg, { x: dx('dipAgentX', 396) - fw/2, y: PH - dx('dipAgentY', 572) + 10, width: fw, height: fh });
+            const fxDefault = dx('dipAgentX', 396) - fw / 2;
+            const fyDefault = dx('dipAgentY', 572) - 10 - fh;
+            const fx = dx('dipFirmaX', fxDefault);
+            const fy = dx('dipFirmaY', fyDefault);
+            page.drawImage(fImg, { x: fx, y: PH - fy - fh, width: fw, height: fh });
         } catch(e) {}
     }
 
@@ -2973,7 +2989,8 @@ function resetDesignState() {
         'dip-course-x':396, 'dip-course-y':330, 'dip-course-sz':18,
         'dip-duration-x':396, 'dip-duration-y':405, 'dip-duration-sz':12,
         'dip-date-x':396, 'dip-date-y':445, 'dip-date-sz':11,
-        'dip-agent-x':396, 'dip-agent-y':572, 'dip-agent-sz':10, 'dip-firma-w':90, 'dip-firma-h':50,
+        'dip-agent-x':396, 'dip-agent-y':572, 'dip-agent-sz':10,
+        'dip-firma-x':351, 'dip-firma-y':512, 'dip-firma-w':90, 'dip-firma-h':50,
         'dip-stps-x':396, 'dip-stps-y':584, 'dip-folio-x':396, 'dip-folio-y':550, 'dip-folio-sz':10,
         'dip-cedula-x':396, 'dip-cedula-y':596, 'dip-cedula-sz':8,
         'design-qr-x':480, 'design-qr-y':60, 'design-qr-sz':60,
@@ -3068,6 +3085,8 @@ async function loadDesign() {
         setV('dip-agent-x', d.dipAgentX ?? d.dip_agent_x ?? 396);
         setV('dip-agent-y', d.dipAgentY ?? d.dip_agent_y ?? 572);
         setV('dip-agent-sz', d.dipAgentSz ?? d.dip_agent_sz ?? 10);
+        setV('dip-firma-x', d.dipFirmaX ?? d.dip_firma_x ?? 351);
+        setV('dip-firma-y', d.dipFirmaY ?? d.dip_firma_y ?? 512);
         setV('dip-firma-w', d.dipFirmaW ?? d.dip_firma_w ?? 90);
         setV('dip-firma-h', d.dipFirmaH ?? d.dip_firma_h ?? 50);
 
@@ -3270,12 +3289,13 @@ async function _renderDiplomaPreview() {
     // Dibujar firma del agente si existe (sobre posicion del nombre del agente)
     if (designState.firma_base64) {
         try {
-            const agentX = getV('dip-agent-x') || 396;
-            const agentY = getV('dip-agent-y') || 572;
             const fw = getV('dip-firma-w') || 90;
             const fh = getV('dip-firma-h') || 50;
+            // Firma con posición INDEPENDIENTE (X,Y = esquina superior-izq, igual que en DC-3)
+            const fx = getV('dip-firma-x') || 351;
+            const fy = getV('dip-firma-y') || 512;
             const img = await embedBase64Img(pdfDoc, designState.firma_base64);
-            page.drawImage(img, { x: agentX - fw/2, y: PH - agentY + 10, width: fw, height: fh });
+            page.drawImage(img, { x: fx, y: PH - fy - fh, width: fw, height: fh });
         } catch(e) { console.warn('firma preview:', e); }
     }
 
@@ -3347,6 +3367,7 @@ function _updateDiplomaDragHandles() {
         { id: 'dip-duration-x', yId: 'dip-duration-y', label: 'DURACIÓN', color: '#1e3a8a' },
         { id: 'dip-date-x', yId: 'dip-date-y', label: 'FECHA', color: '#1e3a8a' },
         { id: 'dip-agent-x', yId: 'dip-agent-y', label: 'AGENTE', color: '#15803d' },
+        { id: 'dip-firma-x', yId: 'dip-firma-y', label: 'FIRMA', color: '#0891b2', isImage: true },
         { id: 'dip-stps-x', yId: 'dip-stps-y', label: 'REGISTRO', color: '#15803d' },
         { id: 'dip-folio-x', yId: 'dip-folio-y', label: 'FOLIO', color: '#6366f1' },
         { id: 'dip-cedula-x', yId: 'dip-cedula-y', label: 'CÉDULA', color: '#d97706' },
@@ -3371,6 +3392,14 @@ function _updateDiplomaDragHandles() {
             boxH = boxW;
             drawX = (x - boxW/2) * sc;
             drawY = y * sc; // Top-aligned box for QR
+        } else if (item.id === 'dip-firma-x') {
+            // FIRMA: x,y = esquina superior-izquierda del recuadro (igual convención que DC-3)
+            const wEl = document.getElementById('dip-firma-w');
+            const hEl = document.getElementById('dip-firma-h');
+            boxW = wEl ? +wEl.value : 90;
+            boxH = hEl ? +hEl.value : 50;
+            drawX = x * sc;
+            drawY = y * sc;
         }
 
         const g = document.createElementNS('http://www.w3.org/2000/svg','g');
@@ -3388,8 +3417,13 @@ function _updateDiplomaDragHandles() {
         rect.setAttribute('rx', '4');
 
         const text = document.createElementNS('http://www.w3.org/2000/svg','text');
-        text.setAttribute('x', (x - 95) * sc);
-        text.setAttribute('y', (y + 5) * sc);
+        if (item.id === 'dip-firma-x') {
+            text.setAttribute('x', drawX + 4);
+            text.setAttribute('y', drawY + 14);
+        } else {
+            text.setAttribute('x', (x - 95) * sc);
+            text.setAttribute('y', (y + 5) * sc);
+        }
         text.setAttribute('fill', item.color);
         text.setAttribute('font-size', (11 * sc).toString()); // Scale font too
         text.setAttribute('font-weight', 'bold');
@@ -3581,7 +3615,8 @@ function getDesignParams() {
         dipCourseX: gv('dip-course-x'), dipCourseY: gv('dip-course-y'), dipCourseSz: gv('dip-course-sz'),
         dipDurationX: gv('dip-duration-x'), dipDurationY: gv('dip-duration-y'), dipDurationSz: gv('dip-duration-sz'),
         dipDateX: gv('dip-date-x'), dipDateY: gv('dip-date-y'), dipDateSz: gv('dip-date-sz'),
-        dipAgentX: gv('dip-agent-x'), dipAgentY: gv('dip-agent-y'), dipAgentSz: gv('dip-agent-sz'), dipFirmaW: gv('dip-firma-w', 90), dipFirmaH: gv('dip-firma-h', 50),
+        dipAgentX: gv('dip-agent-x'), dipAgentY: gv('dip-agent-y'), dipAgentSz: gv('dip-agent-sz'),
+        dipFirmaX: gv('dip-firma-x', 351), dipFirmaY: gv('dip-firma-y', 512), dipFirmaW: gv('dip-firma-w', 90), dipFirmaH: gv('dip-firma-h', 50),
         dipStpsX: gv('dip-stps-x'), dipStpsY: gv('dip-stps-y'), dipStpsSz: gv('dip-stps-sz'),
         dipFolioX: gv('dip-folio-x'), dipFolioY: gv('dip-folio-y'), dipFolioSz: gv('dip-folio-sz'),
         dipCedulaX: gv('dip-cedula-x'), dipCedulaY: gv('dip-cedula-y'), dipCedulaSz: gv('dip-cedula-sz'),
