@@ -162,6 +162,8 @@ data class AgentDesign(
     @SerialName("dip_agent_x") val dipAgentX: Float? = null,
     @SerialName("dip_agent_y") val dipAgentY: Float? = null,
     @SerialName("dip_agent_sz") val dipAgentSz: Float? = null,
+    @SerialName("dip_firma_w") val dipFirmaW: Float? = null,
+    @SerialName("dip_firma_h") val dipFirmaH: Float? = null,
     @SerialName("dip_stps_x") val dipStpsX: Float? = null,
     @SerialName("dip_stps_y") val dipStpsY: Float? = null,
     @SerialName("dip_stps_sz") val dipStpsSz: Float? = null,

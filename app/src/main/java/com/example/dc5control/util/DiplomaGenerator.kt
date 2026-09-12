@@ -200,13 +200,16 @@ object DiplomaGenerator {
         // 4. Fecha
         drawAlignedText(dateX, dateY, formatDateRange(endDate), dateSz, true, 0, 0f, design?.dipDateAlign ?: 0)
 
-        // 5. Firma del agente — igual que web: x = agentX - 45, y = PH - agentY + 10, w=90, h=50
+        // 5. Firma del agente — igual que web: centrada sobre el nombre, con tamano
+        //    configurable (dip_firma_w / dip_firma_h, default 90x50)
         design?.firmaBase64?.let { base64 ->
             try {
                 val bytes = base64ToImageBytes(base64)
                 if (bytes != null) {
                     val img = PDImageXObject.createFromByteArray(document, bytes, "firma")
-                    cs.drawImage(img, agentX - 45f, phLocal - agentY + 10f, 90f, 50f)
+                    val fw = design?.dipFirmaW ?: 90f
+                    val fh = design?.dipFirmaH ?: 50f
+                    cs.drawImage(img, agentX - fw / 2f, phLocal - agentY + 10f, fw, fh)
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error dibujando firma en diploma", e)
