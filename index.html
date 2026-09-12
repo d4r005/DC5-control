@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACE-Control | Gestión DC-3 v1.3.4 · FIRMA DIPLOMA CONFIGURABLE</title>
+    <title>ACE-Control | Gestión DC-3 v1.3.5 · OVERLAY ALINEADO</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -3329,6 +3329,15 @@ function _updateDiplomaDragHandles() {
     const sc = designState._dipScale;
     const ph = designState._dipPH || T_DIP_H;
 
+    // Asegurar que el SVG tenga EXACTAMENTE el mismo tamaño renderizado que el canvas.
+    // El canvas se autoajusta por su relacion de aspecto (width:100%, height:auto),
+    // pero el SVG tenia height:100% del contenedor (que puede ser mas alto que el
+    // canvas real cuando la plantilla es apaisada como el Diploma). Esto desalineaba
+    // los recuadros de arrastre respecto a la imagen real.
+    const canvasRect = canvas.getBoundingClientRect();
+    svg.style.width = canvasRect.width + 'px';
+    svg.style.height = canvasRect.height + 'px';
+
     svg.setAttribute('viewBox', `0 0 ${canvas.width} ${canvas.height}`);
     svg.innerHTML = '';
 
@@ -3827,6 +3836,13 @@ function _updateDragHandles(p) {
 
     // sc: factor de escala PDF→canvas (pdf.js renderiza a scale 1.5)
     const sc = canvas.width / PDF_W;   // = 1.5 siempre
+
+    // Igualar el tamaño renderizado del SVG al del canvas real (evita desalineacion
+    // si la plantilla PDF tiene una relacion de aspecto distinta a la del contenedor).
+    const canvasRect = canvas.getBoundingClientRect();
+    svg.style.width = canvasRect.width + 'px';
+    svg.style.height = canvasRect.height + 'px';
+
     svg.setAttribute('viewBox', `0 0 ${canvas.width} ${canvas.height}`);
     designState._scale = sc;
     svg.innerHTML = '';
