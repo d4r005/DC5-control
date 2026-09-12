@@ -345,6 +345,7 @@
                 <button onclick="clearWorkerSelection()" class="text-xs text-blue-800 hover:text-blue-900">✕ Limpiar selección</button>
             </div>
             <div class="card overflow-hidden">
+                <div class="overflow-x-auto">
                 <table>
                     <thead><tr id="th-workers">
                         <th style="width:36px"><input type="checkbox" id="chk-all-workers" onchange="toggleAllWorkers(this)" class="w-4 h-4 accent-blue-900 rounded"></th>
@@ -352,6 +353,7 @@
                     </tr></thead>
                     <tbody id="tb-workers"><tr><td colspan="5" class="text-center py-12 text-gray-300">Cargando…</td></tr></tbody>
                 </table>
+                </div>
             </div>
         </div>
 
@@ -366,6 +368,7 @@
                 </div>
             </div>
             <div class="card overflow-hidden">
+                <div class="overflow-x-auto">
                 <table>
                     <thead><tr>
                         <th>Razón Social</th>
@@ -376,16 +379,19 @@
                     </tr></thead>
                     <tbody id="tb-companies"><tr><td colspan="5" class="text-center py-12 text-gray-300">Cargando…</td></tr></tbody>
                 </table>
+                </div>
             </div>
         </div>
 
         <!-- Courses -->
         <div id="section-courses" class="hidden">
             <div class="card overflow-hidden">
+                <div class="overflow-x-auto">
                 <table>
                     <thead><tr><th>Nombre del Curso</th><th>Duración</th><th>Área Temática</th><th>Acciones</th></tr></thead>
                     <tbody id="tb-courses"><tr><td colspan="4" class="text-center py-12 text-gray-300">Cargando…</td></tr></tbody>
                 </table>
+                </div>
             </div>
         </div>
 
@@ -399,12 +405,14 @@
             </div>
 
             <div class="card overflow-hidden">
+                <div class="overflow-x-auto">
                 <table>
                     <thead><tr id="th-history">
                         <th>Trabajador (CURP)</th><th>Curso</th><th>Empresa</th><th id="th-periodo">Periodo</th><th id="th-folio">Folio</th><th>Acciones</th>
                     </tr></thead>
                     <tbody id="tb-dc3"><tr><td colspan="5" class="text-center py-12 text-gray-300">Cargando…</td></tr></tbody>
                 </table>
+                </div>
             </div>
         </div>
 
@@ -861,20 +869,24 @@
         <!-- Agentes Capacitadores -->
         <div id="section-agents" class="hidden">
             <div class="card overflow-hidden">
+                <div class="overflow-x-auto">
                 <table>
                     <thead><tr><th>Nombre</th><th>Registro STPS</th><th>Acciones</th></tr></thead>
                     <tbody id="tb-agents"></tbody>
                 </table>
+                </div>
             </div>
         </div>
 
         <!-- Users (admin only) -->
         <div id="section-users" class="hidden">
             <div class="card overflow-hidden">
+                <div class="overflow-x-auto">
                 <table>
                     <thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Acciones</th></tr></thead>
                     <tbody id="tb-users"></tbody>
                 </table>
+                </div>
             </div>
         </div>
     </main>
