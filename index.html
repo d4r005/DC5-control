@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACE-Control | Gestión DC-3 v1.3.3 · FIRMA DIPLOMA CONFIGURABLE</title>
+    <title>ACE-Control | Gestión DC-3 v1.3.4 · FIRMA DIPLOMA CONFIGURABLE</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -698,15 +698,15 @@
                         <!-- Nombre Agente -->
                         <div class="border rounded-xl p-4 mb-4 bg-gray-50">
                             <p class="text-xs font-bold text-gray-600 uppercase mb-2">Nombre Agente (Firma)</p>
-                            <div class="grid grid-cols-3 gap-2">
+                            <div class="grid grid-cols-4 gap-2">
                                 <div><label class="text-[10px] text-gray-400">X</label><input id="dip-agent-x" type="number" class="input-field !p-1 !text-xs" value="396" oninput="scheduleDiplomaPreview()"></div>
                                 <div><label class="text-[10px] text-gray-400">Y</label><input id="dip-agent-y" type="number" class="input-field !p-1 !text-xs" value="572" oninput="scheduleDiplomaPreview()"></div>
-                                <div><label class="text-[10px] text-gray-400">Tam.</label><input id="dip-agent-sz" type="number" class="input-field !p-1 !text-xs" value="10" oninput="scheduleDiplomaPreview()"></div>
+                                <div><label class="text-[10px] text-gray-400">Ancho</label><input id="dip-firma-w" type="number" class="input-field !p-1 !text-xs" value="90" oninput="scheduleDiplomaPreview()"></div>
+                                <div><label class="text-[10px] text-gray-400">Alto</label><input id="dip-firma-h" type="number" class="input-field !p-1 !text-xs" value="50" oninput="scheduleDiplomaPreview()"></div>
                             </div>
-                            <p class="text-[10px] text-gray-500 mt-2 mb-1">Tamaño de la imagen de firma (sobre el nombre)</p>
-                            <div class="grid grid-cols-2 gap-2">
-                                <div><label class="text-[10px] text-gray-400">Ancho firma</label><input id="dip-firma-w" type="number" class="input-field !p-1 !text-xs" value="90" oninput="scheduleDiplomaPreview()"></div>
-                                <div><label class="text-[10px] text-gray-400">Alto firma</label><input id="dip-firma-h" type="number" class="input-field !p-1 !text-xs" value="50" oninput="scheduleDiplomaPreview()"></div>
+                            <p class="text-[10px] text-gray-500 mt-2 mb-1">Tamaño del texto del nombre</p>
+                            <div class="grid grid-cols-1 gap-2">
+                                <div><label class="text-[10px] text-gray-400">Tam. texto</label><input id="dip-agent-sz" type="number" class="input-field !p-1 !text-xs" value="10" oninput="scheduleDiplomaPreview()"></div>
                             </div>
                             <div class="mt-2 flex gap-1 justify-center">
                                 <button onclick="setDipAlign('agent', 1)" id="align-agent-1" class="btn-sm px-3 !py-1 btn-outline !text-[10px]">Izquierda</button>
