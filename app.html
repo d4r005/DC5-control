@@ -1452,7 +1452,7 @@ window.onload = async () => {
         return;
     }
 
-    const rem = localStorage.getItem('rememberedEmail');
+    const rem = params.get('email') || localStorage.getItem('rememberedEmail');
     if (rem) document.getElementById('email').value = rem;
     // Restore session if valid — prevents F5 from kicking you out
     checkExistingSession();
