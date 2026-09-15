@@ -1614,20 +1614,24 @@ async function api(action, collection, payload = {}) {
 // (DC-3, Diploma o Licencia). "generateBoth" cuenta como 2 (DC-3 + Diploma).
 const CREDIT_CONTACT_MSG = 'Contactanos para comprar mas creditos:\nWhatsApp: +52 1 81 3082 8355\nCorreo: d.robles@ehs-solutions.online';
 
+// Devuelve el saldo, o null si la tabla de creditos aun no existe en la BD.
+// (null = sistema de creditos no instalado todavia → NO bloquear generacion)
 async function getCreditBalance(email) {
-    if (!email) return 0;
+    if (!email) return null;
     try {
-        const res = await api('find','agent_credits',{ filter: { agentEmail: email } });
-        return res.documents?.[0]?.balance ?? 0;
-    } catch(e) { console.warn('No se pudo leer el saldo de creditos', e); return 0; }
+        const { data, error } = await sb.from('agent_credits').select('*').eq('agent_email', email);
+        if (error) { console.warn('Tabla agent_credits no disponible:', error.message); return null; }
+        return data?.[0]?.balance ?? 0;
+    } catch(e) { console.warn('No se pudo leer el saldo de creditos', e); return null; }
 }
 
 // Cuenta marcada por el admin como "sin cobro" (cortesia). El admin tambien esta exento.
 async function isCreditExempt(email) {
     if (!email) return false;
     try {
-        const res = await api('find','agent_credits',{ filter: { agentEmail: email } });
-        return !!res.documents?.[0]?.creditsExempt;
+        const { data, error } = await sb.from('agent_credits').select('credits_exempt').eq('agent_email', email);
+        if (error) return false;
+        return !!data?.[0]?.credits_exempt;
     } catch(e) { return false; }
 }
 
@@ -1639,6 +1643,7 @@ async function requireCredits(n, label) {
     const email = currentUser?.email;
     if (await isCreditExempt(email)) return true;
     const balance = await getCreditBalance(email);
+    if (balance === null) return true; // sistema de creditos aun no instalado
     if (balance >= n) return true;
     alert(`No tienes creditos suficientes para generar ${label || 'este documento'}.\n\nSaldo actual: ${balance}\nCreditos necesarios: ${n}\n\n${CREDIT_CONTACT_MSG}`);
     return false;
@@ -2226,10 +2231,9 @@ async function loadSection(v) {
                 historyCard.classList.remove('hidden');
                 adminPanel.classList.add('hidden');
                 const email = currentUser?.email;
-                const myRes = await api('find','agent_credits',{ filter: { agentEmail: email } });
-                const myRow = myRes.documents?.[0];
-                const bal = myRow?.balance ?? 0;
-                const exempt = !!myRow?.creditsExempt;
+                const myBal = await getCreditBalance(email);
+                const bal = myBal ?? 0;
+                const exempt = await isCreditExempt(email);
                 const balDisp = document.getElementById('credits-balance-display');
                 if (balDisp) balDisp.textContent = exempt ? '∞' : bal;
                 const exemptBadge = document.getElementById('credits-exempt-badge');
