@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ACE Control | Generador de Constancias DC-3, Diplomas y Licencias STPS México</title>
+<meta name="description" content="Software para agentes capacitadores STPS. Genera constancias DC-3, diplomas y licencias de montacargas en minutos, con validación por código QR.">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  html { scroll-behavior: smooth; }
+  .hero-gradient { background: linear-gradient(135deg, #0b1f4b 0%, #1e3a8a 55%, #2563eb 100%); }
+  .card-hover { transition: transform .25s ease, box-shadow .25s ease; }
+  .card-hover:hover { transform: translateY(-4px); box-shadow: 0 20px 40px -12px rgba(30,58,138,.25); }
+  details[open] .faq-icon { transform: rotate(45deg); }
+  .faq-icon { transition: transform .2s ease; }
+</style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased">
+
+<!-- NAV -->
+<nav class="fixed top-0 inset-x-0 z-50 bg-white/90 backdrop-blur border-b border-slate-200">
+  <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+    <a href="#inicio" class="flex items-center gap-2 font-extrabold text-xl text-blue-900">
+      <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      ACE Control
+    </a>
+    <div class="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
+      <a href="#funciona" class="hover:text-blue-900">Cómo funciona</a>
+      <a href="#beneficios" class="hover:text-blue-900">Beneficios</a>
+      <a href="#planes" class="hover:text-blue-900">Planes</a>
+      <a href="#faq" class="hover:text-blue-900">Preguntas</a>
+      <a href="index.html" class="ml-2 px-4 py-2 rounded-lg bg-blue-900 text-white font-semibold hover:bg-blue-800 transition">Entrar a la plataforma</a>
+    </div>
+    <a href="index.html" class="md:hidden px-3 py-2 rounded-lg bg-blue-900 text-white text-sm font-semibold">Entrar</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<header id="inicio" class="hero-gradient pt-32 pb-20 text-white">
+  <div class="max-w-6xl mx-auto px-4 text-center">
+    <p class="inline-block mb-4 px-3 py-1 rounded-full bg-blue-400/20 border border-blue-300/30 text-blue-100 text-sm font-semibold">Para Agentes Capacitadores STPS de México</p>
+    <h1 class="text-4xl md:text-6xl font-extrabold leading-tight max-w-3xl mx-auto">
+      Constancias DC-3, Diplomas y Licencias de Montacargas <span class="text-blue-300">en minutos</span>
+    </h1>
+    <p class="mt-6 text-lg md:text-xl text-blue-100 max-w-2xl mx-auto">
+      Genera automáticamente la documentación de capacitación de tus cursos: constancias DC-3 con formato oficial, diplomas personalizados y licencias de operador con foto, vigencia y código QR de validación.
+    </p>
+    <div class="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+      <a href="index.html" class="px-6 py-3 rounded-xl bg-white text-blue-900 font-bold hover:bg-blue-50 transition shadow-lg">Generar mi primer documento</a>
+      <a href="#funciona" class="px-6 py-3 rounded-xl border border-blue-300/50 text-white font-semibold hover:bg-blue-800/40 transition">Ver cómo funciona</a>
+    </div>
+    <div class="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto text-left">
+      <div class="p-4 rounded-xl bg-white/10 border border-white/15">
+        <p class="text-2xl font-extrabold">Segundos</p>
+        <p class="text-sm text-blue-200">por constancia, incluso en lotes de cientos</p>
+      </div>
+      <div class="p-4 rounded-xl bg-white/10 border border-white/15">
+        <p class="text-2xl font-extrabold">Código QR</p>
+        <p class="text-sm text-blue-200">cada documento se valida escaneando su QR</p>
+      </div>
+      <div class="p-4 rounded-xl bg-white/10 border border-white/15">
+        <p class="text-2xl font-extrabold">100% en línea</p>
+        <p class="text-sm text-blue-200">sin instalar nada, desde cualquier dispositivo</p>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- SOBRE -->
+<section class="py-20 bg-white">
+  <div class="max-w-6xl mx-auto px-4 grid md:grid-cols-2 gap-12 items-center">
+    <div>
+      <h2 class="text-3xl md:text-4xl font-extrabold text-blue-950">Todo tu proceso de capacitación, en un solo lugar</h2>
+      <p class="mt-4 text-slate-600 leading-relaxed">
+        ACE Control es la plataforma de agentes capacitadores que sustituye el llenado manual de formatos. Captura o importa tu lista de participantes, elige el curso y descarga todos los documentos PDF listos para imprimir y entregar.
+      </p>
+      <p class="mt-4 text-slate-600 leading-relaxed">
+        A diferencia de otros generadores que solo producen DC-3, ACE Control también emite <strong>diplomas con tu firma digitalizada</strong> y <strong>licencias de operador de montacargas</strong> tipo gafete con foto del trabajador, equipos certificados, vigencia de 2 años y control de incidencias.
+      </p>
+    </div>
+    <div class="grid grid-cols-2 gap-4">
+      <div class="card-hover p-6 rounded-2xl bg-slate-50 border border-slate-200 text-center">
+        <p class="text-3xl">📄</p>
+        <p class="mt-2 font-bold text-blue-950">Constancias DC-3</p>
+        <p class="text-sm text-slate-500">Formato oficial STPS, frente y reverso</p>
+      </div>
+      <div class="card-hover p-6 rounded-2xl bg-slate-50 border border-slate-200 text-center">
+        <p class="text-3xl">🎓</p>
+        <p class="mt-2 font-bold text-blue-950">Diplomas</p>
+        <p class="text-sm text-slate-500">Con tu plantilla y firma del agente</p>
+      </div>
+      <div class="card-hover p-6 rounded-2xl bg-slate-50 border border-slate-200 text-center">
+        <p class="text-3xl">🪪</p>
+        <p class="mt-2 font-bold text-blue-950">Licencias Montacargas</p>
+        <p class="text-sm text-slate-500">Gafete con foto, QR y vigencia de 2 años</p>
+      </div>
+      <div class="card-hover p-6 rounded-2xl bg-slate-50 border border-slate-200 text-center">
+        <p class="text-3xl">🛡️</p>
+        <p class="mt-2 font-bold text-blue-950">Control de incidencias</p>
+        <p class="text-sm text-slate-500">Semáforo punzonable en el reverso</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CÓMO FUNCIONA -->
+<section id="funciona" class="py-20 bg-blue-950 text-white">
+  <div class="max-w-6xl mx-auto px-4">
+    <h2 class="text-3xl md:text-4xl font-extrabold text-center">Cómo generar tus documentos en minutos</h2>
+    <p class="mt-3 text-center text-blue-200 max-w-2xl mx-auto">Un flujo simple que convierte horas de captura en segundos de procesamiento.</p>
+    <div class="mt-12 grid md:grid-cols-4 gap-6">
+      <div class="relative p-6 rounded-2xl bg-blue-900/60 border border-blue-800 card-hover">
+        <span class="absolute -top-4 left-6 w-8 h-8 rounded-full bg-blue-400 text-blue-950 font-extrabold flex items-center justify-center">1</span>
+        <h3 class="font-bold text-lg">Importa tu lista</h3>
+        <p class="mt-2 text-sm text-blue-100">Sube tu archivo Excel con los participantes del curso o captúralos manualmente: nombre, CURP y puesto.</p>
+      </div>
+      <div class="relative p-6 rounded-2xl bg-blue-900/60 border border-blue-800 card-hover">
+        <span class="absolute -top-4 left-6 w-8 h-8 rounded-full bg-blue-400 text-blue-950 font-extrabold flex items-center justify-center">2</span>
+        <h3 class="font-bold text-lg">Elige curso y empresa</h3>
+        <p class="mt-2 text-sm text-blue-100">Selecciona la empresa, el curso impartido, las fechas y la duración. El folio se asigna automáticamente.</p>
+      </div>
+      <div class="relative p-6 rounded-2xl bg-blue-900/60 border border-blue-800 card-hover">
+        <span class="absolute -top-4 left-6 w-8 h-8 rounded-full bg-blue-400 text-blue-950 font-extrabold flex items-center justify-center">3</span>
+        <h3 class="font-bold text-lg">Genera en automático</h3>
+        <p class="mt-2 text-sm text-blue-100">La plataforma valida los datos y produce todos los PDF: constancias DC-3, diplomas y licencias con su QR único.</p>
+      </div>
+      <div class="relative p-6 rounded-2xl bg-blue-900/60 border border-blue-800 card-hover">
+        <span class="absolute -top-4 left-6 w-8 h-8 rounded-full bg-blue-400 text-blue-950 font-extrabold flex items-center justify-center">4</span>
+        <h3 class="font-bold text-lg">Descarga y valida</h3>
+        <p class="mt-2 text-sm text-blue-100">Descarga el lote completo listo para imprimir. Cada documento se verifica al escanear su QR desde cualquier celular.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- BENEFICIOS -->
+<section id="beneficios" class="py-20 bg-slate-50">
+  <div class="max-w-6xl mx-auto px-4">
+    <h2 class="text-3xl md:text-4xl font-extrabold text-center text-blue-950">Por qué los agentes capacitadores eligen ACE Control</h2>
+    <div class="mt-12 grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div class="card-hover p-6 bg-white rounded-2xl border border-slate-200">
+        <div class="w-11 h-11 rounded-xl bg-blue-100 flex items-center justify-center">
+          <svg class="w-6 h-6 text-blue-800" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <h3 class="mt-4 font-bold text-lg text-blue-950">Ahorra horas de captura</h3>
+        <p class="mt-2 text-sm text-slate-600">De horas a minutos: genera todas las constancias de un curso en un solo clic, sin repetir datos.</p>
+      </div>
+      <div class="card-hover p-6 bg-white rounded-2xl border border-slate-200">
+        <div class="w-11 h-11 rounded-xl bg-blue-100 flex items-center justify-center">
+          <svg class="w-6 h-6 text-blue-800" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+        </div>
+        <h3 class="mt-4 font-bold text-lg text-blue-950">Cumplimiento normativo</h3>
+        <p class="mt-2 text-sm text-slate-600">Formatos DC-3 alineados a los requisitos vigentes de la STPS, con todos los campos obligatorios.</p>
+      </div>
+      <div class="card-hover p-6 bg-white rounded-2xl border border-slate-200">
+        <div class="w-11 h-11 rounded-xl bg-blue-100 flex items-center justify-center">
+          <svg class="w-6 h-6 text-blue-800" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <h3 class="mt-4 font-bold text-lg text-blue-950">Tus datos protegidos</h3>
+        <p class="mt-2 text-sm text-slate-600">Almacenamiento seguro con respaldo en la nube e historial permanente de todo lo generado.</p>
+      </div>
+      <div class="card-hover p-6 bg-white rounded-2xl border border-slate-200">
+        <div class="w-11 h-11 rounded-xl bg-blue-100 flex items-center justify-center">
+          <svg class="w-6 h-6 text-blue-800" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        </div>
+        <h3 class="mt-4 font-bold text-lg text-blue-950">Validación con QR</h3>
+        <p class="mt-2 text-sm text-slate-600">Cada documento incluye un QR único: al escanearlo se confirma su autenticidad y se muestran sus datos completos.</p>
+      </div>
+      <div class="card-hover p-6 bg-white rounded-2xl border border-slate-200">
+        <div class="w-11 h-11 rounded-xl bg-blue-100 flex items-center justify-center">
+          <svg class="w-6 h-6 text-blue-800" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <h3 class="mt-4 font-bold text-lg text-blue-950">Multi-agente</h3>
+        <p class="mt-2 text-sm text-slate-600">Cada agente capacitador ve únicamente sus empresas, cursos y documentos. El administrador controla todo.</p>
+      </div>
+      <div class="card-hover p-6 bg-white rounded-2xl border border-slate-200">
+        <div class="w-11 h-11 rounded-xl bg-blue-100 flex items-center justify-center">
+          <svg class="w-6 h-6 text-blue-800" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        </div>
+        <h3 class="mt-4 font-bold text-lg text-blue-950">Escalable a cualquier volumen</h3>
+        <p class="mt-2 text-sm text-slate-600">Desde un participante hasta cientos por curso, sin pasos adicionales ni límites de instalación.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DIFERENCIADOR LICENCIAS -->
+<section class="py-20 bg-white">
+  <div class="max-w-6xl mx-auto px-4 grid md:grid-cols-2 gap-12 items-center">
+    <div class="order-2 md:order-1 p-8 rounded-3xl hero-gradient text-white shadow-2xl">
+      <p class="text-xs font-bold uppercase tracking-widest text-blue-300">Licencia de operador</p>
+      <div class="mt-4 flex gap-4">
+        <div class="w-24 h-32 rounded-lg bg-white/20 border border-white/30 flex items-center justify-center text-4xl">📷</div>
+        <div class="flex-1 space-y-2">
+          <div class="h-3 w-3/4 rounded bg-white/25"></div>
+          <div class="h-3 w-2/3 rounded bg-white/25"></div>
+          <div class="h-3 w-1/2 rounded bg-white/25"></div>
+          <div class="mt-4 h-3 w-full rounded bg-white/15"></div>
+          <div class="h-3 w-5/6 rounded bg-white/15"></div>
+          <div class="h-3 w-2/3 rounded bg-white/15"></div>
+        </div>
+      </div>
+      <div class="mt-6 flex items-center justify-between text-sm">
+        <span class="px-2 py-1 rounded bg-white/15">Vigencia: 2 años</span>
+        <span class="px-2 py-1 rounded bg-white/15">QR verificable</span>
+      </div>
+    </div>
+    <div class="order-1 md:order-2">
+      <h2 class="text-3xl md:text-4xl font-extrabold text-blue-950">El extra que nadie más ofrece: licencias de montacargas</h2>
+      <p class="mt-4 text-slate-600 leading-relaxed">
+        Al terminar el curso de montacargas, emite en el mismo paso la <strong>licencia tipo gafete</strong> del operador: foto del trabajador, equipos certificados con casillas, vigencia calculada automáticamente (fecha del curso + 2 años) y folio único.
+      </p>
+      <ul class="mt-6 space-y-3 text-slate-700">
+        <li class="flex gap-3"><span class="text-blue-800 font-bold">✓</span> Reverso con las 10 reglas de operación segura y semáforo de incidencias punzonable</li>
+        <li class="flex gap-3"><span class="text-blue-800 font-bold">✓</span> Firma y registro STPS del agente capacitador impresos</li>
+        <li class="flex gap-3"><span class="text-blue-800 font-bold">✓</span> Historial de licencias emitidas con reimpresión en un clic</li>
+        <li class="flex gap-3"><span class="text-blue-800 font-bold">✓</span> Cualquier persona puede verificarla escaneando el QR con su celular</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- PLANES -->
+<section id="planes" class="py-20 bg-slate-50">
+  <div class="max-w-6xl mx-auto px-4">
+    <h2 class="text-3xl md:text-4xl font-extrabold text-center text-blue-950">Planes simples, sin suscripciones</h2>
+    <p class="mt-3 text-center text-slate-600 max-w-2xl mx-auto">Pagas solo por los documentos que generas. Sin mensualidades ni vigencia: tus paquetes no expiran.</p>
+    <div class="mt-12 grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+      <div class="card-hover p-8 bg-white rounded-2xl border border-slate-200 text-center">
+        <p class="font-bold text-slate-500 uppercase text-sm tracking-wide">Paquete inicial</p>
+        <p class="mt-4 text-4xl font-extrabold text-blue-950">$300 <span class="text-lg font-medium text-slate-400">MXN</span></p>
+        <p class="mt-1 text-sm text-slate-500">100 documentos · $3.00 c/u</p>
+        <ul class="mt-6 space-y-2 text-sm text-slate-600 text-left">
+          <li>✓ Constancias DC-3, diplomas y licencias</li>
+          <li>✓ QR de validación incluido</li>
+          <li>✓ Historial permanente</li>
+        </ul>
+        <a href="index.html" class="mt-8 block py-3 rounded-xl border-2 border-blue-900 text-blue-900 font-bold hover:bg-blue-900 hover:text-white transition">Comenzar</a>
+      </div>
+      <div class="card-hover p-8 bg-blue-950 text-white rounded-2xl shadow-2xl relative text-center">
+        <span class="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-amber-400 text-blue-950 text-xs font-extrabold">MÁS POPULAR</span>
+        <p class="font-bold text-blue-300 uppercase text-sm tracking-wide">Paquete profesional</p>
+        <p class="mt-4 text-4xl font-extrabold">$750 <span class="text-lg font-medium text-blue-300">MXN</span></p>
+        <p class="mt-1 text-sm text-blue-200">300 documentos · $2.50 c/u</p>
+        <ul class="mt-6 space-y-2 text-sm text-blue-100 text-left">
+          <li>✓ Todo lo del paquete inicial</li>
+          <li>✓ Importación masiva de Excel</li>
+          <li>✓ Soporte prioritario por WhatsApp</li>
+        </ul>
+        <a href="index.html" class="mt-8 block py-3 rounded-xl bg-white text-blue-950 font-bold hover:bg-blue-100 transition">Comenzar</a>
+      </div>
+      <div class="card-hover p-8 bg-white rounded-2xl border border-slate-200 text-center">
+        <p class="font-bold text-slate-500 uppercase text-sm tracking-wide">Paquete empresa</p>
+        <p class="mt-4 text-4xl font-extrabold text-blue-950">$2,000 <span class="text-lg font-medium text-slate-400">MXN</span></p>
+        <p class="mt-1 text-sm text-slate-500">1,000 documentos · $2.00 c/u</p>
+        <ul class="mt-6 space-y-2 text-sm text-slate-600 text-left">
+          <li>✓ Todo lo del paquete profesional</li>
+          <li>✓ Capacitación de arranque personalizada</li>
+          <li>✓ Actualizaciones normativas incluidas</li>
+        </ul>
+        <a href="index.html" class="mt-8 block py-3 rounded-xl border-2 border-blue-900 text-blue-900 font-bold hover:bg-blue-900 hover:text-white transition">Comenzar</a>
+      </div>
+    </div>
+    <p class="mt-8 text-center text-xs text-slate-400">* Precios de lanzamiento en MXN. El cobro de paquetes se activa próximamente; escríbenos para cotización inmediata.</p>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq" class="py-20 bg-white">
+  <div class="max-w-3xl mx-auto px-4">
+    <h2 class="text-3xl md:text-4xl font-extrabold text-center text-blue-950">Preguntas frecuentes</h2>
+    <div class="mt-10 space-y-4">
+      <details class="group p-5 rounded-xl border border-slate-200 bg-slate-50">
+        <summary class="flex items-center justify-between cursor-pointer font-semibold text-blue-950 list-none">¿Los documentos son válidos ante la STPS?<span class="faq-icon text-blue-800 text-xl">+</span></summary>
+        <p class="mt-3 text-sm text-slate-600">Sí. Las constancias DC-3 se generan con el formato oficial, incluyendo todos los campos obligatorios de la normativa vigente de capacitación laboral. El agente capacitador registrado es quien firma y respalda cada documento.</p>
+      </details>
+      <details class="group p-5 rounded-xl border border-slate-200 bg-slate-50">
+        <summary class="flex items-center justify-between cursor-pointer font-semibold text-blue-950 list-none">¿Cómo funciona la validación por código QR?<span class="faq-icon text-blue-800 text-xl">+</span></summary>
+        <p class="mt-3 text-sm text-slate-600">Cada constancia y licencia incluye un QR único. Al escanearlo con cualquier celular se abre la página de verificación que confirma la autenticidad del documento y muestra sus datos: trabajador, curso, fechas y agente capacitador.</p>
+      </details>
+      <details class="group p-5 rounded-xl border border-slate-200 bg-slate-50">
+        <summary class="flex items-center justify-between cursor-pointer font-semibold text-blue-950 list-none">¿Necesito instalar algo?<span class="faq-icon text-blue-800 text-xl">+</span></summary>
+        <p class="mt-3 text-sm text-slate-600">No. ACE Control funciona 100% en línea desde cualquier navegador, en computadora, tablet o celular.</p>
+      </details>
+      <details class="group p-5 rounded-xl border border-slate-200 bg-slate-50">
+        <summary class="flex items-center justify-between cursor-pointer font-semibold text-blue-950 list-none">¿Puedo importar mi lista de participantes?<span class="faq-icon text-blue-800 text-xl">+</span></summary>
+        <p class="mt-3 text-sm text-slate-600">Sí. Puedes capturarlos manualmente o importarlos desde Excel con nombre, CURP y puesto. También puedes reutilizar trabajadores ya registrados de cursos anteriores.</p>
+      </details>
+      <details class="group p-5 rounded-xl border border-slate-200 bg-slate-50">
+        <summary class="flex items-center justify-between cursor-pointer font-semibold text-blue-950 list-none">¿Puedo volver a descargar un documento ya generado?<span class="faq-icon text-blue-800 text-xl">+</span></summary>
+        <p class="mt-3 text-sm text-slate-600">Sí. Todo queda guardado en tu historial: constancias, diplomas y licencias emitidos pueden redescargarse o reimprimirse en cualquier momento.</p>
+      </details>
+      <details class="group p-5 rounded-xl border border-slate-200 bg-slate-50">
+        <summary class="flex items-center justify-between cursor-pointer font-semibold text-blue-950 list-none">¿Cómo se cobra el uso de la plataforma?<span class="faq-icon text-blue-800 text-xl">+</span></summary>
+        <p class="mt-3 text-sm text-slate-600">Por documento generado, mediante paquetes sin vigencia. Sin suscripciones mensuales: solo pagas por lo que usas.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACTO -->
+<section id="contacto" class="py-20 hero-gradient text-white">
+  <div class="max-w-4xl mx-auto px-4 text-center">
+    <h2 class="text-3xl md:text-4xl font-extrabold">¿Listo para agilizar tu próxima generación de constancias?</h2>
+    <p class="mt-4 text-blue-100">Escríbenos por WhatsApp y te activamos tu cuenta de agente capacitador hoy mismo.</p>
+    <div class="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+      <a href="https://wa.me/526862600879" target="_blank" class="px-6 py-3 rounded-xl bg-green-500 hover:bg-green-400 font-bold transition shadow-lg">💬 Contactar por WhatsApp</a>
+      <a href="index.html" class="px-6 py-3 rounded-xl bg-white text-blue-900 font-bold hover:bg-blue-50 transition shadow-lg">Entrar a la plataforma</a>
+    </div>
+    <p class="mt-6 text-sm text-blue-200">También por correo: contacto@ace-control.com</p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="bg-slate-900 text-slate-400 py-10">
+  <div class="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4 text-sm">
+    <div>
+      <p class="font-extrabold text-white text-lg">ACE Control</p>
+      <p class="mt-1">Generación automatizada de constancias DC-3, diplomas y licencias para agentes capacitadores STPS de México.</p>
+    </div>
+    <div class="flex gap-6">
+      <a href="#funciona" class="hover:text-white">Cómo funciona</a>
+      <a href="#planes" class="hover:text-white">Planes</a>
+      <a href="#faq" class="hover:text-white">Preguntas</a>
+      <a href="index.html" class="hover:text-white">Plataforma</a>
+    </div>
+  </div>
+  <p class="mt-8 text-center text-xs">© 2026 ACE Control. Todos los derechos reservados.</p>
+</footer>
+
+</body>
+</html>
