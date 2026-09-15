@@ -1616,6 +1616,13 @@ const CREDIT_CONTACT_MSG = 'Contactanos para comprar mas creditos:\nWhatsApp: +5
 
 // Devuelve el saldo, o null si la tabla de creditos aun no existe en la BD.
 // (null = sistema de creditos no instalado todavia → NO bloquear generacion)
+// Escapa un texto para insertarlo de forma segura dentro de un atributo
+// HTML delimitado por comillas dobles y una cadena JS delimitada por comillas simples,
+// p.ej. onclick="miFuncion('${escAttr(nombre)}')"
+function escAttr(s) {
+    return String(s||'').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
 async function getCreditBalance(email) {
     if (!email) return null;
     try {
@@ -2208,9 +2215,20 @@ async function loadSection(v) {
                 const creditsRes = await api('find','agent_credits',{});
                 const rowsByEmail = {};
                 (creditsRes.documents||[]).forEach(r => { rowsByEmail[r.agentEmail] = r; });
+                const adminEmails = new Set((DATA.users||[]).filter(u => u.role === 'ADMIN').map(u => (u.email||'').toLowerCase()));
                 const tbCred = document.getElementById('tb-agent-credits');
                 tbCred.innerHTML = (DATA.agents||[]).map(a => {
                     const email = a.creatorEmail || '';
+                    const nameSafe = escAttr(a.name || '');
+                    if (email && adminEmails.has(email.toLowerCase())) {
+                        return `<tr>
+                            <td class="font-semibold">${a.name} <span class="text-xs text-gray-400">(admin)</span></td>
+                            <td class="text-xs text-gray-400">${email}</td>
+                            <td class="font-bold text-blue-900">∞</td>
+                            <td><span class="text-xs text-gray-400">El admin nunca consume créditos</span></td>
+                            <td class="text-right">—</td>
+                        </tr>`;
+                    }
                     const row = rowsByEmail[email];
                     const bal = row?.balance ?? 0;
                     const exempt = !!row?.creditsExempt;
@@ -2219,11 +2237,11 @@ async function loadSection(v) {
                         <td class="text-xs text-gray-400">${email || '—'}</td>
                         <td class="font-bold ${exempt?'text-gray-300':(bal<=0?'text-red-500':'text-green-600')}">${exempt?'∞':bal}</td>
                         <td>
-                            <button onclick="toggleCreditExemption('${email}', ${JSON.stringify(a.name)}, ${exempt?1:0})" class="btn-sm ${exempt?'btn-primary':'btn-outline'}" ${email?'':'disabled title="Agente sin correo registrado"'}>
+                            <button onclick="toggleCreditExemption('${email}', '${nameSafe}', ${exempt?1:0})" class="btn-sm ${exempt?'btn-primary':'btn-outline'}" ${email?'':'disabled title="Agente sin correo registrado"'}>
                                 ${exempt?'✓ Activado':'Activar'}
                             </button>
                         </td>
-                        <td class="text-right"><button onclick="promptAddCredits('${email}', ${JSON.stringify(a.name)})" class="btn-sm btn-outline" ${email?'':'disabled'}>+ Agregar</button></td>
+                        <td class="text-right"><button onclick="promptAddCredits('${email}', '${nameSafe}')" class="btn-sm btn-outline" ${email?'':'disabled'}>+ Agregar</button></td>
                     </tr>`;
                 }).join('') || '<tr><td colspan="5" class="text-center py-8 text-gray-300 text-sm">Sin agentes registrados</td></tr>';
             } else {
