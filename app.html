@@ -2640,7 +2640,7 @@ async function generateDC3() {
         startDate: start, endDate: end, folio, folioDc3: folio
     };
 
-    const qrUrl = `https://ace-control.pages.dev/?v=${saveRes.insertedId}`;
+    const qrUrl = `https://ace-control.online/?v=${saveRes.insertedId}`;
 
     // 2. Generar PDF con el QR y Folio
     const pdfBytes = await _buildDC3Core({
@@ -2707,7 +2707,7 @@ async function generateDiploma() {
         if (saveRes.error) throw new Error(saveRes.error);
         await consumeCredits(1, 'DIPLOMA', saveRes.insertedId);
 
-        const qrUrl = `https://ace-control.pages.dev/?v=${saveRes.insertedId}`;
+        const qrUrl = `https://ace-control.online/?v=${saveRes.insertedId}`;
 
         // 2. Generar PDF
         const pdfBytes = await _buildDiplomaCore({
@@ -2773,7 +2773,7 @@ async function generateBoth() {
 
         if (saveRes.error) throw new Error(saveRes.error);
         await consumeCredits(2, 'BOTH', saveRes.insertedId);
-        const qrUrl = `https://ace-control.pages.dev/?v=${saveRes.insertedId}`;
+        const qrUrl = `https://ace-control.online/?v=${saveRes.insertedId}`;
 
         const dc3Bytes = await _buildDC3Core({
             worker: selectedWorker,
@@ -2823,7 +2823,7 @@ async function previewDiploma(overrides = {}) {
 
     try {
         const pdfBytes = await _buildDiplomaCore({
-            qrUrl: 'https://ace-control.pages.dev/?v=preview',
+            qrUrl: 'https://ace-control.online/?v=preview',
             ...overrides
         });
         if (pdfBytes) {
@@ -3545,7 +3545,7 @@ async function _renderDiplomaPreview() {
 
     // Dibujar QR Placeholder
     try {
-        const qrUrl = 'https://ace-control.pages.dev/?v=preview';
+        const qrUrl = 'https://ace-control.online/?v=preview';
         const qrBase64 = await generateQRBase64(qrUrl);
         const qrImgBytes = Uint8Array.from(atob(qrBase64.split(',')[1]), c => c.charCodeAt(0));
         const qrImg = await pdfDoc.embedPng(qrImgBytes);
@@ -4010,7 +4010,7 @@ async function _renderPreview() {
 
     // Dibujar QR Placeholder (DC-3)
     try {
-        const qrUrl = `https://ace-control.pages.dev/?v=preview`;
+        const qrUrl = `https://ace-control.online/?v=preview`;
         const qrBase64 = await generateQRBase64(qrUrl);
         await di(qrBase64, p.qrX, p.qrY, p.qrSz, p.qrSz);
     } catch(e) {}
@@ -4466,7 +4466,7 @@ async function generateLicensePDF(_opts) {
         const hasRealId = record.id && record.id !== 'preview' && record.id !== 'preview2' && !opts.previewOnly;
         let qrImg = null;
         if (hasRealId) {
-            const qrUrl = 'https://ace-control.pages.dev/?v=' + record.id;
+            const qrUrl = 'https://ace-control.online/?v=' + record.id;
             try {
                 const qrB64 = await generateQRBase64(qrUrl);
                 qrImg = await embedBase64Img(pdfDoc, qrB64);
@@ -4940,7 +4940,7 @@ async function previewDC3(overrides = {}) {
             agent: { name: agentName, stps: agentStps },
             course: { name: courseName, durationHours: courseDuration, thematicArea: courseArea, stpsId: courseStpsId },
             start, end, result: 'Acreditado',
-            qrUrl: 'https://ace-control.pages.dev/?v=preview',
+            qrUrl: 'https://ace-control.online/?v=preview',
             folio: 'EHS-DC3-2024-PREVIEW',
             isDesignPreview: false // Queremos ver cómo queda con el diseño GUARDADO del agente
         });
@@ -4986,7 +4986,7 @@ async function previewRecordPDF(record) {
                 startDate: record.startDate,
                 endDate: record.endDate,
                 folio: record.folio,
-                qrUrl: `https://ace-control.pages.dev/?v=${record.id}`,
+                qrUrl: `https://ace-control.online/?v=${record.id}`,
                 quiet: true
             });
         } else {
@@ -4998,7 +4998,7 @@ async function previewRecordPDF(record) {
                 start: record.startDate,
                 end: record.endDate,
                 result: record.resultText || 'Acreditado',
-                qrUrl: `https://ace-control.pages.dev/?v=${record.id}`,
+                qrUrl: `https://ace-control.online/?v=${record.id}`,
                 folio: record.folioDc3 || record.folio
             });
         }
@@ -5063,7 +5063,7 @@ async function downloadRecordPDF(record) {
                 startDate: record.startDate,
                 endDate: record.endDate,
                 folio: record.folio,
-                qrUrl: `https://ace-control.pages.dev/?v=${record.id}`,
+                qrUrl: `https://ace-control.online/?v=${record.id}`,
                 quiet: true
             });
         } else {
@@ -5075,7 +5075,7 @@ async function downloadRecordPDF(record) {
                 start: record.startDate,
                 end: record.endDate,
                 result: record.resultText || 'Acreditado',
-                qrUrl: `https://ace-control.pages.dev/?v=${record.id}`,
+                qrUrl: `https://ace-control.online/?v=${record.id}`,
                 folio: record.folioDc3 || record.folio
             });
         }
