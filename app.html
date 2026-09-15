@@ -251,6 +251,10 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
                 Agentes Cap.
             </div>
+            <div class="nav-link" id="btn-credits" onclick="setView('credits')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                Créditos
+            </div>
             <div class="nav-link hidden" id="btn-users" onclick="setView('users')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 Usuarios
@@ -886,6 +890,42 @@
             </div>
         </div>
 
+        <!-- Creditos -->
+        <div id="section-credits" class="hidden">
+            <div id="credits-own-card" class="card p-6 mb-6">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Tu saldo de créditos</p>
+                <p id="credits-balance-display" class="text-4xl font-extrabold text-blue-900">–</p>
+                <p id="credits-exempt-badge" class="hidden text-xs font-bold text-green-600 mt-1">✓ Tu cuenta no consume créditos (cortesía del administrador)</p>
+                <p class="text-xs text-gray-400 mt-1">1 crédito = 1 documento generado (DC-3, Diploma o Licencia)</p>
+                <a href="https://wa.me/5218130828355" target="_blank" class="btn-sm btn-primary inline-flex items-center gap-1.5 mt-4">💬 Comprar más créditos</a>
+            </div>
+            <div id="credits-history-card" class="card overflow-hidden">
+                <div class="p-4 border-b border-gray-100"><p class="text-sm font-bold text-gray-700">Historial de movimientos</p></div>
+                <div class="overflow-x-auto">
+                <table>
+                    <thead><tr><th>Fecha</th><th>Movimiento</th><th>Documento</th><th>Motivo</th></tr></thead>
+                    <tbody id="tb-credit-history"></tbody>
+                </table>
+                </div>
+            </div>
+
+            <!-- Admin: gestionar creditos de todos los agentes -->
+            <div id="credits-admin-panel" class="hidden">
+                <div class="card overflow-hidden">
+                    <div class="p-4 border-b border-gray-100 flex items-center justify-between">
+                        <p class="text-sm font-bold text-gray-700">Créditos por agente capacitador</p>
+                        <p class="text-xs text-gray-400">Puedes marcar a un agente como "sin cobro" — sus generaciones no consumen créditos</p>
+                    </div>
+                    <div class="overflow-x-auto">
+                    <table>
+                        <thead><tr><th>Agente</th><th>Correo</th><th>Saldo</th><th>Sin cobro</th><th>Acciones</th></tr></thead>
+                        <tbody id="tb-agent-credits"></tbody>
+                    </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Users (admin only) -->
         <div id="section-users" class="hidden">
             <div class="card overflow-hidden">
@@ -1420,7 +1460,7 @@ window.onload = async () => {
 // ─── API ──────────────────────────────────────────────
 // ─── SUPABASE API ──────────────────────────────────
 // Map frontend collection names to Supabase table names
-const TABLE_MAP = { workers:'workers', companies:'companies', courses:'courses', dc3_records:'dc3_records', agents:'agents', agent_designs:'agent_designs', forklift_licenses:'forklift_licenses' };
+const TABLE_MAP = { workers:'workers', companies:'companies', courses:'courses', dc3_records:'dc3_records', agents:'agents', agent_designs:'agent_designs', forklift_licenses:'forklift_licenses', agent_credits:'agent_credits', credit_transactions:'credit_transactions' };
 
 // Map camelCase fields to snake_case for DB
 function toSnake(obj) {
@@ -1458,7 +1498,8 @@ function toSnake(obj) {
         dipWorkerAlign:'dip_worker_align', dipCourseAlign:'dip_course_align', dipDurationAlign:'dip_duration_align',
         dipDateAlign:'dip_date_align', dipAgentAlign:'dip_agent_align', dipStpsAlign:'dip_stps_align',
         dipFolioAlign:'dip_folio_align', dipCedulaAlign:'dip_cedula_align',
-        cedulaProfesional:'cedula_profesional'
+        cedulaProfesional:'cedula_profesional',
+        agentEmail:'agent_email', referenceId:'reference_id', createdBy:'created_by', creditsExempt:'credits_exempt'
     };
     const out = {};
     for (const [k,v] of Object.entries(obj)) out[map[k]||k] = v;
@@ -1501,7 +1542,8 @@ function toCamel(obj) {
         dip_worker_align:'dipWorkerAlign', dip_course_align:'dipCourseAlign', dip_duration_align:'dipDurationAlign',
         dip_date_align:'dipDateAlign', dip_agent_align:'dipAgentAlign', dip_stps_align:'dipStpsAlign',
         dip_folio_align:'dipFolioAlign', dip_cedula_align:'dipCedulaAlign',
-        cedula_profesional:'cedulaProfesional'
+        cedula_profesional:'cedulaProfesional',
+        agent_email:'agentEmail', reference_id:'referenceId', created_by:'createdBy', credits_exempt:'creditsExempt'
     };
     const out = {};
     for (const [k,v] of Object.entries(obj)) out[map[k]||k] = v;
@@ -1564,6 +1606,85 @@ async function api(action, collection, payload = {}) {
         }
         return { error: 'Unknown action: ' + action };
     } catch(e) { console.error('API error:', e); return { documents: [] }; }
+}
+
+// ─── SISTEMA DE CREDITOS ────────────────────────────────
+// El administrador (ADMIN) no consume creditos: genera ilimitado.
+// Cada agente capacitador consume 1 credito por documento nuevo generado
+// (DC-3, Diploma o Licencia). "generateBoth" cuenta como 2 (DC-3 + Diploma).
+const CREDIT_CONTACT_MSG = 'Contactanos para comprar mas creditos:\nWhatsApp: +52 1 81 3082 8355\nCorreo: d.robles@ehs-solutions.online';
+
+async function getCreditBalance(email) {
+    if (!email) return 0;
+    try {
+        const res = await api('find','agent_credits',{ filter: { agentEmail: email } });
+        return res.documents?.[0]?.balance ?? 0;
+    } catch(e) { console.warn('No se pudo leer el saldo de creditos', e); return 0; }
+}
+
+// Cuenta marcada por el admin como "sin cobro" (cortesia). El admin tambien esta exento.
+async function isCreditExempt(email) {
+    if (!email) return false;
+    try {
+        const res = await api('find','agent_credits',{ filter: { agentEmail: email } });
+        return !!res.documents?.[0]?.creditsExempt;
+    } catch(e) { return false; }
+}
+
+// Verifica que haya creditos suficientes ANTES de generar.
+// Pasan gratis: el admin y las cuentas marcadas como "sin cobro".
+// Si no hay suficientes, muestra alerta con el saldo y datos de contacto, y regresa false.
+async function requireCredits(n, label) {
+    if (isAdmin()) return true;
+    const email = currentUser?.email;
+    if (await isCreditExempt(email)) return true;
+    const balance = await getCreditBalance(email);
+    if (balance >= n) return true;
+    alert(`No tienes creditos suficientes para generar ${label || 'este documento'}.\n\nSaldo actual: ${balance}\nCreditos necesarios: ${n}\n\n${CREDIT_CONTACT_MSG}`);
+    return false;
+}
+
+// Descuenta creditos tras una generacion EXITOSA y registra la transaccion.
+// El admin no consume (genera gratis/ilimitado para su propia cuenta).
+async function consumeCredits(n, docType, refId) {
+    if (isAdmin()) return;
+    const email = currentUser?.email;
+    if (!email || !n) return;
+    if (await isCreditExempt(email)) return;
+    try {
+        const res = await api('find','agent_credits',{ filter: { agentEmail: email } });
+        const row = res.documents?.[0];
+        const current = row?.balance ?? 0;
+        const next = current - n;
+        if (row?.id) {
+            await api('update','agent_credits',{ id: row.id, document: { balance: next, updatedAt: new Date().toISOString() } });
+        } else {
+            await api('insertOne','agent_credits',{ document: { agentEmail: email, balance: next } });
+        }
+        await api('insertOne','credit_transactions',{ document: {
+            agentEmail: email, delta: -n, reason: 'Generacion de documento', documentType: docType,
+            referenceId: refId ? String(refId) : null, createdBy: email
+        }});
+    } catch(e) { console.warn('No se pudo registrar el consumo de creditos (tabla no disponible aun)', e); }
+}
+
+// Carga manual de creditos (solo admin, tras confirmar el pago del agente).
+async function addCredits(email, n, note) {
+    if (!email || !n) throw new Error('Email y cantidad son requeridos');
+    const res = await api('find','agent_credits',{ filter: { agentEmail: email } });
+    const row = res.documents?.[0];
+    const current = row?.balance ?? 0;
+    const next = current + n;
+    if (row?.id) {
+        await api('update','agent_credits',{ id: row.id, document: { balance: next, updatedAt: new Date().toISOString() } });
+    } else {
+        await api('insertOne','agent_credits',{ document: { agentEmail: email, balance: next } });
+    }
+    await api('insertOne','credit_transactions',{ document: {
+        agentEmail: email, delta: n, reason: note || 'Carga manual de creditos', documentType: null,
+        referenceId: null, createdBy: currentUser?.email || 'admin'
+    }});
+    return next;
 }
 
 async function showVerification(id) {
@@ -1731,7 +1852,7 @@ function logout() {
 }
 
 // ─── NAVIGATION ────────────────────────────────────────
-const VIEWS = ['dashboard','workers','companies','courses','dc3','dc3design','agents','users'];
+const VIEWS = ['dashboard','workers','companies','courses','dc3','dc3design','agents','credits','users'];
 const TITLES = {
     dashboard: ['Dashboard', 'Resumen del sistema'],
     workers:   ['Personal', 'Trabajadores registrados con su CURP y puesto'],
@@ -1740,6 +1861,7 @@ const TITLES = {
     dc3:       ['Constancias', 'Historial de documentos generados'],
     dc3design: ['Diseño', 'Personaliza el formato de tus documentos'],
     agents:    ['Agentes Capacitadores', 'Agentes Externos registrados ante la STPS'],
+    credits:   ['Créditos', 'Saldo y consumo de créditos por documento generado'],
     users:     ['Usuarios', 'Gestión de accesos al sistema'],
 };
 
@@ -1749,7 +1871,7 @@ function setView(v) {
         document.getElementById(`section-${x}`).classList.toggle('hidden', x !== v);
     });
     document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
-    const links = ['dashboard','workers','companies','courses','dc3','dc3design','agents','users'];
+    const links = ['dashboard','workers','companies','courses','dc3','dc3design','agents','credits','users'];
     const idx = links.indexOf(v);
     if (idx >= 0) document.querySelectorAll('.nav-link')[idx].classList.add('active');
     document.getElementById('page-title').innerText = TITLES[v][0];
@@ -2070,10 +2192,102 @@ async function loadSection(v) {
                     <button onclick="alert('Edición de usuarios protegida')" class="btn-sm btn-outline">✎</button>
                 </td>
               </tr>`).join('');
+        } else if (v === 'credits') {
+            const ownCard = document.getElementById('credits-own-card');
+            const historyCard = document.getElementById('credits-history-card');
+            const adminPanel = document.getElementById('credits-admin-panel');
+            if (isAdmin()) {
+                ownCard.classList.add('hidden');
+                historyCard.classList.add('hidden');
+                adminPanel.classList.remove('hidden');
+                const creditsRes = await api('find','agent_credits',{});
+                const rowsByEmail = {};
+                (creditsRes.documents||[]).forEach(r => { rowsByEmail[r.agentEmail] = r; });
+                const tbCred = document.getElementById('tb-agent-credits');
+                tbCred.innerHTML = (DATA.agents||[]).map(a => {
+                    const email = a.creatorEmail || '';
+                    const row = rowsByEmail[email];
+                    const bal = row?.balance ?? 0;
+                    const exempt = !!row?.creditsExempt;
+                    return `<tr>
+                        <td class="font-semibold">${a.name}</td>
+                        <td class="text-xs text-gray-400">${email || '—'}</td>
+                        <td class="font-bold ${exempt?'text-gray-300':(bal<=0?'text-red-500':'text-green-600')}">${exempt?'∞':bal}</td>
+                        <td>
+                            <button onclick="toggleCreditExemption('${email}', ${JSON.stringify(a.name)}, ${exempt?1:0})" class="btn-sm ${exempt?'btn-primary':'btn-outline'}" ${email?'':'disabled title="Agente sin correo registrado"'}>
+                                ${exempt?'✓ Activado':'Activar'}
+                            </button>
+                        </td>
+                        <td class="text-right"><button onclick="promptAddCredits('${email}', ${JSON.stringify(a.name)})" class="btn-sm btn-outline" ${email?'':'disabled'}>+ Agregar</button></td>
+                    </tr>`;
+                }).join('') || '<tr><td colspan="5" class="text-center py-8 text-gray-300 text-sm">Sin agentes registrados</td></tr>';
+            } else {
+                ownCard.classList.remove('hidden');
+                historyCard.classList.remove('hidden');
+                adminPanel.classList.add('hidden');
+                const email = currentUser?.email;
+                const myRes = await api('find','agent_credits',{ filter: { agentEmail: email } });
+                const myRow = myRes.documents?.[0];
+                const bal = myRow?.balance ?? 0;
+                const exempt = !!myRow?.creditsExempt;
+                const balDisp = document.getElementById('credits-balance-display');
+                if (balDisp) balDisp.textContent = exempt ? '∞' : bal;
+                const exemptBadge = document.getElementById('credits-exempt-badge');
+                if (exemptBadge) exemptBadge.classList.toggle('hidden', !exempt);
+                const txRes = await api('find','credit_transactions',{ filter: { agentEmail: email } });
+                const rows = (txRes.documents||[]).slice(0, 50);
+                const tbHist = document.getElementById('tb-credit-history');
+                tbHist.innerHTML = rows.length ? rows.map(t => `<tr>
+                    <td class="text-xs text-gray-400">${t.createdAt ? new Date(t.createdAt).toLocaleString('es-MX') : '—'}</td>
+                    <td class="font-bold ${t.delta<0?'text-red-500':'text-green-600'}">${t.delta>0?'+':''}${t.delta}</td>
+                    <td class="text-sm">${t.documentType||'—'}</td>
+                    <td class="text-xs text-gray-500">${t.reason||'—'}</td>
+                </tr>`).join('') : '<tr><td colspan="4" class="text-center py-8 text-gray-300 text-sm">Sin movimientos aún</td></tr>';
+            }
         }
     } catch (e) {
         console.error('[DEBUG] Error in loadSection:', e);
     }
+}
+
+// ─── CREDITOS: carga manual (solo admin) ───────────────
+async function promptAddCredits(email, name) {
+    if (!email) { alert(`El agente "${name}" no tiene un correo (creatorEmail) registrado. Edítalo en Agentes Cap. antes de asignarle créditos.`); return; }
+    const input = prompt(`¿Cuántos créditos quieres agregar a ${name} (${email})?\nUsa un número negativo para descontar.`);
+    if (input === null || input.trim() === '') return;
+    const n = parseInt(input, 10);
+    if (isNaN(n) || !n) { alert('Cantidad inválida.'); return; }
+    const note = prompt('Nota (opcional, ej. "Pago transferencia $300 MXN — paquete 100"):') || 'Carga manual de créditos';
+    try {
+        const newBalance = await addCredits(email, n, note);
+        alert(`Listo. Nuevo saldo de ${name}: ${newBalance} créditos.`);
+        loadSection('credits');
+    } catch(e) { alert('Error al agregar créditos: ' + e.message); }
+}
+
+// ─── CREDITOS: exencion de cobro (solo admin) ──────────
+async function toggleCreditExemption(email, name, currentlyExempt) {
+    if (!email) return;
+    const enable = !currentlyExempt;
+    const confirmMsg = enable
+        ? `¿Marcar a ${name} (${email}) como cuenta SIN COBRO de créditos?\n\nPodrá generar documentos ilimitados sin descontar créditos.`
+        : `¿Volver a cobrar créditos a ${name} (${email})?`;
+    if (!confirm(confirmMsg)) return;
+    try {
+        const res = await api('find','agent_credits',{ filter: { agentEmail: email } });
+        const row = res.documents?.[0];
+        if (row?.id) {
+            await api('update','agent_credits',{ id: row.id, document: { creditsExempt: enable, updatedAt: new Date().toISOString() } });
+        } else {
+            await api('insertOne','agent_credits',{ document: { agentEmail: email, balance: 0, creditsExempt: enable } });
+        }
+        await api('insertOne','credit_transactions',{ document: {
+            agentEmail: email, delta: 0, reason: enable ? 'Cuenta marcada SIN COBRO de créditos' : 'Cuenta reactivada con cobro de créditos',
+            documentType: null, referenceId: null, createdBy: currentUser?.email || 'admin'
+        }});
+        alert(enable ? `${name} ahora genera sin consumir créditos ✓` : `${name} volverá a consumir créditos normalmente.`);
+        loadSection('credits');
+    } catch(e) { alert('Error al cambiar la exención: ' + e.message); }
 }
 
 // ─── MODAL AGREGAR ─────────────────────────────────────
@@ -2355,6 +2569,7 @@ async function generateDC3() {
     const result      = 'Acreditado';  // campo eliminado del formulario
 
     if (!start || !end) { alert('Selecciona las fechas de inicio y término'); return; }
+    if (!(await requireCredits(1, 'la constancia DC-3'))) return;
 
     // Buscar el objeto empresa completo para obtener RFC y representantes
     const company = DATA.companies.find(c => c.name === companyName) || {
@@ -2394,6 +2609,7 @@ async function generateDC3() {
         alert("Error al preparar el registro: " + saveRes.error);
         return;
     }
+    await consumeCredits(1, 'DC3', saveRes.insertedId);
 
     _lastDC3Saved = {
         id: saveRes.insertedId,
@@ -2444,6 +2660,8 @@ async function generateDiploma() {
         const [agentName, agentStps] = agentVal.split('|');
         const [courseName, courseDuration, courseArea, courseStpsId] = courseVal.split('|');
 
+        if (!(await requireCredits(1, 'el diploma'))) return;
+
         // 1. Guardar para obtener ID
         const folio = await getNextFolio('DIPLOMA');
         const saveRes = await api('insertOne','dc3_records',{ document: {
@@ -2465,6 +2683,7 @@ async function generateDiploma() {
         }});
 
         if (saveRes.error) throw new Error(saveRes.error);
+        await consumeCredits(1, 'DIPLOMA', saveRes.insertedId);
 
         const qrUrl = `https://ace-control.pages.dev/?v=${saveRes.insertedId}`;
 
@@ -2502,6 +2721,7 @@ async function generateBoth() {
         const end         = document.getElementById('dc3-end').value;
 
         if (!start || !end) { alert('Selecciona las fechas'); return; }
+        if (!(await requireCredits(2, 'la constancia DC-3 + diploma'))) return;
 
         const company = DATA.companies.find(c => c.name === companyName) || { name: companyName, rfc: '', representante_legal: '', representante_trabajadores: '' };
         const [agentName, agentStps] = agentVal.split('|');
@@ -2530,6 +2750,7 @@ async function generateBoth() {
         }});
 
         if (saveRes.error) throw new Error(saveRes.error);
+        await consumeCredits(2, 'BOTH', saveRes.insertedId);
         const qrUrl = `https://ace-control.pages.dev/?v=${saveRes.insertedId}`;
 
         const dc3Bytes = await _buildDC3Core({
@@ -4156,6 +4377,10 @@ async function generateLicensePDF(_opts) {
     const opts = _opts || {};
     const record = opts.record || _licRecord;
     if (!record) return;
+    const _licIsNew = !_licSaved?.id;
+    if (!opts.previewOnly && _licIsNew) {
+        if (!(await requireCredits(1, 'la licencia de montacargas'))) return;
+    }
     try {
         const { PDFDocument, StandardFonts, rgb } = PDFLib;
         const pdfDoc = await PDFDocument.create();
@@ -4417,7 +4642,10 @@ async function generateLicensePDF(_opts) {
                 await api('update','forklift_licenses',{ id: _licSaved.id, document: payload });
             } else {
                 const ins = await api('insertOne','forklift_licenses',{ document: payload });
-                if (!ins.error && ins.insertedId) _licSaved = { id: ins.insertedId };
+                if (!ins.error && ins.insertedId) {
+                    _licSaved = { id: ins.insertedId };
+                    await consumeCredits(1, 'LICENSE', ins.insertedId);
+                }
             }
         } catch(e) { console.warn('Lic: no se pudo guardar en la BD (tabla no disponible)', e); }
 
@@ -4548,6 +4776,10 @@ async function _generateBulkCore(mode = 'DC3') {
     if (!start || !end) { alert('Selecciona las fechas de inicio y término'); return; }
     if (!selectedWorkers.length) { alert('No hay trabajadores seleccionados'); return; }
 
+    const perWorkerCost = mode === 'BOTH' ? 2 : 1;
+    const totalCreditsNeeded = selectedWorkers.length * perWorkerCost;
+    if (!(await requireCredits(totalCreditsNeeded, `la generación masiva (${selectedWorkers.length} trabajador(es) × ${perWorkerCost} crédito(s))`))) return;
+
     const company = DATA.companies.find(c => c.name === companyName) || { name: companyName, rfc: '', representanteLegal: '', representanteTrabajadores: null };
     const [agentName, agentStps] = agentVal.split('|');
     const [courseName, courseDuration, courseArea] = courseVal.split('|');
@@ -4580,12 +4812,13 @@ async function _generateBulkCore(mode = 'DC3') {
                 const pages = await mergedPdf.copyPages(doc, doc.getPageIndices());
                 pages.forEach(p => mergedPdf.addPage(p));
 
-                await api('insertOne','dc3_records',{ document: {
+                const bulkSaveRes = await api('insertOne','dc3_records',{ document: {
                     workerId: worker.curp, workerName: worker.name, workerPos: worker.position,
                     courseName, companyName: company.name, companyRfc: company.rfc, agentName, agentStps,
                     startDate: start, endDate: end, resultText: 'Acreditado',
                     documentType: 'DC3', folio: folio, creatorEmail: currentUser?.email || ''
                 }});
+                await consumeCredits(1, 'DC3', bulkSaveRes.insertedId);
             }
 
             if (mode === 'DIPLOMA' || mode === 'BOTH') {
@@ -4601,12 +4834,13 @@ async function _generateBulkCore(mode = 'DC3') {
                 const pages = await mergedPdf.copyPages(doc, doc.getPageIndices());
                 pages.forEach(p => mergedPdf.addPage(p));
 
-                await api('insertOne','dc3_records',{ document: {
+                const bulkSaveRes2 = await api('insertOne','dc3_records',{ document: {
                     workerId: worker.curp, workerName: worker.name, workerPos: worker.position,
                     courseName, companyName: company.name, companyRfc: company.rfc, agentName, agentStps,
                     startDate: start, endDate: end, resultText: 'Acreditado',
                     documentType: 'DIPLOMA', folio: folio, creatorEmail: currentUser?.email || ''
                 }});
+                await consumeCredits(1, 'DIPLOMA', bulkSaveRes2.insertedId);
             }
         } catch(e) {
             console.error('Bulk error:', worker.name, e);
