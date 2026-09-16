@@ -551,6 +551,47 @@ export default {
       return json({ tokenType, tokenLength: tok.length, ordenes: views });
     }
 
+    if (path === "/api/debug/mp-order" && method === "GET") {
+      const tok = getMpToken(env) || "";
+      const ref = "DEBUG-" + Date.now();
+      const r = await fetch("https://api.mercadopago.com/v1/orders", {
+        method: "POST",
+        headers: {
+          "Authorization": "Bearer " + tok,
+          "Content-Type": "application/json",
+          "X-Idempotency-Key": ref,
+        },
+        body: JSON.stringify({
+          type: "online",
+          processing_mode: "manual",
+          external_reference: ref,
+          total_amount: "10.00",
+          description: "ACE Control — debug",
+          items: [{ title: "ACE Control — debug (1 documento)", unit_price: "10.00", quantity: 1 }],
+          config: {
+            online: {
+              success_url: url.origin + "/app.html?compra=ok&order=" + ref,
+              pending_url: url.origin + "/app.html?compra=pending",
+              failure_url: url.origin + "/app.html?compra=fail",
+              auto_return: "approved",
+            },
+          },
+        }),
+      });
+      const data = await r.json().catch(() => ({}));
+      return json({
+        http: r.status,
+        mpResponse: {
+          id: data.id || null,
+          status: data.status || null,
+          status_detail: data.status_detail || null,
+          capture_mode: data.capture_mode || null,
+          checkout_url: data.checkout_url || null,
+          error: data.message || (data.cause ? JSON.stringify(data.cause) : null),
+        },
+      });
+    }
+
     if (path === "/api/payments/create" && method === "POST") {
       return handlePaymentCreate(request, env, url);
     }
