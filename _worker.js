@@ -406,7 +406,33 @@ async function handlePaymentCreate(request, env, url) {
   }
 }
 
+// ── Logging temporal de diagnóstico: registra cada hit del webhook ──
+const MP_LOG_URL = "https://zumi-b1327dd0.base44.app/functions/logMpWebhook";
 async function handlePaymentWebhook(request, env, url) {
+  let payloadText = "";
+  try {
+    const clone = request.clone();
+    payloadText = (clone.method + " " + new URL(clone.url).search + " :: " + (await clone.text().catch(() => ""))).slice(0, 1200);
+  } catch (e) { payloadText = "log-error: " + e.message; }
+  let response;
+  try {
+    response = await handlePaymentWebhookInner(request, env, url);
+  } catch (e) {
+    response = json({ ok: true, error: e.message });
+  }
+  try {
+    const resultText = (response.status + " :: " + (await response.clone().text().catch(() => ""))).slice(0, 1200);
+    await fetch(MP_LOG_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ payload: payloadText, result: resultText }),
+      signal: AbortSignal.timeout(2500),
+    }).catch(() => {});
+  } catch (e) {}
+  return response;
+}
+
+async function handlePaymentWebhookInner(request, env, url) {
   try {
     if (!getMpToken(env)) {
       // No romper: responder 200 para que MP no reintente en bucle
@@ -518,6 +544,15 @@ export default {
     //  - /api/payments/webhook: la llama MP tras el pago. NO se confía
     //    en el payload: el pago se re-verifica contra los servidores de
     //    MP y los créditos los acredita el RPC process_payment_webhook.
+    if (path === "/api/debug/mp-find" && method === "GET") {
+      const tok = getMpToken(env) || "";
+      const ref = params.get("ref") || "";
+      if (!ref) return json({ error: "falta ref" }, 400);
+      const r = await fetch("https://api.mercadopago.com/v1/payments/search?external_reference=" + encodeURIComponent(ref), { headers: { "Authorization": "Bearer " + tok } });
+      const d = await r.json().catch(() => ({}));
+      return json({ ref, http: r.status, results: (d.results || []).map(p => ({ id: p.id, status: p.status, detail: p.status_detail, amount: p.transaction_amount })) });
+    }
+
     if (path === "/api/payments/create" && method === "POST") {
       return handlePaymentCreate(request, env, url);
     }
