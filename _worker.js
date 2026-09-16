@@ -145,6 +145,14 @@ function confirmEmailHtml(link) {
 </body></html>`;
 }
 
+// Normaliza el remitente: repara "Name <correo" sin ">" de cierre.
+function normalizeFrom(raw, fallback) {
+  const v = (raw || "").trim();
+  if (!v) return fallback;
+  if (v.includes("<") && !v.includes(">")) return v + ">";
+  return v;
+}
+
 async function handleSendConfirm(request, env, url) {
   try {
     if (!env.API_KEY) return json({ error: "API_KEY no configurada en Cloudflare." }, 403);
@@ -201,7 +209,7 @@ async function handleSendConfirm(request, env, url) {
     const token = b64url(payload) + "." + (await hmacSign(payload, env.API_KEY));
     const link = `${url.origin}/app.html?confirm=${encodeURIComponent(token)}`;
 
-    const from = env.RESEND_FROM_EMAIL || "ACE Control <notificaciones@ehs-solutions.online>";
+    const from = normalizeFrom(env.RESEND_FROM_EMAIL, "ACE Control <notificaciones@ehs-solutions.online>");
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { "Authorization": "Bearer " + env.RESEND_API_KEY, "Content-Type": "application/json" },
