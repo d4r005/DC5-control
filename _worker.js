@@ -282,10 +282,16 @@ async function handleVerifyConfirm(request, env) {
 // Pagos — Mercado Pago (Checkout Pro)
 // ═══════════════════════════════════════════════════════════════════
 
+// El token de Mercado Pago puede estar guardado en Cloudflare como
+// MP_ACCESS_TOKEN o MERCADOPAGO_ACCESS_TOKEN (ambos nombres validos).
+function getMpToken(env) {
+  return env.MP_ACCESS_TOKEN || env.MERCADOPAGO_ACCESS_TOKEN || null;
+}
+
 async function handlePaymentCreate(request, env, url) {
   try {
     if (!env.API_KEY) return json({ error: "API_KEY no configurada en Cloudflare." }, 403);
-    if (!env.MP_ACCESS_TOKEN) return json({ error: "MP_ACCESS_TOKEN no configurada en Cloudflare." }, 503);
+    if (!getMpToken(env)) return json({ error: "MP_ACCESS_TOKEN no configurada en Cloudflare." }, 503);
 
     const ip = request.headers.get("cf-connecting-ip") || "unknown";
     if (rateLimited("pay:" + ip, 10, 3600000)) {
@@ -358,7 +364,7 @@ async function handlePaymentCreate(request, env, url) {
     const orderRes = await fetch("https://api.mercadopago.com/v1/orders", {
       method: "POST",
       headers: {
-        "Authorization": "Bearer " + env.MP_ACCESS_TOKEN,
+        "Authorization": "Bearer " + getMpToken(env),
         "Content-Type": "application/json",
         "X-Idempotency-Key": orderId,
       },
@@ -401,7 +407,7 @@ async function handlePaymentCreate(request, env, url) {
 
 async function handlePaymentWebhook(request, env, url) {
   try {
-    if (!env.MP_ACCESS_TOKEN) {
+    if (!getMpToken(env)) {
       // No romper: responder 200 para que MP no reintente en bucle
       return json({ ok: true, skipped: true, reason: "MP_ACCESS_TOKEN no configurada." });
     }
@@ -427,7 +433,7 @@ async function handlePaymentWebhook(request, env, url) {
     // 1) Intentar como ORDEN (flujo nuevo, Checkout Pro vía Orders API)
     const orderRes = await fetch(
       `https://api.mercadopago.com/v1/orders/${encodeURIComponent(resourceId)}`,
-      { headers: { "Authorization": "Bearer " + env.MP_ACCESS_TOKEN } }
+      { headers: { "Authorization": "Bearer " + getMpToken(env) } }
     );
 
     let orderId, mpResourceId, paidAmount;
@@ -442,7 +448,7 @@ async function handlePaymentWebhook(request, env, url) {
       // 2) Fallback: formato clásico de notificación por pago
       const payRes = await fetch(
         `https://api.mercadopago.com/v1/payments/${encodeURIComponent(resourceId)}`,
-        { headers: { "Authorization": "Bearer " + env.MP_ACCESS_TOKEN } }
+        { headers: { "Authorization": "Bearer " + getMpToken(env) } }
       );
       if (!payRes.ok) return json({ ok: true, ignored: true });
       const pay = await payRes.json();
