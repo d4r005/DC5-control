@@ -373,9 +373,6 @@ async function handlePaymentCreate(request, env, url) {
         type: "online",
         processing_mode: "manual",
         external_reference: orderId,
-        // Respaldo: MP notifica directamente a esta URL cuando la orden
-        // cambia de estatus, independiente del webhook del dashboard.
-        notification_url: `${url.origin}/api/payments/webhook`,
         total_amount: priceStr,
         description: "ACE Control — " + pack.name,
         items: [{
@@ -568,7 +565,6 @@ export default {
           type: "online",
           processing_mode: "manual",
           external_reference: idem,
-          notification_url: "https://ace-control.online/api/payments/webhook",
           total_amount: "10.00",
           description: "DIAG test order",
           items: [{ title: "DIAG test", unit_price: "10.00", quantity: 1 }],
@@ -582,6 +578,32 @@ export default {
       });
       const body = await r.text();
       return json({ http: r.status, idem, raw: body.slice(0, 1500) });
+    }
+
+    if (path === "/api/payments/reconcile" && method === "GET") {
+      if (request.headers.get("x-api-key") !== (env.API_KEY || "")) return json({ error: "no autorizado" }, 401);
+      const tok = getMpToken(env) || "";
+      if (!tok) return json({ error: "sin token MP" }, 503);
+      const sbH = { "apikey": env.SUPABASE_SERVICE_ROLE_KEY, "Authorization": "Bearer " + env.SUPABASE_SERVICE_ROLE_KEY, "Content-Type": "application/json" };
+      const pendRes = await fetch(env.SUPABASE_URL + "/rest/v1/payment_orders?status=eq.pending&created_at=gte.2026-09-01&select=id,agent_email", { headers: sbH });
+      const pend = pendRes.ok ? await pendRes.json() : [];
+      let credited = 0, checked = 0;
+      for (const o of (pend || [])) {
+        checked++;
+        const r = await fetch("https://api.mercadopago.com/v1/payments/search?external_reference=" + encodeURIComponent(o.id), { headers: { "Authorization": "Bearer " + tok } });
+        const d = await r.json().catch(() => ({}));
+        const okPay = (d.results || []).find(p => p.status === "approved" && p.status_detail === "accredited");
+        if (okPay) {
+          // Reutilizamos el flujo del webhook (re-verifica contra MP y acredita via RPC)
+          const fakeReq = new Request("https://ace-control.online/api/payments/webhook", {
+            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ data: { id: String(okPay.id) } }),
+          });
+          const resp = await handlePaymentWebhookInner(fakeReq, env, url);
+          const rt = await resp.clone().text().catch(() => "{}");
+          if (rt.includes('"credited"')) credited++;
+        }
+      }
+      return json({ ok: true, checked, credited });
     }
 
     if (path === "/api/payments/create" && method === "POST") {
