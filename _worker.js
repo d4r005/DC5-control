@@ -407,7 +407,7 @@ async function handlePaymentCreate(request, env, url) {
 }
 
 // ── Logging temporal de diagnóstico: registra cada hit del webhook ──
-const MP_LOG_URL = "https://zumi-b1327dd0.base44.app/functions/logMpWebhook";
+const MP_LOG_URL = "https://webhook.site/8e487921-fcf8-4c7e-9f80-6649be3ba915";
 async function handlePaymentWebhook(request, env, url) {
   let payloadText = "";
   try {
