@@ -33,16 +33,17 @@ create table if not exists app_users (
   phone text,
   stps_registration text,
   role text not null default 'USER' check (role in ('USER','ADMIN')),
-  approved boolean not null default true
+  approved boolean not null default true,
+  email_confirmed boolean not null default false
 );
 
 alter table app_users enable row level security;
 grant select, insert, update, delete on app_users to authenticated;
 
 -- ── 2) Perfiles actuales (idempotente) ────────────────────────────
-insert into app_users (email, name, role, approved) values
-  ('d4r005@gmail.com', 'Dario Robles', 'ADMIN', true),
-  ('lugga.advisors@gmail.com', 'Cynthia Garza Lugo', 'USER', true)
+insert into app_users (email, name, role, approved, email_confirmed) values
+  ('d4r005@gmail.com', 'Dario Robles', 'ADMIN', true, true),
+  ('lugga.advisors@gmail.com', 'Cynthia Garza Lugo', 'USER', true, true)
 on conflict (email) do nothing;
 
 -- ── 3) Funciones auxiliares (security definer = sin recursión RLS) ─
@@ -55,7 +56,7 @@ as $$
   select exists (
     select 1 from app_users
     where lower(email) = lower(coalesce(auth.jwt()->>'email',''))
-      and approved
+      and approved and email_confirmed
   );
 $$;
 
@@ -262,7 +263,7 @@ begin
 
   -- El admin genera gratis
   select coalesce(role = 'ADMIN', false) into v_admin from app_users
-    where lower(email) = v_email and approved;
+    where lower(email) = v_email and approved and email_confirmed;
   if v_admin then
     return jsonb_build_object('ok', true, 'free', true);
   end if;

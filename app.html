@@ -121,6 +121,7 @@
                 <p id="login-error" class="text-red-500 text-sm font-medium hidden">Credenciales incorrectas. Intenta de nuevo.</p>
                 <button type="submit" class="btn-primary mt-2">Entrar al sistema</button>
                 <p id="login-info" class="text-green-600 text-sm font-medium hidden"></p>
+                <button type="button" id="btn-resend-confirm" class="btn-primary mt-2 hidden" onclick="resendConfirmation()">Reenviar correo de confirmación</button>
             </form>
             </div>
 
@@ -1501,6 +1502,27 @@ window.onload = async () => {
         return;
     }
 
+    // Enlace de confirmacion de correo propio (?confirm=<token>)
+    const confirmToken = params.get('confirm');
+    if (confirmToken) {
+        if (window.history && history.replaceState) history.replaceState(null, '', window.location.pathname);
+        try {
+            const r = await fetch('/api/email/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: confirmToken })
+            });
+            const j = await r.json();
+            const info = document.getElementById('login-info');
+            if (info) {
+                info.classList.remove('hidden');
+                info.textContent = j.ok
+                    ? '¡Cuenta creada con éxito! Inicia sesión con tu correo y contraseña.'
+                    : 'El enlace no es válido o expiró. Inicia sesión para reenviar el correo de confirmación.';
+            }
+        } catch (e) { console.warn('[Confirm]', e); }
+    }
+
     // Confirmacion de correo de Supabase: el token llega en el hash de la URL.
     // Cerramos esa sesion automatica para que ingrese con su contrasena
     // y mostramos el aviso de cuenta creada con exito.
@@ -1710,6 +1732,34 @@ async function isCreditExempt(email) {
     } catch(e) { return false; }
 }
 
+// ─── Confirmación de correo (Worker + Resend) ──────────────────────
+async function sendConfirmationEmail(email) {
+    if (!email) return;
+    try {
+        const r = await fetch('/api/email/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ to: email })
+        });
+        const j = await r.json().catch(() => ({}));
+        if (j && j.skipped) console.warn('Confirmación: RESEND_API_KEY no configurada en Cloudflare');
+    } catch (e) { console.warn('No se pudo enviar el correo de confirmación', e); }
+}
+
+async function resendConfirmation() {
+    const email = window._pendingConfirmEmail;
+    if (!email) return;
+    const btn = document.getElementById('btn-resend-confirm');
+    if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
+    await sendConfirmationEmail(email);
+    const info = document.getElementById('login-info');
+    if (info) {
+        info.classList.remove('hidden');
+        info.textContent = 'Correo reenviado a ' + email + '. Revisa tu bandeja (y spam).';
+    }
+    if (btn) { btn.disabled = false; btn.textContent = 'Reenviar correo de confirmación'; }
+}
+
 // Verifica que haya creditos suficientes ANTES de generar.
 // Pasan gratis: el admin y las cuentas marcadas como "sin cobro".
 // Si no hay suficientes, muestra alerta con el saldo y datos de contacto, y regresa false.
@@ -1875,6 +1925,14 @@ async function login(e) {
             showError('Tu cuenta ha sido suspendida. Contacta al administrador.');
             return;
         }
+        if (profile.email_confirmed === false) {
+            await sb.auth.signOut();
+            window._pendingConfirmEmail = email;
+            showError('Tu cuenta aún no está confirmada. Revisa tu correo.');
+            const btn = document.getElementById('btn-resend-confirm');
+            if (btn) btn.classList.remove('hidden');
+            return;
+        }
         if (errEl) errEl.classList.add('hidden');
 
         if (document.getElementById('remember-me').checked) localStorage.setItem('rememberedEmail', email);
@@ -1910,6 +1968,7 @@ function showSignup(show) {
     document.getElementById('toggle-login').classList.toggle('hidden', !show);
     const err = document.getElementById('login-error'); if (err) err.classList.add('hidden');
     const info = document.getElementById('login-info'); if (info) info.classList.add('hidden');
+    const rbtn = document.getElementById('btn-resend-confirm'); if (rbtn) rbtn.classList.add('hidden');
     const suErr = document.getElementById('signup-error'); if (suErr) suErr.classList.add('hidden');
 }
 
@@ -1940,7 +1999,8 @@ async function signup(e) {
             return;
         }
         if (data && data.session) {
-            // Sin confirmacion de correo: crear el perfil activo ya
+            // Confirmacion propia por correo (Resend): perfil activo pero
+            // email_confirmed=false hasta que confirme desde su correo.
             await sb.from('app_users').insert({
                 email, name,
                 phone: phone || null,
@@ -1949,13 +2009,13 @@ async function signup(e) {
             });
             await sb.auth.signOut();
         }
+        // Enviar el correo de confirmacion (Worker + Resend)
+        sendConfirmationEmail(email);
         showSignup(false);
         const info = document.getElementById('login-info');
         if (info) {
             info.classList.remove('hidden');
-            info.textContent = (data && data.session)
-                ? 'Cuenta creada. Ya puedes iniciar sesión y comenzar a llenar tus datos.'
-                : 'Casi listo. Revisa tu correo y confirma tu cuenta; luego inicia sesión y estarás dentro.';
+            info.textContent = '¡Cuenta creada! Te enviamos un correo para confirmar tu cuenta. Revisa tu bandeja de entrada (y la carpeta de spam).';
         }
     } catch (err) {
         console.error('signup error:', err);
