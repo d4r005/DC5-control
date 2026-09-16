@@ -294,6 +294,7 @@ export default {
         keyRole,
         keyLength: key.length,
         resendKeyPresent: !!env.RESEND_API_KEY,
+        resendFromEmail: env.RESEND_FROM_EMAIL || null,
         apiKeyPresent: !!env.API_KEY,
       });
     }
