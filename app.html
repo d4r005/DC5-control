@@ -938,7 +938,8 @@
                 <p id="credits-balance-display" class="text-4xl font-extrabold text-blue-900">–</p>
                 <p id="credits-exempt-badge" class="hidden text-xs font-bold text-green-600 mt-1">✓ Tu cuenta no consume créditos (cortesía del administrador)</p>
                 <p class="text-xs text-gray-400 mt-1">1 crédito = 1 documento generado (DC-3, Diploma o Licencia)</p>
-                <a href="https://wa.me/5218130828355" target="_blank" class="btn-sm btn-primary inline-flex items-center gap-1.5 mt-4">💬 Comprar más créditos</a>
+                <button type="button" onclick="openBuyModal()" class="btn-sm btn-primary inline-flex items-center gap-1.5 mt-4">💳 Comprar más créditos</button>
+                <a href="https://wa.me/5218130828355" target="_blank" class="text-xs text-gray-400 underline mt-2 block">¿Prefieres transferencia directa? Escríbenos</a>
             </div>
             <div id="credits-history-card" class="card overflow-hidden">
                 <div class="p-4 border-b border-gray-100"><p class="text-sm font-bold text-gray-700">Historial de movimientos</p></div>
@@ -1523,6 +1524,20 @@ window.onload = async () => {
         } catch (e) { console.warn('[Confirm]', e); }
     }
 
+    // Retorno de Mercado Pago (?compra=ok|pending|fail)
+    const compra = params.get('compra');
+    if (compra) {
+        if (window.history && history.replaceState) history.replaceState(null, '', window.location.pathname);
+        if (compra === 'ok') {
+            alert('¡Pago recibido! Estamos acreditando tus créditos: en unos segundos verás el saldo actualizado.');
+            setTimeout(() => { if (typeof loadSection === 'function') loadSection('credits'); }, 7000);
+        } else if (compra === 'pending') {
+            alert('Tu pago quedó en proceso (SPEI u OXXO tardan unas horas en confirmarse). Los créditos se acreditarán automáticamente; no necesitas hacer nada.');
+        } else {
+            alert('El pago no se completó. No se realizó ningún cargo; puedes intentarlo de nuevo.');
+        }
+    }
+
     // Confirmacion de correo de Supabase: el token llega en el hash de la URL.
     // Cerramos esa sesion automatica para que ingrese con su contrasena
     // y mostramos el aviso de cuenta creada con exito.
@@ -1760,6 +1775,62 @@ async function resendConfirmation() {
     if (btn) { btn.disabled = false; btn.textContent = 'Reenviar correo de confirmación'; }
 }
 
+// ─── Compra de paquetes (Mercado Pago vía Worker) ──────────────────
+async function openBuyModal() {
+    const modal = document.getElementById('buy-modal');
+    const wrap = document.getElementById('buy-packages');
+    if (!modal || !wrap) return;
+    wrap.innerHTML = '<p class="text-center text-gray-400 text-sm py-6">Cargando paquetes…</p>';
+    const errEl = document.getElementById('buy-error');
+    if (errEl) errEl.classList.add('hidden');
+    modal.classList.remove('hidden');
+    try {
+        const { data: packs, error } = await sb
+            .from('credit_packages')
+            .select('id,name,price,credits,description')
+            .eq('active', true)
+            .order('price');
+        if (error) throw error;
+        wrap.innerHTML = (packs || []).map(p => `
+            <button type="button" onclick="buyPackage('${p.id}')" class="w-full text-left border-2 border-gray-100 hover:border-blue-900 rounded-xl p-4 flex items-center justify-between transition">
+                <span>
+                    <span class="block font-bold text-gray-800">${p.name}</span>
+                    <span class="block text-xs text-gray-400">${p.credits} documentos · $${Number(p.price).toFixed(2)} MXN</span>
+                </span>
+                <span class="bg-blue-900 text-white text-sm font-bold px-4 py-2 rounded-lg">Pagar</span>
+            </button>`).join('') || '<p class="text-center text-gray-400 text-sm py-6">No hay paquetes disponibles.</p>';
+    } catch (e) {
+        wrap.innerHTML = '';
+        const errEl2 = document.getElementById('buy-error');
+        if (errEl2) { errEl2.textContent = 'No se pudieron cargar los paquetes: ' + e.message; errEl2.classList.remove('hidden'); }
+    }
+}
+
+function closeBuyModal() {
+    const m = document.getElementById('buy-modal');
+    if (m) m.classList.add('hidden');
+}
+
+async function buyPackage(packId) {
+    const btns = document.getElementById('buy-packages');
+    if (btns) btns.innerHTML = '<p class="text-center text-gray-400 text-sm py-6">Iniciando pago seguro con Mercado Pago…</p>';
+    try {
+        const { data: sess } = await sb.auth.getSession();
+        const token = sess && sess.session ? sess.session.access_token : null;
+        if (!token) { alert('Tu sesión expiró. Inicia sesión de nuevo.'); return; }
+        const r = await fetch('/api/payments/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ pack: packId })
+        });
+        const j = await r.json();
+        if (!r.ok || !j.url) throw new Error(j.error || 'No se pudo iniciar el pago');
+        window.location.href = j.url;
+    } catch (e) {
+        if (btns) btns.innerHTML = '<p class="text-center text-red-500 text-sm py-6">' + e.message + '</p>';
+    }
+}
+
 // Verifica que haya creditos suficientes ANTES de generar.
 // Pasan gratis: el admin y las cuentas marcadas como "sin cobro".
 // Si no hay suficientes, muestra alerta con el saldo y datos de contacto, y regresa false.
@@ -1770,7 +1841,8 @@ async function requireCredits(n, label) {
     const balance = await getCreditBalance(email);
     if (balance === null) return true; // sistema de creditos aun no instalado
     if (balance >= n) return true;
-    alert(`No tienes creditos suficientes para generar ${label || 'este documento'}.\n\nSaldo actual: ${balance}\nCreditos necesarios: ${n}\n\n${CREDIT_CONTACT_MSG}`);
+    alert(`No tienes creditos suficientes para generar ${label || 'este documento'}.\n\nSaldo actual: ${balance}\nCreditos necesarios: ${n}\n\nTe llevamos a la tienda de paquetes…`);
+    openBuyModal();
     return false;
 }
 
@@ -5966,5 +6038,18 @@ async function updateLicenseDesignPreview() {
 }
 
 </script>
+<!-- ─── MODAL: Comprar créditos ─── -->
+<div id="buy-modal" class="hidden fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4" onclick="if(event.target===this) closeBuyModal()">
+  <div class="bg-white rounded-2xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-1">
+      <p class="text-lg font-extrabold text-blue-900">Comprar créditos</p>
+      <button type="button" onclick="closeBuyModal()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+    </div>
+    <p class="text-xs text-gray-400 mb-4">1 crédito = 1 documento · Sin vigencia · Pago seguro vía Mercado Pago</p>
+    <div id="buy-packages" class="space-y-3"></div>
+    <p id="buy-error" class="text-red-500 text-sm font-medium hidden mt-3"></p>
+    <p class="text-[11px] text-gray-400 mt-4 text-center">¿Dudas o prefieres transferencia directa? WhatsApp: +52 1 81 3082 8355</p>
+  </div>
+</div>
 </body>
 </html>

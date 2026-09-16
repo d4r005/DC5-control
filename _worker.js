@@ -279,6 +279,166 @@ async function handleVerifyConfirm(request, env) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// Pagos — Mercado Pago (Checkout Pro)
+// ═══════════════════════════════════════════════════════════════════
+
+async function handlePaymentCreate(request, env, url) {
+  try {
+    if (!env.API_KEY) return json({ error: "API_KEY no configurada en Cloudflare." }, 403);
+    if (!env.MP_ACCESS_TOKEN) return json({ error: "MP_ACCESS_TOKEN no configurada en Cloudflare." }, 503);
+
+    const ip = request.headers.get("cf-connecting-ip") || "unknown";
+    if (rateLimited("pay:" + ip, 10, 3600000)) {
+      return json({ error: "Demasiadas solicitudes. Inténtalo más tarde." }, 429);
+    }
+
+    // 1) Identidad: verificar el token de sesión del agente en Supabase
+    const bearer = (request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
+    if (!bearer) return json({ error: "No autenticado." }, 401);
+
+    const userRes = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, {
+      headers: { "apikey": env.SUPABASE_SERVICE_ROLE_KEY, "Authorization": "Bearer " + bearer },
+    });
+    if (!userRes.ok) return json({ error: "Sesión inválida. Inicia sesión de nuevo." }, 401);
+    const user = await userRes.json();
+    const email = String((user && user.email) || "").toLowerCase();
+    if (!email) return json({ error: "Sesión inválida." }, 401);
+
+    const sbHeaders = {
+      "apikey": env.SUPABASE_SERVICE_ROLE_KEY,
+      "Authorization": "Bearer " + env.SUPABASE_SERVICE_ROLE_KEY,
+      "Content-Type": "application/json",
+    };
+
+    // 2) La cuenta debe estar activa y confirmada
+    const profRes = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/app_users?email=eq.${encodeURIComponent(email)}&select=approved,email_confirmed`,
+      { headers: sbHeaders }
+    );
+    const prof = profRes.ok ? (await profRes.json())[0] : null;
+    if (!prof || prof.approved === false || prof.email_confirmed === false) {
+      return json({ error: "Tu cuenta no está activa." }, 403);
+    }
+
+    // 3) Paquete solicitado (precio oficial de la BD, nunca del cliente)
+    const body = await request.json();
+    const packId = String((body && body.pack) || "");
+    const packRes = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/credit_packages?id=eq.${encodeURIComponent(packId)}&active=eq.true&select=*`,
+      { headers: sbHeaders }
+    );
+    const packs = packRes.ok ? await packRes.json() : [];
+    if (!packs || packs.length === 0) return json({ error: "Paquete no disponible." }, 404);
+    const pack = packs[0];
+
+    // 4) Registrar la orden como pendiente
+    const orderId = crypto.randomUUID();
+    const insRes = await fetch(`${env.SUPABASE_URL}/rest/v1/payment_orders`, {
+      method: "POST",
+      headers: { ...sbHeaders, "Prefer": "return=minimal" },
+      body: JSON.stringify({
+        id: orderId,
+        agent_email: email,
+        pack_id: pack.id,
+        amount: Number(pack.price),
+        currency: "MXN",
+        status: "pending",
+      }),
+    });
+    if (!insRes.ok) return json({ error: "No se pudo registrar la orden." }, 500);
+
+    // 5) Crear el checkout de Mercado Pago (Checkout Pro)
+    const prefRes = await fetch("https://api.mercadopago.com/checkout/preferences", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + env.MP_ACCESS_TOKEN, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        items: [{
+          id: pack.id,
+          title: "ACE Control — " + pack.name + " (" + pack.credits + " documentos)",
+          quantity: 1,
+          unit_price: Number(pack.price),
+          currency_id: "MXN",
+        }],
+        external_reference: orderId,
+        back_urls: {
+          success: `${url.origin}/app.html?compra=ok&order=${orderId}`,
+          failure: `${url.origin}/app.html?compra=fail`,
+          pending: `${url.origin}/app.html?compra=pending`,
+        },
+        auto_return: "approved",
+        notification_url: `${url.origin}/api/payments/webhook`,
+        statement_descriptor: "ACECONTROL",
+        metadata: { order_id: orderId, pack: pack.id },
+      }),
+    });
+    const pref = await prefRes.json().catch(() => ({}));
+    if (!prefRes.ok || !pref || !pref.id) {
+      return json({ error: "No se pudo iniciar el pago con Mercado Pago.", detail: pref.message || "" }, 500);
+    }
+
+    return json({ ok: true, order: orderId, url: pref.init_point || pref.sandbox_init_point });
+  } catch (e) {
+    return json({ error: e.message }, 500);
+  }
+}
+
+async function handlePaymentWebhook(request, env, url) {
+  try {
+    if (!env.MP_ACCESS_TOKEN) {
+      // No romper: responder 200 para que MP no reintente en bucle
+      return json({ ok: true, skipped: true, reason: "MP_ACCESS_TOKEN no configurada." });
+    }
+
+    // MP puede notificar por POST (JSON) o GET (query params)
+    let paymentId = null;
+    if (request.method === "POST") {
+      const body = await request.json().catch(() => ({}));
+      paymentId =
+        (body.data && body.data.id) ||
+        (body.resource && String(body.resource).split("/").pop()) ||
+        null;
+    }
+    if (!paymentId) {
+      const q = new URL(request.url).searchParams;
+      paymentId = q.get("data.id") || q.get("id") || q.get("collection_id");
+    }
+    if (!paymentId) return json({ ok: true, ignored: true });
+
+    // Verificar el pago CONTRA los servidores de MP (el payload no se confía)
+    const payRes = await fetch(
+      `https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}`,
+      { headers: { "Authorization": "Bearer " + env.MP_ACCESS_TOKEN } }
+    );
+    if (!payRes.ok) return json({ ok: true, ignored: true });
+    const pay = await payRes.json();
+
+    if (pay.status !== "approved") return json({ ok: true, status: pay.status || "unknown" });
+
+    const orderId = pay.external_reference;
+    if (!orderId) return json({ ok: true, ignored: true });
+
+    // Acreditar (RPC idempotente; verifica paquete activo y monto)
+    const rpcRes = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/process_payment_webhook`, {
+      method: "POST",
+      headers: {
+        "apikey": env.SUPABASE_SERVICE_ROLE_KEY,
+        "Authorization": "Bearer " + env.SUPABASE_SERVICE_ROLE_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        p_order: orderId,
+        p_mp_payment_id: String(paymentId),
+        p_amount: Number(pay.transaction_amount || 0),
+      }),
+    });
+    const result = rpcRes.ok ? await rpcRes.json() : { ok: false, reason: "rpc_error" };
+    return json({ ok: true, credited: result });
+  } catch (e) {
+    return json({ ok: true, error: e.message }); // 200 siempre: MP reintenta si no
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
 
 export default {
   async fetch(request, env) {
@@ -305,6 +465,20 @@ export default {
     }
     if (path === "/api/email/verify" && method === "POST") {
       return handleVerifyConfirm(request, env);
+    }
+
+    // ═══ Pagos (Mercado Pago) ═══
+    //  - /api/payments/create: requiere el token de sesión de Supabase
+    //    del agente (se verifica contra Supabase). Crea la orden y el
+    //    checkout de Mercado Pago.
+    //  - /api/payments/webhook: la llama MP tras el pago. NO se confía
+    //    en el payload: el pago se re-verifica contra los servidores de
+    //    MP y los créditos los acredita el RPC process_payment_webhook.
+    if (path === "/api/payments/create" && method === "POST") {
+      return handlePaymentCreate(request, env, url);
+    }
+    if (path === "/api/payments/webhook" && (method === "POST" || method === "GET")) {
+      return handlePaymentWebhook(request, env, url);
     }
 
     // Seguridad: este proxy usa SERVICE_ROLE (bypass RLS), así que debe
