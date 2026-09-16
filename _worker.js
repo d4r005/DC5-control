@@ -518,6 +518,33 @@ export default {
     //  - /api/payments/webhook: la llama MP tras el pago. NO se confía
     //    en el payload: el pago se re-verifica contra los servidores de
     //    MP y los créditos los acredita el RPC process_payment_webhook.
+    if (path === "/api/debug/mp-find" && method === "GET") {
+      const tok = getMpToken(env) || "";
+      const ref = params.get("ref") || "";
+      if (!ref) return json({ error: "falta ref" }, 400);
+      const out = { ref };
+      // 1) Buscar pagos por external_reference
+      try {
+        const r = await fetch("https://api.mercadopago.com/v1/payments/search?external_reference=" + encodeURIComponent(ref), { headers: { "Authorization": "Bearer " + tok } });
+        const d = await r.json().catch(() => ({}));
+        out.paymentsSearch = {
+          http: r.status,
+          results: (d.results || []).map(p => ({ id: p.id, status: p.status, detail: p.status_detail, amount: p.transaction_amount })),
+          error: d.message || d.error || null,
+        };
+      } catch (e) { out.paymentsSearch = { error: e.message }; }
+      // 2) Buscar orden por external_reference
+      try {
+        const r2 = await fetch("https://api.mercadopago.com/v1/orders?external_reference=" + encodeURIComponent(ref), { headers: { "Authorization": "Bearer " + tok } });
+        const d2 = await r2.json().catch(() => ({}));
+        out.ordersSearch = {
+          http: r2.status,
+          raw: JSON.stringify(d2).slice(0, 400),
+        };
+      } catch (e) { out.ordersSearch = { error: e.message }; }
+      return json(out);
+    }
+
     if (path === "/api/payments/create" && method === "POST") {
       return handlePaymentCreate(request, env, url);
     }
