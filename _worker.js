@@ -369,7 +369,8 @@ async function handlePaymentCreate(request, env, url) {
         total_amount: priceStr,
         description: "ACE Control — " + pack.name,
         items: [{
-          id: pack.id,
+          // OJO: la API de Orders rechaza "id" dentro de items (error
+          // unsupported_properties). Verificado en vivo 2026-09-16.
           title: "ACE Control — " + pack.name + " (" + pack.credits + " documentos)",
           unit_price: priceStr,
           quantity: 1,
