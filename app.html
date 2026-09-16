@@ -94,6 +94,7 @@
                     </div>
 
         <div class="login-card">
+            <div id="login-box">
             <h2 class="text-xl font-bold text-gray-900 mb-1">Iniciar sesión</h2>
             <p class="text-sm text-gray-400 mb-7">Ingresa tus credenciales para continuar</p>
 
@@ -119,7 +120,48 @@
                 </div>
                 <p id="login-error" class="text-red-500 text-sm font-medium hidden">Credenciales incorrectas. Intenta de nuevo.</p>
                 <button type="submit" class="btn-primary mt-2">Entrar al sistema</button>
+                <p id="login-info" class="text-green-600 text-sm font-medium hidden"></p>
             </form>
+            </div>
+
+            <div id="signup-box" class="hidden">
+                <h2 class="text-xl font-bold text-gray-900 mb-1">Crear cuenta</h2>
+                <p class="text-sm text-gray-400 mb-7">Solicita acceso a la plataforma</p>
+
+                <form onsubmit="signup(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Nombre completo</label>
+                        <input id="su-name" type="text" class="input-field" placeholder="Tu nombre y apellidos" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Correo electrónico</label>
+                        <input id="su-email" type="email" class="input-field" placeholder="usuario@correo.com" required>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1.5">Teléfono / WhatsApp</label>
+                            <input id="su-phone" type="tel" class="input-field" placeholder="81 1234 5678">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1.5">Registro STPS (opcional)</label>
+                            <input id="su-stps" type="text" class="input-field" placeholder="DC-STPS-...">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Contraseña</label>
+                        <input id="su-pass" type="password" class="input-field" placeholder="Mínimo 8 caracteres" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Confirmar contraseña</label>
+                        <input id="su-pass2" type="password" class="input-field" placeholder="Repite tu contraseña" required>
+                    </div>
+                    <p id="signup-error" class="text-red-500 text-sm font-medium hidden"></p>
+                    <button type="submit" class="btn-primary mt-2">Enviar solicitud</button>
+                    <p class="text-[11px] text-gray-400 text-center">Tu cuenta quedará en revisión. Recibirás acceso cuando el administrador la apruebe.</p>
+                </form>
+            </div>
+            <p id="toggle-signup" class="mt-5 text-center text-sm hidden"><a href="#" onclick="showSignup(true); return false;" class="text-blue-700 font-semibold hover:text-blue-900">Crear cuenta</a></p>
+            <p id="toggle-login" class="mt-5 text-center text-sm hidden">¿Ya tienes cuenta? <a href="#" onclick="showSignup(false); return false;" class="text-blue-700 font-semibold hover:text-blue-900">Iniciar sesión</a></p>
 
             <div class="mt-6 pt-5 border-t border-gray-100 text-center">
                 <a href="/" class="text-xs text-blue-700 hover:text-blue-900 font-semibold underline underline-offset-2">Volver</a>
@@ -929,7 +971,7 @@
             <div class="card overflow-hidden">
                 <div class="overflow-x-auto">
                 <table>
-                    <thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Acciones</th></tr></thead>
+                    <thead><tr><th>Nombre</th><th>Correo</th><th>Contacto</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr></thead>
                     <tbody id="tb-users"></tbody>
                 </table>
                 </div>
@@ -1263,18 +1305,25 @@ try {
 }
 
 // Restore session from Supabase Auth if valid — prevents F5 from kicking you out
+async function initSignupLink() {
+    const ok = await registrationEnabled();
+    const t = document.getElementById('toggle-signup');
+    if (t) t.classList.toggle('hidden', !ok);
+}
+
 async function checkExistingSession() {
     try {
         const { data } = await sb.auth.getSession();
         if (data && data.session && data.session.user) {
             const email = data.session.user.email;
-            const profile = APP_USERS.find(u => u.email.toLowerCase() === email.toLowerCase());
-            if (profile) {
-                currentUser = { ...profile, email };
+            const profile = await fetchUserProfile(email);
+            if (profile && profile.approved !== false) {
+                currentUser = { name: profile.name || email, email, role: profile.role || 'USER' };
+                if (isAdmin()) await loadUserProfiles();
                 await initApp();
                 return true;
             }
-            // Sesión válida pero usuario no autorizado en la app
+            // Sesion valida pero sin perfil aprobado (en revision o no autorizado)
             await sb.auth.signOut();
         }
     } catch (e) {
@@ -1309,6 +1358,10 @@ const APP_USERS = [
     { name: "Dario Robles", email: "d4r005@gmail.com", role: "ADMIN" },
     { name: "Cynthia Garza Lugo", email: "lugga.advisors@gmail.com", role: "USER" },
 ];
+
+// Perfiles dinamicos desde la tabla app_users (auto-registro).
+// APP_USERS queda solo como fallback si la migracion no esta ejecutada.
+let USER_PROFILES = [];
 
 const DATA = {
     courses: [
@@ -1452,6 +1505,8 @@ window.onload = async () => {
     if (rem) document.getElementById('email').value = rem;
     // Restore session if valid — prevents F5 from kicking you out
     checkExistingSession();
+    // Mostrar "Crear cuenta" solo cuando la tabla app_users existe
+    initSignupLink();
 };
 
 // ─── API ──────────────────────────────────────────────
@@ -1771,11 +1826,27 @@ async function login(e) {
         const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
         if (error || !data || !data.user) { showError('Correo o contraseña incorrectos.'); return; }
 
-        // Solo los perfiles autorizados en APP_USERS pueden entrar
-        const profile = APP_USERS.find(u => u.email.toLowerCase() === data.user.email.toLowerCase());
+        // Perfil dinamico desde app_users (fallback a la lista local)
+        let profile = await fetchUserProfile(data.user.email);
+        if (!profile) {
+            // Cuenta confirmada por correo pero sin perfil: crear fila en revision
+            try {
+                await sb.from('app_users').insert({
+                    email: data.user.email.toLowerCase(),
+                    name: (data.user.user_metadata && data.user.user_metadata.name) || data.user.email,
+                    role: 'USER', approved: false
+                });
+                profile = await fetchUserProfile(data.user.email);
+            } catch (e) { console.warn('No se pudo crear perfil pendiente:', e); }
+        }
         if (!profile) {
             await sb.auth.signOut();
             showError('Este usuario no tiene acceso autorizado.');
+            return;
+        }
+        if (profile.approved === false) {
+            await sb.auth.signOut();
+            showError('Tu cuenta esta en revision. Recibiras acceso cuando el administrador la apruebe.');
             return;
         }
         if (errEl) errEl.classList.add('hidden');
@@ -1783,12 +1854,188 @@ async function login(e) {
         if (document.getElementById('remember-me').checked) localStorage.setItem('rememberedEmail', email);
         else localStorage.removeItem('rememberedEmail');
 
-        currentUser = { ...profile, email: data.user.email };
+        currentUser = { name: profile.name || data.user.email, email: data.user.email, role: profile.role || 'USER' };
+        if (isAdmin()) await loadUserProfiles();
         await initApp();
     } catch (err) {
         console.error("Login error:", err);
         alert("Error al intentar entrar: " + err.message);
     }
+}
+
+// ─── AUTO-REGISTRO Y GESTION DE USUARIOS (tabla app_users) ──────
+// El registro publico solo se habilita cuando app_users existe
+// (tras ejecutar sql_auto_registro.sql). Mientras tanto, el enlace
+// "Crear cuenta" permanece oculto y el registro devuelve error.
+async function registrationEnabled() {
+    try {
+        const { error } = await sb.from('app_users').select('id').limit(1);
+        return !error;
+    } catch (e) { return false; }
+}
+
+function showSignup(show) {
+    const lb = document.getElementById('login-box');
+    const sbx = document.getElementById('signup-box');
+    if (!lb || !sbx) return;
+    lb.classList.toggle('hidden', show);
+    sbx.classList.toggle('hidden', !show);
+    document.getElementById('toggle-signup').classList.toggle('hidden', show);
+    document.getElementById('toggle-login').classList.toggle('hidden', !show);
+    const err = document.getElementById('login-error'); if (err) err.classList.add('hidden');
+    const info = document.getElementById('login-info'); if (info) info.classList.add('hidden');
+    const suErr = document.getElementById('signup-error'); if (suErr) suErr.classList.add('hidden');
+}
+
+async function signup(e) {
+    if (e) e.preventDefault();
+    const errEl = document.getElementById('signup-error');
+    const showErr = (m) => { errEl.classList.remove('hidden'); errEl.textContent = m; };
+    errEl.classList.add('hidden');
+    const name = document.getElementById('su-name').value.trim();
+    const email = document.getElementById('su-email').value.trim().toLowerCase();
+    const phone = document.getElementById('su-phone').value.trim();
+    const stps = document.getElementById('su-stps').value.trim();
+    const pass = document.getElementById('su-pass').value;
+    const pass2 = document.getElementById('su-pass2').value;
+    if (!name || !email || !pass) { showErr('Completa los campos obligatorios.'); return; }
+    if (pass.length < 8) { showErr('La contraseña debe tener al menos 8 caracteres.'); return; }
+    if (pass !== pass2) { showErr('Las contraseñas no coinciden.'); return; }
+    if (!await registrationEnabled()) { showErr('El registro no esta disponible por el momento. Contactanos por WhatsApp.'); return; }
+    try {
+        const { data, error } = await sb.auth.signUp({
+            email, password: pass,
+            options: { data: { name, phone: phone || null, stps_registration: stps || null } }
+        });
+        if (error) {
+            const m = (error.message || '').toLowerCase();
+            if (m.includes('already') || m.includes('registered') || m.includes('exist')) showErr('Ya existe una cuenta con este correo. Inicia sesión o recupera tu contraseña.');
+            else showErr('No se pudo crear la cuenta: ' + error.message);
+            return;
+        }
+        if (data && data.session) {
+            // Sin confirmacion de correo: crear la fila "en revision" ya
+            await sb.from('app_users').insert({
+                email, name,
+                phone: phone || null,
+                stps_registration: stps || null,
+                role: 'USER', approved: false
+            });
+            await sb.auth.signOut();
+        }
+        showSignup(false);
+        const info = document.getElementById('login-info');
+        if (info) {
+            info.classList.remove('hidden');
+            info.textContent = (data && data.session)
+                ? 'Solicitud enviada. Tu cuenta quedo en revision; recibiras acceso cuando el administrador la apruebe.'
+                : 'Casi listo. Revisa tu correo y confirma tu cuenta; luego inicia sesión para completar tu solicitud.';
+        }
+    } catch (err) {
+        console.error('signup error:', err);
+        showErr('Error al registrarse: ' + (err.message || err));
+    }
+}
+
+// Consulta el perfil en app_users; fallback a APP_USERS si la tabla
+// aun no existe (migracion pendiente).
+async function fetchUserProfile(email) {
+    const em = (email || '').toLowerCase();
+    const legacy = () => APP_USERS.find(u => (u.email||'').toLowerCase() === em) || null;
+    try {
+        const { data, error } = await sb.from('app_users').select('*').eq('email', em).limit(1);
+        if (error) {
+            if (error.code === 'PGRST205' || (error.message||'').includes('does not exist')) return legacy();
+            throw error;
+        }
+        if (data && data.length) return data[0];
+        return legacy();
+    } catch (e) {
+        console.warn('fetchUserProfile fallback:', e);
+        return legacy();
+    }
+}
+
+async function loadUserProfiles() {
+    try {
+        const { data, error } = await sb.from('app_users').select('*').order('created_at', { ascending: true });
+        if (error) throw error;
+        USER_PROFILES = data || [];
+    } catch (e) { console.warn('loadUserProfiles:', e); }
+}
+
+function getAdminEmails() {
+    const src = (USER_PROFILES && USER_PROFILES.length) ? USER_PROFILES : (APP_USERS || []);
+    return src.filter(u => (u.role||'').toUpperCase() === 'ADMIN').map(u => (u.email||'').toLowerCase());
+}
+
+async function renderUsersTable() {
+    const tb = document.getElementById('tb-users');
+    if (!tb) return;
+    try {
+        const { data, error } = await sb.from('app_users').select('*').order('created_at', { ascending: true });
+        if (error) throw error;
+        USER_PROFILES = data || [];
+        tb.innerHTML = USER_PROFILES.map(u => {
+            const approved = !!u.approved;
+            const role = u.role || 'USER';
+            const own = (u.email||'').toLowerCase() === (currentUser?.email||'').toLowerCase();
+            const emailSafe = escAttr(u.email || '');
+            const contact = [u.phone, u.stps_registration].filter(Boolean).join(' · ') || '—';
+            let actions = '';
+            if (!approved) {
+                actions = `<button onclick="approveUser('${emailSafe}')" class="btn-sm btn-primary">Aprobar</button> `
+                        + `<button onclick="rejectUser('${emailSafe}')" class="btn-sm btn-outline">Rechazar</button>`;
+            } else {
+                actions = own ? '<span class="text-xs text-gray-300">Tu cuenta</span>'
+                    : `<button onclick="toggleUserRole('${emailSafe}')" class="btn-sm btn-outline">${role === 'ADMIN' ? 'Quitar admin' : 'Hacer admin'}</button>`;
+            }
+            return `<tr>
+                <td class="font-semibold">${u.name || '(sin nombre)'}</td>
+                <td class="text-gray-500 text-sm">${u.email}</td>
+                <td class="text-gray-500 text-xs">${contact}</td>
+                <td><span class="badge ${role==='ADMIN'?'badge-admin':'badge-user'}">${role}</span></td>
+                <td>${approved ? '<span class="text-green-600 font-semibold text-xs">Activo</span>' : '<span class="text-yellow-600 font-semibold text-xs">En revisión</span>'}</td>
+                <td class="text-right">${actions}</td>
+              </tr>`;
+        }).join('') || '<tr><td colspan="6" class="text-center py-8 text-gray-300 text-sm">Sin usuarios</td></tr>';
+    } catch (e) {
+        console.warn('renderUsersTable:', e);
+        tb.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-300 text-sm">Gestión de usuarios no disponible (ejecuta sql_auto_registro.sql)</td></tr>';
+    }
+}
+
+async function approveUser(email) {
+    if (!confirm('¿Aprobar el acceso de ' + email + '?')) return;
+    try {
+        const { error } = await sb.from('app_users').update({ approved: true }).eq('email', email);
+        if (error) throw error;
+        await renderUsersTable();
+    } catch (e) { alert('No se pudo aprobar: ' + (e.message || e)); }
+}
+
+async function rejectUser(email) {
+    if (!confirm('Rechazar y eliminar la solicitud de ' + email + '?')) return;
+    try {
+        const { error } = await sb.from('app_users').delete().eq('email', email);
+        if (error) throw error;
+        await renderUsersTable();
+    } catch (e) { alert('No se pudo rechazar: ' + (e.message || e)); }
+}
+
+async function toggleUserRole(email) {
+    if ((email||'').toLowerCase() === (currentUser?.email||'').toLowerCase()) {
+        alert('No puedes cambiar tu propio rol.');
+        return;
+    }
+    try {
+        const { data, error: e1 } = await sb.from('app_users').select('role').eq('email', email).limit(1);
+        if (e1) throw e1;
+        const newRole = (data && data[0] && data[0].role === 'ADMIN') ? 'USER' : 'ADMIN';
+        const { error } = await sb.from('app_users').update({ role: newRole }).eq('email', email);
+        if (error) throw error;
+        await renderUsersTable();
+    } catch (e) { alert('No se pudo cambiar el rol: ' + (e.message || e)); }
 }
 
 async function changePassword() {
@@ -2187,17 +2434,7 @@ async function loadSection(v) {
                 : `<tr><td colspan="4" class="text-center py-12 text-gray-300 text-sm">Sin agentes registrados</td></tr>`;
 
         } else if (v === 'users') {
-            const tb = document.getElementById('tb-users');
-            if (!tb) return;
-            console.log('[DEBUG] Populating tb-users with:', APP_USERS);
-            tb.innerHTML = (APP_USERS || []).map(u => `<tr>
-                <td class="font-semibold">${u.name}</td>
-                <td class="text-gray-500 text-sm">${u.email}</td>
-                <td><span class="badge ${u.role==='ADMIN'?'badge-admin':'badge-user'}">${u.role}</span></td>
-                <td class="text-right">
-                    <button onclick="alert('Edición de usuarios protegida')" class="btn-sm btn-outline">✎</button>
-                </td>
-              </tr>`).join('');
+            await renderUsersTable();
         } else if (v === 'credits') {
             const ownCard = document.getElementById('credits-own-card');
             const historyCard = document.getElementById('credits-history-card');
@@ -2209,7 +2446,7 @@ async function loadSection(v) {
                 const creditsRes = await api('find','agent_credits',{});
                 const rowsByEmail = {};
                 (creditsRes.documents||[]).forEach(r => { rowsByEmail[r.agentEmail] = r; });
-                const adminEmails = new Set((APP_USERS||[]).filter(u => u.role === 'ADMIN').map(u => (u.email||'').toLowerCase()));
+                const adminEmails = new Set(getAdminEmails());
                 const tbCred = document.getElementById('tb-agent-credits');
                 tbCred.innerHTML = (DATA.agents||[]).map(a => {
                     const email = a.creatorEmail || '';
