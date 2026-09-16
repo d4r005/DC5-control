@@ -557,6 +557,33 @@ export default {
       return json({ ref, http: r.status, results, first_raw: results.length ? JSON.stringify(d.results[0]).slice(0, 900) : null });
     }
 
+    if (path === "/api/debug/mp-create" && method === "GET") {
+      const tok = getMpToken(env) || "";
+      if (!tok) return json({ error: "sin token MP" }, 503);
+      const idem = "diag-" + crypto.randomUUID();
+      const r = await fetch("https://api.mercadopago.com/v1/orders", {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + tok, "Content-Type": "application/json", "X-Idempotency-Key": idem },
+        body: JSON.stringify({
+          type: "online",
+          processing_mode: "manual",
+          external_reference: idem,
+          notification_url: "https://ace-control.online/api/payments/webhook",
+          total_amount: "10.00",
+          description: "DIAG test order",
+          items: [{ title: "DIAG test", unit_price: "10.00", quantity: 1 }],
+          config: { online: {
+            success_url: "https://ace-control.online/app.html?compra=ok",
+            pending_url: "https://ace-control.online/app.html?compra=pending",
+            failure_url: "https://ace-control.online/app.html?compra=fail",
+            auto_return: "approved",
+          } },
+        }),
+      });
+      const body = await r.text();
+      return json({ http: r.status, idem, raw: body.slice(0, 1500) });
+    }
+
     if (path === "/api/payments/create" && method === "POST") {
       return handlePaymentCreate(request, env, url);
     }
