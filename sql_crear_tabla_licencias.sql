@@ -21,13 +21,17 @@ create table public.forklift_licenses (
   creator_email text
 );
 
--- Seguridad de nivel fila (mismo estilo que el resto del sistema)
+-- Seguridad de nivel fila
+-- ⚠️ NUNCA dar acceso de escritura al rol anon: la clave anónima viaja
+-- en el app.html público y cualquiera podría modificar las licencias.
+-- La lectura pública para validación de QRs la cubre el RPC
+-- verify_document (ver sql_endurecer_seguridad.sql).
 alter table public.forklift_licenses enable row level security;
 
-create policy "Acceso anon" on public.forklift_licenses
-  for all to anon using (true) with check (true);
+drop policy if exists "Acceso anon" on public.forklift_licenses;
+drop policy if exists "Acceso authenticated" on public.forklift_licenses;
 
 create policy "Acceso authenticated" on public.forklift_licenses
   for all to authenticated using (true) with check (true);
 
-grant all on public.forklift_licenses to anon, authenticated;
+grant all on public.forklift_licenses to authenticated;

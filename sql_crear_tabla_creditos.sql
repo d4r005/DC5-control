@@ -24,18 +24,21 @@ create table public.credit_transactions (
 alter table public.agent_credits enable row level security;
 alter table public.credit_transactions enable row level security;
 
-create policy "Acceso anon" on public.agent_credits
-  for all to anon using (true) with check (true);
+-- ⚠️ NUNCA dar acceso de escritura al rol anon: con la política
+-- "Acceso anon" FOR ALL cualquiera podría regalarse créditos con la
+-- clave pública. Solo usuarios autenticados.
+drop policy if exists "Acceso anon" on public.agent_credits;
+drop policy if exists "Acceso authenticated" on public.agent_credits;
+drop policy if exists "Acceso anon" on public.credit_transactions;
+drop policy if exists "Acceso authenticated" on public.credit_transactions;
+
 create policy "Acceso authenticated" on public.agent_credits
   for all to authenticated using (true) with check (true);
-
-create policy "Acceso anon" on public.credit_transactions
-  for all to anon using (true) with check (true);
 create policy "Acceso authenticated" on public.credit_transactions
   for all to authenticated using (true) with check (true);
 
-grant all on public.agent_credits to anon, authenticated;
-grant all on public.credit_transactions to anon, authenticated;
+grant all on public.agent_credits to authenticated;
+grant all on public.credit_transactions to authenticated;
 
 -- Exencion de cobro: el admin puede marcar cuentas que generan sin consumir creditos
 alter table public.agent_credits add column if not exists credits_exempt boolean not null default false;

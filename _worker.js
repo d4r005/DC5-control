@@ -60,8 +60,16 @@ export default {
 
     if (method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-    // Seguridad básica (opcional, configurar API_KEY en Cloudflare)
-    if (env.API_KEY && request.headers.get("x-api-key") !== env.API_KEY) {
+    // Seguridad: este proxy usa SERVICE_ROLE (bypass RLS), así que debe
+    // quedar CERRADO por defecto. Requiere API_KEY configurada en
+    // Cloudflare (wrangler secret put API_KEY) y el header x-api-key.
+    if (!env.API_KEY) {
+      return new Response(JSON.stringify({ error: "API proxy disabled: configure API_KEY en Cloudflare." }), {
+        status: 403,
+        headers: corsHeaders
+      });
+    }
+    if (request.headers.get("x-api-key") !== env.API_KEY) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: corsHeaders

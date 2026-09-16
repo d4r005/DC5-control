@@ -1708,14 +1708,27 @@ async function showVerification(id) {
 
     try {
         let d = null, isLicense = false;
-        const res = await sb.from('dc3_records').select('*').eq('id', id);
-        if (res.data && res.data.length > 0) {
-            d = toCamel(res.data[0]);
-        } else {
-            const resLic = await sb.from('forklift_licenses').select('*').eq('id', id);
-            if (resLic.data && resLic.data.length > 0) {
-                d = toCamel(resLic.data[0]);
-                isLicense = true;
+        // 1) RPC seguro (sql_endurecer_seguridad.sql): expone solo los campos
+        //    de verificación y no permite enumerar las tablas públicas.
+        try {
+            const rpc = await sb.rpc('verify_document', { p_id: id });
+            if (rpc && !rpc.error && rpc.data) {
+                d = rpc.data;
+                isLicense = d.type === 'FORKLIFT_LICENSE';
+            }
+        } catch (e) { /* RPC aún no desplegado: usar fallback */ }
+        // 2) Fallback: consulta directa (requiere las políticas
+        //    rls_anon_read_verify; se elimina al ejecutar la migración).
+        if (!d) {
+            const res = await sb.from('dc3_records').select('*').eq('id', id);
+            if (res.data && res.data.length > 0) {
+                d = toCamel(res.data[0]);
+            } else {
+                const resLic = await sb.from('forklift_licenses').select('*').eq('id', id);
+                if (resLic.data && resLic.data.length > 0) {
+                    d = toCamel(resLic.data[0]);
+                    isLicense = true;
+                }
             }
         }
         if (d) {
