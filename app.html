@@ -148,7 +148,7 @@
             <div class="flex justify-center mb-6">
                 <div class="bg-green-100 text-green-600 rounded-full px-6 py-2 flex items-center gap-2 font-bold text-sm">
                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                    Constancia válida
+                    <span id="v-status">Constancia válida</span>
                 </div>
             </div>
 
@@ -1705,16 +1705,28 @@ async function showVerification(id) {
     document.getElementById('view-verify').classList.remove('hidden');
 
     try {
+        let d = null, isLicense = false;
         const res = await sb.from('dc3_records').select('*').eq('id', id);
         if (res.data && res.data.length > 0) {
-            const d = toCamel(res.data[0]);
+            d = toCamel(res.data[0]);
+        } else {
+            const resLic = await sb.from('forklift_licenses').select('*').eq('id', id);
+            if (resLic.data && resLic.data.length > 0) {
+                d = toCamel(resLic.data[0]);
+                isLicense = true;
+            }
+        }
+        if (d) {
+            document.getElementById('v-status').textContent = isLicense ? 'Licencia de Montacargas válida' : 'Constancia válida';
             document.getElementById('v-agent').textContent = d.agentName;
             document.getElementById('v-worker').textContent = d.workerName;
             document.getElementById('v-curp').textContent = d.workerId;
             document.getElementById('v-company').textContent = d.companyName;
             document.getElementById('v-pos').textContent = d.workerPos;
             document.getElementById('v-course').textContent = d.courseName;
-            document.getElementById('v-duration').textContent = d.durationHours;
+            document.getElementById('v-duration').textContent = isLicense
+                ? (Array.isArray(d.equipment) && d.equipment.length ? d.equipment.join(', ') : '—')
+                : d.durationHours;
             document.getElementById('v-dates').textContent = `${d.startDate} AL ${d.endDate}`;
 
             document.getElementById('verify-loading').classList.add('hidden');
@@ -2682,6 +2694,8 @@ async function generateDiploma() {
         const end         = document.getElementById('dc3-end').value;
         const [agentName, agentStps] = agentVal.split('|');
         const [courseName, courseDuration, courseArea, courseStpsId] = courseVal.split('|');
+
+        if (!start || !end) { alert('Selecciona las fechas antes de generar el diploma'); return; }
 
         if (!(await requireCredits(1, 'el diploma'))) return;
 
