@@ -269,6 +269,10 @@
                     <p id="user-role-display" class="text-xs text-gray-400">–</p>
                 </div>
             </div>
+            <button onclick="changePassword()" class="nav-link w-full text-gray-500 hover:bg-gray-50">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4"><path d="M15 7a4 4 0 11-8 0 4 4 0 018 0zM3 12v7a2 2 0 002 2h14a2 2 0 002-2v-7M15 12v5"/></svg>
+                Cambiar contraseña
+            </button>
             <button onclick="logout()" class="nav-link w-full text-red-500 hover:bg-red-50 hover:text-red-600">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
                 Cerrar sesión
@@ -1264,26 +1268,23 @@ try {
     console.error("Error initializing Supabase:", e);
 }
 
-// Check for existing valid session on page load
-function checkExistingSession() {
-    // Check localStorage first (persistent "remember me" session), then sessionStorage
-    let sessionStr = localStorage.getItem('ace_session') || sessionStorage.getItem('ace_session');
-    if (sessionStr) {
-        try {
-            const session = JSON.parse(sessionStr);
-            currentUser = DATA.users.find(u => u.email === session.email);
-            if (currentUser) {
-                initApp();
+// Restore session from Supabase Auth if valid — prevents F5 from kicking you out
+async function checkExistingSession() {
+    try {
+        const { data } = await sb.auth.getSession();
+        if (data && data.session && data.session.user) {
+            const email = data.session.user.email;
+            const profile = APP_USERS.find(u => u.email.toLowerCase() === email.toLowerCase());
+            if (profile) {
+                currentUser = { ...profile, email };
+                await initApp();
                 return true;
-            } else {
-                // User not found — clean up
-                localStorage.removeItem('ace_session');
-                sessionStorage.removeItem('ace_session');
             }
-        } catch(e) {
-            localStorage.removeItem('ace_session');
-            sessionStorage.removeItem('ace_session');
+            // Sesión válida pero usuario no autorizado en la app
+            await sb.auth.signOut();
         }
+    } catch (e) {
+        console.warn('[Session] Error restaurando sesión:', e);
     }
     return false;
 }
@@ -1309,11 +1310,13 @@ const CATALOGS = {
     ]
 };
 
+// Perfiles autorizados. Las contraseñas NO viven aquí: se validan en Supabase Auth.
+const APP_USERS = [
+    { name: "Dario Robles", email: "d4r005@gmail.com", role: "ADMIN" },
+    { name: "Cynthia Garza Lugo", email: "lugga.advisors@gmail.com", role: "USER" },
+];
+
 const DATA = {
-    users: [
-        { name: "Dario Robles", email: "d4r005@gmail.com", role: "ADMIN", passHash: "dd080657906b80be4ea5f3b67af9a02ccf2bc6d9a004d10c1e9bfd42e0cc7754" },
-        { name: "Cynthia Garza Lugo", email: "lugga.advisors@gmail.com", role: "USER", passHash: "c625194773dbb816d11f159af7702363e7ccc64d213ea54d17c7f31aeab9921f" },
-    ],
     courses: [
         { name: "SEGURIDAD EN TRABAJOS DE SOLDADURAS Y OXICORTE", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", stpsId: "001", creatorEmail: "lugga.advisors@gmail.com" },
         { name: "MANEJO SEGURO DE MONTACARGAS", durationHours: "8 HORAS", thematicArea: "(6000) SEGURIDAD", stpsId: "002", creatorEmail: "lugga.advisors@gmail.com" },
@@ -1740,85 +1743,58 @@ async function showVerification(id) {
 }
 
 // ─── LOGIN ─────────────────────────────────────────────
-async function sha256(text) {
-    const data = new TextEncoder().encode(text);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
 async function login(e) {
     if (e) e.preventDefault();
-    console.log('[DEBUG] Login starting');
     try {
         const emailEl = document.getElementById('email');
         const passEl = document.getElementById('password');
-
-        if (!emailEl || !passEl) {
-            alert('Error técnico: No se encontraron los campos de login.');
-            return;
-        }
+        if (!emailEl || !passEl) { alert('Error técnico: No se encontraron los campos de login.'); return; }
 
         const email = emailEl.value.trim();
         const pass = passEl.value;
-        
-        if (!email || !pass) {
-            alert('Por favor ingresa correo y contraseña.');
-            return;
-        }
+        if (!email || !pass) { alert('Por favor ingresa correo y contraseña.'); return; }
 
-        // Hash the password with SHA-256 before comparing
-        const passHash = await sha256(pass);
-        console.log('[DEBUG] Attempting login for:', email);
-
-        const user = DATA.users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.passHash === passHash);
-
-        if (!user) {
-            console.warn('[DEBUG] Invalid credentials for:', email);
-            const errEl = document.getElementById('login-error');
-            if (errEl) {
-                errEl.classList.remove('hidden');
-                errEl.textContent = 'Correo o contraseña incorrectos.';
-            } else alert('Credenciales incorrectas.');
-            return;
-        }
-
-        console.log('[DEBUG] User verified:', user.name);
-
-        // Check if user is active (future enhancement: disable users)
-        if (user.active === false) {
-            document.getElementById('login-error').classList.remove('hidden');
-            document.querySelector('#login-error').textContent = 'Usuario desactivado. Contacta al administrador.';
-            return;
-        }
-
-        document.getElementById('login-error').classList.add('hidden');
-        if (document.getElementById('remember-me').checked) {
-            localStorage.setItem('rememberedEmail', email);
-        } else {
-            localStorage.removeItem('rememberedEmail');
-        }
-
-        // Store session — no expiration, only cleared on logout
-        // If "remember me" is checked, use localStorage (persists across browser restarts)
-        // Otherwise use sessionStorage (persists F5 but cleared on tab close)
-        const session = {
-            email: user.email,
-            name: user.name,
-            role: user.role
+        const errEl = document.getElementById('login-error');
+        const showError = (msg) => {
+            if (errEl) { errEl.classList.remove('hidden'); errEl.textContent = msg; }
+            else alert(msg);
         };
-        if (document.getElementById('remember-me').checked) {
-            localStorage.setItem('ace_session', JSON.stringify(session));
-            sessionStorage.removeItem('ace_session'); // avoid duplicate
-        } else {
-            sessionStorage.setItem('ace_session', JSON.stringify(session));
-            localStorage.removeItem('ace_session'); // avoid duplicate
-        }
 
-        currentUser = user;
+        // La contraseña se valida en el SERVIDOR (Supabase Auth), nunca en el cliente
+        const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+        if (error || !data || !data.user) { showError('Correo o contraseña incorrectos.'); return; }
+
+        // Solo los perfiles autorizados en APP_USERS pueden entrar
+        const profile = APP_USERS.find(u => u.email.toLowerCase() === data.user.email.toLowerCase());
+        if (!profile) {
+            await sb.auth.signOut();
+            showError('Este usuario no tiene acceso autorizado.');
+            return;
+        }
+        if (errEl) errEl.classList.add('hidden');
+
+        if (document.getElementById('remember-me').checked) localStorage.setItem('rememberedEmail', email);
+        else localStorage.removeItem('rememberedEmail');
+
+        currentUser = { ...profile, email: data.user.email };
         await initApp();
     } catch (err) {
         console.error("Login error:", err);
         alert("Error al intentar entrar: " + err.message);
+    }
+}
+
+async function changePassword() {
+    const np = prompt('Escribe tu nueva contraseña (mínimo 8 caracteres):');
+    if (!np) return;
+    if (np.length < 8) { alert('La contraseña debe tener al menos 8 caracteres.'); return; }
+    if (np !== prompt('Confirma tu nueva contraseña:')) { alert('Las contraseñas no coinciden.'); return; }
+    try {
+        const { error } = await sb.auth.updateUser({ password: np });
+        if (error) { alert('No se pudo actualizar: ' + error.message); return; }
+        alert('Contraseña actualizada correctamente.');
+    } catch (e) {
+        alert('Error al actualizar la contraseña: ' + e.message);
     }
 }
 
@@ -1865,12 +1841,11 @@ async function initApp() {
     }
 }
 
-function logout() {
+async function logout() {
+    try { await sb.auth.signOut(); } catch (e) { console.warn('[Logout]', e); }
     currentUser = null;
     selectedDesignAgentEmail = null;
     resetDesignState();
-    localStorage.removeItem('ace_session');
-    sessionStorage.removeItem('ace_session');
     document.getElementById('view-login').style.display = '';
     document.getElementById('view-app').style.display = 'none';
 }
@@ -2207,8 +2182,8 @@ async function loadSection(v) {
         } else if (v === 'users') {
             const tb = document.getElementById('tb-users');
             if (!tb) return;
-            console.log('[DEBUG] Populating tb-users with:', DATA.users);
-            tb.innerHTML = (DATA.users || []).map(u => `<tr>
+            console.log('[DEBUG] Populating tb-users with:', APP_USERS);
+            tb.innerHTML = (APP_USERS || []).map(u => `<tr>
                 <td class="font-semibold">${u.name}</td>
                 <td class="text-gray-500 text-sm">${u.email}</td>
                 <td><span class="badge ${u.role==='ADMIN'?'badge-admin':'badge-user'}">${u.role}</span></td>
@@ -2227,7 +2202,7 @@ async function loadSection(v) {
                 const creditsRes = await api('find','agent_credits',{});
                 const rowsByEmail = {};
                 (creditsRes.documents||[]).forEach(r => { rowsByEmail[r.agentEmail] = r; });
-                const adminEmails = new Set((DATA.users||[]).filter(u => u.role === 'ADMIN').map(u => (u.email||'').toLowerCase()));
+                const adminEmails = new Set((APP_USERS||[]).filter(u => u.role === 'ADMIN').map(u => (u.email||'').toLowerCase()));
                 const tbCred = document.getElementById('tb-agent-credits');
                 tbCred.innerHTML = (DATA.agents||[]).map(a => {
                     const email = a.creatorEmail || '';
