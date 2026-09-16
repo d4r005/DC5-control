@@ -157,7 +157,7 @@
                     </div>
                     <p id="signup-error" class="text-red-500 text-sm font-medium hidden"></p>
                     <button type="submit" class="btn-primary mt-2">Enviar solicitud</button>
-                    <p class="text-[11px] text-gray-400 text-center">Tu cuenta quedará en revisión. Recibirás acceso cuando el administrador la apruebe.</p>
+                    <p class="text-[11px] text-gray-400 text-center">Al confirmar tu correo tendrás acceso para registrar tus datos como agente capacitador. La generación de documentos requiere créditos.</p>
                 </form>
             </div>
             <p id="toggle-signup" class="mt-5 text-center text-sm hidden"><a href="#" onclick="showSignup(true); return false;" class="text-blue-700 font-semibold hover:text-blue-900">Crear cuenta</a></p>
@@ -1715,7 +1715,18 @@ async function consumeCredits(n, docType, refId) {
     const email = currentUser?.email;
     if (!email || !n) return;
     if (await isCreditExempt(email)) return;
+    // 1) Intentar el RPC atomico (consume_credit en la base de datos).
+    //    Es la via segura: un agente NO puede escribir su propio saldo.
     try {
+        const { data, error } = await sb.rpc('consume_credit', {
+            p_amount: n,
+            p_doc_type: docType || null,
+            p_ref_id: refId ? String(refId) : null
+        });
+        if (!error) return; // descontado (o gratis para admin/exento)
+        const missingRpc = error.code === 'PGRST202' || (error.message || '').includes('consume_credit');
+        if (!missingRpc) { console.warn('consume_credit:', error.message); return; }
+        // RPC no instalado aun -> fallback legado (mismo comportamiento de antes)
         const res = await api('find','agent_credits',{ filter: { agentEmail: email } });
         const row = res.documents?.[0];
         const current = row?.balance ?? 0;
@@ -1732,7 +1743,6 @@ async function consumeCredits(n, docType, refId) {
     } catch(e) { console.warn('No se pudo registrar el consumo de creditos (tabla no disponible aun)', e); }
 }
 
-// Carga manual de creditos (solo admin, tras confirmar el pago del agente).
 async function addCredits(email, n, note) {
     if (!email || !n) throw new Error('Email y cantidad son requeridos');
     const res = await api('find','agent_credits',{ filter: { agentEmail: email } });
@@ -1829,15 +1839,15 @@ async function login(e) {
         // Perfil dinamico desde app_users (fallback a la lista local)
         let profile = await fetchUserProfile(data.user.email);
         if (!profile) {
-            // Cuenta confirmada por correo pero sin perfil: crear fila en revision
+            // Auto-servicio: primer login tras confirmar correo -> crear perfil activo
             try {
                 await sb.from('app_users').insert({
                     email: data.user.email.toLowerCase(),
                     name: (data.user.user_metadata && data.user.user_metadata.name) || data.user.email,
-                    role: 'USER', approved: false
+                    role: 'USER', approved: true
                 });
                 profile = await fetchUserProfile(data.user.email);
-            } catch (e) { console.warn('No se pudo crear perfil pendiente:', e); }
+            } catch (e) { console.warn('No se pudo crear el perfil:', e); }
         }
         if (!profile) {
             await sb.auth.signOut();
@@ -1846,7 +1856,7 @@ async function login(e) {
         }
         if (profile.approved === false) {
             await sb.auth.signOut();
-            showError('Tu cuenta esta en revision. Recibiras acceso cuando el administrador la apruebe.');
+            showError('Tu cuenta ha sido suspendida. Contacta al administrador.');
             return;
         }
         if (errEl) errEl.classList.add('hidden');
@@ -1914,12 +1924,12 @@ async function signup(e) {
             return;
         }
         if (data && data.session) {
-            // Sin confirmacion de correo: crear la fila "en revision" ya
+            // Sin confirmacion de correo: crear el perfil activo ya
             await sb.from('app_users').insert({
                 email, name,
                 phone: phone || null,
                 stps_registration: stps || null,
-                role: 'USER', approved: false
+                role: 'USER', approved: true
             });
             await sb.auth.signOut();
         }
@@ -1928,8 +1938,8 @@ async function signup(e) {
         if (info) {
             info.classList.remove('hidden');
             info.textContent = (data && data.session)
-                ? 'Solicitud enviada. Tu cuenta quedo en revision; recibiras acceso cuando el administrador la apruebe.'
-                : 'Casi listo. Revisa tu correo y confirma tu cuenta; luego inicia sesión para completar tu solicitud.';
+                ? 'Cuenta creada. Ya puedes iniciar sesión y comenzar a llenar tus datos.'
+                : 'Casi listo. Revisa tu correo y confirma tu cuenta; luego inicia sesión y estarás dentro.';
         }
     } catch (err) {
         console.error('signup error:', err);
@@ -1983,19 +1993,20 @@ async function renderUsersTable() {
             const emailSafe = escAttr(u.email || '');
             const contact = [u.phone, u.stps_registration].filter(Boolean).join(' · ') || '—';
             let actions = '';
-            if (!approved) {
-                actions = `<button onclick="approveUser('${emailSafe}')" class="btn-sm btn-primary">Aprobar</button> `
-                        + `<button onclick="rejectUser('${emailSafe}')" class="btn-sm btn-outline">Rechazar</button>`;
+            if (own) {
+                actions = '<span class="text-xs text-gray-300">Tu cuenta</span>';
+            } else if (approved) {
+                actions = `<button onclick="setUserActive('${emailSafe}', false)" class="btn-sm btn-outline">Suspender</button> `
+                        + `<button onclick="toggleUserRole('${emailSafe}')" class="btn-sm btn-outline">${role === 'ADMIN' ? 'Quitar admin' : 'Hacer admin'}</button>`;
             } else {
-                actions = own ? '<span class="text-xs text-gray-300">Tu cuenta</span>'
-                    : `<button onclick="toggleUserRole('${emailSafe}')" class="btn-sm btn-outline">${role === 'ADMIN' ? 'Quitar admin' : 'Hacer admin'}</button>`;
+                actions = `<button onclick="setUserActive('${emailSafe}', true)" class="btn-sm btn-primary">Reactivar</button>`;
             }
             return `<tr>
                 <td class="font-semibold">${u.name || '(sin nombre)'}</td>
                 <td class="text-gray-500 text-sm">${u.email}</td>
                 <td class="text-gray-500 text-xs">${contact}</td>
                 <td><span class="badge ${role==='ADMIN'?'badge-admin':'badge-user'}">${role}</span></td>
-                <td>${approved ? '<span class="text-green-600 font-semibold text-xs">Activo</span>' : '<span class="text-yellow-600 font-semibold text-xs">En revisión</span>'}</td>
+                <td>${approved ? '<span class="text-green-600 font-semibold text-xs">Activo</span>' : '<span class="text-red-500 font-semibold text-xs">Suspendido</span>'}</td>
                 <td class="text-right">${actions}</td>
               </tr>`;
         }).join('') || '<tr><td colspan="6" class="text-center py-8 text-gray-300 text-sm">Sin usuarios</td></tr>';
@@ -2005,22 +2016,14 @@ async function renderUsersTable() {
     }
 }
 
-async function approveUser(email) {
-    if (!confirm('¿Aprobar el acceso de ' + email + '?')) return;
+async function setUserActive(email, active) {
+    const msg = active ? 'Reactivar' : 'Suspender';
+    if (!confirm('\u00bf' + msg + ' la cuenta de ' + email + '?')) return;
     try {
-        const { error } = await sb.from('app_users').update({ approved: true }).eq('email', email);
+        const { error } = await sb.from('app_users').update({ approved: !!active }).eq('email', email);
         if (error) throw error;
         await renderUsersTable();
-    } catch (e) { alert('No se pudo aprobar: ' + (e.message || e)); }
-}
-
-async function rejectUser(email) {
-    if (!confirm('Rechazar y eliminar la solicitud de ' + email + '?')) return;
-    try {
-        const { error } = await sb.from('app_users').delete().eq('email', email);
-        if (error) throw error;
-        await renderUsersTable();
-    } catch (e) { alert('No se pudo rechazar: ' + (e.message || e)); }
+    } catch (e) { alert('No se pudo actualizar: ' + (e.message || e)); }
 }
 
 async function toggleUserRole(email) {
