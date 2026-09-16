@@ -550,7 +550,8 @@ export default {
       if (!ref) return json({ error: "falta ref" }, 400);
       const r = await fetch("https://api.mercadopago.com/v1/payments/search?external_reference=" + encodeURIComponent(ref), { headers: { "Authorization": "Bearer " + tok } });
       const d = await r.json().catch(() => ({}));
-      return json({ ref, http: r.status, results: (d.results || []).map(p => ({ id: p.id, status: p.status, detail: p.status_detail, amount: p.transaction_amount })) });
+      const results = (d.results || []).map(p => ({ id: p.id, status: p.status, detail: p.status_detail, amount: p.transaction_amount }));
+      return json({ ref, http: r.status, results, first_raw: results.length ? JSON.stringify(d.results[0]).slice(0, 900) : null });
     }
 
     if (path === "/api/payments/create" && method === "POST") {
