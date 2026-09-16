@@ -518,78 +518,14 @@ export default {
     //  - /api/payments/webhook: la llama MP tras el pago. NO se confía
     //    en el payload: el pago se re-verifica contra los servidores de
     //    MP y los créditos los acredita el RPC process_payment_webhook.
-    // ── Diagnóstico temporal MP (no expone el token) ──
-    if (path === "/api/debug/mp" && method === "GET") {
+    if (path === "/api/debug/mp-cancel" && method === "GET") {
       const tok = getMpToken(env) || "";
-      let tokenType = "missing";
-      if (tok.startsWith("TEST-")) tokenType = "TEST";
-      else if (tok.startsWith("APP_USR-")) tokenType = "PRODUCCION";
-      else if (tok) tokenType = "otro_prefijo";
-
-      const sbH = { "apikey": env.SUPABASE_SERVICE_ROLE_KEY, "Authorization": "Bearer " + env.SUPABASE_SERVICE_ROLE_KEY };
-      const ordsRes = await fetch(env.SUPABASE_URL + "/rest/v1/payment_orders?status=eq.pending&select=id,amount,created_at&order=created_at.desc&limit=2", { headers: sbH });
-      const ords = ordsRes.ok ? await ordsRes.json() : [];
-
-      const views = [];
-      for (const o of ords) {
-        try {
-          const r = await fetch("https://api.mercadopago.com/v1/orders?external_reference=" + encodeURIComponent(o.id), { headers: { "Authorization": "Bearer " + tok } });
-          const data = await r.json();
-          let ord = Array.isArray(data) ? data[0] : data;
-          if (data && Array.isArray(data.data)) ord = data.data[0];
-          if (data && Array.isArray(data.results)) ord = data.results[0];
-          views.push({
-            ref: o.id,
-            http: r.status,
-            mpId: ord && ord.id || null,
-            status: ord && (ord.status || ord.message) || null,
-            capture_mode: ord && ord.capture_mode || null,
-            checkout: ord && ord.checkout_url ? "si" : null,
-          });
-        } catch (e) { views.push({ ref: o.id, error: e.message }); }
-      }
-      return json({ tokenType, tokenLength: tok.length, ordenes: views });
-    }
-
-    if (path === "/api/debug/mp-order" && method === "GET") {
-      const tok = getMpToken(env) || "";
-      const ref = "DEBUG-" + Date.now();
-      const r = await fetch("https://api.mercadopago.com/v1/orders", {
+      const r = await fetch("https://api.mercadopago.com/v1/orders/ORD01M2NQWWE4S3BWBJS1H74KFJM8/cancel", {
         method: "POST",
-        headers: {
-          "Authorization": "Bearer " + tok,
-          "Content-Type": "application/json",
-          "X-Idempotency-Key": ref,
-        },
-        body: JSON.stringify({
-          type: "online",
-          processing_mode: "manual",
-          external_reference: ref,
-          total_amount: "10.00",
-          description: "ACE Control — debug",
-          items: [{ title: "ACE Control — debug (1 documento)", unit_price: "10.00", quantity: 1 }],
-          config: {
-            online: {
-              success_url: url.origin + "/app.html?compra=ok&order=" + ref,
-              pending_url: url.origin + "/app.html?compra=pending",
-              failure_url: url.origin + "/app.html?compra=fail",
-              auto_return: "approved",
-            },
-          },
-        }),
+        headers: { "Authorization": "Bearer " + tok, "Content-Type": "application/json", "X-Idempotency-Key": "cleanup-debug-1" },
       });
       const data = await r.json().catch(() => ({}));
-      return json({
-        http: r.status,
-        mpResponse: {
-          id: data.id || null,
-          status: data.status || null,
-          status_detail: data.status_detail || null,
-          capture_mode: data.capture_mode || null,
-          checkout_url: data.checkout_url || null,
-          error: data.message || (data.cause ? JSON.stringify(data.cause) : null),
-        },
-      });
+      return json({ http: r.status, status: data.status || data.message || null });
     }
 
     if (path === "/api/payments/create" && method === "POST") {
