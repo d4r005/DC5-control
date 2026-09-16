@@ -1501,6 +1501,22 @@ window.onload = async () => {
         return;
     }
 
+    // Confirmacion de correo de Supabase: el token llega en el hash de la URL.
+    // Cerramos esa sesion automatica para que ingrese con su contrasena
+    // y mostramos el aviso de cuenta creada con exito.
+    const justConfirmed = /access_token=/.test(window.location.hash || '') || params.get('registered') === '1';
+    if (justConfirmed) {
+        try {
+            await sb.auth.signOut();
+            if (window.history && history.replaceState) history.replaceState(null, '', window.location.pathname);
+        } catch (e) { console.warn('[Confirm]', e); }
+        const info = document.getElementById('login-info');
+        if (info) {
+            info.classList.remove('hidden');
+            info.textContent = '¡Cuenta creada con éxito! Inicia sesión con tu correo y contraseña.';
+        }
+    }
+
     const rem = params.get('email') || localStorage.getItem('rememberedEmail');
     if (rem) document.getElementById('email').value = rem;
     // Restore session if valid — prevents F5 from kicking you out
