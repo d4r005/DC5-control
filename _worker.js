@@ -518,6 +518,39 @@ export default {
     //  - /api/payments/webhook: la llama MP tras el pago. NO se confía
     //    en el payload: el pago se re-verifica contra los servidores de
     //    MP y los créditos los acredita el RPC process_payment_webhook.
+    // ── Diagnóstico temporal MP (no expone el token) ──
+    if (path === "/api/debug/mp" && method === "GET") {
+      const tok = getMpToken(env) || "";
+      let tokenType = "missing";
+      if (tok.startsWith("TEST-")) tokenType = "TEST";
+      else if (tok.startsWith("APP_USR-")) tokenType = "PRODUCCION";
+      else if (tok) tokenType = "otro_prefijo";
+
+      const sbH = { "apikey": env.SUPABASE_SERVICE_ROLE_KEY, "Authorization": "Bearer " + env.SUPABASE_SERVICE_ROLE_KEY };
+      const ordsRes = await fetch(env.SUPABASE_URL + "/rest/v1/payment_orders?status=eq.pending&select=id,amount,created_at&order=created_at.desc&limit=2", { headers: sbH });
+      const ords = ordsRes.ok ? await ordsRes.json() : [];
+
+      const views = [];
+      for (const o of ords) {
+        try {
+          const r = await fetch("https://api.mercadopago.com/v1/orders?external_reference=" + encodeURIComponent(o.id), { headers: { "Authorization": "Bearer " + tok } });
+          const data = await r.json();
+          let ord = Array.isArray(data) ? data[0] : data;
+          if (data && Array.isArray(data.data)) ord = data.data[0];
+          if (data && Array.isArray(data.results)) ord = data.results[0];
+          views.push({
+            ref: o.id,
+            http: r.status,
+            mpId: ord && ord.id || null,
+            status: ord && (ord.status || ord.message) || null,
+            capture_mode: ord && ord.capture_mode || null,
+            checkout: ord && ord.checkout_url ? "si" : null,
+          });
+        } catch (e) { views.push({ ref: o.id, error: e.message }); }
+      }
+      return json({ tokenType, tokenLength: tok.length, ordenes: views });
+    }
+
     if (path === "/api/payments/create" && method === "POST") {
       return handlePaymentCreate(request, env, url);
     }
