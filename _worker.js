@@ -518,16 +518,6 @@ export default {
     //  - /api/payments/webhook: la llama MP tras el pago. NO se confía
     //    en el payload: el pago se re-verifica contra los servidores de
     //    MP y los créditos los acredita el RPC process_payment_webhook.
-    if (path === "/api/debug/mp-cancel" && method === "GET") {
-      const tok = getMpToken(env) || "";
-      const r = await fetch("https://api.mercadopago.com/v1/orders/ORD01M2NQWWE4S3BWBJS1H74KFJM8/cancel", {
-        method: "POST",
-        headers: { "Authorization": "Bearer " + tok, "Content-Type": "application/json", "X-Idempotency-Key": "cleanup-debug-1" },
-      });
-      const data = await r.json().catch(() => ({}));
-      return json({ http: r.status, status: data.status || data.message || null });
-    }
-
     if (path === "/api/payments/create" && method === "POST") {
       return handlePaymentCreate(request, env, url);
     }
