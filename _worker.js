@@ -283,9 +283,10 @@ async function handleVerifyConfirm(request, env) {
 // ═══════════════════════════════════════════════════════════════════
 
 // El token de Mercado Pago puede estar guardado en Cloudflare como
-// MP_ACCESS_TOKEN o MERCADOPAGO_ACCESS_TOKEN (ambos nombres validos).
+// MP_ACCESS_TOKEN, MERCADOPAGO_ACCESS_TOKEN o MERCADOPAGO_ACCESS_TOKEN_2
+// (todos los nombres validos — evita despliegues fallidos por el nombre).
 function getMpToken(env) {
-  return env.MP_ACCESS_TOKEN || env.MERCADOPAGO_ACCESS_TOKEN || null;
+  return env.MP_ACCESS_TOKEN || env.MERCADOPAGO_ACCESS_TOKEN || env.MERCADOPAGO_ACCESS_TOKEN_2 || null;
 }
 
 async function handlePaymentCreate(request, env, url) {
