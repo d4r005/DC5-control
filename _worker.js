@@ -347,36 +347,52 @@ async function handlePaymentCreate(request, env, url) {
     });
     if (!insRes.ok) return json({ error: "No se pudo registrar la orden." }, 500);
 
-    // 5) Crear el checkout de Mercado Pago (Checkout Pro)
-    const prefRes = await fetch("https://api.mercadopago.com/checkout/preferences", {
+    // 5) Crear el checkout de Mercado Pago — Checkout Pro vía ORDERS API
+    // (la API de Preferences está en proceso de descontinuación; MP la
+    // reemplaza por /v1/orders). El precio (unit_price/total_amount)
+    // sale siempre de `pack`, leído de la BD en el paso 3 — nunca del
+    // cliente. La notificación de pago se recibe en la URL configurada
+    // a nivel de aplicación en el dashboard de MP (Webhooks →
+    // "Order (Mercado Pago)"), no en este request.
+    const priceStr = Number(pack.price).toFixed(2);
+    const orderRes = await fetch("https://api.mercadopago.com/v1/orders", {
       method: "POST",
-      headers: { "Authorization": "Bearer " + env.MP_ACCESS_TOKEN, "Content-Type": "application/json" },
+      headers: {
+        "Authorization": "Bearer " + env.MP_ACCESS_TOKEN,
+        "Content-Type": "application/json",
+        "X-Idempotency-Key": orderId,
+      },
       body: JSON.stringify({
+        type: "online",
+        processing_mode: "manual",
+        external_reference: orderId,
+        total_amount: priceStr,
+        description: "ACE Control — " + pack.name,
         items: [{
           id: pack.id,
           title: "ACE Control — " + pack.name + " (" + pack.credits + " documentos)",
+          unit_price: priceStr,
           quantity: 1,
-          unit_price: Number(pack.price),
-          currency_id: "MXN",
         }],
-        external_reference: orderId,
-        back_urls: {
-          success: `${url.origin}/app.html?compra=ok&order=${orderId}`,
-          failure: `${url.origin}/app.html?compra=fail`,
-          pending: `${url.origin}/app.html?compra=pending`,
+        config: {
+          online: {
+            success_url: `${url.origin}/app.html?compra=ok&order=${orderId}`,
+            pending_url: `${url.origin}/app.html?compra=pending`,
+            failure_url: `${url.origin}/app.html?compra=fail`,
+            auto_return: "approved",
+          },
         },
-        auto_return: "approved",
-        notification_url: `${url.origin}/api/payments/webhook`,
-        statement_descriptor: "ACECONTROL",
-        metadata: { order_id: orderId, pack: pack.id },
       }),
     });
-    const pref = await prefRes.json().catch(() => ({}));
-    if (!prefRes.ok || !pref || !pref.id) {
-      return json({ error: "No se pudo iniciar el pago con Mercado Pago.", detail: pref.message || "" }, 500);
+    const order = await orderRes.json().catch(() => ({}));
+    if (!orderRes.ok || !order || !order.id) {
+      return json({ error: "No se pudo iniciar el pago con Mercado Pago.", detail: (order && (order.message || JSON.stringify(order.cause))) || "" }, 500);
+    }
+    if (!order.checkout_url) {
+      return json({ error: "Mercado Pago no devolvió el enlace de pago (checkout_url)." }, 500);
     }
 
-    return json({ ok: true, order: orderId, url: pref.init_point || pref.sandbox_init_point });
+    return json({ ok: true, order: orderId, url: order.checkout_url });
   } catch (e) {
     return json({ error: e.message }, 500);
   }
@@ -389,32 +405,52 @@ async function handlePaymentWebhook(request, env, url) {
       return json({ ok: true, skipped: true, reason: "MP_ACCESS_TOKEN no configurada." });
     }
 
-    // MP puede notificar por POST (JSON) o GET (query params)
-    let paymentId = null;
+    // MP notifica el evento "Order (Mercado Pago)" a la URL configurada
+    // en el dashboard de la app (Webhooks → Configure notifications).
+    // El payload trae solo un id — nunca se confía en su contenido:
+    // siempre se re-consulta el recurso completo contra MP.
+    let resourceId = null;
     if (request.method === "POST") {
       const body = await request.json().catch(() => ({}));
-      paymentId =
+      resourceId =
         (body.data && body.data.id) ||
-        (body.resource && String(body.resource).split("/").pop()) ||
+        (body.resource && String(body.resource).split("/").filter(Boolean).pop()) ||
         null;
     }
-    if (!paymentId) {
+    if (!resourceId) {
       const q = new URL(request.url).searchParams;
-      paymentId = q.get("data.id") || q.get("id") || q.get("collection_id");
+      resourceId = q.get("data.id") || q.get("id") || q.get("collection_id");
     }
-    if (!paymentId) return json({ ok: true, ignored: true });
+    if (!resourceId) return json({ ok: true, ignored: true });
 
-    // Verificar el pago CONTRA los servidores de MP (el payload no se confía)
-    const payRes = await fetch(
-      `https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}`,
+    // 1) Intentar como ORDEN (flujo nuevo, Checkout Pro vía Orders API)
+    const orderRes = await fetch(
+      `https://api.mercadopago.com/v1/orders/${encodeURIComponent(resourceId)}`,
       { headers: { "Authorization": "Bearer " + env.MP_ACCESS_TOKEN } }
     );
-    if (!payRes.ok) return json({ ok: true, ignored: true });
-    const pay = await payRes.json();
 
-    if (pay.status !== "approved") return json({ ok: true, status: pay.status || "unknown" });
+    let orderId, mpResourceId, paidAmount;
+    if (orderRes.ok) {
+      const ord = await orderRes.json();
+      orderId = ord.external_reference;
+      mpResourceId = String(ord.id);
+      paidAmount = Number(ord.total_paid_amount || 0);
+      const isPaid = ord.status === "processed" && paidAmount + 0.01 >= Number(ord.total_amount || 0);
+      if (!isPaid) return json({ ok: true, status: ord.status || "unknown" });
+    } else {
+      // 2) Fallback: formato clásico de notificación por pago
+      const payRes = await fetch(
+        `https://api.mercadopago.com/v1/payments/${encodeURIComponent(resourceId)}`,
+        { headers: { "Authorization": "Bearer " + env.MP_ACCESS_TOKEN } }
+      );
+      if (!payRes.ok) return json({ ok: true, ignored: true });
+      const pay = await payRes.json();
+      if (pay.status !== "approved") return json({ ok: true, status: pay.status || "unknown" });
+      orderId = pay.external_reference;
+      mpResourceId = String(pay.id);
+      paidAmount = Number(pay.transaction_amount || 0);
+    }
 
-    const orderId = pay.external_reference;
     if (!orderId) return json({ ok: true, ignored: true });
 
     // Acreditar (RPC idempotente; verifica paquete activo y monto)
@@ -427,8 +463,8 @@ async function handlePaymentWebhook(request, env, url) {
       },
       body: JSON.stringify({
         p_order: orderId,
-        p_mp_payment_id: String(paymentId),
-        p_amount: Number(pay.transaction_amount || 0),
+        p_mp_payment_id: mpResourceId,
+        p_amount: paidAmount,
       }),
     });
     const result = rpcRes.ok ? await rpcRes.json() : { ok: false, reason: "rpc_error" };
