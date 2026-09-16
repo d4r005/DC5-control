@@ -373,6 +373,9 @@ async function handlePaymentCreate(request, env, url) {
         type: "online",
         processing_mode: "manual",
         external_reference: orderId,
+        // Respaldo: MP notifica directamente a esta URL cuando la orden
+        // cambia de estatus, independiente del webhook del dashboard.
+        notification_url: `${url.origin}/api/payments/webhook`,
         total_amount: priceStr,
         description: "ACE Control — " + pack.name,
         items: [{
