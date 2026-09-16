@@ -281,6 +281,23 @@ export default {
 
     if (method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+    // ── Diagnóstico temporal de entorno (no expone secretos) ──
+    if (path === "/api/debug/env" && method === "GET") {
+      const key = env.SUPABASE_SERVICE_ROLE_KEY || "";
+      let keyRole = key ? "malformed" : "missing";
+      if (key) {
+        try { keyRole = (JSON.parse(b64urlDecode(key.split(".")[1])).role) || "unknown"; } catch (e) {}
+      }
+      return json({
+        supabaseUrl: env.SUPABASE_URL || null,
+        keyPresent: !!key,
+        keyRole,
+        keyLength: key.length,
+        resendKeyPresent: !!env.RESEND_API_KEY,
+        apiKeyPresent: !!env.API_KEY,
+      });
+    }
+
     // ═══ Confirmación de correo (Resend) ═══
     // Rutas PÚBLICAS por diseño: no exponen datos.
     //  - /api/email/send solo envía un correo a cuentas existentes
