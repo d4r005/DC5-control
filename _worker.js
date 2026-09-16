@@ -87,8 +87,12 @@ function b64url(str) {
 }
 
 function b64urlDecode(str) {
-  const b64 = str.replace(/-/g, "+").replace(/_/g, "/");
-  return decodeURIComponent(escape(atob(b64)));
+  try {
+    const b64 = str.replace(/-/g, "+").replace(/_/g, "/");
+    return decodeURIComponent(escape(atob(b64)));
+  } catch (e) {
+    return null; // token corrupto
+  }
 }
 
 async function hmacSign(payload, secret) {
@@ -240,6 +244,7 @@ async function handleVerifyConfirm(request, env) {
     if (parts.length !== 2) return json({ ok: false, error: "Token inválido." }, 400);
 
     const payload = b64urlDecode(parts[0]);
+    if (payload === null) return json({ ok: false, error: "Token inválido." }, 400);
     const expected = await hmacSign(payload, env.API_KEY);
     if (!safeEqual(parts[1], expected)) return json({ ok: false, error: "Token inválido." }, 400);
 
