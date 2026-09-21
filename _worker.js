@@ -286,7 +286,14 @@ async function handleVerifyConfirm(request, env) {
 // MP_ACCESS_TOKEN, MERCADOPAGO_ACCESS_TOKEN o MERCADOPAGO_ACCESS_TOKEN_2
 // (todos los nombres validos — evita despliegues fallidos por el nombre).
 function getMpToken(env) {
-  return env.MP_ACCESS_TOKEN || env.MERCADOPAGO_ACCESS_TOKEN || env.MERCADOPAGO_ACCESS_TOKEN_2 || null;
+  // IMPORTANTE: MERCADOPAGO_ACCESS_TOKEN_2 es el token de producción de
+  // la app "Ace-control" (instrucción fija del usuario). Debe ir PRIMERO:
+  // si existiera alguna variable vieja (MP_ACCESS_TOKEN / MERCADOPAGO_ACCESS_TOKEN)
+  // con el token de otra app (EHS-Solutions), NO debe tener prioridad —
+  // ese orden invertido fue la causa real de que las notificaciones de
+  // pago llegaran siempre a EHS-Solutions y nunca a Ace-control.
+  // Verificado en vivo 2026-09-21.
+  return env.MERCADOPAGO_ACCESS_TOKEN_2 || env.MP_ACCESS_TOKEN || env.MERCADOPAGO_ACCESS_TOKEN || null;
 }
 
 // ═══ Eliminación de usuarios (solo ADMIN) ═══
@@ -506,7 +513,7 @@ async function handlePaymentCreate(request, env, url) {
       return json({ error: "Mercado Pago no devolvió el enlace de pago (checkout_url)." }, 500);
     }
 
-    return json({ ok: true, order: orderId, url: order.checkout_url, _debug_marketplace: order.integration_data || null });
+    return json({ ok: true, order: orderId, url: order.checkout_url });
   } catch (e) {
     return json({ error: e.message }, 500);
   }
