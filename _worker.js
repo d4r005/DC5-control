@@ -550,7 +550,7 @@ async function reconcilePendingOrders(env, emailFilter) {
       const fakeReq = new Request("https://ace-control.online/api/payments/webhook", {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ data: { id: String(okPay.id) } }),
       });
-      const resp = await handlePaymentWebhookInner(fakeReq, env, new URL("https://ace-control.online/api/payments/webhook"));
+      const resp = await handlePaymentWebhook(fakeReq, env, new URL("https://ace-control.online/api/payments/webhook"));
       const rt = await resp.clone().text().catch(() => "{}");
       if (rt.includes('"credited"')) credited++;
     }
@@ -558,33 +558,7 @@ async function reconcilePendingOrders(env, emailFilter) {
   return { ok: true, checked, credited };
 }
 
-// ── Logging temporal de diagnóstico: registra cada hit del webhook ──
-const MP_LOG_URL = "https://webhook.site/8e487921-fcf8-4c7e-9f80-6649be3ba915";
 async function handlePaymentWebhook(request, env, url) {
-  let payloadText = "";
-  try {
-    const clone = request.clone();
-    payloadText = (clone.method + " " + new URL(clone.url).search + " :: " + (await clone.text().catch(() => ""))).slice(0, 1200);
-  } catch (e) { payloadText = "log-error: " + e.message; }
-  let response;
-  try {
-    response = await handlePaymentWebhookInner(request, env, url);
-  } catch (e) {
-    response = json({ ok: true, error: e.message });
-  }
-  try {
-    const resultText = (response.status + " :: " + (await response.clone().text().catch(() => ""))).slice(0, 1200);
-    await fetch(MP_LOG_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ payload: payloadText, result: resultText }),
-      signal: AbortSignal.timeout(2500),
-    }).catch(() => {});
-  } catch (e) {}
-  return response;
-}
-
-async function handlePaymentWebhookInner(request, env, url) {
   try {
     if (!getMpToken(env)) {
       // No romper: responder 200 para que MP no reintente en bucle
