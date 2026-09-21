@@ -698,6 +698,49 @@ export default {
     //  - /api/payments/webhook: la llama MP tras el pago. NO se confía
     //    en el payload: el pago se re-verifica contra los servidores de
     //    MP y los créditos los acredita el RPC process_payment_webhook.
+    if (path === "/api/debug/mp-env" && method === "GET") {
+      // TEMPORAL: diagnostico de variables de token MP en runtime.
+      // NO expone secretos completos, solo nombres de variables y ultimos 4 chars.
+      const names = ["MERCADOPAGO_ACCESS_TOKEN_2", "MP_ACCESS_TOKEN", "MERCADOPAGO_ACCESS_TOKEN"];
+      const vars = {};
+      for (const n of names) {
+        const v = env[n];
+        vars[n] = v ? { existe: true, len: v.length, tail: v.slice(-4), prefijo: v.slice(0, 6) } : { existe: false };
+      }
+      const activo = getMpToken(env) || "";
+      let app_de_ordenes_de_prueba = null, error_prueba = null;
+      try {
+        const idem = "diag-env-" + crypto.randomUUID();
+        const r = await fetch("https://api.mercadopago.com/v1/orders", {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + activo, "Content-Type": "application/json", "X-Idempotency-Key": idem },
+          body: JSON.stringify({
+            type: "online", processing_mode: "manual", external_reference: idem,
+            total_amount: "10.00", description: "DIAG env",
+            marketplace: "1942950341504209",
+            items: [{ title: "DIAG", unit_price: "10.00", quantity: 1 }],
+            config: { online: {
+              success_url: "https://ace-control.online/app.html?compra=ok",
+              pending_url: "https://ace-control.online/app.html?compra=pending",
+              failure_url: "https://ace-control.online/app.html?compra=fail",
+              auto_return: "approved",
+            } },
+          }),
+        });
+        const d = await r.json().catch(() => ({}));
+        app_de_ordenes_de_prueba = (d.integration_data && d.integration_data.application_id) || ("http_" + r.status);
+        if (!r.ok) error_prueba = JSON.stringify(d).slice(0, 200);
+      } catch (e) { error_prueba = e.message; }
+      return json({
+        vars,
+        token_activo: { len: activo.length, tail: activo.slice(-4), prefijo: activo.slice(0, 6) },
+        app_que_sella_las_ordenes: app_de_ordenes_de_prueba,
+        error_prueba,
+        esperado: "1942950341504209 (Ace-control)",
+        nota: "endpoint temporal de diagnostico, eliminar al resolver",
+      });
+    }
+
     if (path === "/api/debug/mp-find" && method === "GET") {
       const tok = getMpToken(env) || "";
       const ref = params.get("ref") || "";
