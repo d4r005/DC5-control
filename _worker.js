@@ -506,7 +506,7 @@ async function handlePaymentCreate(request, env, url) {
       return json({ error: "Mercado Pago no devolvió el enlace de pago (checkout_url)." }, 500);
     }
 
-    return json({ ok: true, order: orderId, url: order.checkout_url });
+    return json({ ok: true, order: orderId, url: order.checkout_url, _debug_marketplace: order.integration_data || null });
   } catch (e) {
     return json({ error: e.message }, 500);
   }
