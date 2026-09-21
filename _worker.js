@@ -286,14 +286,12 @@ async function handleVerifyConfirm(request, env) {
 // MP_ACCESS_TOKEN, MERCADOPAGO_ACCESS_TOKEN o MERCADOPAGO_ACCESS_TOKEN_2
 // (todos los nombres validos — evita despliegues fallidos por el nombre).
 function getMpToken(env) {
-  // IMPORTANTE: MERCADOPAGO_ACCESS_TOKEN_2 es el token de producción de
-  // la app "Ace-control" (instrucción fija del usuario). Debe ir PRIMERO:
-  // si existiera alguna variable vieja (MP_ACCESS_TOKEN / MERCADOPAGO_ACCESS_TOKEN)
-  // con el token de otra app (EHS-Solutions), NO debe tener prioridad —
-  // ese orden invertido fue la causa real de que las notificaciones de
-  // pago llegaran siempre a EHS-Solutions y nunca a Ace-control.
-  // Verificado en vivo 2026-09-21.
-  return env.MERCADOPAGO_ACCESS_TOKEN_2 || env.MP_ACCESS_TOKEN || env.MERCADOPAGO_ACCESS_TOKEN || null;
+  // ACE_CONTROL_TOKEN es el nombre que el usuario configuro en Cloudflare para
+  // el token de produccion de la app "Ace-control" (APP_USR...1171). Va primero.
+  // Fallbacks historicos por si la variable aun no existe en algun entorno.
+  // (El orden erroneo de estos fallbacks fue la causa de que las ordenes se
+  // sellaran con la app de EHS-Solutions y los webhooks llegaran a la app equivocada.)
+  return env.ACE_CONTROL_TOKEN || env.MERCADOPAGO_ACCESS_TOKEN_2 || env.MP_ACCESS_TOKEN || env.MERCADOPAGO_ACCESS_TOKEN || null;
 }
 
 // ═══ Eliminación de usuarios (solo ADMIN) ═══
@@ -698,85 +696,6 @@ export default {
     //  - /api/payments/webhook: la llama MP tras el pago. NO se confía
     //    en el payload: el pago se re-verifica contra los servidores de
     //    MP y los créditos los acredita el RPC process_payment_webhook.
-    if (path === "/api/debug/mp-env" && method === "GET") {
-      // TEMPORAL: diagnostico de variables de token MP en runtime.
-      // NO expone secretos completos, solo nombres de variables y ultimos 4 chars.
-      const names = ["MERCADOPAGO_ACCESS_TOKEN_2", "MP_ACCESS_TOKEN", "MERCADOPAGO_ACCESS_TOKEN"];
-      const vars = {};
-      for (const n of names) {
-        const v = env[n];
-        vars[n] = v ? { existe: true, len: v.length, tail: v.slice(-4), prefijo: v.slice(0, 6) } : { existe: false };
-      }
-      const activo = getMpToken(env) || "";
-      let app_de_ordenes_de_prueba = null, error_prueba = null;
-      try {
-        const idem = "diag-env-" + crypto.randomUUID();
-        const r = await fetch("https://api.mercadopago.com/v1/orders", {
-          method: "POST",
-          headers: { "Authorization": "Bearer " + activo, "Content-Type": "application/json", "X-Idempotency-Key": idem },
-          body: JSON.stringify({
-            type: "online", processing_mode: "manual", external_reference: idem,
-            total_amount: "10.00", description: "DIAG env",
-            marketplace: "1942950341504209",
-            items: [{ title: "DIAG", unit_price: "10.00", quantity: 1 }],
-            config: { online: {
-              success_url: "https://ace-control.online/app.html?compra=ok",
-              pending_url: "https://ace-control.online/app.html?compra=pending",
-              failure_url: "https://ace-control.online/app.html?compra=fail",
-              auto_return: "approved",
-            } },
-          }),
-        });
-        const d = await r.json().catch(() => ({}));
-        app_de_ordenes_de_prueba = (d.integration_data && d.integration_data.application_id) || ("http_" + r.status);
-        if (!r.ok) error_prueba = JSON.stringify(d).slice(0, 200);
-      } catch (e) { error_prueba = e.message; }
-      return json({
-        vars,
-        token_activo: { len: activo.length, tail: activo.slice(-4), prefijo: activo.slice(0, 6) },
-        app_que_sella_las_ordenes: app_de_ordenes_de_prueba,
-        error_prueba,
-        esperado: "1942950341504209 (Ace-control)",
-        nota: "endpoint temporal de diagnostico, eliminar al resolver",
-      });
-    }
-
-    if (path === "/api/debug/mp-find" && method === "GET") {
-      const tok = getMpToken(env) || "";
-      const ref = params.get("ref") || "";
-      if (!ref) return json({ error: "falta ref" }, 400);
-      const r = await fetch("https://api.mercadopago.com/v1/payments/search?external_reference=" + encodeURIComponent(ref), { headers: { "Authorization": "Bearer " + tok } });
-      const d = await r.json().catch(() => ({}));
-      const results = (d.results || []).map(p => ({ id: p.id, status: p.status, detail: p.status_detail, amount: p.transaction_amount }));
-      return json({ ref, http: r.status, results, first_raw: results.length ? JSON.stringify(d.results[0]).slice(0, 900) : null });
-    }
-
-    if (path === "/api/debug/mp-create" && method === "GET") {
-      const tok = getMpToken(env) || "";
-      if (!tok) return json({ error: "sin token MP" }, 503);
-      const idem = "diag-" + crypto.randomUUID();
-      const r = await fetch("https://api.mercadopago.com/v1/orders", {
-        method: "POST",
-        headers: { "Authorization": "Bearer " + tok, "Content-Type": "application/json", "X-Idempotency-Key": idem },
-        body: JSON.stringify({
-          type: "online",
-          processing_mode: "manual",
-          external_reference: idem,
-          total_amount: "10.00",
-          description: "DIAG test order",
-          items: [{ title: "DIAG test", unit_price: "10.00", quantity: 1 }],
-          config: { online: {
-            success_url: "https://ace-control.online/app.html?compra=ok",
-            pending_url: "https://ace-control.online/app.html?compra=pending",
-            failure_url: "https://ace-control.online/app.html?compra=fail",
-            auto_return: "approved",
-          } },
-        }),
-      });
-      const body = await r.text();
-      return json({ http: r.status, idem, raw: body.slice(0, 1500) });
-    }
-
     // Auto-reconciliación al abrir la app: el usuario autenticado pide
     // revisar SUS órdenes pendientes contra la API real de Mercado Pago.
     // Cubre el fallo intermitente del webhook de MP sin cron externo:
