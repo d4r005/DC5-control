@@ -367,6 +367,21 @@ async function handleUserDelete(request, env) {
       return json({ error: "No se pudo eliminar el registro del usuario." }, 500);
     }
 
+    // 7) Auditoría (fail-open: si la tabla no existe, la eliminación ya
+    //    se hizo; solo no queda rastro en el log)
+    try {
+      await fetch(`${env.SUPABASE_URL}/rest/v1/admin_audit_log`, {
+        method: "POST",
+        headers: sbHeaders,
+        body: JSON.stringify({
+          admin_email: callerEmail,
+          action: "user_delete",
+          target_email: targetEmail,
+          details: `Cuenta eliminada desde el servidor. auth_deleted: ${authDeleted}`
+        }),
+      });
+    } catch (e) { /* la eliminación ya ocurrió; el log es best-effort */ }
+
     return json({ ok: true, email: targetEmail, auth_deleted: authDeleted });
   } catch (e) {
     return json({ error: e.message }, 500);

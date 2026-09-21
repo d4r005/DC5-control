@@ -296,6 +296,10 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 Usuarios
             </div>
+            <div class="nav-link hidden" id="btn-audit" onclick="setView('audit')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                Auditoría
+            </div>
         </nav>
 
         <div class="mt-auto pt-4 border-t border-gray-100">
@@ -995,6 +999,20 @@
                 </div>
             </div>
 
+            <!-- Mis compras con comprobante descargable -->
+            <div id="credits-purchases-card" class="card overflow-hidden mt-6">
+                <div class="p-4 border-b border-gray-100">
+                    <p class="text-sm font-bold text-gray-700">Mis compras</p>
+                    <p class="text-xs text-gray-400">Pagos realizados por Mercado Pago · descarga tu comprobante</p>
+                </div>
+                <div class="overflow-x-auto">
+                <table>
+                    <thead><tr><th>Fecha</th><th>Paquete</th><th>Documentos</th><th>Monto</th><th>Estado</th><th>Comprobante</th></tr></thead>
+                    <tbody id="tb-my-purchases"></tbody>
+                </table>
+                </div>
+            </div>
+
             <!-- Admin: gestionar creditos de todos los agentes -->
             <div id="credits-admin-panel" class="hidden">
                 <div class="card overflow-hidden">
@@ -1006,6 +1024,20 @@
                     <table>
                         <thead><tr><th>Agente</th><th>Correo</th><th>Saldo</th><th>Sin cobro</th><th>Acciones</th></tr></thead>
                         <tbody id="tb-agent-credits"></tbody>
+                    </table>
+                    </div>
+                </div>
+
+                <!-- Admin: ventas con comprobante -->
+                <div class="card overflow-hidden">
+                    <div class="p-4 border-b border-gray-100 flex items-center justify-between">
+                        <p class="text-sm font-bold text-gray-700">Ventas (Mercado Pago)</p>
+                        <p class="text-xs text-gray-400">Todas las órdenes de compra · comprobante descargable en cada una</p>
+                    </div>
+                    <div class="overflow-x-auto">
+                    <table>
+                        <thead><tr><th>Fecha</th><th>Comprador</th><th>Paquete</th><th>Docs</th><th>Monto</th><th>Estado</th><th>MP ID</th><th>Comprobante</th></tr></thead>
+                        <tbody id="tb-sales"></tbody>
                     </table>
                     </div>
                 </div>
@@ -1033,6 +1065,24 @@
                 <table>
                     <thead><tr><th>Nombre</th><th>Correo</th><th>Contacto</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr></thead>
                     <tbody id="tb-users"></tbody>
+                </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Auditoría (admin only) -->
+        <div id="section-audit" class="hidden">
+            <div class="card overflow-hidden">
+                <div class="p-4 border-b border-gray-100 flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-bold text-gray-700">Registro de acciones del administrador</p>
+                        <p class="text-xs text-gray-400">Últimas 200 acciones: usuarios, créditos y paquetes</p>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                <table>
+                    <thead><tr><th>Fecha</th><th>Administrador</th><th>Acción</th><th>Afectado</th><th>Detalles</th></tr></thead>
+                    <tbody id="tb-audit"></tbody>
                 </table>
                 </div>
             </div>
@@ -1587,7 +1637,7 @@ window.onload = async () => {
     if (compra) {
         if (window.history && history.replaceState) history.replaceState(null, '', window.location.pathname);
         if (compra === 'ok') {
-            alert('¡Pago recibido! Estamos acreditando tus créditos: en unos segundos verás el saldo actualizado.');
+            alert('¡Pago recibido! Estamos acreditando tus créditos: en unos segundos verás el saldo actualizado.\n\nPuedes descargar tu comprobante en Créditos → Mis compras.');
             setTimeout(() => { if (typeof loadSection === 'function') loadSection('credits'); }, 7000);
         } else if (compra === 'pending') {
             alert('Tu pago quedó en proceso (SPEI u OXXO tardan unas horas en confirmarse). Los créditos se acreditarán automáticamente; no necesitas hacer nada.');
@@ -1623,7 +1673,7 @@ window.onload = async () => {
 // ─── API ──────────────────────────────────────────────
 // ─── SUPABASE API ──────────────────────────────────
 // Map frontend collection names to Supabase table names
-const TABLE_MAP = { workers:'workers', companies:'companies', courses:'courses', dc3_records:'dc3_records', agents:'agents', agent_designs:'agent_designs', forklift_licenses:'forklift_licenses', agent_credits:'agent_credits', credit_transactions:'credit_transactions' };
+const TABLE_MAP = { workers:'workers', companies:'companies', courses:'courses', dc3_records:'dc3_records', agents:'agents', agent_designs:'agent_designs', forklift_licenses:'forklift_licenses', agent_credits:'agent_credits', credit_transactions:'credit_transactions', admin_audit_log:'admin_audit_log' };
 
 // Map camelCase fields to snake_case for DB
 function toSnake(obj) {
@@ -1662,7 +1712,7 @@ function toSnake(obj) {
         dipDateAlign:'dip_date_align', dipAgentAlign:'dip_agent_align', dipStpsAlign:'dip_stps_align',
         dipFolioAlign:'dip_folio_align', dipCedulaAlign:'dip_cedula_align',
         cedulaProfesional:'cedula_profesional',
-        agentEmail:'agent_email', referenceId:'reference_id', createdBy:'created_by', creditsExempt:'credits_exempt'
+        agentEmail:'agent_email', referenceId:'reference_id', createdBy:'created_by', creditsExempt:'credits_exempt', adminEmail:'admin_email', targetEmail:'target_email'
     };
     const out = {};
     for (const [k,v] of Object.entries(obj)) out[map[k]||k] = v;
@@ -1706,7 +1756,7 @@ function toCamel(obj) {
         dip_date_align:'dipDateAlign', dip_agent_align:'dipAgentAlign', dip_stps_align:'dipStpsAlign',
         dip_folio_align:'dipFolioAlign', dip_cedula_align:'dipCedulaAlign',
         cedula_profesional:'cedulaProfesional',
-        agent_email:'agentEmail', reference_id:'referenceId', created_by:'createdBy', credits_exempt:'creditsExempt'
+        agent_email:'agentEmail', reference_id:'referenceId', created_by:'createdBy', credits_exempt:'creditsExempt', admin_email:'adminEmail', target_email:'targetEmail'
     };
     const out = {};
     for (const [k,v] of Object.entries(obj)) out[map[k]||k] = v;
@@ -2227,12 +2277,30 @@ async function renderUsersTable() {
     }
 }
 
+// ─── AUDITORÍA: log de acciones de administrador ────────
+// Fail-open: si la tabla admin_audit_log aún no existe (el usuario no ha
+// corrido sql_crear_tabla_audit.sql), la acción NO se bloquea, solo se
+// omite el registro en consola.
+async function logAdminAction(action, target, details) {
+    try {
+        await api('insertOne','admin_audit_log',{ document: {
+            adminEmail: currentUser?.email || 'admin',
+            action: action,
+            targetEmail: target || null,
+            details: details || null
+        }});
+    } catch (e) {
+        console.warn('Audit log no disponible:', e.message || e);
+    }
+}
+
 async function setUserActive(email, active) {
     const msg = active ? 'Reactivar' : 'Suspender';
     if (!confirm('\u00bf' + msg + ' la cuenta de ' + email + '?')) return;
     try {
         const { error } = await sb.from('app_users').update({ approved: !!active }).eq('email', email);
         if (error) throw error;
+        await logAdminAction(active ? 'user_reactivate' : 'user_suspend', email, active ? 'Cuenta reactivada' : 'Cuenta suspendida');
         await renderUsersTable();
     } catch (e) { alert('No se pudo actualizar: ' + (e.message || e)); }
 }
@@ -2254,6 +2322,7 @@ async function deleteUser(email) {
         });
         const j = await r.json().catch(() => ({}));
         if (!r.ok || !j.ok) throw new Error(j.error || 'No se pudo eliminar el usuario');
+        await logAdminAction('user_delete', email, 'Cuenta eliminada (auth + registro)');
         alert('Usuario ' + email + ' eliminado ✓');
         await renderUsersTable();
     } catch (e) { alert('Error al eliminar: ' + e.message); }
@@ -2270,6 +2339,7 @@ async function toggleUserRole(email) {
         const newRole = (data && data[0] && data[0].role === 'ADMIN') ? 'USER' : 'ADMIN';
         const { error } = await sb.from('app_users').update({ role: newRole }).eq('email', email);
         if (error) throw error;
+        await logAdminAction('user_role_change', email, 'Nuevo rol: ' + newRole);
         await renderUsersTable();
     } catch (e) { alert('No se pudo cambiar el rol: ' + (e.message || e)); }
 }
@@ -2306,13 +2376,10 @@ async function initApp() {
             if (roleDisp) roleDisp.innerText = currentUser.role || "USER";
 
             const btnUsers = document.getElementById('btn-users');
-            if (btnUsers) {
-                if (currentUser.role === 'ADMIN') {
-                    btnUsers.classList.remove('hidden');
-                } else {
-                    btnUsers.classList.add('hidden');
-                }
-            }
+            const btnAudit = document.getElementById('btn-audit');
+            const isAdminUser = currentUser.role === 'ADMIN';
+            if (btnUsers) btnUsers.classList.toggle('hidden', !isAdminUser);
+            if (btnAudit) btnAudit.classList.toggle('hidden', !isAdminUser);
         }
 
         console.log('[DEBUG] Setting dashboard view');
@@ -2341,7 +2408,7 @@ async function logout() {
 }
 
 // ─── NAVIGATION ────────────────────────────────────────
-const VIEWS = ['dashboard','workers','companies','courses','dc3','dc3design','agents','credits','users'];
+const VIEWS = ['dashboard','workers','companies','courses','dc3','dc3design','agents','credits','users','audit'];
 const TITLES = {
     dashboard: ['Dashboard', 'Resumen del sistema'],
     workers:   ['Personal', 'Trabajadores registrados con su CURP y puesto'],
@@ -2352,6 +2419,7 @@ const TITLES = {
     agents:    ['Agentes Capacitadores', 'Agentes Externos registrados ante la STPS'],
     credits:   ['Créditos', 'Saldo y consumo de créditos por documento generado'],
     users:     ['Usuarios', 'Gestión de accesos al sistema'],
+    audit:     ['Auditoría', 'Registro de acciones del administrador'],
 };
 
 function setView(v) {
@@ -2360,7 +2428,7 @@ function setView(v) {
         document.getElementById(`section-${x}`).classList.toggle('hidden', x !== v);
     });
     document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
-    const links = ['dashboard','workers','companies','courses','dc3','dc3design','agents','credits','users'];
+    const links = ['dashboard','workers','companies','courses','dc3','dc3design','agents','credits','users','audit'];
     const idx = links.indexOf(v);
     if (idx >= 0) document.querySelectorAll('.nav-link')[idx].classList.add('active');
     document.getElementById('page-title').innerText = TITLES[v][0];
@@ -2682,6 +2750,39 @@ async function loadSection(v) {
 
         } else if (v === 'users') {
             await renderUsersTable();
+        } else if (v === 'audit') {
+            // Fail-open: si la tabla admin_audit_log no existe, se muestra
+            // una guía en vez de romper la vista.
+            const tb = document.getElementById('tb-audit');
+            if (tb) tb.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-gray-300 text-sm">Cargando…</td></tr>';
+            try {
+                const { data: rawRows, error: auditErr } = await sb.from('admin_audit_log').select('*').order('created_at', { ascending: false }).limit(200);
+                if (auditErr) throw new Error(auditErr.message);
+                const rows = (rawRows || []).map(toCamel);
+                if (tb) tb.innerHTML = rows.length ? rows.map(x => {
+                    const labels = {
+                        user_suspend: ['Suspender usuario', 'text-red-500'],
+                        user_reactivate: ['Reactivar usuario', 'text-green-600'],
+                        user_role_change: ['Cambiar rol', 'text-blue-900'],
+                        user_delete: ['Eliminar usuario', 'text-red-500 font-bold'],
+                        credits_manual_add: ['Créditos manuales', 'text-green-600'],
+                        credits_exempt_toggle: ['Toggle sin cobro', 'text-blue-900'],
+                        package_edit: ['Editar paquete', 'text-blue-900'],
+                        package_visibility: ['Mostrar/ocultar paquete', 'text-blue-900']
+                    };
+                    const [label, cls] = labels[x.action] || [x.action, ''];
+                    const dt = x.createdAt ? new Date(x.createdAt).toLocaleString('es-MX') : '—';
+                    return `<tr>
+                        <td class="text-xs text-gray-400">${dt}</td>
+                        <td class="text-sm">${x.adminEmail || '—'}</td>
+                        <td class="text-sm font-semibold ${cls}">${label}</td>
+                        <td class="text-xs text-gray-400">${x.targetEmail || '—'}</td>
+                        <td class="text-xs text-gray-500">${x.details || ''}</td>
+                    </tr>`;
+                }).join('') : '<tr><td colspan="5" class="text-center py-8 text-gray-400 text-sm">Sin acciones registradas todavía.</td></tr>';
+            } catch (e) {
+                if (tb) tb.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-gray-400 text-sm">El registro de auditoría aún no está activo.<br><span class="text-xs">Ejecuta <code>sql_crear_tabla_audit.sql</code> en el SQL Editor de Supabase para activarlo.</span></td></tr>`;
+            }
         } else if (v === 'credits') {
             const ownCard = document.getElementById('credits-own-card');
             const historyCard = document.getElementById('credits-history-card');
@@ -2757,10 +2858,16 @@ async function loadSection(v) {
                     </tr>`;
                 }).join('') || '<tr><td colspan="5" class="text-center py-8 text-gray-300 text-sm">Sin agentes registrados</td></tr>';
                 renderPackagesAdmin();
+                renderSalesAdmin();
+                const purchasesCard = document.getElementById('credits-purchases-card');
+                if (purchasesCard) purchasesCard.classList.add('hidden');
             } else {
                 ownCard.classList.remove('hidden');
-                historyCard.classList.remove('hidden');
+                historyCard.classList.add('hidden');
                 adminPanel.classList.add('hidden');
+                const purchasesCard = document.getElementById('credits-purchases-card');
+                if (purchasesCard) purchasesCard.classList.remove('hidden');
+                renderMyPurchases();
                 const email = currentUser?.email;
                 const myBal = await getCreditBalance(email);
                 const bal = myBal ?? 0;
@@ -2885,6 +2992,155 @@ async function loadAdminDashboardExtras(workers, dc3s, companies) {
     }
 }
 
+// ─── COMPROBANTES DE COMPRA (Mis compras / Ventas) ─────
+// Cache de órdenes y paquetes para los botones de descarga
+window._receiptOrders = {};
+window._receiptPacks = {};
+
+const ORDER_STATUS_LABEL = {
+  paid: ['Pagado', 'text-green-600'], pending: ['En proceso', 'text-yellow-600'],
+  failed: ['Fallido', 'text-red-500'], cancelled: ['Cancelado', 'text-gray-400'],
+  reconciled: ['Pagado', 'text-green-600']
+};
+
+async function _loadReceiptPacks() {
+  try {
+    const { data, error } = await sb.from('credit_packages').select('id,name,credits,price');
+    if (!error && data) window._receiptPacks = Object.fromEntries((data||[]).map(p => [p.id, p]));
+  } catch (e) { /* se usa nombre crudo del paquete */ }
+}
+
+// Tabla "Mis compras" (lado usuario): solo sus órdenes (RLS lo garantiza)
+async function renderMyPurchases() {
+  const tb = document.getElementById('tb-my-purchases');
+  if (!tb) return;
+  tb.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-300 text-sm">Cargando…</td></tr>';
+  try {
+    await _loadReceiptPacks();
+    const { data: orders, error } = await sb.from('payment_orders').select('*').eq('agent_email', currentUser?.email).order('created_at', { ascending: false });
+    if (error) throw error;
+    (orders||[]).forEach(o => { window._receiptOrders[o.id] = o; });
+    tb.innerHTML = (orders||[]).length ? orders.map(o => {
+      const pack = window._receiptPacks[o.pack_id] || {};
+      const [stLabel, stCls] = ORDER_STATUS_LABEL[o.status] || [o.status, ''];
+      const canReceipt = (o.status === 'paid' || o.status === 'reconciled');
+      return `<tr>
+        <td class="text-xs text-gray-400">${o.paid_at || o.created_at ? new Date(o.paid_at || o.created_at).toLocaleDateString('es-MX') : '—'}</td>
+        <td class="text-sm font-semibold">${pack.name || o.pack_id || '—'}</td>
+        <td class="text-sm">${pack.credits ?? '—'}</td>
+        <td class="font-bold text-blue-900">$${Number(o.amount||0).toFixed(2)} MXN</td>
+        <td class="text-xs font-semibold ${stCls}">${stLabel}</td>
+        <td>${canReceipt ? `<button onclick="downloadReceipt('${o.id}')" class="btn-sm btn-indigo">⬇ PDF</button>` : '<span class="text-xs text-gray-300">—</span>'}</td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="6" class="text-center py-8 text-gray-300 text-sm">Aún no tienes compras.</td></tr>';
+  } catch (e) {
+    tb.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-gray-400 text-sm">No se pudo cargar tu historial de compras.</td></tr>`;
+  }
+}
+
+// Tabla "Ventas" (lado admin): todas las órdenes
+async function renderSalesAdmin() {
+  const tb = document.getElementById('tb-sales');
+  if (!tb) return;
+  tb.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-300 text-sm">Cargando…</td></tr>';
+  try {
+    await _loadReceiptPacks();
+    const { data: orders, error } = await sb.from('payment_orders').select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+    (orders||[]).forEach(o => { window._receiptOrders[o.id] = o; });
+    tb.innerHTML = (orders||[]).length ? orders.map(o => {
+      const pack = window._receiptPacks[o.pack_id] || {};
+      const [stLabel, stCls] = ORDER_STATUS_LABEL[o.status] || [o.status, ''];
+      const canReceipt = (o.status === 'paid' || o.status === 'reconciled');
+      return `<tr>
+        <td class="text-xs text-gray-400">${o.created_at ? new Date(o.created_at).toLocaleDateString('es-MX') : '—'}</td>
+        <td class="text-sm">${o.agent_email || '—'}</td>
+        <td class="text-sm font-semibold">${pack.name || o.pack_id || '—'}</td>
+        <td class="text-sm">${pack.credits ?? '—'}</td>
+        <td class="font-bold text-blue-900">$${Number(o.amount||0).toFixed(2)}</td>
+        <td class="text-xs font-semibold ${stCls}">${stLabel}</td>
+        <td class="font-mono text-xs text-gray-400">${o.mp_payment_id || '—'}</td>
+        <td>${canReceipt ? `<button onclick="downloadReceipt('${o.id}')" class="btn-sm btn-indigo">⬇ PDF</button>` : '<span class="text-xs text-gray-300">—</span>'}</td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="8" class="text-center py-8 text-gray-300 text-sm">Sin ventas registradas.</td></tr>';
+  } catch (e) {
+    tb.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-gray-400 text-sm">No se pudo cargar las ventas. Verifica que el GRANT de payment_orders esté aplicado (sql_crear_tabla_audit.sql).</td></tr>`;
+  }
+}
+
+// Genera y descarga el PDF del comprobante de compra
+async function downloadReceipt(orderId) {
+  const o = window._receiptOrders[orderId];
+  if (!o) { alert('No se encontró la orden. Recarga la página.'); return; }
+  try {
+    const { PDFDocument, StandardFonts, rgb } = PDFLib;
+    const doc = await PDFDocument.create();
+    const page = doc.addPage([612, 792]); // carta
+    const bold = await doc.embedFont(StandardFonts.HelveticaBold);
+    const reg = await doc.embedFont(StandardFonts.Helvetica);
+    const BLUE = rgb(0.118, 0.227, 0.541);
+    const DARK = rgb(0.11, 0.16, 0.22);
+    const GRAY = rgb(0.45, 0.5, 0.55);
+    const LINE = rgb(0.85, 0.87, 0.9);
+
+    const pack = window._receiptPacks[o.pack_id] || {};
+    const folio = 'CP-' + String(o.id).split('-')[0].toUpperCase();
+    const fecha = (o.paid_at || o.created_at) ? new Date(o.paid_at || o.created_at).toLocaleString('es-MX') : '—';
+
+    // Encabezado
+    page.drawRectangle({ x: 0, y: 700, width: 612, height: 92, color: BLUE });
+    page.drawText('ACE-Control', { x: 48, y: 752, size: 24, font: bold, color: rgb(1,1,1) });
+    page.drawText('EHS Solutions · Sistema de Gestión DC-3', { x: 48, y: 732, size: 9, font: reg, color: rgb(0.85, 0.89, 0.95) });
+    page.drawText('COMPROBANTE DE COMPRA', { x: 564 - 200, y: 736, size: 13, font: bold, color: rgb(1,1,1) });
+
+    // Folio y fecha
+    page.drawText('Folio: ', { x: 48, y: 668, size: 11, font: bold, color: DARK });
+    page.drawText(folio, { x: 90, y: 668, size: 11, font: reg, color: DARK });
+    page.drawText('Fecha: ', { x: 380, y: 668, size: 11, font: bold, color: DARK });
+    page.drawText(fecha, { x: 425, y: 668, size: 11, font: reg, color: DARK });
+    page.drawLine({ start: { x: 48, y: 656 }, end: { x: 564, y: 656 }, thickness: 1, color: LINE });
+
+    // Detalles
+    const rows = [
+      ['Comprador', o.agent_email || '—'],
+      ['Paquete', pack.name || o.pack_id || '—'],
+      ['Documentos (créditos)', String(pack.credits ?? '—')],
+      ['Monto pagado', '$' + Number(o.amount||0).toFixed(2) + ' ' + (o.currency || 'MXN')],
+      ['Método de pago', 'Mercado Pago' + (o.mp_payment_id ? ' · ID: ' + o.mp_payment_id : '')],
+      ['Estado', 'Pagado']
+    ];
+    let y = 620;
+    rows.forEach(([k, v]) => {
+      page.drawText(k, { x: 48, y, size: 11, font: bold, color: GRAY });
+      page.drawText(String(v), { x: 230, y, size: 11, font: reg, color: DARK });
+      page.drawLine({ start: { x: 48, y: y - 9 }, end: { x: 564, y: y - 9 }, thickness: 0.5, color: LINE });
+      y -= 34;
+    });
+
+    // Costo por documento
+    if (pack.credits && o.amount) {
+      page.drawText('Costo por documento: $' + (Number(o.amount) / pack.credits).toFixed(2), { x: 48, y: y - 4, size: 10, font: reg, color: GRAY });
+      y -= 30;
+    }
+
+    // Notas
+    page.drawText('Este comprobante ampara la compra de créditos para generación de', { x: 48, y: 130, size: 9, font: reg, color: GRAY });
+    page.drawText('documentos DC-3, Diplomas y Licencias en el sistema ACE-Control.', { x: 48, y: 117, size: 9, font: reg, color: GRAY });
+    page.drawText('No constituye un comprobante fiscal (CFDI). Para facturación formal', { x: 48, y: 104, size: 9, font: reg, color: GRAY });
+    page.drawText('contáctanos: d.robles@ehs-solutions.online · WhatsApp +52 1 81 3082 8355', { x: 48, y: 91, size: 9, font: reg, color: GRAY });
+
+    const bytes = await doc.save();
+    const blob = new Blob([bytes], { type: 'application/pdf' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'comprobante-' + folio + '.pdf';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  } catch (e) {
+    alert('No se pudo generar el comprobante: ' + (e.message || e));
+  }
+}
+
 // ─── PAQUETES: edición de costos (solo admin) ──────────
 async function renderPackagesAdmin() {
     const tb = document.getElementById('tb-packages');
@@ -2934,6 +3190,7 @@ async function savePackage(id, name) {
             })
             .eq('id', id);
         if (error) throw error;
+        await logAdminAction('package_edit', null, `Paquete "${name}" actualizado: ${credits} docs a $${price.toFixed(2)} MXN`);
         renderPackagesAdmin();
     } catch (e) {
         alert('No se pudo guardar el paquete: ' + e.message);
@@ -2949,6 +3206,7 @@ async function togglePackageActive(id, currentlyActive) {
     try {
         const { error } = await sb.from('credit_packages').update({ active: enable }).eq('id', id);
         if (error) throw error;
+        await logAdminAction('package_visibility', null, `Paquete "${id}" ${enable ? 'mostrado' : 'ocultado'} en la tienda`);
         renderPackagesAdmin();
     } catch (e) {
         alert('No se pudo cambiar la visibilidad: ' + e.message);
@@ -2965,6 +3223,7 @@ async function promptAddCredits(email, name) {
     const note = prompt('Nota (opcional, ej. "Pago transferencia $300 MXN — paquete 100"):') || 'Carga manual de créditos';
     try {
         const newBalance = await addCredits(email, n, note);
+        await logAdminAction('credits_manual_add', email, `${n > 0 ? '+' : ''}${n} créditos · "${note}" · nuevo saldo: ${newBalance}`);
         alert(`Listo. Nuevo saldo de ${name}: ${newBalance} créditos.`);
         loadSection('credits');
     } catch(e) { alert('Error al agregar créditos: ' + e.message); }
@@ -2990,6 +3249,7 @@ async function toggleCreditExemption(email, name, currentlyExempt) {
             agentEmail: email, delta: 0, reason: enable ? 'Cuenta marcada SIN COBRO de créditos' : 'Cuenta reactivada con cobro de créditos',
             documentType: null, referenceId: null, createdBy: currentUser?.email || 'admin'
         }});
+        await logAdminAction('credits_exempt_toggle', email, enable ? 'Cuenta marcada SIN COBRO' : 'Cobro de créditos reactivado');
         alert(enable ? `${name} ahora genera sin consumir créditos ✓` : `${name} volverá a consumir créditos normalmente.`);
         loadSection('credits');
     } catch(e) { alert('Error al cambiar la exención: ' + e.message); }
