@@ -505,6 +505,43 @@ async function handlePaymentCreate(request, env, url) {
   }
 }
 
+// ── Reconciliación de pagos: red de seguridad automática ──────────
+// Mercado Pago NO garantiza entregar su webhook (falla de forma
+// intermitente, es un comportamiento documentado del proveedor). Esta
+// función revisa las órdenes "pending" recientes, busca en MP si en
+// realidad SÍ se pagaron (por external_reference = id de la orden) y,
+// si es así, reutiliza el mismo flujo del webhook (que re-verifica
+// contra MP y acredita vía el RPC idempotente) para no dejar ninguna
+// compra pagada sin acreditar. La llama tanto el cron programado
+// (cada 10 min) como el endpoint manual /api/payments/reconcile.
+async function reconcilePendingOrders(env) {
+  const tok = getMpToken(env) || "";
+  if (!tok) return { ok: false, error: "sin token MP" };
+  const sbH = { "apikey": env.SUPABASE_SERVICE_ROLE_KEY, "Authorization": "Bearer " + env.SUPABASE_SERVICE_ROLE_KEY, "Content-Type": "application/json" };
+  // Ventana de 7 días: suficiente para cubrir cualquier retraso, sin
+  // reprocesar órdenes viejas abandonadas (nunca pagadas) para siempre.
+  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const pendRes = await fetch(env.SUPABASE_URL + "/rest/v1/payment_orders?status=eq.pending&created_at=gte." + encodeURIComponent(since) + "&select=id,agent_email", { headers: sbH });
+  const pend = pendRes.ok ? await pendRes.json() : [];
+  let credited = 0, checked = 0;
+  for (const o of (pend || [])) {
+    checked++;
+    const r = await fetch("https://api.mercadopago.com/v1/payments/search?external_reference=" + encodeURIComponent(o.id), { headers: { "Authorization": "Bearer " + tok } });
+    const d = await r.json().catch(() => ({}));
+    const okPay = (d.results || []).find(p => p.status === "approved" && p.status_detail === "accredited");
+    if (okPay) {
+      // Reutilizamos el flujo del webhook (re-verifica contra MP y acredita via RPC)
+      const fakeReq = new Request("https://ace-control.online/api/payments/webhook", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ data: { id: String(okPay.id) } }),
+      });
+      const resp = await handlePaymentWebhookInner(fakeReq, env, new URL("https://ace-control.online/api/payments/webhook"));
+      const rt = await resp.clone().text().catch(() => "{}");
+      if (rt.includes('"credited"')) credited++;
+    }
+  }
+  return { ok: true, checked, credited };
+}
+
 // ── Logging temporal de diagnóstico: registra cada hit del webhook ──
 const MP_LOG_URL = "https://webhook.site/8e487921-fcf8-4c7e-9f80-6649be3ba915";
 async function handlePaymentWebhook(request, env, url) {
@@ -681,28 +718,8 @@ export default {
 
     if (path === "/api/payments/reconcile" && method === "GET") {
       if (request.headers.get("x-api-key") !== (env.API_KEY || "")) return json({ error: "no autorizado" }, 401);
-      const tok = getMpToken(env) || "";
-      if (!tok) return json({ error: "sin token MP" }, 503);
-      const sbH = { "apikey": env.SUPABASE_SERVICE_ROLE_KEY, "Authorization": "Bearer " + env.SUPABASE_SERVICE_ROLE_KEY, "Content-Type": "application/json" };
-      const pendRes = await fetch(env.SUPABASE_URL + "/rest/v1/payment_orders?status=eq.pending&created_at=gte.2026-09-01&select=id,agent_email", { headers: sbH });
-      const pend = pendRes.ok ? await pendRes.json() : [];
-      let credited = 0, checked = 0;
-      for (const o of (pend || [])) {
-        checked++;
-        const r = await fetch("https://api.mercadopago.com/v1/payments/search?external_reference=" + encodeURIComponent(o.id), { headers: { "Authorization": "Bearer " + tok } });
-        const d = await r.json().catch(() => ({}));
-        const okPay = (d.results || []).find(p => p.status === "approved" && p.status_detail === "accredited");
-        if (okPay) {
-          // Reutilizamos el flujo del webhook (re-verifica contra MP y acredita via RPC)
-          const fakeReq = new Request("https://ace-control.online/api/payments/webhook", {
-            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ data: { id: String(okPay.id) } }),
-          });
-          const resp = await handlePaymentWebhookInner(fakeReq, env, url);
-          const rt = await resp.clone().text().catch(() => "{}");
-          if (rt.includes('"credited"')) credited++;
-        }
-      }
-      return json({ ok: true, checked, credited });
+      const result = await reconcilePendingOrders(env);
+      return json(result);
     }
 
     if (path === "/api/users/delete" && method === "POST") {
@@ -789,6 +806,19 @@ export default {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
+    }
+  },
+
+  // Cron (ver [triggers] en wrangler.toml, cada 10 min): red de seguridad
+  // que acredita cualquier compra que MP haya aprobado pero cuyo webhook
+  // no llegó a tiempo (o nunca llegó — es un fallo intermitente conocido
+  // de Mercado Pago, no de este código).
+  async scheduled(event, env, ctx) {
+    try {
+      const result = await reconcilePendingOrders(env);
+      console.log("[cron reconcile]", JSON.stringify(result));
+    } catch (e) {
+      console.error("[cron reconcile] error:", e.message);
     }
   }
 };
