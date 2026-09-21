@@ -2155,13 +2155,18 @@ async function renderUsersTable() {
             const emailSafe = escAttr(u.email || '');
             const contact = [u.phone, u.stps_registration].filter(Boolean).join(' · ') || '—';
             let actions = '';
+            const delBtn = (role === 'ADMIN')
+                ? `<button onclick="deleteUser('${emailSafe}')" class="btn-sm btn-red" disabled title="No se puede eliminar a otro admin">✕</button>`
+                : `<button onclick="deleteUser('${emailSafe}')" class="btn-sm btn-red">Eliminar</button>`;
             if (own) {
                 actions = '<span class="text-xs text-gray-300">Tu cuenta</span>';
             } else if (approved) {
                 actions = `<button onclick="setUserActive('${emailSafe}', false)" class="btn-sm btn-outline">Suspender</button> `
-                        + `<button onclick="toggleUserRole('${emailSafe}')" class="btn-sm btn-outline">${role === 'ADMIN' ? 'Quitar admin' : 'Hacer admin'}</button>`;
+                        + `<button onclick="toggleUserRole('${emailSafe}')" class="btn-sm btn-outline">${role === 'ADMIN' ? 'Quitar admin' : 'Hacer admin'}</button> `
+                        + delBtn;
             } else {
-                actions = `<button onclick="setUserActive('${emailSafe}', true)" class="btn-sm btn-primary">Reactivar</button>`;
+                actions = `<button onclick="setUserActive('${emailSafe}', true)" class="btn-sm btn-primary">Reactivar</button> `
+                        + delBtn;
             }
             return `<tr>
                 <td class="font-semibold">${u.name || '(sin nombre)'}</td>
@@ -2186,6 +2191,28 @@ async function setUserActive(email, active) {
         if (error) throw error;
         await renderUsersTable();
     } catch (e) { alert('No se pudo actualizar: ' + (e.message || e)); }
+}
+
+// Elimina por completo la cuenta de un usuario (auth + app_users).
+// Solo el admin, vía endpoint seguro del Worker que re-verifica rol.
+async function deleteUser(email) {
+    if (!confirm('\u00bfEliminar DEFINITIVAMENTE la cuenta de ' + email + '?\n\nSe borra su acceso de login y su registro. Esta acci\u00f3n no se puede deshacer.')) return;
+    const double = prompt('Escribe ELIMINAR en may\u00fasculas para confirmar:');
+    if (double !== 'ELIMINAR') { alert('Cancelado: no se escribi\u00f3 ELIMINAR.'); return; }
+    try {
+        const { data: sess } = await sb.auth.getSession();
+        const token = sess && sess.session ? sess.session.access_token : null;
+        if (!token) { alert('Tu sesi\u00f3n expir\u00f3. Inicia sesi\u00f3n de nuevo.'); return; }
+        const r = await fetch('/api/users/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ email })
+        });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok || !j.ok) throw new Error(j.error || 'No se pudo eliminar el usuario');
+        alert('Usuario ' + email + ' eliminado ✓');
+        await renderUsersTable();
+    } catch (e) { alert('Error al eliminar: ' + e.message); }
 }
 
 async function toggleUserRole(email) {

@@ -289,6 +289,90 @@ function getMpToken(env) {
   return env.MP_ACCESS_TOKEN || env.MERCADOPAGO_ACCESS_TOKEN || env.MERCADOPAGO_ACCESS_TOKEN_2 || null;
 }
 
+// ═══ Eliminación de usuarios (solo ADMIN) ═══
+// Verifica la sesión del llamador contra Supabase, exige rol ADMIN en
+// app_users, y borra al usuario objetivo de auth.users Y de app_users.
+// Nunca permite borrarse a sí mismo ni borrar a otro admin (evita
+// quedar fuera de la app por un clic).
+async function handleUserDelete(request, env) {
+  try {
+    if (!env.API_KEY) return json({ error: "API_KEY no configurada en Cloudflare." }, 403);
+
+    // 1) Identidad del llamador
+    const bearer = (request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
+    if (!bearer) return json({ error: "No autenticado." }, 401);
+    const userRes = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, {
+      headers: { "apikey": env.SUPABASE_SERVICE_ROLE_KEY, "Authorization": "Bearer " + bearer },
+    });
+    if (!userRes.ok) return json({ error: "Sesión inválida. Inicia sesión de nuevo." }, 401);
+    const caller = await userRes.json();
+    const callerEmail = String((caller && caller.email) || "").toLowerCase();
+
+    const sbHeaders = {
+      "apikey": env.SUPABASE_SERVICE_ROLE_KEY,
+      "Authorization": "Bearer " + env.SUPABASE_SERVICE_ROLE_KEY,
+      "Content-Type": "application/json",
+    };
+
+    // 2) El llamador debe ser ADMIN
+    const profRes = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/app_users?email=eq.${encodeURIComponent(callerEmail)}&select=role,approved`,
+      { headers: sbHeaders }
+    );
+    const profs = profRes.ok ? await profRes.json() : [];
+    const prof = profs && profs[0];
+    if (!prof || String(prof.role || "").toUpperCase() !== "ADMIN") {
+      return json({ error: "Solo un administrador puede eliminar usuarios." }, 403);
+    }
+
+    // 3) Objetivo
+    const body = await request.json().catch(() => ({}));
+    const targetEmail = String((body && body.email) || "").toLowerCase();
+    if (!targetEmail) return json({ error: "Falta el correo del usuario a eliminar." }, 400);
+    if (targetEmail === callerEmail) return json({ error: "No puedes eliminar tu propia cuenta." }, 400);
+
+    // 4) El objetivo no puede ser otro ADMIN
+    const tgtRes = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/app_users?email=eq.${encodeURIComponent(targetEmail)}&select=id,role,name`,
+      { headers: sbHeaders }
+    );
+    const tgts = tgtRes.ok ? await tgtRes.json() : [];
+    const tgt = tgts && tgts[0];
+    if (tgt && String(tgt.role || "").toUpperCase() === "ADMIN") {
+      return json({ error: "No puedes eliminar a otro administrador. Quita el rol de admin primero." }, 400);
+    }
+
+    // 5) Borrar de auth.users (busca por email con la admin API)
+    const listRes = await fetch(
+      `${env.SUPABASE_URL}/auth/v1/admin/users?per_page=100`,
+      { headers: sbHeaders }
+    );
+    const list = listRes.ok ? await listRes.json() : { users: [] };
+    const authUser = (list.users || []).find(u => String(u.email || "").toLowerCase() === targetEmail);
+    let authDeleted = false;
+    if (authUser && authUser.id) {
+      const delRes = await fetch(
+        `${env.SUPABASE_URL}/auth/v1/admin/users/${authUser.id}`,
+        { method: "DELETE", headers: sbHeaders }
+      );
+      authDeleted = delRes.ok;
+    }
+
+    // 6) Borrar de app_users
+    const delRowRes = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/app_users?email=eq.${encodeURIComponent(targetEmail)}`,
+      { method: "DELETE", headers: sbHeaders }
+    );
+    if (!delRowRes.ok) {
+      return json({ error: "No se pudo eliminar el registro del usuario." }, 500);
+    }
+
+    return json({ ok: true, email: targetEmail, auth_deleted: authDeleted });
+  } catch (e) {
+    return json({ error: e.message }, 500);
+  }
+}
+
 async function handlePaymentCreate(request, env, url) {
   try {
     if (!env.API_KEY) return json({ error: "API_KEY no configurada en Cloudflare." }, 403);
@@ -606,6 +690,9 @@ export default {
       return json({ ok: true, checked, credited });
     }
 
+    if (path === "/api/users/delete" && method === "POST") {
+      return handleUserDelete(request, env);
+    }
     if (path === "/api/payments/create" && method === "POST") {
       return handlePaymentCreate(request, env, url);
     }
