@@ -514,14 +514,18 @@ async function handlePaymentCreate(request, env, url) {
 // contra MP y acredita vía el RPC idempotente) para no dejar ninguna
 // compra pagada sin acreditar. La llama tanto el cron programado
 // (cada 10 min) como el endpoint manual /api/payments/reconcile.
-async function reconcilePendingOrders(env) {
+async function reconcilePendingOrders(env, emailFilter) {
   const tok = getMpToken(env) || "";
   if (!tok) return { ok: false, error: "sin token MP" };
   const sbH = { "apikey": env.SUPABASE_SERVICE_ROLE_KEY, "Authorization": "Bearer " + env.SUPABASE_SERVICE_ROLE_KEY, "Content-Type": "application/json" };
   // Ventana de 7 días: suficiente para cubrir cualquier retraso, sin
   // reprocesar órdenes viejas abandonadas (nunca pagadas) para siempre.
+  // Si llega emailFilter, solo se revisan las órdenes DE ESE USUARIO
+  // (lo usa /api/payments/check, autenticado con su propia sesión).
   const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-  const pendRes = await fetch(env.SUPABASE_URL + "/rest/v1/payment_orders?status=eq.pending&created_at=gte." + encodeURIComponent(since) + "&select=id,agent_email", { headers: sbH });
+  let qp = "?status=eq.pending&created_at=gte." + encodeURIComponent(since);
+  if (emailFilter) qp += "&agent_email=eq." + encodeURIComponent(emailFilter);
+  const pendRes = await fetch(env.SUPABASE_URL + "/rest/v1/payment_orders" + qp + "&select=id,agent_email", { headers: sbH });
   const pend = pendRes.ok ? await pendRes.json() : [];
   let credited = 0, checked = 0;
   for (const o of (pend || [])) {
@@ -716,6 +720,26 @@ export default {
       return json({ http: r.status, idem, raw: body.slice(0, 1500) });
     }
 
+    // Auto-reconciliación al abrir la app: el usuario autenticado pide
+    // revisar SUS órdenes pendientes contra la API real de Mercado Pago.
+    // Cubre el fallo intermitente del webhook de MP sin cron externo:
+    // el comprador abre la app → se acredita lo que MP sí cobró.
+    if (path === "/api/payments/check" && method === "POST") {
+      const ip = request.headers.get("cf-connecting-ip") || "unknown";
+      if (rateLimited("chk:" + ip, 30, 3600000)) return json({ ok: true, skipped: true });
+      const bearer = (request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
+      if (!bearer) return json({ error: "No autenticado." }, 401);
+      const userRes = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, {
+        headers: { "apikey": env.SUPABASE_SERVICE_ROLE_KEY, "Authorization": "Bearer " + bearer },
+      });
+      if (!userRes.ok) return json({ error: "Sesión inválida." }, 401);
+      const user = await userRes.json();
+      const email = String((user && user.email) || "").toLowerCase();
+      if (!email) return json({ error: "Sesión inválida." }, 401);
+      const result = await reconcilePendingOrders(env, email);
+      return json(result);
+    }
+
     if (path === "/api/payments/reconcile" && method === "GET") {
       if (request.headers.get("x-api-key") !== (env.API_KEY || "")) return json({ error: "no autorizado" }, 401);
       const result = await reconcilePendingOrders(env);
@@ -806,19 +830,6 @@ export default {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
-    }
-  },
-
-  // Cron (ver [triggers] en wrangler.toml, cada 10 min): red de seguridad
-  // que acredita cualquier compra que MP haya aprobado pero cuyo webhook
-  // no llegó a tiempo (o nunca llegó — es un fallo intermitente conocido
-  // de Mercado Pago, no de este código).
-  async scheduled(event, env, ctx) {
-    try {
-      const result = await reconcilePendingOrders(env);
-      console.log("[cron reconcile]", JSON.stringify(result));
-    } catch (e) {
-      console.error("[cron reconcile] error:", e.message);
     }
   }
 };

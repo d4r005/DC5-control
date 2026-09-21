@@ -1939,6 +1939,24 @@ async function buyPackage(packId) {
     }
 }
 
+// Auto-reconciliacion: revisa contra la API real de Mercado Pago si el
+// usuario tiene ordenes "pending" que en realidad YA se pagaron (el
+// webhook de MP falla de forma intermitente). Silenciosa y segura:
+// el backend solo mira las ordenes del usuario autenticado y acredita
+// con el mismo RPC idempotente del webhook.
+async function checkPendingPayments() {
+    try {
+        const { data: sess } = await sb.auth.getSession();
+        const token = sess && sess.session ? sess.session.access_token : null;
+        if (!token) return;
+        await fetch('/api/payments/check', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: '{}'
+        });
+    } catch (e) { /* silenciosa: nunca bloquea la app */ }
+}
+
 // Verifica que haya creditos suficientes ANTES de generar.
 // Pasan gratis: el admin y las cuentas marcadas como "sin cobro".
 // Si no hay suficientes, muestra alerta con el saldo y datos de contacto, y regresa false.
@@ -1946,8 +1964,14 @@ async function requireCredits(n, label) {
     if (isAdmin()) return true;
     const email = currentUser?.email;
     if (await isCreditExempt(email)) return true;
-    const balance = await getCreditBalance(email);
+    let balance = await getCreditBalance(email);
     if (balance === null) return true; // sistema de creditos aun no instalado
+    if (balance >= n) return true;
+    // El saldo no alcanza: puede que una compra reciente no se haya
+    // acreditado por un fallo del webhook de MP. Revisar contra MP y
+    // releer el saldo UNA vez antes de negar la generacion.
+    await checkPendingPayments();
+    balance = await getCreditBalance(email);
     if (balance >= n) return true;
     alert(`No tienes creditos suficientes para generar ${label || 'este documento'}.\n\nSaldo actual: ${balance}\nCreditos necesarios: ${n}\n\nTe llevamos a la tienda de paquetes…`);
     openBuyModal();
@@ -2863,10 +2887,13 @@ async function loadSection(v) {
                 if (purchasesCard) purchasesCard.classList.add('hidden');
             } else {
                 ownCard.classList.remove('hidden');
-                historyCard.classList.add('hidden');
+                historyCard.classList.remove('hidden');
                 adminPanel.classList.add('hidden');
                 const purchasesCard = document.getElementById('credits-purchases-card');
                 if (purchasesCard) purchasesCard.classList.remove('hidden');
+                // Reconciliar primero: si el webhook de MP fallo, esto
+                // acredita la compra antes de mostrar saldo y compras.
+                await checkPendingPayments();
                 renderMyPurchases();
                 const email = currentUser?.email;
                 const myBal = await getCreditBalance(email);
