@@ -2610,10 +2610,44 @@ async function loadSection(v) {
                 adminPanel.classList.remove('hidden');
                 const creditsRes = await api('find','agent_credits',{});
                 const rowsByEmail = {};
-                (creditsRes.documents||[]).forEach(r => { rowsByEmail[r.agentEmail] = r; });
+                (creditsRes.documents||[]).forEach(r => { rowsByEmail[(r.agentEmail||'').toLowerCase()] = r; });
                 const adminEmails = new Set(getAdminEmails());
+
+                // Lista de filas a mostrar: TODAS las cuentas registradas
+                // (app_users, incluye quienes compraron créditos por su
+                // cuenta vía auto-registro) + agentes capacitadores del
+                // catálogo (pueden no tener cuenta de login) + cualquier
+                // correo con saldo en agent_credits que no aparezca en
+                // ninguna de las dos listas anteriores. Antes solo se
+                // mostraban los agentes capacitadores, dejando fuera a
+                // clientes auto-registrados que sí compraron créditos.
+                let profiles = USER_PROFILES;
+                try {
+                    const { data, error } = await sb.from('app_users').select('*').order('created_at', { ascending: true });
+                    if (!error && data) { profiles = data; USER_PROFILES = data; }
+                } catch (e) { /* usa el cache si falla */ }
+
+                const agentNameByEmail = {};
+                (DATA.agents||[]).forEach(a => { if (a.creatorEmail) agentNameByEmail[a.creatorEmail.toLowerCase()] = a.name; });
+
+                const seen = new Set();
+                const creditRows = [];
+                (profiles||[]).forEach(u => {
+                    const email = (u.email||'').toLowerCase();
+                    if (!email || seen.has(email)) return;
+                    seen.add(email);
+                    creditRows.push({ creatorEmail: email, name: agentNameByEmail[email] || u.name || email });
+                });
+                (DATA.agents||[]).forEach(a => {
+                    const email = (a.creatorEmail||'').toLowerCase();
+                    if (email && !seen.has(email)) { seen.add(email); creditRows.push({ creatorEmail: email, name: a.name }); }
+                });
+                Object.keys(rowsByEmail).forEach(email => {
+                    if (email && !seen.has(email)) { seen.add(email); creditRows.push({ creatorEmail: email, name: email }); }
+                });
+
                 const tbCred = document.getElementById('tb-agent-credits');
-                tbCred.innerHTML = (DATA.agents||[]).map(a => {
+                tbCred.innerHTML = creditRows.map(a => {
                     const email = a.creatorEmail || '';
                     const nameSafe = escAttr(a.name || '');
                     if (email && adminEmails.has(email.toLowerCase())) {
