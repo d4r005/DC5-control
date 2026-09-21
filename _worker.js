@@ -474,6 +474,13 @@ async function handlePaymentCreate(request, env, url) {
         external_reference: orderId,
         total_amount: priceStr,
         description: "ACE Control — " + pack.name,
+        // IMPORTANTE: sin este campo, MP asocia la orden con la app
+        // "marketplace" vinculada históricamente a esta cuenta (otra
+        // app distinta, EHS-Solutions) y manda el webhook al endpoint
+        // de ESA app en vez del de Ace-control. Forzamos el client_id
+        // real de la app Ace-control para que las notificaciones
+        // lleguen a nuestra propia URL. Verificado en vivo 2026-09-21.
+        marketplace: env.MP_APPLICATION_ID || "1942950341504209",
         items: [{
           // OJO: la API de Orders rechaza "id" dentro de items (error
           // unsupported_properties). Verificado en vivo 2026-09-16.
