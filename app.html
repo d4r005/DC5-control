@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACE-Control | Gestión DC-3 v1.4.0 · TAMANO DE FIRMA EN LICENCIA</title>
+    <title>ACE-Control | Gestión DC-3 v1.4.1 · TAMANO DE FIRMA EN LICENCIA</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -5539,6 +5539,7 @@ async function generateLicensePDF(_opts) {
         let designLogoB64 = null;
         let agentRec = null;
         let agentDesign = null;
+        let agentOwnerEmail = null;
         if (opts.designOverride) {
             // Modo editor de diseño: usa los valores en vivo del panel Diseño
             designLogoB64 = opts.designOverride.headerLogoBase64 || null;
@@ -5551,6 +5552,7 @@ async function generateLicensePDF(_opts) {
                 ? (matches.find(a => a.creatorEmail && a.creatorEmail !== currentUser?.email) || matches[0])
                 : matches[0];
             const ownerEmail = agentRec?.creatorEmail || record.creatorEmail || currentUser?.email;
+            agentOwnerEmail = ownerEmail;
             const dr = await api('find','agent_designs',{ filter: { creatorEmail: ownerEmail } });
             const d = (dr.documents||[])[0];
             agentDesign = d || null;
@@ -5570,12 +5572,23 @@ async function generateLicensePDF(_opts) {
 
         // Tamaño de la firma en la licencia (ancho/alto en puntos).
         // 0 = usar el tamaño automatico anterior.
-        const licFirmaW = opts.designOverride
+        let licFirmaW = opts.designOverride
             ? (+opts.designOverride.licFirmaW || 0)
             : (+(agentDesign?.licFirmaW || agentDesign?.lic_firma_w || 0));
-        const licFirmaH = opts.designOverride
+        let licFirmaH = opts.designOverride
             ? (+opts.designOverride.licFirmaH || 0)
             : (+(agentDesign?.licFirmaH || agentDesign?.lic_firma_h || 0));
+        // Respaldo: si la BD aun no tiene las columnas, usar el ajuste guardado
+        // en este dispositivo para el agente que firma (mismo criterio que el editor).
+        if (!opts.designOverride && (!licFirmaW || !licFirmaH)) {
+            try {
+                const _lsSize = JSON.parse(localStorage.getItem('lic_firma_size_' + (agentOwnerEmail || '')) || 'null');
+                if (_lsSize) {
+                    licFirmaW = licFirmaW || (+_lsSize.w || 0);
+                    licFirmaH = licFirmaH || (+_lsSize.h || 0);
+                }
+            } catch(e) {}
+        }
 
         // Logo: prioridad al del agente. Solo un logo subido a mano en ESTA
         // sesion del modal lo sobreescribe; el logo recordado por empresa
