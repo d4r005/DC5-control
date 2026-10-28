@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACE-Control | Gestión DC-3 v1.4.1 · TAMANO DE FIRMA EN LICENCIA</title>
+    <title>ACE-Control | Gestión DC-3 v1.5.0 · POSICION DE FIRMA EN LICENCIA</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -930,10 +930,18 @@
                             </div>
                         </div>
 
-                        <!-- TAMAÑO DE LA FIRMA EN LA LICENCIA -->
+                        <!-- POSICION Y TAMAÑO DE LA FIRMA EN LA LICENCIA -->
                         <div class="border rounded-xl p-4 mb-4 bg-gray-50 space-y-2">
-                            <p class="text-xs font-bold text-gray-600 uppercase mb-1">Tamaño de la firma en la licencia</p>
-                            <div class="grid grid-cols-2 gap-2">
+                            <p class="text-xs font-bold text-gray-600 uppercase mb-1">Posición y tamaño de la firma</p>
+                            <div class="grid grid-cols-4 gap-2">
+                                <div>
+                                    <label class="text-[10px] text-gray-400">X</label>
+                                    <input id="lic-design-firma-x" type="number" min="0" max="153" step="0.5" value="80" class="input-field !p-2 !text-xs" oninput="scheduleLicenseDesignPreview()">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] text-gray-400">Y</label>
+                                    <input id="lic-design-firma-y" type="number" min="0" max="243" step="0.5" value="47.6" class="input-field !p-2 !text-xs" oninput="scheduleLicenseDesignPreview()">
+                                </div>
                                 <div>
                                     <label class="text-[10px] text-gray-400">Ancho</label>
                                     <input id="lic-design-firma-w" type="number" min="20" max="120" step="1" value="67" class="input-field !p-2 !text-xs" oninput="scheduleLicenseDesignPreview()">
@@ -943,7 +951,10 @@
                                     <input id="lic-design-firma-h" type="number" min="8" max="60" step="1" value="16" class="input-field !p-2 !text-xs" oninput="scheduleLicenseDesignPreview()">
                                 </div>
                             </div>
-                            <p class="text-[11px] text-gray-500">Ajusta qué tan grande se imprime la firma en el gafete. Se mantiene la proporción de la imagen y se centra sobre la línea de firma.</p>
+                            <div class="flex items-start justify-between gap-2">
+                                <p class="text-[11px] text-gray-500">X e Y mueven la esquina inferior izquierda de la firma dentro del gafete (153 × 243 pt). Se conserva la proporción de la imagen.</p>
+                                <button type="button" onclick="_licResetFirmaPos()" class="text-[11px] text-blue-700 underline whitespace-nowrap mt-0.5">Restablecer</button>
+                            </div>
                         </div>
 
                         <!-- DATOS DEL AGENTE (los que salen en la licencia) -->
@@ -1705,7 +1716,7 @@ function toSnake(obj) {
         headerLogoBase64:'header_logo_base64',
         logoBase64:'logo_base64', logoX:'logo_x', logoY:'logo_y', logoW:'logo_w', logoH:'logo_h',
         firmaBase64:'firma_base64', firmaX:'firma_x', firmaY:'firma_y', firmaW:'firma_w', firmaH:'firma_h',
-        licFirmaW:'lic_firma_w', licFirmaH:'lic_firma_h',
+        licFirmaW:'lic_firma_w', licFirmaH:'lic_firma_h', licFirmaX:'lic_firma_x', licFirmaY:'lic_firma_y',
         sloganX:'slogan_x', sloganY:'slogan_y', sloganSize:'slogan_size', sloganFont:'slogan_font',
         headerSloganFont:'header_slogan_font',
         updatedAt:'updated_at',
@@ -1750,7 +1761,7 @@ function toCamel(obj) {
         header_logo_base64:'headerLogoBase64',
         logo_base64:'logoBase64', logo_x:'logoX', logo_y:'logoY', logo_w:'logoW', logo_h:'logoH',
         firma_base64:'firmaBase64', firma_x:'firmaX', firma_y:'firmaY', firma_w:'firmaW', firma_h:'firmaH',
-        lic_firma_w:'licFirmaW', lic_firma_h:'licFirmaH',
+        lic_firma_w:'licFirmaW', lic_firma_h:'licFirmaH', lic_firma_x:'licFirmaX', lic_firma_y:'licFirmaY',
         slogan_x:'sloganX', slogan_y:'sloganY', slogan_size:'sloganSize', slogan_font:'sloganFont',
         header_slogan_font:'headerSloganFont',
         updated_at:'updatedAt',
@@ -4295,12 +4306,20 @@ async function loadDesign() {
         try {
             let lsSize = null;
             try { lsSize = JSON.parse(localStorage.getItem('lic_firma_size_' + (emailToLoad||'')) || 'null'); } catch(e) {}
+            let lsPos = null;
+            try { lsPos = JSON.parse(localStorage.getItem('lic_firma_pos_' + (emailToLoad||'')) || 'null'); } catch(e) {}
             const _fw = (d.licFirmaW ?? d.lic_firma_w ?? lsSize?.w ?? 67);
             const _fh = (d.licFirmaH ?? d.lic_firma_h ?? lsSize?.h ?? 16);
+            const _fx = (d.licFirmaX ?? d.lic_firma_x ?? lsPos?.x ?? 80);
+            const _fy = (d.licFirmaY ?? d.lic_firma_y ?? lsPos?.y ?? 47.6);
             const fwEl = document.getElementById('lic-design-firma-w');
             const fhEl = document.getElementById('lic-design-firma-h');
+            const fxEl = document.getElementById('lic-design-firma-x');
+            const fyEl = document.getElementById('lic-design-firma-y');
             if (fwEl) fwEl.value = _fw;
             if (fhEl) fhEl.value = _fh;
+            if (fxEl) fxEl.value = _fx;
+            if (fyEl) fyEl.value = _fy;
         } catch(e) { console.warn('Lic: no se pudo cargar el tamano de firma', e); }
 
         setV('design-slogan', d.slogan);
@@ -4905,6 +4924,16 @@ async function _licSizeColumnsAvailable() {
     return _licSizeColsOk;
 }
 
+let _licPosColsOk = null;
+async function _licPosColumnsAvailable() {
+    if (_licPosColsOk !== null) return _licPosColsOk;
+    try {
+        const { error } = await sb.from('agent_designs').select('lic_firma_x,lic_firma_y').limit(1);
+        _licPosColsOk = !error;
+    } catch(e) { _licPosColsOk = false; }
+    return _licPosColsOk;
+}
+
 async function saveDesign() {
     const btn = document.querySelector('[onclick="saveDesign()"]');
     if (btn) { btn.disabled=true; btn.textContent='Guardando…'; }
@@ -4932,10 +4961,17 @@ async function saveDesign() {
         // dispositivo como respaldo.
         const _licFW = gv('lic-design-firma-w', 0);
         const _licFH = gv('lic-design-firma-h', 0);
+        const _licFX = gv('lic-design-firma-x', 80);
+        const _licFY = gv('lic-design-firma-y', 47.6);
         try { localStorage.setItem('lic_firma_size_' + (p.creatorEmail||''), JSON.stringify({ w:_licFW, h:_licFH })); } catch(e) {}
+        try { localStorage.setItem('lic_firma_pos_' + (p.creatorEmail||''), JSON.stringify({ x:_licFX, y:_licFY })); } catch(e) {}
         if (await _licSizeColumnsAvailable()) {
             payload.lic_firma_w = _licFW;
             payload.lic_firma_h = _licFH;
+        }
+        if (await _licPosColumnsAvailable()) {
+            payload.lic_firma_x = _licFX;
+            payload.lic_firma_y = _licFY;
         }
 
         // ─── LOCAL STORAGE SAVE (SAFE) ───
@@ -5578,6 +5614,22 @@ async function generateLicensePDF(_opts) {
         let licFirmaH = opts.designOverride
             ? (+opts.designOverride.licFirmaH || 0)
             : (+(agentDesign?.licFirmaH || agentDesign?.lic_firma_h || 0));
+        // Posicion de la firma (puntos, origen inferior izquierdo del gafete).
+        let licFirmaX = opts.designOverride
+            ? (opts.designOverride.licFirmaX != null ? +opts.designOverride.licFirmaX : NaN)
+            : +(agentDesign?.licFirmaX ?? agentDesign?.lic_firma_x ?? NaN);
+        let licFirmaY = opts.designOverride
+            ? (opts.designOverride.licFirmaY != null ? +opts.designOverride.licFirmaY : NaN)
+            : +(agentDesign?.licFirmaY ?? agentDesign?.lic_firma_y ?? NaN);
+        if (!opts.designOverride && (!isFinite(licFirmaX) || !isFinite(licFirmaY))) {
+            try {
+                const _lsPos = JSON.parse(localStorage.getItem('lic_firma_pos_' + (agentOwnerEmail || '')) || 'null');
+                if (_lsPos) {
+                    if (!isFinite(licFirmaX)) licFirmaX = +_lsPos.x;
+                    if (!isFinite(licFirmaY)) licFirmaY = +_lsPos.y;
+                }
+            } catch(e) {}
+        }
         // Respaldo: si la BD aun no tiene las columnas, usar el ajuste guardado
         // en este dispositivo para el agente que firma (mismo criterio que el editor).
         if (!opts.designOverride && (!licFirmaW || !licFirmaH)) {
@@ -5764,11 +5816,14 @@ async function generateLicensePDF(_opts) {
         if (firmaImg) {
             // Si el usuario configuro ancho/alto se respeta ese recuadro (manteniendo
             // la proporcion de la imagen); si no, se conserva el tamano automatico.
-            const maxW = licFirmaW > 0 ? Math.min(licFirmaW, 200) : (sgnX2-sgnX1);
-            const maxH = licFirmaH > 0 ? Math.min(licFirmaH, 100) : 15;
+            const maxW = licFirmaW > 0 ? Math.min(licFirmaW, PW-2) : (sgnX2-sgnX1);
+            const maxH = licFirmaH > 0 ? Math.min(licFirmaH, PH-2) : 15;
             const sc = Math.min(maxW/firmaImg.width, maxH/firmaImg.height);
             const iw = firmaImg.width*sc, ih = firmaImg.height*sc;
-            front.drawImage(firmaImg, { x: sgnX1+(sgnX2-sgnX1-iw)/2, y: rY-16, width: iw, height: ih });
+            const defaultX = sgnX1+(sgnX2-sgnX1-iw)/2;
+            const drawX = isFinite(licFirmaX) ? Math.max(0, Math.min(licFirmaX, Math.max(0, PW-iw))) : defaultX;
+            const drawY = isFinite(licFirmaY) ? Math.max(0, Math.min(licFirmaY, Math.max(0, PH-ih))) : (rY-16);
+            front.drawImage(firmaImg, { x: drawX, y: drawY, width: iw, height: ih });
         }
         rY -= 18;
         front.drawLine({ start: { x: sgnX1, y: rY }, end: { x: sgnX2, y: rY }, color: DARK, thickness: 0.6 });
@@ -6757,6 +6812,14 @@ function setDesignTab(tab) {
 // ── Vista previa del diseño de la LICENCIA (gafete) ──
 let _licDesignRendering = false;
 let _licDesignTimer = null;
+function _licResetFirmaPos() {
+    const fx = document.getElementById('lic-design-firma-x');
+    const fy = document.getElementById('lic-design-firma-y');
+    if (fx) fx.value = 80;
+    if (fy) fy.value = 47.6;
+    scheduleLicenseDesignPreview();
+}
+
 function scheduleLicenseDesignPreview() {
     clearTimeout(_licDesignTimer);
     _licDesignTimer = setTimeout(updateLicenseDesignPreview, 250);
@@ -6788,7 +6851,8 @@ async function updateLicenseDesignPreview() {
             previewOnly: true,
             equipIdx: [0, 1],
             designOverride: { firmaBase64: designState.firma_base64, headerLogoBase64: designState.header_logo_base64,
-                              licFirmaW: gv('lic-design-firma-w', 0), licFirmaH: gv('lic-design-firma-h', 0) }
+                              licFirmaW: gv('lic-design-firma-w', 0), licFirmaH: gv('lic-design-firma-h', 0),
+                              licFirmaX: gv('lic-design-firma-x', 80), licFirmaY: gv('lic-design-firma-y', 47.6) }
         });
         if (!bytes) throw new Error('sin bytes');
 
