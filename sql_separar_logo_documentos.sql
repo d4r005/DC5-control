@@ -37,3 +37,10 @@ create policy "document_files_owner_all" on public.document_files
     (is_active_user() and lower(creator_email) = lower(coalesce(auth.jwt()->>'email','')))
     or is_admin_user()
   );
+
+-- Congelar el logo actual en las licencias existentes para que la
+-- separacion aplique de inmediato (solo filas sin logo propio).
+update public.agent_designs
+   set lic_logo_base64 = header_logo_base64
+ where lic_logo_base64 is null
+   and header_logo_base64 is not null;

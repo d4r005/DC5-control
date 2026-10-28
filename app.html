@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACE-Control | Gestión DC-3 v1.6.0 · LOGO LICENCIA SEPARADO + DC-3 INMUTABLES</title>
+    <title>ACE-Control | Gestión DC-3 v1.6.1 · LOGO LICENCIA SEPARADO + DC-3 INMUTABLES</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -4159,7 +4159,7 @@ function togglePassword() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const designState = {
-    logo_base64: null, firma_base64: null, header_logo_base64: null, lic_logo_base64: null,
+    logo_base64: null, firma_base64: null, header_logo_base64: null, lic_logo_base64: null, lic_logo_separated: false,
     diploma_template_base64: null,
     dc3_template_file: null, // New: for uploading to storage
     diploma_template_file: null, // New: for uploading to storage
@@ -4283,6 +4283,7 @@ async function loadDesign() {
         // Logo propio de la licencia (independiente del DC-3). Respaldo local si la columna aun no existe.
         let _licLogoLocal = null;
         try { _licLogoLocal = localStorage.getItem('lic_logo_' + (emailToLoad||'')); } catch(e) {}
+        designState.lic_logo_separated = ('licLogoBase64' in d);
         designState.lic_logo_base64 = d.licLogoBase64 || d.lic_logo_base64 || _licLogoLocal || null;
         if (designState.lic_logo_base64) _licDesignThumb('logo', designState.lic_logo_base64);
         if (d.diplomaBase64)     { designState.diploma_template_base64 = d.diplomaBase64;       showDesignThumb('diploma', d.diplomaBase64); }
@@ -4837,6 +4838,13 @@ function clearDesignImage(type) {
 }
 
 // ── Diseño de LICENCIA: logo de cabecera + firma (compartidos con el diseño del agente) ──
+// Logo que debe usar la licencia. Si la columna propia ya existe, NO se
+// cae al logo del DC-3 (separacion real). Antes de la migracion se usa el
+// de cabecera para no dejar la licencia sin logo.
+function _effectiveLicLogo() {
+    if (designState.lic_logo_base64) return designState.lic_logo_base64;
+    return designState.lic_logo_separated ? null : designState.header_logo_base64;
+}
 function _licDesignThumb(which, src) {
     const el = document.getElementById(which === 'logo' ? 'lic-design-logo-preview' : 'lic-design-firma-preview');
     if (!el) return;
@@ -4866,7 +4874,7 @@ function _syncLicDesignInputs() {
     const nameEl = document.getElementById('design-agent-name');
     const licName = document.getElementById('lic-design-agent-name');
     if (licName && nameEl && !licName.dataset.touched) licName.value = nameEl.value || '';
-    _licDesignThumb('logo',  designState.lic_logo_base64 || designState.header_logo_base64);
+    _licDesignThumb('logo',  _effectiveLicLogo());
     _licDesignThumb('firma', designState.firma_base64);
 }
 function _licDesignNameChanged(input) {
@@ -4962,7 +4970,7 @@ async function _docFilesAvailable() {
     } catch(e) { _docFilesOk = false; }
     return _docFilesOk;
 }
-async function _saveDocFile(recordId, kind, pdfBytes) {
+async function _saveDocFile(recordId, kind, pdfBytes, ownerEmail) {
     if (!recordId || !pdfBytes) return false;
     if (!(await _docFilesAvailable())) return false;
     try {
@@ -4970,7 +4978,7 @@ async function _saveDocFile(recordId, kind, pdfBytes) {
             record_id: String(recordId),
             kind: kind,
             pdf_base64: _bytesToBase64(pdfBytes),
-            creator_email: currentUser?.email || null
+            creator_email: ownerEmail || currentUser?.email || null
         }, { onConflict: 'record_id,kind' });
         if (error) { console.warn('No se pudo archivar el PDF:', error.message); return false; }
         return true;
@@ -5051,7 +5059,10 @@ async function saveDesign() {
         // campos queden desacoplados (cambiar el DC-3 no toca la licencia).
         try { if (designState.lic_logo_base64) localStorage.setItem('lic_logo_' + (p.creatorEmail||''), designState.lic_logo_base64); } catch(e) {}
         if (await _licLogoColumnAvailable()) {
-            payload.lic_logo_base64 = designState.lic_logo_base64 || designState.header_logo_base64 || null;
+            // Con la columna ya separada se respeta tal cual (incluido "sin logo").
+            payload.lic_logo_base64 = designState.lic_logo_separated
+                ? (designState.lic_logo_base64 || null)
+                : (designState.lic_logo_base64 || designState.header_logo_base64 || null);
         }
 
         // ─── LOCAL STORAGE SAVE (SAFE) ───
@@ -5658,7 +5669,7 @@ async function generateLicensePDF(_opts) {
         let agentOwnerEmail = null;
         if (opts.designOverride) {
             // Modo editor de diseño: usa los valores en vivo del panel Diseño
-            designLogoB64 = opts.designOverride.licLogoBase64 || opts.designOverride.headerLogoBase64 || null;
+            designLogoB64 = opts.designOverride.licLogoBase64 || null;
             const fb64 = opts.designOverride.firmaBase64 || null;
             if (fb64) { try { firmaImg = await embedBase64Img(pdfDoc, fb64); } catch(e) {} }
         } else try {
@@ -5678,13 +5689,14 @@ async function generateLicensePDF(_opts) {
             // Logo de la LICENCIA: usa el logo propio del modulo de licencias.
             // Si aun no existe, cae al logo de cabecera del DC-3 y luego a un
             // respaldo local; nunca al reves (la licencia no altera el DC-3).
+            const _licSeparated = d ? (('licLogoBase64' in d) || ('lic_logo_base64' in d)) : false;
             if (!designLogoB64 && d) {
                 designLogoB64 = d.licLogoBase64 || d.lic_logo_base64 || null;
             }
-            if (!designLogoB64) {
+            if (!designLogoB64 && !_licSeparated) {
                 try { designLogoB64 = localStorage.getItem('lic_logo_' + (ownerEmail || '')) || null; } catch(e) {}
             }
-            if (!designLogoB64 && d) {
+            if (!designLogoB64 && !_licSeparated && d) {
                 designLogoB64 = d.headerLogoBase64 || d.header_logo_base64 || d.logoBase64 || d.logo_base64 || null;
             }
         } catch(e) { console.warn('Lic: sin branding del agente', e); }
@@ -6317,7 +6329,7 @@ async function previewRecordPDF(record) {
         }
         // Documento anterior sin archivo: se congela tal como se ve hoy
         // para que a partir de ahora ya no cambie.
-        await _saveDocFile(record.id, _docKind, _previewPdfBytes);
+        await _saveDocFile(record.id, _docKind, _previewPdfBytes, record.creatorEmail || currentUser?.email);
         showPDFInContainer(_previewPdfBytes, container);
     } catch (e) {
         console.error("Preview error:", e);
@@ -6411,7 +6423,7 @@ async function downloadRecordPDF(record) {
         }
 
         if (pdfBytes) {
-            await _saveDocFile(record.id, _docKind, pdfBytes); // congelar documento anterior
+            await _saveDocFile(record.id, _docKind, pdfBytes, record.creatorEmail || currentUser?.email); // congelar documento anterior
             const blob = new Blob([pdfBytes], { type: 'application/pdf' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -6966,7 +6978,7 @@ async function updateLicenseDesignPreview() {
             previewOnly: true,
             equipIdx: [0, 1],
             designOverride: { firmaBase64: designState.firma_base64, headerLogoBase64: designState.header_logo_base64,
-                              licLogoBase64: designState.lic_logo_base64 || designState.header_logo_base64,
+                              licLogoBase64: _effectiveLicLogo(),
                               licFirmaW: gv('lic-design-firma-w', 0), licFirmaH: gv('lic-design-firma-h', 0),
                               licFirmaX: gv('lic-design-firma-x', 80), licFirmaY: gv('lic-design-firma-y', 47.6) }
         });
