@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACE-Control | Gestión DC-3 v1.5.0 · POSICION DE FIRMA EN LICENCIA</title>
+    <title>ACE-Control | Gestión DC-3 v1.6.0 · LOGO LICENCIA SEPARADO + DC-3 INMUTABLES</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -901,7 +901,7 @@
 
                         <!-- LOGO CABECERA LICENCIA -->
                         <div class="border rounded-xl p-4 mb-4 space-y-3 bg-blue-50">
-                            <p class="text-xs font-bold text-blue-900 uppercase mb-1">Logo (cabecera de la licencia)</p>
+                            <p class="text-xs font-bold text-blue-900 uppercase mb-1">Logo de la licencia</p>
                             <div class="flex gap-3 items-start">
                                 <div id="lic-design-logo-preview" class="w-20 h-14 rounded border-2 border-dashed border-blue-300 flex items-center justify-center text-gray-300 text-xs flex-shrink-0 overflow-hidden bg-white">Sin logo</div>
                                 <div class="flex-1 space-y-2">
@@ -912,7 +912,7 @@
                                     <button onclick="clearLicDesignImage('logo')" class="text-xs text-red-500 hover:text-red-700 w-full text-center">✕ Quitar logo</button>
                                 </div>
                             </div>
-                            <p class="text-[11px] text-gray-500">Aparece en la franja azul superior del gafete, lado izquierdo.</p>
+                            <p class="text-[11px] text-gray-500">Aparece en la franja azul superior del gafete, lado izquierdo. Es independiente del logo de cabecera del DC-3: cambiar uno no afecta al otro.</p>
                         </div>
 
                         <!-- FIRMA AGENTE -->
@@ -1713,7 +1713,7 @@ function toSnake(obj) {
         creatorEmail:'creator_email', representanteLegal:'representante_legal', representanteTrabajadores:'representante_trabajadores',
         headerSlogan:'header_slogan', headerSloganX:'header_slogan_x', headerSloganY:'header_slogan_y', headerSloganSize:'header_slogan_size',
         headerLogoW:'header_logo_w', headerLogoH:'header_logo_h', headerLogoX:'header_logo_x', headerLogoY:'header_logo_y',
-        headerLogoBase64:'header_logo_base64',
+        headerLogoBase64:'header_logo_base64', licLogoBase64:'lic_logo_base64',
         logoBase64:'logo_base64', logoX:'logo_x', logoY:'logo_y', logoW:'logo_w', logoH:'logo_h',
         firmaBase64:'firma_base64', firmaX:'firma_x', firmaY:'firma_y', firmaW:'firma_w', firmaH:'firma_h',
         licFirmaW:'lic_firma_w', licFirmaH:'lic_firma_h', licFirmaX:'lic_firma_x', licFirmaY:'lic_firma_y',
@@ -1758,7 +1758,7 @@ function toCamel(obj) {
         creator_email:'creatorEmail', representante_legal:'representanteLegal', representante_trabajadores:'representanteTrabajadores',
         header_slogan:'headerSlogan', header_slogan_x:'headerSloganX', header_slogan_y:'headerSloganY', header_slogan_size:'headerSloganSize',
         header_logo_w:'headerLogoW', header_logo_h:'headerLogoH', header_logo_x:'headerLogoX', header_logo_y:'headerLogoY',
-        header_logo_base64:'headerLogoBase64',
+        header_logo_base64:'headerLogoBase64', lic_logo_base64:'licLogoBase64',
         logo_base64:'logoBase64', logo_x:'logoX', logo_y:'logoY', logo_w:'logoW', logo_h:'logoH',
         firma_base64:'firmaBase64', firma_x:'firmaX', firma_y:'firmaY', firma_w:'firmaW', firma_h:'firmaH',
         lic_firma_w:'licFirmaW', lic_firma_h:'licFirmaH', lic_firma_x:'licFirmaX', lic_firma_y:'licFirmaY',
@@ -3655,6 +3655,7 @@ async function generateDC3() {
     });
 
     if (!pdfBytes) return;
+    await _saveDocFile(saveRes.insertedId, 'DC3', pdfBytes); // congelar el documento emitido
 
     // Descargar PDF
     const blob = new Blob([pdfBytes], { type: 'application/pdf' });
@@ -3723,6 +3724,7 @@ async function generateDiploma() {
             isDesignPreview: false
         });
         if (!pdfBytes) return;
+        await _saveDocFile(saveRes.insertedId, 'DIPLOMA', pdfBytes); // congelar el documento emitido
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -3791,6 +3793,8 @@ async function generateBoth() {
         const diplomaBytes = await _buildDiplomaCore({ qrUrl, folio: folioDiploma, isDesignPreview: false });
 
         if (!dc3Bytes || !diplomaBytes) return;
+        await _saveDocFile(saveRes.insertedId, 'DC3', dc3Bytes);
+        await _saveDocFile(saveRes.insertedId, 'DIPLOMA', diplomaBytes);
 
         const { PDFDocument } = PDFLib;
         const mergedPdf = await PDFDocument.create();
@@ -4155,7 +4159,7 @@ function togglePassword() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const designState = {
-    logo_base64: null, firma_base64: null, header_logo_base64: null,
+    logo_base64: null, firma_base64: null, header_logo_base64: null, lic_logo_base64: null,
     diploma_template_base64: null,
     dc3_template_file: null, // New: for uploading to storage
     diploma_template_file: null, // New: for uploading to storage
@@ -4201,6 +4205,7 @@ function resetDesignState() {
     designState.logo_base64 = null;
     designState.firma_base64 = null;
     designState.header_logo_base64 = null;
+    designState.lic_logo_base64 = null;
     designState.diploma_template_base64 = null;
 
     // Reset URLs and files
@@ -4275,6 +4280,11 @@ async function loadDesign() {
         if (d.logoBase64)        { designState.logo_base64 = d.logoBase64;             showDesignThumb('logo', d.logoBase64); }
         if (d.firmaBase64)       { designState.firma_base64 = d.firmaBase64;           showDesignThumb('firma', d.firmaBase64); }
         if (d.headerLogoBase64)  { designState.header_logo_base64 = d.headerLogoBase64; showDesignThumb('headerLogo', d.headerLogoBase64); }
+        // Logo propio de la licencia (independiente del DC-3). Respaldo local si la columna aun no existe.
+        let _licLogoLocal = null;
+        try { _licLogoLocal = localStorage.getItem('lic_logo_' + (emailToLoad||'')); } catch(e) {}
+        designState.lic_logo_base64 = d.licLogoBase64 || d.lic_logo_base64 || _licLogoLocal || null;
+        if (designState.lic_logo_base64) _licDesignThumb('logo', designState.lic_logo_base64);
         if (d.diplomaBase64)     { designState.diploma_template_base64 = d.diplomaBase64;       showDesignThumb('diploma', d.diplomaBase64); }
 
         designState.dc3_template_url = d.dc3TemplateUrl;
@@ -4838,15 +4848,15 @@ async function handleLicDesignImage(input, which) {
     const file = input.files[0];
     if (!file) return;
     const dataUrl = await fileToDataUrl(file);
-    if (which === 'logo')  designState.header_logo_base64 = dataUrl;
+    // El logo de la licencia es independiente del logo de cabecera del DC-3.
+    if (which === 'logo')  designState.lic_logo_base64 = dataUrl;
     else                   designState.firma_base64 = dataUrl;
     _licDesignThumb(which, dataUrl);
-    // Mantener sincronizadas las miniaturas del tab DC-3 (mismo dato)
-    showDesignThumb(which === 'logo' ? 'headerLogo' : 'firma', dataUrl);
+    if (which !== 'logo') showDesignThumb('firma', dataUrl); // la firma si es compartida
     scheduleLicenseDesignPreview();
 }
 function clearLicDesignImage(which) {
-    if (which === 'logo')  designState.header_logo_base64 = null;
+    if (which === 'logo')  designState.lic_logo_base64 = null;
     else                   designState.firma_base64 = null;
     _licDesignThumb(which, null);
     scheduleLicenseDesignPreview();
@@ -4856,7 +4866,7 @@ function _syncLicDesignInputs() {
     const nameEl = document.getElementById('design-agent-name');
     const licName = document.getElementById('lic-design-agent-name');
     if (licName && nameEl && !licName.dataset.touched) licName.value = nameEl.value || '';
-    _licDesignThumb('logo',  designState.header_logo_base64);
+    _licDesignThumb('logo',  designState.lic_logo_base64 || designState.header_logo_base64);
     _licDesignThumb('firma', designState.firma_base64);
 }
 function _licDesignNameChanged(input) {
@@ -4879,6 +4889,7 @@ function getDesignParams() {
         firmaX: gv('design-firma-x',88), firmaY: gv('design-firma-y',457),
         firmaW: gv('design-firma-w',85), firmaH: gv('design-firma-h',60),
         headerLogoBase64: designState.header_logo_base64,
+        licLogoBase64:    designState.lic_logo_base64,
         headerLogoX: gv('design-header-logo-x',30), headerLogoY: gv('design-header-logo-y',10),
         headerLogoW: gv('design-header-logo-w',120), headerLogoH: gv('design-header-logo-h',55),
         headerSlogan: gs('design-header-slogan'),
@@ -4922,6 +4933,68 @@ async function _licSizeColumnsAvailable() {
         _licSizeColsOk = !error;
     } catch(e) { _licSizeColsOk = false; }
     return _licSizeColsOk;
+}
+
+// ── Archivo inmutable de documentos generados ──────────────────────────
+// Cada DC-3 / diploma se guarda tal cual se genero en la tabla
+// document_files (record_id + kind). Asi un cambio de diseño NO altera
+// documentos ya emitidos.
+function _bytesToBase64(bytes) {
+    let bin = '';
+    const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk) {
+        bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+    }
+    return btoa(bin);
+}
+function _base64ToBytes(b64) {
+    const bin = atob(b64);
+    const out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+}
+let _docFilesOk = null;
+async function _docFilesAvailable() {
+    if (_docFilesOk !== null) return _docFilesOk;
+    try {
+        const { error } = await sb.from('document_files').select('id').limit(1);
+        _docFilesOk = !error;
+    } catch(e) { _docFilesOk = false; }
+    return _docFilesOk;
+}
+async function _saveDocFile(recordId, kind, pdfBytes) {
+    if (!recordId || !pdfBytes) return false;
+    if (!(await _docFilesAvailable())) return false;
+    try {
+        const { error } = await sb.from('document_files').upsert({
+            record_id: String(recordId),
+            kind: kind,
+            pdf_base64: _bytesToBase64(pdfBytes),
+            creator_email: currentUser?.email || null
+        }, { onConflict: 'record_id,kind' });
+        if (error) { console.warn('No se pudo archivar el PDF:', error.message); return false; }
+        return true;
+    } catch(e) { console.warn('No se pudo archivar el PDF:', e); return false; }
+}
+async function _loadDocFile(recordId, kind) {
+    if (!recordId) return null;
+    if (!(await _docFilesAvailable())) return null;
+    try {
+        const { data, error } = await sb.from('document_files')
+            .select('pdf_base64').eq('record_id', String(recordId)).eq('kind', kind).maybeSingle();
+        if (error || !data?.pdf_base64) return null;
+        return _base64ToBytes(data.pdf_base64);
+    } catch(e) { return null; }
+}
+
+let _licLogoColOk = null;
+async function _licLogoColumnAvailable() {
+    if (_licLogoColOk !== null) return _licLogoColOk;
+    try {
+        const { error } = await sb.from('agent_designs').select('lic_logo_base64').limit(1);
+        _licLogoColOk = !error;
+    } catch(e) { _licLogoColOk = false; }
+    return _licLogoColOk;
 }
 
 let _licPosColsOk = null;
@@ -4972,6 +5045,13 @@ async function saveDesign() {
         if (await _licPosColumnsAvailable()) {
             payload.lic_firma_x = _licFX;
             payload.lic_firma_y = _licFY;
+        }
+        // Logo propio de la licencia. Si aun no se ha definido uno, se
+        // congela el logo de cabecera actual para que desde ahora ambos
+        // campos queden desacoplados (cambiar el DC-3 no toca la licencia).
+        try { if (designState.lic_logo_base64) localStorage.setItem('lic_logo_' + (p.creatorEmail||''), designState.lic_logo_base64); } catch(e) {}
+        if (await _licLogoColumnAvailable()) {
+            payload.lic_logo_base64 = designState.lic_logo_base64 || designState.header_logo_base64 || null;
         }
 
         // ─── LOCAL STORAGE SAVE (SAFE) ───
@@ -5578,7 +5658,7 @@ async function generateLicensePDF(_opts) {
         let agentOwnerEmail = null;
         if (opts.designOverride) {
             // Modo editor de diseño: usa los valores en vivo del panel Diseño
-            designLogoB64 = opts.designOverride.headerLogoBase64 || null;
+            designLogoB64 = opts.designOverride.licLogoBase64 || opts.designOverride.headerLogoBase64 || null;
             const fb64 = opts.designOverride.firmaBase64 || null;
             if (fb64) { try { firmaImg = await embedBase64Img(pdfDoc, fb64); } catch(e) {} }
         } else try {
@@ -5595,8 +5675,15 @@ async function generateLicensePDF(_opts) {
             if (!firmaImg && d && (d.firmaBase64 || d.firmaBase_64)) {
                 firmaImg = await embedBase64Img(pdfDoc, d.firmaBase64 || d.firma_base_64);
             }
-            // Logo del agente: cabecera de su diseño (el mismo del DC-3);
-            // si no tiene, se usa el logo de la seccion de firmas.
+            // Logo de la LICENCIA: usa el logo propio del modulo de licencias.
+            // Si aun no existe, cae al logo de cabecera del DC-3 y luego a un
+            // respaldo local; nunca al reves (la licencia no altera el DC-3).
+            if (!designLogoB64 && d) {
+                designLogoB64 = d.licLogoBase64 || d.lic_logo_base64 || null;
+            }
+            if (!designLogoB64) {
+                try { designLogoB64 = localStorage.getItem('lic_logo_' + (ownerEmail || '')) || null; } catch(e) {}
+            }
             if (!designLogoB64 && d) {
                 designLogoB64 = d.headerLogoBase64 || d.header_logo_base64 || d.logoBase64 || d.logo_base64 || null;
             }
@@ -6055,6 +6142,7 @@ async function _generateBulkCore(mode = 'DC3') {
                     documentType: 'DC3', folio: folio, creatorEmail: currentUser?.email || ''
                 }});
                 await consumeCredits(1, 'DC3', bulkSaveRes.insertedId);
+                await _saveDocFile(bulkSaveRes.insertedId, 'DC3', pdfBytes);
             }
 
             if (mode === 'DIPLOMA' || mode === 'BOTH') {
@@ -6077,6 +6165,7 @@ async function _generateBulkCore(mode = 'DC3') {
                     documentType: 'DIPLOMA', folio: folio, creatorEmail: currentUser?.email || ''
                 }});
                 await consumeCredits(1, 'DIPLOMA', bulkSaveRes2.insertedId);
+                await _saveDocFile(bulkSaveRes2.insertedId, 'DIPLOMA', pdfBytes);
             }
         } catch(e) {
             console.error('Bulk error:', worker.name, e);
@@ -6193,6 +6282,14 @@ async function previewRecordPDF(record) {
     container.innerHTML = `<p class="text-gray-400 text-sm">Cargando ${currentHistoryTab}…</p>`;
 
     try {
+        // Si el documento ya fue emitido, se muestra EXACTAMENTE como se genero.
+        const _docKind = currentHistoryTab === 'DIPLOMA' ? 'DIPLOMA' : 'DC3';
+        const _archived = await _loadDocFile(record.id, _docKind);
+        if (_archived) {
+            _previewPdfBytes = _archived;
+            showPDFInContainer(_archived, container);
+            return;
+        }
         if (currentHistoryTab === 'DIPLOMA') {
             _previewPdfBytes = await _buildDiplomaCore({
                 worker,
@@ -6218,6 +6315,9 @@ async function previewRecordPDF(record) {
                 folio: record.folioDc3 || record.folio
             });
         }
+        // Documento anterior sin archivo: se congela tal como se ve hoy
+        // para que a partir de ahora ya no cambie.
+        await _saveDocFile(record.id, _docKind, _previewPdfBytes);
         showPDFInContainer(_previewPdfBytes, container);
     } catch (e) {
         console.error("Preview error:", e);
@@ -6269,7 +6369,21 @@ async function downloadRecordPDF(record) {
     };
 
     try {
-        let pdfBytes;
+        const _docKind = currentHistoryTab === 'DIPLOMA' ? 'DIPLOMA' : 'DC3';
+        // Descarga inmutable: si ya existe el archivo emitido, se entrega ese.
+        let pdfBytes = await _loadDocFile(record.id, _docKind);
+        if (pdfBytes) {
+            const blob0 = new Blob([pdfBytes], { type: 'application/pdf' });
+            const url0 = URL.createObjectURL(blob0);
+            const a0 = document.createElement('a');
+            a0.href = url0;
+            a0.download = currentHistoryTab === 'DIPLOMA'
+                ? `Diploma_${record.workerId || record.workerName}.pdf`
+                : `DC3_${record.workerId || record.workerName}.pdf`;
+            a0.click();
+            URL.revokeObjectURL(url0);
+            return;
+        }
         if (currentHistoryTab === 'DIPLOMA') {
             pdfBytes = await _buildDiplomaCore({
                 worker,
@@ -6297,6 +6411,7 @@ async function downloadRecordPDF(record) {
         }
 
         if (pdfBytes) {
+            await _saveDocFile(record.id, _docKind, pdfBytes); // congelar documento anterior
             const blob = new Blob([pdfBytes], { type: 'application/pdf' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -6851,6 +6966,7 @@ async function updateLicenseDesignPreview() {
             previewOnly: true,
             equipIdx: [0, 1],
             designOverride: { firmaBase64: designState.firma_base64, headerLogoBase64: designState.header_logo_base64,
+                              licLogoBase64: designState.lic_logo_base64 || designState.header_logo_base64,
                               licFirmaW: gv('lic-design-firma-w', 0), licFirmaH: gv('lic-design-firma-h', 0),
                               licFirmaX: gv('lic-design-firma-x', 80), licFirmaY: gv('lic-design-firma-y', 47.6) }
         });
