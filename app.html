@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACE-Control | Gestión DC-3 v1.3.7 · LOGO AUTOMATICO DEL AGENTE</title>
+    <title>ACE-Control | Gestión DC-3 v1.3.8 · VER LICENCIA DIRECTO</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -2691,7 +2691,8 @@ async function loadSection(v) {
                     <td class="font-mono text-xs text-blue-900">${x.folio||'—'}</td>
                     <td class="text-right">
                         <div class="flex justify-end gap-2">
-                            <button onclick='openLicenseModal(${JSON.stringify(virtualDc3)})' title="Ver / regenerar licencia" class="btn-sm btn-outline" style="border-color:#1e3a8a;color:#1e3a8a">🪪 Ver</button>
+                            <button onclick="viewLicensePDF('${x.id}')" title="Ver licencia" class="btn-sm btn-outline" style="border-color:#1e3a8a;color:#1e3a8a">👁 Ver</button>
+                            <button onclick='openLicenseModal(${JSON.stringify(virtualDc3)})' title="Editar / regenerar licencia" class="btn-sm btn-outline">✎</button>
                             <button onclick="delItem('forklift_licenses','${x.id}')" title="Eliminar" class="btn-sm btn-red">✕</button>
                         </div>
                     </td>
@@ -5311,6 +5312,40 @@ function openLicenseFromGenerator() {
     openLicenseModal(_lastDC3Saved);
 }
 
+// Abre directo el PDF de una licencia YA generada (sin modal ni generacion nueva)
+async function viewLicensePDF(licId) {
+    // Abrir la pestaña de inmediato para que el navegador no la bloquee
+    const w = window.open('', '_blank');
+    try {
+        const r = await api('find','forklift_licenses',{ filter: { id: licId } });
+        const lic = (r.documents||[])[0];
+        if (!lic) {
+            if (w) w.close();
+            alert('No se encontro la licencia.');
+            return;
+        }
+        const origFolioDc3 = (lic.folio||'').replace(/^LIC-/,'');
+        const rec = {
+            id: lic.dc3RecordId,
+            workerId: lic.workerId, workerName: lic.workerName, workerPos: lic.workerPos,
+            companyName: lic.companyName, courseName: lic.courseName,
+            agentName: lic.agentName, agentStps: lic.agentStps,
+            startDate: lic.startDate, endDate: lic.endDate,
+            folio: origFolioDc3, folioDc3: origFolioDc3
+        };
+        const equipIdx = (lic.equipment||[]).map(eq => LIC_EQUIPOS.indexOf(eq)).filter(i => i >= 0);
+        _licRecord = rec;
+        _licSaved = { id: lic.id };
+        _licLogoManual = false;
+        _licLogoDataUrl = lic.logoBase64 || null;
+        await generateLicensePDF({ record: rec, equipIdx, viewMode: true, licenseId: lic.id, targetWindow: w });
+    } catch(e) {
+        if (w) w.close();
+        console.error('Ver licencia:', e);
+        alert('No se pudo abrir la licencia: ' + (e.message||e));
+    }
+}
+
 async function openLicenseModal(record) {
     _licRecord = record;
     document.getElementById('lic-worker').textContent = record.workerName || '–';
@@ -5404,7 +5439,8 @@ async function generateLicensePDF(_opts) {
     const record = opts.record || _licRecord;
     if (!record) return;
     const _licIsNew = !_licSaved?.id;
-    if (!opts.previewOnly && _licIsNew) {
+    const _viewMode = !!opts.viewMode; // ver una licencia ya generada: no cobra ni guarda
+    if (!opts.previewOnly && !_viewMode && _licIsNew) {
         if (!(await requireCredits(1, 'la licencia de montacargas'))) return;
     }
     try {
@@ -5487,8 +5523,8 @@ async function generateLicensePDF(_opts) {
         // El QR debe apuntar al id propio de la LICENCIA para que la pagina
         // de verificacion muestre "Licencia de Montacargas valida" (y no la
         // constancia DC-3). Guardar primero nos da ese id.
-        let licenseId = opts.previewOnly ? null : (_licSaved?.id || null);
-        if (!opts.previewOnly) {
+        let licenseId = (opts.previewOnly && !opts.licenseId) ? null : (opts.licenseId || _licSaved?.id || null);
+        if (!opts.previewOnly && !_viewMode) {
             try {
                 const licFolioFinal = 'LIC-' + (record.folioDc3 || record.folio || (record.id||'').slice(0,8) || 'SN');
                 const payload = {
@@ -5700,6 +5736,23 @@ async function generateLicensePDF(_opts) {
 
         const blob = new Blob([pdfBytesSaved], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
+
+        // Ver una licencia ya generada: se abre el PDF directo, sin modal ni descarga forzada
+        if (_viewMode) {
+            const w = opts.targetWindow || window.open('', '_blank');
+            if (w) {
+                w.location.href = url;
+            } else {
+                // Navegador bloqueo la pestaña: se descarga como respaldo
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'Licencia_' + (record.workerId || record.workerName || 'operador') + '.pdf';
+                a.click();
+            }
+            setTimeout(() => URL.revokeObjectURL(url), 60000);
+            return pdfBytesSaved;
+        }
+
         const a = document.createElement('a');
         a.href = url;
         a.download = 'Licencia_' + (record.workerId || record.workerName || 'operador') + '.pdf';
