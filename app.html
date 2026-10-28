@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACE-Control | Gestión DC-3 v1.6.2 · LOGO LICENCIA SEPARADO + DC-3 INMUTABLES</title>
+    <title>ACE-Control | Gestión DC-3 v1.6.3 · FOTO DE LICENCIA AJUSTADA AL MARCO</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -5630,7 +5630,7 @@ async function generateLicensePDF(_opts) {
         if (!(await requireCredits(1, 'la licencia de montacargas'))) return;
     }
     try {
-        const { PDFDocument, StandardFonts, rgb } = PDFLib;
+        const { PDFDocument, StandardFonts, rgb, pushGraphicsState, popGraphicsState, moveTo, lineTo, closePath, clip, endPath } = PDFLib;
         const pdfDoc = await PDFDocument.create();
         pdfDoc.setTitle('Licencia Montacargas - ' + (record.workerName||''));
         const font  = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -5836,7 +5836,18 @@ async function generateLicensePDF(_opts) {
         if (photoImg) {
             const sc = Math.max(photoBox.w/photoImg.width, photoBox.h/photoImg.height);
             const iw = photoImg.width*sc, ih = photoImg.height*sc;
+            // Recorte al marco: la foto se escala para llenar la caja y lo que
+            // sobra se corta, sin invadir la cabecera ni el resto del gafete.
+            front.pushOperators(
+                pushGraphicsState(),
+                moveTo(photoBox.x, photoBox.y),
+                lineTo(photoBox.x + photoBox.w, photoBox.y),
+                lineTo(photoBox.x + photoBox.w, photoBox.y + photoBox.h),
+                lineTo(photoBox.x, photoBox.y + photoBox.h),
+                closePath(), clip(), endPath()
+            );
             front.drawImage(photoImg, { x: photoBox.x+(photoBox.w-iw)/2, y: photoBox.y+(photoBox.h-ih)/2, width: iw, height: ih });
+            front.pushOperators(popGraphicsState());
         } else {
             front.drawText('SIN FOTO', { x: photoBox.x+8, y: photoBox.y+30, size: 3.8, font: font, color: GRAY });
         }
