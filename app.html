@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACE-Control | Gestión DC-3 v1.3.5 · OVERLAY ALINEADO</title>
+    <title>ACE-Control | Gestión DC-3 v1.3.6 · LICENCIA QR + BRANDING AGENTE</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -4258,6 +4258,18 @@ async function loadDesign() {
         }
 
         setV('design-agent-name', d.agentName);
+
+        // Auto-rellenar el nombre y registro STPS del agente en el tab Licencia
+        // desde el catalogo de Agentes (para que la vista previa muestre a quien
+        // realmente firma el documento).
+        try {
+            const _ag = (DATA.agents||[]).find(a => (a.creatorEmail||'').toLowerCase() === (emailToLoad||'').toLowerCase())
+                      || (DATA.agents||[]).find(a => (a.name||'').toUpperCase().trim() === (d.agentName||'').toUpperCase().trim());
+            const licNameEl = document.getElementById('lic-design-agent-name');
+            if (licNameEl) licNameEl.value = _ag?.name || d.agentName || '';
+            const licStpsEl = document.getElementById('lic-design-agent-stps');
+            if (licStpsEl && _ag?.stps) licStpsEl.value = _ag.stps;
+        } catch(e) { console.warn('Lic: no se pudo auto-rellenar el agente', e); }
         setV('design-slogan', d.slogan);
         setV('design-slogan-x', d.sloganX ?? 30);
         setV('design-slogan-y', d.sloganY ?? 445);
@@ -5244,6 +5256,7 @@ async function embedBase64Img(pdfDoc, dataUrl) {
 // ─── LICENCIA DE MONTACARGAS ─────────────────────────────
 let _licRecord = null;
 let _licLogoDataUrl = null;
+let _licLogoManual = false; // true solo si el usuario subio un logo en ESTA sesion del modal
 let _licSaved = null;
 let _lastDC3Saved = null; // ultimo registro DC-3 guardado desde el modal de generacion (para licencia directa)
 const LIC_EQUIPOS = [
@@ -5313,6 +5326,7 @@ async function openLicenseModal(record) {
     } catch(e) { console.warn('Lic: tabla forklift_licenses no disponible aun', e); }
     _licSaved = savedLic;
 
+    _licLogoManual = false;
     try { _licLogoDataUrl = localStorage.getItem('lic_logo_b64_' + (record.companyName||'')) || null; }
     catch(e) { _licLogoDataUrl = null; }
     if (!_licLogoDataUrl && savedLic?.logoBase64) _licLogoDataUrl = savedLic.logoBase64;
@@ -5342,6 +5356,7 @@ function _licLogoChanged(input) {
     const reader = new FileReader();
     reader.onload = () => {
         _licLogoDataUrl = reader.result;
+        _licLogoManual = true;
         try { localStorage.setItem('lic_logo_b64_' + (_licRecord.companyName||''), _licLogoDataUrl); } catch(e) {}
         _licRenderLogo();
     };
@@ -5352,6 +5367,7 @@ function _licLogoChanged(input) {
 function _licClearLogo() {
     if (_licRecord) { try { localStorage.removeItem('lic_logo_b64_' + (_licRecord.companyName||'')); } catch(e) {} }
     _licLogoDataUrl = null;
+    _licLogoManual = false;
     _licRenderLogo();
 }
 
@@ -5402,50 +5418,98 @@ async function generateLicensePDF(_opts) {
             }
         } catch(e) { console.warn('Lic: sin foto', e); }
 
-        // Firma del agente capacitador (de su diseno guardado o en vivo desde el editor)
+        // ─── Branding del agente capacitador ───────────────────────────
+        // Nombre, registro STPS, firma y logo salen del AGENTE que imparte
+        // el curso (no del usuario que genera el documento). Asi, si el curso
+        // lo da Cynthia se usa su firma/logo, y si lo da Dario, los suyos.
+        const _normAg = (s) => (s||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
         let firmaImg = null;
         let designLogoB64 = null;
+        let agentRec = null;
         if (opts.designOverride) {
             // Modo editor de diseño: usa los valores en vivo del panel Diseño
             designLogoB64 = opts.designOverride.headerLogoBase64 || null;
             const fb64 = opts.designOverride.firmaBase64 || null;
             if (fb64) { try { firmaImg = await embedBase64Img(pdfDoc, fb64); } catch(e) {} }
         } else try {
-            const matches = (DATA.agents||[]).filter(a => (a.name||'').toUpperCase().trim() === (record.agentName||'').toUpperCase().trim());
-            const agentRec = matches.length > 1
+            const wanted = _normAg(record.agentName);
+            const matches = (DATA.agents||[]).filter(a => _normAg(a.name) === wanted);
+            agentRec = matches.length > 1
                 ? (matches.find(a => a.creatorEmail && a.creatorEmail !== currentUser?.email) || matches[0])
                 : matches[0];
-            const ownerEmail = agentRec?.creatorEmail || record.creatorEmail || currentUser.email;
+            const ownerEmail = agentRec?.creatorEmail || record.creatorEmail || currentUser?.email;
             const dr = await api('find','agent_designs',{ filter: { creatorEmail: ownerEmail } });
             const d = (dr.documents||[])[0];
             if (!firmaImg && d && (d.firmaBase64 || d.firma_base_64)) {
                 firmaImg = await embedBase64Img(pdfDoc, d.firmaBase64 || d.firma_base_64);
             }
-            // Logo de la empresa: usar el logo del diseno del agente (mismo que aparece en el DC-3)
-            if (!designLogoB64 && d && (d.headerLogoBase64 || d.header_logo_base64)) {
-                designLogoB64 = d.headerLogoBase64 || d.header_logo_base64;
+            // Logo del agente: cabecera de su diseño (el mismo del DC-3);
+            // si no tiene, se usa el logo de la seccion de firmas.
+            if (!designLogoB64 && d) {
+                designLogoB64 = d.headerLogoBase64 || d.header_logo_base64 || d.logoBase64 || d.logo_base64 || null;
             }
-        } catch(e) { console.warn('Lic: sin firma', e); }
+        } catch(e) { console.warn('Lic: sin branding del agente', e); }
 
-        // Logo de la empresa: subido en el modal, o el del diseno del agente (como en el DC-3)
+        // Nombre y registro STPS efectivos (del agente seleccionado)
+        const agentNameFinal = (agentRec?.name || record.agentName || '').toUpperCase();
+        const agentStpsFinal = agentRec?.stps || record.agentStps || '';
+
+        // Logo: prioridad al del agente. Solo un logo subido a mano en ESTA
+        // sesion del modal lo sobreescribe; el logo recordado por empresa
+        // queda como respaldo cuando el agente no tiene logo configurado.
         let logoImg = null;
-        const logoSrc = (opts.designOverride ? null : _licLogoDataUrl) || designLogoB64;
+        const logoSrc = (opts.designOverride ? null : (_licLogoManual ? _licLogoDataUrl : null))
+                     || designLogoB64
+                     || (_licLogoManual ? null : _licLogoDataUrl);
         if (logoSrc) {
             try { logoImg = await embedBase64Img(pdfDoc, logoSrc); } catch(e) {}
         }
 
-        // QR de verificacion — solo si hay un ID real de constancia DC-3 (evita QRs "muestra" que no resuelven a nada)
-        const hasRealId = record.id && record.id !== 'preview' && record.id !== 'preview2' && !opts.previewOnly;
-        let qrImg = null;
-        if (hasRealId) {
-            const qrUrl = 'https://ace-control.online/?v=' + record.id;
+        const equipIdx = opts.equipIdx || [...document.querySelectorAll('.lic-eq:checked')].map(cb => parseInt(cb.value));
+
+        // ── Guardar/actualizar la licencia ANTES de dibujar el QR ──
+        // El QR debe apuntar al id propio de la LICENCIA para que la pagina
+        // de verificacion muestre "Licencia de Montacargas valida" (y no la
+        // constancia DC-3). Guardar primero nos da ese id.
+        let licenseId = opts.previewOnly ? null : (_licSaved?.id || null);
+        if (!opts.previewOnly) {
             try {
-                const qrB64 = await generateQRBase64(qrUrl);
-                qrImg = await embedBase64Img(pdfDoc, qrB64);
-            } catch(e) {}
+                const licFolioFinal = 'LIC-' + (record.folioDc3 || record.folio || (record.id||'').slice(0,8) || 'SN');
+                const payload = {
+                    dc3RecordId: record.id,
+                    workerId: record.workerId, workerName: record.workerName, workerPos: record.workerPos,
+                    companyName: record.companyName, courseName: record.courseName,
+                    agentName: agentNameFinal || record.agentName, agentStps: agentStpsFinal || record.agentStps,
+                    startDate: record.startDate, endDate: record.endDate,
+                    folio: licFolioFinal,
+                    equipment: equipIdx.map(i => LIC_EQUIPOS[i]),
+                    logoBase64: _licLogoDataUrl || undefined,
+                    creatorEmail: currentUser?.email
+                };
+                if (licenseId) {
+                    await api('update','forklift_licenses',{ id: licenseId, document: payload });
+                } else {
+                    const ins = await api('insertOne','forklift_licenses',{ document: payload });
+                    if (!ins.error && ins.insertedId) {
+                        licenseId = ins.insertedId;
+                        _licSaved = { id: licenseId };
+                        await consumeCredits(1, 'LICENSE', licenseId);
+                    }
+                }
+            } catch(e) { console.warn('Lic: no se pudo guardar en la BD (tabla no disponible)', e); }
         }
 
-        const equipIdx = opts.equipIdx || [...document.querySelectorAll('.lic-eq:checked')].map(cb => parseInt(cb.value));
+        // QR de verificacion: SIEMPRE real (ya no se dibuja el cuadro "MUESTRA").
+        // En la licencia final apunta a su propio id; en la vista previa del
+        // editor de diseño apunta al sitio para que el QR se vea completo.
+        let qrImg = null;
+        try {
+            const qrTarget = licenseId
+                ? 'https://ace-control.online/?v=' + licenseId
+                : 'https://ace-control.online/';
+            const qrB64 = await generateQRBase64(qrTarget);
+            qrImg = await embedBase64Img(pdfDoc, qrB64);
+        } catch(e) { console.warn('Lic: QR no generado', e); }
 
         // Vigencia: 2 anos a partir de la fecha del curso (DC-3), formato DD-MM-YYYY
         const _fmtDMY = (iso) => {
@@ -5569,7 +5633,7 @@ async function generateLicensePDF(_opts) {
         rY -= 18;
         front.drawLine({ start: { x: sgnX1, y: rY }, end: { x: sgnX2, y: rY }, color: DARK, thickness: 0.6 });
         rY -= 5;
-        const agName = (record.agentName||'').toUpperCase();
+        const agName = agentNameFinal;
         _licWrap(agName, fontB, 3.1, sgnX2-sgnX1).slice(0,2).forEach(l => {
             const w = fontB.widthOfTextAtSize(l, 3.1);
             front.drawText(l, { x: Math.max(sgnX1,(sgnX1+sgnX2-w)/2), y: rY, size: 3.1, font: fontB, color: DARK }); rY -= 3.9;
@@ -5577,9 +5641,9 @@ async function generateLicensePDF(_opts) {
         rY -= 0.5;
         front.drawText('AGENTE CAPACITADOR', { x: (() => { const w = font.widthOfTextAtSize('AGENTE CAPACITADOR', 2.6); return Math.max(sgnX1,(sgnX1+sgnX2-w)/2); })(), y: rY, size: 2.6, font: font, color: GRAY });
         rY -= 3.4;
-        if (record.agentStps) {
-            const stpsW = font.widthOfTextAtSize(record.agentStps, 2.6);
-            front.drawText(record.agentStps, { x: Math.max(sgnX1,(sgnX1+sgnX2-stpsW)/2), y: rY, size: 2.6, font: font, color: GRAY });
+        if (agentStpsFinal) {
+            const stpsW = font.widthOfTextAtSize(agentStpsFinal, 2.6);
+            front.drawText(agentStpsFinal, { x: Math.max(sgnX1,(sgnX1+sgnX2-stpsW)/2), y: rY, size: 2.6, font: font, color: GRAY });
         }
 
         // ════════ REVERSO (gafete vertical): reglamento + incidencias ════════
@@ -5617,31 +5681,6 @@ async function generateLicensePDF(_opts) {
 
         const pdfBytesSaved = await pdfDoc.save();
         if (opts.previewOnly) return pdfBytesSaved;
-
-        // Guardar/actualizar la licencia en la BD (si la tabla existe)
-        try {
-            const licFolioFinal = 'LIC-' + (record.folioDc3 || record.folio || (record.id||'').slice(0,8) || 'SN');
-            const payload = {
-                dc3RecordId: record.id,
-                workerId: record.workerId, workerName: record.workerName, workerPos: record.workerPos,
-                companyName: record.companyName, courseName: record.courseName,
-                agentName: record.agentName, agentStps: record.agentStps,
-                startDate: record.startDate, endDate: record.endDate,
-                folio: licFolioFinal,
-                equipment: equipIdx.map(i => LIC_EQUIPOS[i]),
-                logoBase64: _licLogoDataUrl || undefined,
-                creatorEmail: currentUser?.email
-            };
-            if (_licSaved?.id) {
-                await api('update','forklift_licenses',{ id: _licSaved.id, document: payload });
-            } else {
-                const ins = await api('insertOne','forklift_licenses',{ document: payload });
-                if (!ins.error && ins.insertedId) {
-                    _licSaved = { id: ins.insertedId };
-                    await consumeCredits(1, 'LICENSE', ins.insertedId);
-                }
-            }
-        } catch(e) { console.warn('Lic: no se pudo guardar en la BD (tabla no disponible)', e); }
 
         const blob = new Blob([pdfBytesSaved], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
