@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACE-Control | Gestión DC-3 v1.3.8 · VER LICENCIA DIRECTO</title>
+    <title>ACE-Control | Gestión DC-3 v1.3.9 · VISOR DE LICENCIA</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -5312,16 +5312,18 @@ function openLicenseFromGenerator() {
     openLicenseModal(_lastDC3Saved);
 }
 
-// Abre directo el PDF de una licencia YA generada (sin modal ni generacion nueva)
+// Muestra el PDF de una licencia YA generada (sin modal de configuracion)
 async function viewLicensePDF(licId) {
-    // Abrir la pestaña de inmediato para que el navegador no la bloquee
-    const w = window.open('', '_blank');
+    const container = document.getElementById('dc3-preview-container');
+    const titleEl = document.querySelector('#modal-dc3-preview h3');
+    if (titleEl) titleEl.textContent = 'Licencia de Montacargas';
+    if (container) container.innerHTML = '<p class="text-gray-400 text-sm">Cargando licencia…</p>';
+    document.getElementById('modal-dc3-preview').classList.add('open');
     try {
         const r = await api('find','forklift_licenses',{ filter: { id: licId } });
         const lic = (r.documents||[])[0];
         if (!lic) {
-            if (w) w.close();
-            alert('No se encontro la licencia.');
+            if (container) container.innerHTML = '<p class="text-red-500 text-sm">No se encontró la licencia.</p>';
             return;
         }
         const origFolioDc3 = (lic.folio||'').replace(/^LIC-/,'');
@@ -5338,11 +5340,16 @@ async function viewLicensePDF(licId) {
         _licSaved = { id: lic.id };
         _licLogoManual = false;
         _licLogoDataUrl = lic.logoBase64 || null;
-        await generateLicensePDF({ record: rec, equipIdx, viewMode: true, licenseId: lic.id, targetWindow: w });
+        const bytes = await generateLicensePDF({ record: rec, equipIdx, viewMode: true, licenseId: lic.id });
+        if (bytes) {
+            _previewPdfBytes = bytes;
+            showPDFInContainer(bytes, container);
+        } else if (container) {
+            container.innerHTML = '<p class="text-red-500 text-sm">No se pudo generar la licencia.</p>';
+        }
     } catch(e) {
-        if (w) w.close();
         console.error('Ver licencia:', e);
-        alert('No se pudo abrir la licencia: ' + (e.message||e));
+        if (container) container.innerHTML = '<p class="text-red-500 text-sm">Error: ' + (e.message||e) + '</p>';
     }
 }
 
@@ -5737,19 +5744,10 @@ async function generateLicensePDF(_opts) {
         const blob = new Blob([pdfBytesSaved], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
 
-        // Ver una licencia ya generada: se abre el PDF directo, sin modal ni descarga forzada
+        // Ver una licencia ya generada: se devuelven los bytes y el llamador
+        // los muestra en el visor interno de la app (sin modal de configuracion).
         if (_viewMode) {
-            const w = opts.targetWindow || window.open('', '_blank');
-            if (w) {
-                w.location.href = url;
-            } else {
-                // Navegador bloqueo la pestaña: se descarga como respaldo
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'Licencia_' + (record.workerId || record.workerName || 'operador') + '.pdf';
-                a.click();
-            }
-            setTimeout(() => URL.revokeObjectURL(url), 60000);
+            URL.revokeObjectURL(url);
             return pdfBytesSaved;
         }
 
@@ -6031,6 +6029,8 @@ async function previewDC3(overrides = {}) {
 }
 
 async function previewRecordPDF(record) {
+    const _titleEl = document.querySelector('#modal-dc3-preview h3');
+    if (_titleEl) _titleEl.textContent = currentHistoryTab === 'DIPLOMA' ? 'Previsualización Diploma' : 'Previsualización DC-3';
     let worker = {
         name: record.workerName,
         curp: record.workerId,
