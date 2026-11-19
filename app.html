@@ -3020,11 +3020,22 @@ async function loadAdminDashboardExtras(workers, dc3s, companies) {
             else if (r.documentType === 'BOTH') { a.dc3++; a.diploma++; }
             else a.dc3++;
         });
+        // Licencias: se cuentan FOLIOS ÚNICOS por cuenta. Si un documento se
+        // generó dos veces, la tabla tiene dos filas con el mismo folio y no
+        // debe inflar el desglose (decisión del usuario 2026-11-19).
+        const _seenLicFolios = {};
         licenses.forEach(l => {
             // Busca el agente por nombre normalizado; si no lo encuentra,
             // atribuye la licencia a quien la creó (evita perder el conteo).
             const email = emailByAgentName[normAgent(l.agentName)] || (l.creatorEmail || '').toLowerCase();
-            const a = ensure(email); if (a) a.lic++;
+            const a = ensure(email); if (!a) return;
+            const folio = String(l.folio || '').trim();
+            if (folio) {
+                const key = email + '|' + folio;
+                if (_seenLicFolios[key]) return; // folio repetido: ya contado
+                _seenLicFolios[key] = true;
+            }
+            a.lic++;
         });
         users.forEach(u => ensure(u.email));
         Object.keys(creditByEmail).forEach(e => ensure(e));
