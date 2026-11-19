@@ -6033,7 +6033,30 @@ async function generateLicensePDF(_opts) {
             back.drawText(String(n), { x: ccx-nw/2, y: ccy-1.8, size: 5, font: fontB, color: rgb(1,1,1) });
         });
 
-        back.drawText('VERIFICA ESTE DOCUMENTO EN: ace-control.pages.dev', { x: 5, y: 4, size: 3, font: font, color: GRAY });
+        back.drawText('VERIFICA ESTE DOCUMENTO EN: ace-control.online', { x: 5, y: 4, size: 3, font: font, color: GRAY });
+
+        // ════════ HOJA UNICA: anverso + reverso lado a lado ════════
+        // Antes se generaban 2 paginas (una por cara). Ahora ambas caras se
+        // dibujan en una sola hoja, lado a lado, conservando el tamaño real
+        // del gafete (2.125in x 3.375in) para imprimir al 100% y recortar.
+        const LIC_GAP = 18; // separacion entre caras (pt)
+        const sheet = pdfDoc.addPage([PW * 2 + LIC_GAP, PH]);
+        const frontEmb = await pdfDoc.embedPage(front);
+        const backEmb  = await pdfDoc.embedPage(back);
+        sheet.drawPage(frontEmb, { x: 0, y: 0, width: PW, height: PH });
+        sheet.drawPage(backEmb,  { x: PW + LIC_GAP, y: 0, width: PW, height: PH });
+        // Guia de corte punteada entre ambas caras
+        sheet.drawLine({
+            start: { x: PW + LIC_GAP / 2, y: 6 },
+            end:   { x: PW + LIC_GAP / 2, y: PH - 6 },
+            thickness: 0.5,
+            color: LIGHT,
+            dashArray: [2, 2]
+        });
+        // Quitar las paginas individuales (el reverso primero, para no
+        // desplazar el indice de la primera)
+        pdfDoc.removePage(1);
+        pdfDoc.removePage(0);
 
         const pdfBytesSaved = await pdfDoc.save();
         if (opts.previewOnly) return pdfBytesSaved;
