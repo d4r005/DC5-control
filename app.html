@@ -4090,9 +4090,29 @@ async function _buildDiplomaCore(opts = {}) {
 }
 
 async function getNextFolio(type = 'DIPLOMA') {
+    const yearNow = new Date().getFullYear();
+    const prefixNow = type === 'DC3' ? 'EHS-DC3' : 'EHS-CON';
+
+    // ── 1) Camino principal: secuencia ATÓMICA en el servidor ──────────
+    // Antes el folio se calculaba en el navegador con "el máximo que yo veo + 1".
+    // Eso provocaba dos problemas: (a) dos cuentas distintas (cada una solo ve
+    // sus registros) calculaban el mismo número, y (b) un doble clic generaba
+    // dos documentos con el mismo folio antes de que el primero se guardara.
+    // La función next_folio() hace el incremento dentro de Postgres, con bloqueo
+    // de fila, así que dos llamadas simultáneas nunca obtienen el mismo número.
+    // Requiere ejecutar sql_folios_secuencia.sql una sola vez.
     try {
-        const year = new Date().getFullYear();
-        const prefix = type === 'DC3' ? 'EHS-DC3' : 'EHS-CON';
+        const { data, error } = await sb.rpc('next_folio', { p_prefix: prefixNow, p_year: yearNow });
+        if (!error && data) return String(data);
+        if (error) console.warn('[folio] next_folio no disponible, usando respaldo local:', error.message);
+    } catch (e) {
+        console.warn('[folio] next_folio falló, usando respaldo local:', e);
+    }
+
+    // ── 2) Respaldo: cálculo local (comportamiento anterior) ───────────
+    try {
+        const year = yearNow;
+        const prefix = prefixNow;
 
         // Cargar registros para contar (filtramos por año actual en el cliente para mayor robustez)
         const r = await api('find','dc3_records', { filter: {} });
