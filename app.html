@@ -2996,7 +2996,11 @@ async function loadAdminDashboardExtras(workers, dc3s, companies) {
 
         // ── Desglose por agente / cuenta ──
         const nameByEmail = {}; (DATA.agents || []).forEach(a => { if (a.creatorEmail) nameByEmail[a.creatorEmail.toLowerCase()] = a.name; });
-        const emailByAgentName = {}; (DATA.agents || []).forEach(a => { if (a.name) emailByAgentName[a.name] = (a.creatorEmail || '').toLowerCase(); });
+        // Normaliza nombres de agente: las licencias pueden guardar el nombre en
+// MAYÚSCULAS o con espacios distintos al catálogo de agentes, y con un cruce
+// sensible a mayúsculas se perdían licencias en el desglose (bug 2026-11-19).
+        const normAgent = (s) => String(s || '').toUpperCase().replace(/\s+/g, ' ').trim();
+        const emailByAgentName = {}; (DATA.agents || []).forEach(a => { if (a.name) emailByAgentName[normAgent(a.name)] = (a.creatorEmail || '').toLowerCase(); });
         const creditByEmail = {}; creditsRows.forEach(r => { creditByEmail[(r.agentEmail || '').toLowerCase()] = r; });
         const adminEmails = new Set(getAdminEmails());
         const EXCLUDE = new Set(['qa@ace-control.online']); // residuo de pruebas QA, no es una cuenta real
@@ -3016,7 +3020,12 @@ async function loadAdminDashboardExtras(workers, dc3s, companies) {
             else if (r.documentType === 'BOTH') { a.dc3++; a.diploma++; }
             else a.dc3++;
         });
-        licenses.forEach(l => { const email = emailByAgentName[l.agentName]; const a = ensure(email); if (a) a.lic++; });
+        licenses.forEach(l => {
+            // Busca el agente por nombre normalizado; si no lo encuentra,
+            // atribuye la licencia a quien la creó (evita perder el conteo).
+            const email = emailByAgentName[normAgent(l.agentName)] || (l.creatorEmail || '').toLowerCase();
+            const a = ensure(email); if (a) a.lic++;
+        });
         users.forEach(u => ensure(u.email));
         Object.keys(creditByEmail).forEach(e => ensure(e));
 
