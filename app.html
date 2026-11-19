@@ -1166,6 +1166,10 @@
         </div>
 
         <div class="space-y-4">
+            <label class="flex items-center gap-2 cursor-pointer select-none bg-gray-50 rounded-lg px-3 py-2">
+                <input type="checkbox" id="dc3-include-photo" checked onchange="saveDC3PhotoPref()" class="w-4 h-4 accent-blue-900">
+                <span class="text-sm text-gray-700">Incluir foto del trabajador en el DC-3</span>
+            </label>
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Empresa</label>
@@ -1319,6 +1323,10 @@
                 <label class="block text-sm font-medium text-gray-700 mb-1">Curso</label>
                 <select id="bulk-course" class="input-field"></select>
             </div>
+            <label class="flex items-center gap-2 cursor-pointer select-none bg-gray-50 rounded-lg px-3 py-2">
+                <input type="checkbox" id="bulk-include-photo" checked onchange="saveDC3PhotoPref()" class="w-4 h-4 accent-blue-900">
+                <span class="text-sm text-gray-700">Incluir foto de los trabajadores en los DC-3</span>
+            </label>
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Fecha inicio</label>
@@ -3529,6 +3537,7 @@ function openDC3(worker) {
     // Courses - Initialize filtered by first agent
     filterDC3Courses();
 
+    restoreDC3PhotoPref();
     document.getElementById('modal-dc3').classList.add('open');
 }
 
@@ -3579,6 +3588,7 @@ function prepareEditDC3(record) {
     document.getElementById('dc3-end').value = record.endDate;
     // dc3-result field removed
 
+    restoreDC3PhotoPref();
     document.getElementById('modal-dc3').classList.add('open');
 }
 
@@ -3651,7 +3661,8 @@ async function generateDC3() {
         start, end, result,
         qrUrl: qrUrl,
         folio: folio,
-        isDesignPreview: false
+        isDesignPreview: false,
+        includePhoto: dc3PhotoEnabled()
     });
 
     if (!pdfBytes) return;
@@ -3787,7 +3798,8 @@ async function generateBoth() {
             start, end, result: 'Acreditado',
             qrUrl: qrUrl,
             folio: folioDC3,
-            isDesignPreview: false
+            isDesignPreview: false,
+            includePhoto: dc3PhotoEnabled()
         });
 
         const diplomaBytes = await _buildDiplomaCore({ qrUrl, folio: folioDiploma, isDesignPreview: false });
@@ -6075,6 +6087,7 @@ function openBulkDC3Modal() {
     // Reset progress
     document.getElementById('bulk-progress').classList.add('hidden');
     document.getElementById('bulk-progress-bar').style.width = '0%';
+    restoreDC3PhotoPref();
     document.getElementById('modal-bulk-dc3').classList.add('open');
 }
 
@@ -6242,6 +6255,29 @@ async function previewBulk() {
 // ─── PREVISUALIZACIÓN DC-3 ────────────────────────────────────────────
 let _previewPdfBytes = null;
 
+// ─── Foto opcional en el DC-3 ─────────────────────────────────────────
+// Preferencia recordada por dispositivo; por defecto SÍ incluye la foto.
+function dc3PhotoEnabled() {
+    const el = document.getElementById('dc3-include-photo');
+    if (el) return el.checked;
+    return localStorage.getItem('dc3_include_photo') !== '0';
+}
+function saveDC3PhotoPref() {
+    const el = document.getElementById('dc3-include-photo');
+    const bulk = document.getElementById('bulk-include-photo');
+    const val = el ? el.checked : (bulk ? bulk.checked : true);
+    localStorage.setItem('dc3_include_photo', val ? '1' : '0');
+    if (el) el.checked = val;
+    if (bulk) bulk.checked = val;
+}
+function restoreDC3PhotoPref() {
+    const val = localStorage.getItem('dc3_include_photo') !== '0';
+    const el = document.getElementById('dc3-include-photo');
+    const bulk = document.getElementById('bulk-include-photo');
+    if (el) el.checked = val;
+    if (bulk) bulk.checked = val;
+}
+
 async function previewDC3(overrides = {}) {
     const companyName = overrides.companyName ?? document.getElementById('dc3-company').value;
     const agentVal    = overrides.agentVal ?? document.getElementById('dc3-agent').value;
@@ -6267,7 +6303,8 @@ async function previewDC3(overrides = {}) {
             start, end, result: 'Acreditado',
             qrUrl: 'https://ace-control.online/?v=preview',
             folio: 'EHS-DC3-2024-PREVIEW',
-            isDesignPreview: false // Queremos ver cómo queda con el diseño GUARDADO del agente
+            isDesignPreview: false, // Queremos ver cómo queda con el diseño GUARDADO del agente
+            includePhoto: dc3PhotoEnabled()
         });
         showPDFInContainer(_previewPdfBytes, container);
     } catch(e) {
@@ -6448,7 +6485,7 @@ async function downloadRecordPDF(record) {
     }
 }
 
-async function _buildDC3Core({ worker, company, agent, course, start, end, result, qrUrl, folio, isDesignPreview }) {
+async function _buildDC3Core({ worker, company, agent, course, start, end, result, qrUrl, folio, isDesignPreview, includePhoto = true }) {
     const { PDFDocument, StandardFonts, rgb } = PDFLib;
 
     function sp(s) {
@@ -6533,7 +6570,8 @@ async function _buildDC3Core({ worker, company, agent, course, start, end, resul
     const compObj = (typeof company === 'object' && company !== null) ? company : { name: String(company || ''), rfc: '' };
     const companyNameFinal = String(compObj.name || '').toUpperCase();
 
-    if (worker && worker.photoUrl) {
+    // La foto es opcional: se controla con la casilla "Incluir foto" del modal.
+    if (includePhoto !== false && worker && worker.photoUrl) {
         try {
             const photoBytes = await fetch(worker.photoUrl).then(r => r.arrayBuffer());
             const photoImg = await pdfDoc.embedJpg(photoBytes).catch(() => pdfDoc.embedPng(photoBytes));
@@ -6856,7 +6894,8 @@ async function generateWorkerCoursesPDF() {
                 course:  { name: row.courseName, durationHours: row.durationHours, thematicArea: row.thematicArea, stpsId: row.stpsId },
                 start:   row.start,
                 end:     row.end,
-                result:  row.result
+                result:  row.result,
+                includePhoto: (document.getElementById('bulk-include-photo') || {}).checked !== false
             });
             if (pdfBytes) {
                 const srcPdf = await PDFDocument.load(pdfBytes);
